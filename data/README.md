@@ -13,3 +13,17 @@ max_du_per_parcel is not currently used because we don't necessarily trust our d
 Note that a blank value in the csv means that there is no constraint for that attribute and the other constraints will be used.  If there is no constraint for any of far, height, and dua, a building will NOT be built. 
 
 *By convention a 0 in dua, far, and height is discouraged.  It is preferred to use the "building type not allowed" columns for this*
+
+A few other notes on the addition of development projects. 
+
+1. We use two different approach to join the project list to the parcel database in order to get the GEOM_ID, which is important in the model run.
+	(1) If local jurisdictions provide Assessor's Parcel Number (APN) for the project, then APN is used in the table join process.
+	(2) Otherwise, we map out the projects using the addresses provided by jurisdictions and then join the parcel database spatially. However, many times addresses provided by jurisdictions would map onto an intersection or street instead of onto a parcel. In those cases, we use an aerial map to choose a location that is deemed possible for the project.
+  In the mapping process, sometimes method (2) would make more sense than method (1) when looking at the scale of the projects and the size of the parcel. However, for now we will use APN as the primary joining method despite the situations described.
+ 
+2. There could be cases where parcel consolidation has happened for large scale projects after 2010, but because the parcel database is from 2010, it is possible that projects would be mapped to small parcels from before the the parcel consolidation. 
+
+3. "Year_built" is also an important variable for the model run, however, local jurisdiction may not provide this information. For the added projects, value for the "year_built" variable could be: (1) year when the projects were approved; (2) year when the projects started to be built; (3) year when the projects were completed; (4) year of the development activity reported was published; But not the year when the projects are anticipated to be completed.
+
+4) Two other columns are required for the project to be used by UrbanSim.  The "action" field must be set to "build" or "add" - "build" will demolish current buildings while "add" will not.  Second, the building type must be set.  The set of building types that are available is defined is [settings](https://github.com/MetropolitanTransportationCommission/bayarea_urbansim/blob/master/configs/settings.yaml).
+
