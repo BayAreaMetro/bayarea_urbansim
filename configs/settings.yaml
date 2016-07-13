@@ -30,7 +30,13 @@ eliminate_retail_zoning_from_juris:
   - 'Sonoma County'
   - 'Contra Costa County'
   - 'San Mateo County'
+  - 'Solano County'
+  - 'Napa County'
+  - 'Marin County'
   - 'Benicia'
+  - 'Brentwood'
+  - 'Antioch'
+  - 'Yountville'
 
 
 clip_sqft_per_unit_based_on_dua:
@@ -430,9 +436,9 @@ acct_settings:
       H: 15000
       MH: 5000
     com_fee_amounts:
-      VH: 30
-      H: 15
-      MH: 9
+      VH: 45
+      H: 22
+      MH: 12
   sb743_settings:
     enable: true
     sb743_pcts:
@@ -760,12 +766,12 @@ cost_shifters:
 development_limits:
   default:
     Office:
-      'San Francisco': 3000
+      'San Francisco': 3500
     Residential:
       'Half Moon Bay': 43
   "2":
     Office:
-      'San Francisco': 4500
+      'San Francisco': 5250
     Residential:
       'Half Moon Bay': 43
   "3":
@@ -773,33 +779,50 @@ development_limits:
       'Half Moon Bay': 43
   "4":
     Office:
-      'San Francisco': 3000
-      'Sonoma County': 1
+      'San Francisco': 4375
+      'San Jose': 7500
+      'Sonoma County': 10
       'Half Moon Bay': 1
       'Yountville': 1
+      'Benicia': 200
+      'San Mateo County': 150
+      'Contra Costa County': 130
+      'Brentwood': 85
+      'Solano County': 30
+      'Antioch': 250
+      'Brisbane': 90
+      'Los Altos Hills': 1
+      'Pacifica': 1
+      'Woodside': 1
     Residential:
       'Half Moon Bay': 43
       'Brisbane': 180
       'Petaluma': 100
-      'San Jose': 5000
+      'San Jose': 5200
       'Mill Valley': 16
       'Sonoma County': 75
+      'Solano County': 230
       'Napa County': 50
       'Lafayette': 50
       'Belvedere': 2
-      'Marin County': 55
+      'Marin County': 1
       'San Rafael': 140
       'Calistoga': 5
       'Woodside': 5
+      'Moraga': 25
+      'St. Helena': 6
     Retail:
       'Sonoma County': 1
       'Half Moon Bay': 1
       'Yountville': 1
     Industrial:
       'Sonoma County': 1
+      'Benicia': 50
+      'San Mateo County': 50
+      'Contra Costa County': 50
   "5":
     Office:
-      'San Francisco': 4500
+      'San Francisco': 5250
     Residential:
       'Half Moon Bay': 43
 
