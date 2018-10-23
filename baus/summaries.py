@@ -779,6 +779,7 @@ def travel_model_output(parcels, households, jobs, buildings,
     taz_df = add_population(taz_df, year)
     taz_df = add_employment(taz_df, year)
     taz_df = add_age_categories(taz_df, year)
+    orca.add_table('taz_summary_1', taz_df)
 
     summary.add_zone_output(taz_df, "travel_model_output", year)
     summary.write_zone_output()
@@ -862,13 +863,13 @@ def travel_model_2_output(parcels, households, jobs, buildings,
                           maz, year, empsh_to_empsix, run_number,
                           zone_forecast_inputs, maz_forecast_inputs,
                           taz2_forecast_inputs, county_forecast_inputs,
-                          county_employment_forecast,
-                          regional_demographic_forecast):
+                          county_employment_forecast, taz_forecast_inputs,
+                          regional_demographic_forecast, taz_summary_1):
     if year not in [2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050]:
         # only summarize for years which are multiples of 5
         return
 
-    maz = maz.to_frame(['TAZ', 'COUNTY'])
+    maz = maz.to_frame(['TAZ', 'COUNTY', 'taz1454'])
 
     pcl = parcels.to_frame(['maz_id', 'acres'])
     maz['ACRES'] = pcl.groupby('maz_id').acres.sum()
@@ -1018,6 +1019,43 @@ def travel_model_2_output(parcels, households, jobs, buildings,
     taz2 = adjust_hhkids(taz2, year, rdf)
     taz2.index.name = 'TAZ2'
 
+    taz = pd.DataFrame(index=taz_forecast_inputs.index)
+    tfi = taz_forecast_inputs.to_frame()
+    
+    taz['gq_type_univ'] = maz.groupby('taz1454').gq_type_univ.sum().fillna(0)
+    taz['gq_type_mil'] = maz.groupby('taz1454').gq_type_mil.sum().fillna(0)
+    taz['gq_type_othnon'] = maz.groupby('taz1454').gq_type_othnon.sum().fillna(0)
+    taz['gq_tot_pop'] = maz.groupby('taz1454').gq_tot_pop.sum().fillna(0)
+    
+    taz['hh'] = maz.groupby('taz1454').tothh.sum()
+    # taz['hh_inc_30'] = maz.groupby('taz1454').hhincq1.sum().fillna(0)
+    # taz['hh_inc_30_60'] = maz.groupby('taz1454').hhincq2.sum().fillna(0)
+    # taz['hh_inc_60_100'] = maz.groupby('taz1454').hhincq3.sum().fillna(0)
+    # taz['hh_inc_100_plus'] = maz.groupby('taz1454').hhincq4.sum().fillna(0)
+
+    taz['pop_hhsize1'] = maz.groupby('taz1454').hh_size_1.sum()
+    taz['pop_hhsize2'] = maz.groupby('taz1454').hh_size_2.sum() * 2
+    taz['pop_hhsize3'] = maz.groupby('taz1454').hh_size_3.sum() * 3
+    taz['pop_hhsize4'] = maz.groupby('taz1454').hh_size_4_plus.sum() * 4.781329
+
+    taz['pop'] = taz.pop_hhsize1 + taz.pop_hhsize2\
+        + taz.pop_hhsize3 + taz.pop_hhsize4
+
+    taz['county'] = maz.groupby('taz1454').COUNTY.first()
+
+    taz['hh_wrks_0'] = taz['hh'] * tfi.shrw0_2010
+    taz['hh_wrks_1'] = taz['hh'] * tfi.shrw1_2010
+    taz['hh_wrks_2'] = taz['hh'] * tfi.shrw2_2010
+    taz['hh_wrks_3_plus'] = taz['hh'] * tfi.shrw3_2010
+
+    taz['hh_kids_no'] = taz['hh'] * tfi.shrn_2010
+    taz['hh_kids_yes'] = taz['hh'] * tfi.shry_2010
+    taz = adjust_hhwkrs(taz, year, rdf)
+    #taz = adjust_page(taz, year, rdf)
+    taz = adjust_hhkids(taz, year, rdf)
+    taz = taz.rename(columns={'hh': 'HH', 'pop': 'POP'})
+    taz.index.name = 'TAZ1454'
+
     cfi = county_forecast_inputs.to_frame()
     county = pd.DataFrame(index=cfi.index)
     county['pop'] = maz.groupby('COUNTY').POP.sum()
@@ -1082,6 +1120,11 @@ def travel_model_2_output(parcels, households, jobs, buildings,
           'pers_age_65_plus', 'hh_kids_no',
           'hh_kids_yes']].fillna(0).to_csv(
         "runs/run{}_taz2_marginals_{}.csv".format(run_number, year))
+
+    taz_df = taz_summary_1.to_frame()
+    taz = pd.merge(taz, taz_df, left_index=True, right_index=True)
+    taz.fillna(0).to_csv(
+        "runs/run{}_taz_summaries_{}.csv".format(run_number, year))
 
     county[['pers_occ_management', 'pers_occ_professional',
             'pers_occ_services', 'pers_occ_retail',
