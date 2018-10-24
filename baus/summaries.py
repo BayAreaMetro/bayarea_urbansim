@@ -835,13 +835,18 @@ def travel_model_output(parcels, households, jobs, buildings,
     
     taz_df['hh'] = maz.groupby('taz1454').tothh.sum()
 
-    taz_df['pop_hhsize1'] = maz.groupby('taz1454').hh_size_1.sum()
-    taz_df['pop_hhsize2'] = maz.groupby('taz1454').hh_size_2.sum() * 2
-    taz_df['pop_hhsize3'] = maz.groupby('taz1454').hh_size_3.sum() * 3
-    taz_df['pop_hhsize4'] = maz.groupby('taz1454').hh_size_4_plus.sum() * 4.781329
+    taz_df['hh_size_1'] = maz.groupby('taz1454').hh_size_1.sum()
+    taz_df['hh_size_2'] = maz.groupby('taz1454').hh_size_2.sum()
+    taz_df['hh_size_3'] = maz.groupby('taz1454').hh_size_3.sum()
+    taz_df['hh_size_4_plus'] = maz.groupby('taz1454').hh_size_4_plus.sum()
 
-    taz_df['pop'] = taz_df.pop_hhsize1 + taz_df.pop_hhsize2\
-        + taz_df.pop_hhsize3 + taz_df.pop_hhsize4
+    # taz_df['pop_hhsize1'] = maz.groupby('taz1454').hh_size_1.sum()
+    # taz_df['pop_hhsize2'] = maz.groupby('taz1454').hh_size_2.sum() * 2
+    # taz_df['pop_hhsize3'] = maz.groupby('taz1454').hh_size_3.sum() * 3
+    # taz_df['pop_hhsize4'] = maz.groupby('taz1454').hh_size_4_plus.sum() * 4.781329
+
+    # taz_df['pop'] = taz_df.pop_hhsize1 + taz_df.pop_hhsize2\
+    #    + taz_df.pop_hhsize3 + taz_df.pop_hhsize4
 
     taz_df['county'] = maz.groupby('taz1454').COUNTY.first()
 
@@ -855,7 +860,8 @@ def travel_model_output(parcels, households, jobs, buildings,
     taz_df = adjust_hhwkrs(taz_df, year, rdf)
     #taz = adjust_page(taz_df, year, rdf)
     taz_df = adjust_hhkids(taz_df, year, rdf)
-    taz_df = taz_df.rename(columns={'hh': 'HH', 'pop': 'POP'})
+    del taz_df['hh']
+    # taz_df = taz_df.rename(columns={'hh': 'HH', 'pop': 'POP'})
     taz_df.index.name = 'TAZ1454'
 
     taz_df.fillna(0).to_csv(
