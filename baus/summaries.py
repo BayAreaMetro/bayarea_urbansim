@@ -1210,16 +1210,10 @@ def add_population(df, year):
 def add_population_tm2(df, year):
     rc = regional_controls()
     target = rc.totpop.loc[year] - df.gqpop.sum()
-    print('total population control: ', rc.totpop.loc[year])
-    print('total GQ pop: ', df.gqpop.sum())
-    print('target population: ', target)
     s = df.hhpop
-    print(s.sum())
     s = scale_by_target(s, target, .15)
-    print(s.sum())
     df["hhpop"] = round_series_match_target(s, target, 0)
     df["hhpop"] = df.hhpop.fillna(0)
-    print(df.hhpop.sum())
     return df
 
 
