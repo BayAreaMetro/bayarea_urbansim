@@ -819,6 +819,7 @@ def travel_model_output(parcels, households, jobs, buildings,
     maz['gq_type_othnon'] = mazi['gqpopo' + mazi_yr]
     maz['gq_tot_pop'] = maz['gq_type_univ'] + maz['gq_type_mil']\
         + maz['gq_type_othnon']
+    tot_gqpop = maz.gq_tot_pop.sum()
 
     maz['POP'] = maz.gq_tot_pop + maz.hhpop
     maz['HH'] = maz.tothh.fillna(0)
@@ -916,6 +917,12 @@ def travel_model_output(parcels, households, jobs, buildings,
 
     county_df.fillna(0).to_csv(
         "runs/run{}_county_summaries_{}.csv".format(run_number, year))
+
+    pd.DataFrame(data={'REGION': [1],
+                       'gq_num_hh_region': [tot_gqpop]}).to_csv(
+                 "runs/run{}_regional_marginals_{}.csv".format(run_number,
+                                                               year),
+                 index=False)
 
 
 @orca.step()
@@ -1030,7 +1037,6 @@ def travel_model_2_output(parcels, households, jobs, buildings,
     maz['gq_tot_pop'] = maz['gq_type_univ'] + maz['gq_type_mil']\
         + maz['gq_type_othnon']
     maz['gqpop'] = maz['gq_tot_pop']
-    tot_gqpop = maz.gq_tot_pop.sum()
     maz = add_population_tm2(maz, year)
 
     maz['POP'] = maz.gq_tot_pop + maz.hhpop
@@ -1158,11 +1164,6 @@ def travel_model_2_output(parcels, households, jobs, buildings,
             'pers_occ_manual', 'pers_occ_military',
             'gq_tot_pop']].fillna(0).to_csv(
         "runs/run{}_county_marginals_{}.csv".format(run_number, year))
-
-    pd.DataFrame(data={'REGION': [1],
-                       'gq_num_hh_region': [tot_gqpop]}).to_csv(
-                 "runs/run{}_regional_gq_{}.csv".format(run_number, year),
-                 index=False)
 
 
 def scaled_ciacre(mtcc, us_outc):
