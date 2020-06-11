@@ -320,6 +320,9 @@ use_new_pda_id_in_topsheet: True
 # Draft Blueprint has a new tra_id which doesn't go into the parcels file (.H5)
 use_new_tra_id_in_topsheet: True
 
+# Draft Blueprint has a new hra_id which doesn't go into the parcels file (.H5)
+use_new_hra_id_in_topsheet: True
+
 
 
 
