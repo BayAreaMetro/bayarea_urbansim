@@ -318,7 +318,7 @@ def config(policy, inputs, run_number, scenario, parcels,
 def topsheet(households, jobs, buildings, parcels, zones, year,
              run_number, taz_geography, parcels_zoning_calculations,
              summary, settings, parcels_geography, abag_targets, new_tpp_id,
-             residential_units, mapping, scenario):
+             new_pda_id, new_tra_id, residential_units, mapping, scenario):
 
     hh_by_subregion = misc.reindex(taz_geography.subregion,
                                    households.zone_id).value_counts()
@@ -327,7 +327,8 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
         households_df = orca.merge_tables(
             'households',
             [parcels_geography, buildings, households],
-            columns=['pda_id', 'tpp_id', 'tra_id', 'ppa_id', 'sesit_id', 'income'])
+            columns=['pda_id', 'tpp_id', 'tra_id', 'ppa_id', 
+                     'sesit_id', 'income'])          
 
     elif scenario not in ["20", "21", "22", "23"]:
         households_df = orca.merge_tables(
@@ -339,6 +340,10 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
         del households_df["tpp_id"]
         households_df["tpp_id"] = misc.reindex(new_tpp_id.tpp_id,
                                                households_df.parcel_id)
+    if settings["use_new_pda_id_in_topsheet"]:
+        del households_df["pda_id"]
+        households_df["pda_id"] = misc.reindex(new_pda_id.pda_id,
+                                               households_df.parcel_id) 
 
     hh_by_inpda = households_df.pda_id.notnull().value_counts()
     hh_by_intpp = households_df.tpp_id.notnull().value_counts()
@@ -370,21 +375,27 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
         'jobs',
         [parcels, buildings, jobs],
         columns=['pda'])
-    
-    if scenario in ["20", "21", "22", "23"]:
-        jobs_df = orca.merge_tables(
-            'jobs',
-            [parcels, buildings, jobs],
-            columns=['pda','tra_id'])
 
     if settings["use_new_tpp_id_in_topsheet"]:
         jobs_df["tpp_id"] = misc.reindex(new_tpp_id.tpp_id,
+                                         jobs_df.parcel_id)
+
+    # use Draft Blueprint new pda_id 
+    if settings["use_new_pda_id_in_topsheet"]:
+        del jobs_df["pda"]
+        jobs_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                         jobs_df.parcel_id)
+
+    # add Draft Blueprint new tra_id
+    if settings["use_new_tra_id_in_topsheet"]:
+        jobs_df["tra_id"] = misc.reindex(new_tra_id.pda_id,
                                          jobs_df.parcel_id)
 
     jobs_by_inpda = jobs_df.pda.notnull().value_counts()
     jobs_by_intpp = jobs_df.tpp_id.notnull().value_counts()
 
     if scenario in ["20", "21", "22", "23"]:
+        jobs_by_inpda = jobs_df.pda.notnull().value_counts()
         jobs_by_intra = jobs_df.tra_id.notnull().value_counts()
         jobs_by_intra_group = jobs_df.tra_id.value_counts()
 
@@ -420,7 +431,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
                 "hhincome_by_intra": hhincome_by_intra,
                 "hhincome_by_insesit": hhincome_by_insesit,
                 "capacity": capacity
-            })          
+            })
 
     try:
         base_year_measures = orca.get_injectable("base_year_measures")
