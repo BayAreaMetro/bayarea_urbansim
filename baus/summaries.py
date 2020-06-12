@@ -388,7 +388,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
 
     # add Draft Blueprint new tra_id
     if settings["use_new_tra_id_in_topsheet"]:
-        jobs_df["tra_id"] = misc.reindex(new_tra_id.pda_id,
+        jobs_df["tra_id"] = misc.reindex(new_tra_id.tra_id,
                                          jobs_df.parcel_id)
 
     jobs_by_inpda = jobs_df.pda.notnull().value_counts()
@@ -795,9 +795,10 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, settings,
 
 
 @orca.step()
-def geographic_summary(parcels, households, jobs, buildings, taz_geography,
+def geographic_summary(parcels, households, jobs, buildings, new_tra_id,
+                       new_hra_id, new_pda_id, taz_geography,
                        run_number, year, summary, final_year, scenario,
-                       policy):
+                       policy, settings):
     # using the following conditional b/c `year` is used to pull a column
     # from a csv based on a string of the year in add_population()
     # and in add_employment() and 2009 is the
@@ -829,30 +830,38 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
                  'non_residential_sqft', 'juris_trich'])
 
     if scenario in policy["geographies_db_enable"]:
-        households_df = orca.merge_tables(
-            'households',
-            [parcels, buildings, households],
-            columns=['pda', 'zone_id', 'juris', 'superdistrict',
-                    'persons', 'income', 'base_income_quartile',
-                    'juris_trich','tra_id', 'ppa_id', 'sesit_id',
-                    'juris_tra', 'juris_hra', 'juris_tra_hra'])
+        if settings["use_new_pda_id_in_topsheet"]:
+            del households_df["pda"]
+            households_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                                households_df.parcel_id)
+            del jobs_df["pda"]
+            jobs_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                          households_df.parcel_id)
+            del buildings_df["pda"]
+            buildings_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                               households_df.parcel_id)
 
-        jobs_df = orca.merge_tables(
-            'jobs',
-            [parcels, buildings, jobs],
-            columns=['pda', 'superdistrict', 'juris', 'zone_id',
-                    'empsix', 'juris_trich','tra_id', 'ppa_id', 
-                    'sesit_id', 'juris_tra', 
-                    'juris_hra', 'juris_tra_hra'])
+        if settings["use_new_tra_id_in_topsheet"]:
+            households_df["tra_id"] = \
+                misc.reindex(new_tra_id.tra_id,
+                             households_df.parcel_id)
+            jobs_df["tra_id"] = \
+                misc.reindex(new_tra_id.tra_id,
+                             households_df.parcel_id)
+            buildings_df["tra_id"] = \
+                misc.reindex(new_tra_id.tra_id,
+                             households_df.parcel_id)
 
-        buildings_df = orca.merge_tables(
-            'buildings',
-            [parcels, buildings],
-            columns=['pda', 'superdistrict', 'juris', 'building_type',
-                    'zone_id', 'residential_units', 'building_sqft',
-                    'non_residential_sqft', 'juris_trich',
-                    'tra_id', 'ppa_id', 'sesit_id', 'juris_tra', 
-                    'juris_hra', 'juris_tra_hra'])
+        if settings["use_new_hra_id_in_topsheet"]:
+            households_df["sesit_id"] = \
+                misc.reindex(new_hra_id.sesit_id,
+                             households_df.parcel_id)                                               
+            jobs_df["sesit_id"] = \
+                misc.reindex(new_hra_id.sesit_id,
+                             households_df.parcel_id)
+            buildings_df["sesit_id"] = \
+                misc.reindex(new_hra_id.sesit_id,
+                             households_df.parcel_id)
 
     parcel_output = summary.parcel_output
 
