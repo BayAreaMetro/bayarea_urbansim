@@ -397,7 +397,6 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     if scenario in ["20", "21", "22", "23"]:
         jobs_by_inpda = jobs_df.pda.notnull().value_counts()
         jobs_by_intra = jobs_df.tra_id.notnull().value_counts()
-        jobs_by_intra_group = jobs_df.tra_id.value_counts()
 
     capacity = parcels_zoning_calculations.\
         zoned_du_underbuild_nodev.groupby(parcels.subregion).sum()
@@ -426,7 +425,6 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
                 "hh_by_intpp": hh_by_intpp,
                 "jobs_by_intpp": jobs_by_intpp,
                 "jobs_by_intra": jobs_by_intra,
-                "jobs_by_intra_group": jobs_by_intra_group,
                 "hhincome_by_intpp": hhincome_by_intpp,
                 "hhincome_by_intra": hhincome_by_intra,
                 "hhincome_by_insesit": hhincome_by_insesit,
@@ -598,17 +596,6 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
 
         diff = hh_by_insesit - base_year_measures["hh_by_insesit"]
         write("Households pct of regional growth in sesits:\n%s" %
-            norm_and_round(diff))
-
-        tmp = base_year_measures["jobs_by_intra_group"]
-        write("Jobs base year share in tra groups:\n%s" %
-            norm_and_round(tmp))
-
-        write("Jobs share in tra groups:\n%s" %
-            norm_and_round(jobs_by_intra_group))
-
-        diff = jobs_by_intra_group - base_year_measures["jobs_by_intra_group"]
-        write("Jobs pct of regional growth in tra groups:\n%s" %
             norm_and_round(diff))
 
     write("Base year dwelling unit raw capacity:\n%s" %
