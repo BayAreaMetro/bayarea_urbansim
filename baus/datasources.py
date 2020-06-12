@@ -322,6 +322,10 @@ def new_tra_id():
     return pd.read_csv(os.path.join(misc.data_dir(), "tra_id_2020.csv"),
                        index_col="parcel_id")
 
+@orca.table(cache=True)
+def new_hra_id():
+    return pd.read_csv(os.path.join(misc.data_dir(), "hra_id_2020.csv"),
+                       index_col="parcel_id")
 
 @orca.table(cache=True)
 def maz():
