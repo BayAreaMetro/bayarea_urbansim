@@ -318,9 +318,13 @@ def new_pda_id():
                        index_col="parcel_id")
 
 @orca.table(cache=True)
-def new_tra_id():
-    return pd.read_csv(os.path.join(misc.data_dir(), "tra_id_2020.csv"),
-                       index_col="parcel_id")
+def new_tra_id(scenario):
+    if scenario in ['20','21','22']:
+        return pd.read_csv(os.path.join(misc.data_dir(), "tra_id_2020_s202122.csv"),
+                        index_col="parcel_id")
+    elif scenario in ['23']:
+        return pd.read_csv(os.path.join(misc.data_dir(), "tra_id_2020_s23.csv"),
+                        index_col="parcel_id")        
 
 @orca.table(cache=True)
 def new_hra_id():
@@ -528,9 +532,6 @@ def parcels_geography(parcels, scenario, settings):
         df["tra_id"] = df.tra_id.str.lower()
         df["ppa_id"] = df.ppa_id.str.lower()
         df["sesit_id"] = df.sesit_id.str.lower()
-        df["juris_tra"] = df.juris_id + df.tra_id
-        df["juris_hra"] = df.juris_id + df.sesit_id
-        df["juris_tra_hra"] = df.juris_id + '-' + df.tra_id + '-' + df.sesit_id
     return df
 
 
