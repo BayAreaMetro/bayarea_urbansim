@@ -58,23 +58,19 @@ def household_relocation_rates(scenario, policy):
         if scenario in policy['reloc_fr2_enable']:
             df = pd.read_csv(os.path.join("data",
                                       "household_relocation_rates_fr2.csv"))
-            orca.add_injectable("hh_reloc", 'activated')
-            print("File used is: household_relocation_rates_fr2.csv")
+            orca.add_injectable("hh_reloc", 'activated with fr2 file')
         else:
             df = pd.read_csv(os.path.join("data",
                                       "household_relocation_rates_fr_base.csv"))
-            orca.add_injectable("hh_reloc", 'not activated')
-            print("File used is: household_relocation_rates_fr_base.csv")
+            orca.add_injectable("hh_reloc", 'not activated with fr2 file')
     elif scenario in policy['reloc_db_enable']:
         df = pd.read_csv(os.path.join("data",
                                       "household_relocation_rates_db_var.csv"))
-        orca.add_injectable("hh_reloc", 'activated')
-        print("File used is: household_relocation_rates_db_var.csv")
+        orca.add_injectable("hh_reloc", 'activated with DB file')
     else:
         df = pd.read_csv(os.path.join("data",
                                       "household_relocation_rates_db_base.csv"))
-        orca.add_injectable("hh_reloc", 'not activated')
-        print("File used is: household_relocation_rates_db_base.csv")
+        orca.add_injectable("hh_reloc", 'not activated with DB file')
     return df
 
 # this is a list of parcel_ids which are to be treated as static
