@@ -296,7 +296,7 @@ def config(policy, inputs, run_number, scenario, parcels,
 def topsheet(households, jobs, buildings, parcels, zones, year,
              run_number, taz_geography, parcels_zoning_calculations,
              summary, settings, parcels_geography, abag_targets, new_tpp_id,
-             residential_units, mapping):
+             residential_units, coffer, mapping):
 
     hh_by_subregion = misc.reindex(taz_geography.subregion,
                                    households.zone_id).value_counts()
@@ -491,6 +491,12 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
 
         write("Current share of units which are greenfield development:\n%s" %
               norm_and_round(df.residential_units.groupby(greenfield).sum()))
+
+    # calculate jobs-housing fees collected from office development for Draft Blueprint
+    jobs_housing_res_accts = coffer.get("jobs_housing_res_acct")
+    for subacct, amount in jobs_housing_res_accts.iter_subaccounts():
+        write("Residential Subaccount from jobs-housing fees:\n" + str(subacct))
+        write("Amount in Residential subaccount:\n${:,.2f}".format(amount))
 
     cmap = mapping["county_id_tm_map"]
     jobs_by_county = jobs.zone_id.map(taz_geography.county)\
