@@ -1360,3 +1360,122 @@ acct_settings:
       MH: -0.005
       M: 0.0
       S: 0.02
+
+  # Draft Blueprint strategy: charge Jobs-Housing Imbalances Fees on new office 
+  # developments occuring in job-rich places to fund affordable housing
+  jobs_housing_fee_settings:
+    sending_buildings_subaccount_def: regional
+    jobs_housing_com_for_res_scenarios:
+      - "21"
+      - "22"
+      - "23"
+    jobs_housing_com_for_res_fee_amounts:
+      'Palo Alto': 28
+      'Colma': 25
+      'Santa Clara': 23
+      'Emeryville': 23
+      'Belvedere': 23
+      'Brisbane': 20
+      'Menlo Park': 20
+      'Mountain View': 18
+      'Milpitas': 18
+      'Cupertino': 18
+      'Sunnyvale': 16
+      'San Francisco': 15
+      'Unincorporated Santa Clara': 15
+      'South San Francisco': 15
+      'Burlingame': 15
+      'Campbell': 13
+      'Los Gatos': 13
+      'St. Helena': 13
+      'Redwood City': 13
+      'Yountville': 13
+      'Gilroy': 11
+      'Los Altos': 11
+      'Morgan Hill': 11
+      'San Jose': 11
+      'Foster City': 10
+      'San Carlos': 10
+      'San Mateo': 10
+      'Woodside': 10
+      'Atherton': 10
+      'Unincorporated Napa': 10
+      'Unincorporated San Mateo': 10
+      'Pleasanton': 10
+      'Berkeley': 10
+      'San Rafael': 10
+      'Sonoma': 10
+      'Sebastopol': 10
+      'Corte Madera': 10
+      'Saratoga': 8
+      'Los Altos Hills': 8
+      'Monte Sereno': 8
+      'Napa': 8
+      'Calistoga': 8
+      'Half Moon Bay': 8
+      'San Bruno': 8
+      'Livermore': 8
+      'Hayward': 8
+      'Sausalito': 8
+      'Healdsburg': 8
+      'Petaluma': 8
+      'San Ramon': 8
+      'Walnut Creek': 8
+      'Belmont': 5
+      'Portola Valley': 5
+      'American Canyon': 5
+      'Millbrae': 5
+      'Daly City': 5
+      'East Palo Alto': 5
+      'Hillsborough': 5
+      'Pacifica': 5
+      'Oakland': 5
+      'San Leandro': 5
+      'Dublin': 5
+      'Fremont': 5
+      'Newark': 5
+      'Unincorporated Alameda': 5
+      'Larkspur': 5
+      'Mill Valley': 5
+      'Santa Rosa': 5
+      'Ross': 5
+      'Novato': 5
+      'Unincorporated Marin': 5
+      'Unincorporated Sonoma': 5
+      'Fairfield': 5
+      'Alameda': 3
+      'Piedmont': 3
+      'Union City': 3
+      'Albany': 3
+      'Cotati': 3
+      'Windsor': 3
+      'San Anselmo': 3
+      'Tiburon': 3
+      'Rohnert Park': 3
+      'Cloverdale': 3
+      'Fairfax': 3
+      'Pleasant Hill': 3
+      'Concord': 3
+      'Lafayette': 3
+      'Martinez': 3
+      'Richmond': 3
+      'Benicia': 3
+      'Dixon': 3
+      'Vacaville': 3
+      'Danville': 0
+      'Brentwood': 0
+      'Moraga': 0
+      'El Cerrito': 0
+      'Orinda': 0
+      'Pinole': 0
+      'Pittsburg': 0
+      'San Pablo': 0
+      'Vallejo': 0
+      'Antioch': 0
+      'Hercules': 0
+      'Clayton': 0
+      'Rio Vista': 0
+      'Oakley': 0
+      'Suisun City': 0
+      'Unincorporated Contra Costa': 0
+      'Unincorporated Solano': 0
