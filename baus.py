@@ -167,6 +167,7 @@ def get_simulation_models(SCENARIO):
         "retail_developer",
         "office_developer",
         "accessory_units",
+        "calculate_jobs_housing_fees",
 
         # (for buildings that were removed)
         "remove_old_units",
@@ -237,6 +238,11 @@ def get_simulation_models(SCENARIO):
                       "subsidized_residential_feasibility")
         models.insert(models.index("alt_feasibility"),
                       "subsidized_residential_developer_vmt")
+
+    # calculate jobs-housing fees
+    #jobs_housing_settings = \
+    #    orca.get_injectable("policy")["acct_settings"]["jobs_housing_fee_settings"]
+
 
     return models
 
