@@ -349,6 +349,60 @@ def calculate_vmt_fees(policy, year, buildings, vmt_fee_categories, coffer,
 
 
 @orca.step()
+def calculate_jobs_housing_fees(policy, year, buildings, jobs_housing_fee_categories, 
+                                coffer, summary, years_per_iter, scenario):
+
+    jobs_housing_settings = policy["acct_settings"]["jobs_housing_fee_settings"]
+
+    # this is the frame that knows which devs are subsidized
+    df = summary.parcel_output
+
+    df = df.query("%d <= year_built < %d and subsidized != True" %
+                  (year, year + years_per_iter))
+
+    if not len(df):
+        return
+
+    print("%d projects pass the jobs_housing filter" % len(df))
+
+    total_fees = 0
+
+    if scenario in jobs_housing_settings["jobs_housing_com_for_res_scenarios"]:
+        # assign jurisdiction to parcels
+        juris_lookup = orca.get_table(parcels_geography).to_frame()
+        print('juris_lookup table')
+        print(list(juris_lookup))
+        juris_name = juris_lookup[['PARCEL_ID','juris_name']]
+        df = df.merge(juris_name, 
+                      left_on = 'parcel_id', 
+                      right_on = 'PARCEL_ID',
+                      how = 'left')
+        print('jobs_housing_fees_juris')
+        print(df.juris_name.unique())
+        print('jobs_housing_fees_settings')
+        for j, val in jobs_housing_settings["com_for_res_fee_amounts"]:
+            print(j, ": ", val)
+
+        df["com_for_res_fees"] = df.juris_name.map(
+            jobs_housing_settings["com_for_res_fee_amounts"])
+
+        total_fees += (df.com_for_res_fees * df.non_residential_sqft).sum()
+        print("Applying jobs-housing fees to %d commerical sqft" %
+              df.non_residential_sqft.sum())
+
+    print("Adding total jobs-housing fees for res amount of $%.2f" % total_fees)
+
+    metadata = {
+        "description": "jobs-housing development fees",
+        "year": year
+    }
+    # the subaccount is meaningless here (it's a regional account) -
+    # but the subaccount number is referred to below
+    coffer["jobs_housing_res_acct"].add_transaction(total_fees, subaccount=1,
+                                           metadata=metadata)
+
+
+@orca.step()
 def subsidized_office_developer(feasibility, coffer, acct_settings, year,
                                 add_extra_columns_func, buildings, summary):
 
