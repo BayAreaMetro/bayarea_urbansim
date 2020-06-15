@@ -36,15 +36,22 @@ def profit_to_prob_func(df):
 
 
 @orca.injectable(cache=True)
-def coffer(policy):
+def coffer(policy, scenario):
     d = {
         "vmt_res_acct":  accounts.Account("vmt_res_acct"),
         "vmt_com_acct":  accounts.Account("vmt_com_acct"),
         "jobs_housing_res_acct":  accounts.Account("jobs_housing_res_acct")
     }
 
-    for key, acct in policy["acct_settings"]["lump_sum_accounts"].items():
-        d[acct["name"]] = accounts.Account(acct["name"])
+    if scenario not in ["20", "21", "22", "23"]:
+        for key, acct in \
+                policy["acct_settings"]["lump_sum_accounts"].items():
+            d[acct["name"]] = accounts.Account(acct["name"])
+
+    elif scenario in ["20", "21", "22", "23"]:
+        for key, acct in \
+                policy["acct_settings"]["lump_sum_accounts_d_b"].items():
+            d[acct["name"]] = accounts.Account(acct["name"]) 
 
     return d
 
@@ -58,30 +65,58 @@ def acct_settings(policy):
 def lump_sum_accounts(policy, year, buildings, coffer,
                       summary, years_per_iter, scenario):
 
-    s = policy["acct_settings"]["lump_sum_accounts"]
+    if scenario not in ["20", "21", "22", "23"]:
+        s = policy["acct_settings"]["lump_sum_accounts"]
 
-    for key, acct in s.items():
+        for key, acct in s.items():
 
-        if scenario not in acct["enable_in_scenarios"]:
-            continue
+            if scenario not in acct["enable_in_scenarios"]:
+                continue
 
-        if "alternate_geography_scenarios" in acct and \
-                scenario in acct["alternate_geography_scenarios"]:
-            acct["receiving_buildings_filter"] = \
-                acct["alternate_buildings_filter"]
+            if "alternate_geography_scenarios" in acct and \
+                    scenario in acct["alternate_geography_scenarios"]:
+                acct["receiving_buildings_filter"] = \
+                    acct["alternate_buildings_filter"]
 
-        amt = float(acct["total_amount"])
+            amt = float(acct["total_amount"])
 
-        amt *= years_per_iter
+            amt *= years_per_iter
 
-        metadata = {
-            "description": "%s subsidies" % acct["name"],
-            "year": year
-        }
-        # the subaccount is meaningless here (it's a regional account) -
-        # but the subaccount number is referred to below
-        coffer[acct["name"]].add_transaction(amt, subaccount=1,
-                                             metadata=metadata)
+            metadata = {
+                "description": "%s subsidies" % acct["name"],
+                "year": year
+            }
+            # the subaccount is meaningless here (it's a regional account) -
+            # but the subaccount number is referred to below
+            coffer[acct["name"]].add_transaction(amt, subaccount=1,
+                                                metadata=metadata)
+
+    elif scenario in ["20", "21", "22", "23"]:
+
+        s = policy["acct_settings"]["lump_sum_accounts_d_b"]
+
+        for key, acct in s.items():
+
+            if scenario not in acct["enable_in_scenarios"]:
+                continue
+
+            if scenario in acct["enable_in_scenarios"]:
+                amt = float(acct["total_amount"])
+
+            elif scenario in acct["alternate_amount_scenarios"]:
+                amt = float(acct["alternate_total_amount"])
+
+            amt *= years_per_iter
+
+            metadata = {
+                "description": "%s subsidies" % acct["name"],
+                "year": year
+            }
+            print(metadata)
+            # the subaccount is meaningless here (it's a regional account) -
+            # but the subaccount number is referred to below
+            coffer[acct["name"]].add_transaction(amt, subaccount=1,
+                                                 metadata=metadata)
 
 
 # this will compute the reduction in revenue from a project due to
@@ -102,10 +137,20 @@ def inclusionary_housing_revenue_reduction(feasibility, units):
     households = orca.get_table("households")
     buildings = orca.get_table("buildings")
     parcels_geography = orca.get_table("parcels_geography")
-    h = orca.merge_tables("households",
-                          [households, buildings, parcels_geography],
-                          columns=["juris_name", "income"])
-    AMI = h.groupby(h.juris_name).income.quantile(.5)
+    policy = orca.get_injectable("policy")
+
+    if orca.get_injectable("scenario") in policy["inclusionary_d_b_enable"]:
+        h = orca.merge_tables("households",
+                              [households, buildings, parcels_geography],
+                              columns=["juris_name",
+                                       "income",
+                                       "pba50chcat"])
+        AMI = h.groupby(h.pba50chcat).income.quantile(.5)
+    else:
+        h = orca.merge_tables("households",
+                            [households, buildings, parcels_geography],
+                            columns=["juris_name", "income"])
+        AMI = h.groupby(h.juris_name).income.quantile(.5)
 
     # per Aksel Olsen (@akselx)
     # take 90% of AMI and multiple by 33% to get the max amount a
@@ -133,24 +178,51 @@ def inclusionary_housing_revenue_reduction(feasibility, units):
     # http://sf-moh.org/modules/showdocument.aspx?documentid=7253
 
     pct_inclusionary = orca.get_injectable("inclusionary_housing_settings")
-    juris_name = parcels_geography.juris_name.loc[feasibility.index]
-    pct_affordable = juris_name.map(pct_inclusionary).fillna(0)
-    value_can_afford = juris_name.map(value_can_afford)
 
-    num_affordable_units = (units * pct_affordable).fillna(0).astype("int")
+    # for Blueprint scenarios, calculate revenue reduction by
+    # Blueprint strategy geogrphies pba50chcat
+    if orca.get_injectable("scenario") in policy["inclusionary_d_b_enable"]:
+        pba50chcat = parcels_geography.pba50chcat.loc[feasibility.index]
+        pct_affordable = pba50chcat.map(pct_inclusionary).fillna(0)
+        value_can_afford = pba50chcat.map(value_can_afford)
 
-    ave_price_per_unit = \
-        feasibility[('residential', 'building_revenue')] / units
+        num_affordable_units = (units * pct_affordable).fillna(0).astype("int")
 
-    revenue_diff_per_unit = (ave_price_per_unit - value_can_afford).fillna(0)
-    print("Revenue difference per unit (not zero values)")
-    print(revenue_diff_per_unit[revenue_diff_per_unit > 0].describe())
+        ave_price_per_unit = \
+            feasibility[('residential', 'building_revenue')] / units
 
-    revenue_reduction = revenue_diff_per_unit * num_affordable_units
+        revenue_diff_per_unit = \
+            (ave_price_per_unit - value_can_afford).fillna(0)
+        print("Revenue difference per unit (not zero values)")
+        print(revenue_diff_per_unit[revenue_diff_per_unit > 0].describe())
 
-    s = num_affordable_units.groupby(parcels_geography.juris_name).sum()
-    print("Feasibile affordable units by jurisdiction")
-    print(s[s > 0].sort_values())
+        revenue_reduction = revenue_diff_per_unit * num_affordable_units
+
+        s = num_affordable_units.groupby(parcels_geography.pba50chcat).sum()
+        print("Feasibile affordable units by Blueprint geogrphies pba50chcat")
+        print(s[s > 0].sort_values())
+
+    # otherwise, calculate by jurisdiction
+    else:
+        juris_name = parcels_geography.juris_name.loc[feasibility.index]
+        pct_affordable = juris_name.map(pct_inclusionary).fillna(0)
+        value_can_afford = juris_name.map(value_can_afford)
+
+        num_affordable_units = (units * pct_affordable).fillna(0).astype("int")
+
+        ave_price_per_unit = \
+            feasibility[('residential', 'building_revenue')] / units
+
+        revenue_diff_per_unit = \
+            (ave_price_per_unit - value_can_afford).fillna(0)
+        print("Revenue difference per unit (not zero values)")
+        print(revenue_diff_per_unit[revenue_diff_per_unit > 0].describe())
+
+        revenue_reduction = revenue_diff_per_unit * num_affordable_units
+
+        s = num_affordable_units.groupby(parcels_geography.juris_name).sum()
+        print("Feasibile affordable units by jurisdiction")
+        print(s[s > 0].sort_values())
 
     return revenue_reduction, num_affordable_units
 
@@ -826,8 +898,8 @@ def subsidized_residential_developer_lump_sum_accts(
         print("Running the subsidized developer for acct: %s" % acct["name"])
 
         # need to rerun the subsidized feasibility every time and get new
-        # results - this is not ideal and is a story to fix in pivotal, but the
-        # only cost is in time - the results should be the same
+        # results - this is not ideal and is a story to fix in pivotal,
+        # but the only cost is in time - the results should be the same
         orca.eval_step("subsidized_residential_feasibility")
         feasibility = orca.get_table("feasibility").to_frame()
         feasibility = feasibility.stack(level=0).\

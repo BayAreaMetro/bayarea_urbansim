@@ -50,19 +50,32 @@ def employment_relocation_rates():
     df.columns = ["zone_id", "empsix", "rate"]
     return df
 
-
+# this for future round2
+# also includes draft blueprint 
 @orca.table(cache=True)
 def household_relocation_rates(scenario, policy):
-    if scenario in policy['reloc_fr2_enable']:
-        df = pd.read_csv(os.path.join("data",
+    if scenario in policy['futures_scenarios']:
+        if scenario in policy['reloc_fr2_enable']:
+            df = pd.read_csv(os.path.join("data",
                                       "household_relocation_rates_fr2.csv"))
+            orca.add_injectable("hh_reloc", 'activated')
+            print("File used is: household_relocation_rates_fr2.csv")
+        else:
+            df = pd.read_csv(os.path.join("data",
+                                      "household_relocation_rates_fr_base.csv"))
+            orca.add_injectable("hh_reloc", 'not activated')
+            print("File used is: household_relocation_rates_fr_base.csv")
+    elif scenario in policy['reloc_db_enable']:
+        df = pd.read_csv(os.path.join("data",
+                                      "household_relocation_rates_db_var.csv"))
         orca.add_injectable("hh_reloc", 'activated')
+        print("File used is: household_relocation_rates_db_var.csv")
     else:
         df = pd.read_csv(os.path.join("data",
-                                      "household_relocation_rates.csv"))
+                                      "household_relocation_rates_db_base.csv"))
         orca.add_injectable("hh_reloc", 'not activated')
+        print("File used is: household_relocation_rates_db_base.csv")
     return df
-
 
 # this is a list of parcel_ids which are to be treated as static
 @orca.injectable()
@@ -350,10 +363,19 @@ def scheduled_development_events(buildings, development_projects,
                                  demolish_events, summary, year, parcels,
                                  mapping, years_per_iter, parcels_geography,
                                  building_sqft_per_job, vmt_fee_categories,
-                                 static_parcels):
+                                 static_parcels, base_year):
     # first demolish
-    demolish = demolish_events.to_frame().\
-        query("%d <= year_built < %d" % (year, year + years_per_iter))
+    # 6/3/20: current approach is to grab projects from the simulation year
+    # and previous four years, however the base year is treated differently,
+    # eg 2015 pulls 2015-2010
+    # this should be improved in the future so that the base year
+    # also runs SDEM, eg 2015 pulls 2015-2014, while 2010 pulls 2010 projects
+    if year == (base_year + years_per_iter):
+        demolish = demolish_events.to_frame().\
+            query("%d <= year_built <= %d" % (year - years_per_iter, year))
+    else:
+        demolish = demolish_events.to_frame().\
+            query("%d < year_built <= %d" % (year - years_per_iter, year))
     print("Demolishing/building %d buildings" % len(demolish))
     l1 = len(buildings)
     buildings = utils._remove_developed_buildings(
@@ -370,8 +392,17 @@ def scheduled_development_events(buildings, development_projects,
     print("    (this number is smaller when parcel has no existing buildings)")
 
     # then build
-    dps = development_projects.to_frame().\
-        query("%d <= year_built < %d" % (year, year + years_per_iter))
+    # 6/3/20: current approach is to grab projects from the simulation year
+    # and previous four years, however the base year is treated differently,
+    # eg 2015 pulls 2015-2010
+    # this should be improved in the future so that the base year
+    # also runs SDEM, eg 2015 pulls 2015-2014, while 2010 pulls 2010 projects
+    if year == (base_year + years_per_iter):
+        dps = development_projects.to_frame().\
+            query("%d <= year_built <= %d" % (year - years_per_iter, year))
+    else:
+        dps = development_projects.to_frame().\
+            query("%d < year_built <= %d" % (year - years_per_iter, year))
 
     if len(dps) == 0:
         return
