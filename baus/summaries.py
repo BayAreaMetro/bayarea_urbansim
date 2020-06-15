@@ -283,6 +283,12 @@ def config(policy, inputs, run_number, scenario, parcels,
     # e-commerce should be embedded in the controls
     # telecommuting should be handled in the TM
 
+    # jobs-housing fees
+    if scenario in (policy["acct_settings"]["jobs_housing_fee_settings"]
+                    ["com_for_res_scenarios"]):
+        write("Jobs-housing fees: com_for_res is activated using \
+               Draft Blueprint settings")
+
     f.close()
 
 
