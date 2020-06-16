@@ -754,9 +754,11 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, settings,
 
 
 @orca.step()
-def geographic_summary(parcels, households, jobs, buildings, taz_geography,
+def geographic_summary(parcels, parcels_geography, households, 
+                       jobs, buildings, taz_geography,
+                       new_tra_id, new_hra_id, new_pda_id,
                        run_number, year, summary, final_year, scenario,
-                       policy):
+                       policy, settings):
     # using the following conditional b/c `year` is used to pull a column
     # from a csv based on a string of the year in add_population()
     # and in add_employment() and 2009 is the
@@ -787,6 +789,54 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
                  'zone_id', 'residential_units', 'building_sqft',
                  'non_residential_sqft', 'juris_trich'])
 
+    if scenario in policy["geographies_db_enable"]:
+        
+        parcels_geography_df = parcels_geography.to_frame()
+        parcels_geography_df = parcels_geography_df.rename(columns = {
+            'PARCEL_ID':'parcel_id'})
+        
+        if settings["use_new_pda_id_in_topsheet"]:
+            del households_df["pda"]
+            households_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                                households_df.parcel_id)
+            del jobs_df["pda"]
+            jobs_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                          jobs_df.parcel_id)
+            del buildings_df["pda"]
+            buildings_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                               buildings_df.parcel_id)
+            parcels_geography_df["pda"] = \
+                misc.reindex(new_pda_id.pda_id,
+                            parcels_geography_df.parcel_id)
+
+        if settings["use_new_tra_id_in_topsheet"]:
+            households_df["juris_tra"] = \
+                misc.reindex(new_tra_id.juris_tra,
+                             households_df.parcel_id)            
+            jobs_df["juris_tra"] = \
+                misc.reindex(new_tra_id.juris_tra,
+                             jobs_df.parcel_id)
+            buildings_df["juris_tra"] = \
+                misc.reindex(new_tra_id.juris_tra,
+                             buildings_df.parcel_id)
+            parcels_geography_df["juris_tra"] = \
+                misc.reindex(new_tra_id.juris_tra,
+                            parcels_geography_df.parcel_id)           
+
+        if settings["use_new_hra_id_in_topsheet"]:
+            households_df["juris_sesit"] = \
+                misc.reindex(new_hra_id.juris_sesit,
+                             households_df.parcel_id)
+            jobs_df["juris_sesit"] = \
+                misc.reindex(new_hra_id.juris_sesit,
+                             jobs_df.parcel_id)
+            buildings_df["juris_sesit"] = \
+                misc.reindex(new_hra_id.juris_sesit,
+                             buildings_df.parcel_id)
+            parcels_geography_df["juris_sesit"] = \
+                misc.reindex(new_hra_id.juris_sesit,
+                            parcels_geography_df.parcel_id)
+
     parcel_output = summary.parcel_output
 
     # because merge_tables returns multiple zone_id_'s, but not the one we need
@@ -797,6 +847,10 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
     if (scenario in ["11", "12", "15"]) and\
        (scenario in policy["geographies_fr2_enable"]):
         geographies.append('juris_trich')
+
+    # append Draft Blueprint strategy geographis
+    if scenario in policy["geographies_db_enable"]:
+        geographies.extend(['juris_tra','juris_sesit'])
 
     if year in [2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050]:
 
@@ -817,7 +871,7 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
             if geography == 'superdistrict':
                 all_summary_geographies = buildings_df[geography].unique()
             else:
-                all_summary_geographies = parcels[geography].unique()
+                all_summary_geographies = parcels_geography_df[geography].unique()
             summary_table = \
                 summary_table.reindex(all_summary_geographies).fillna(0)
 
@@ -877,6 +931,21 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
                 parcel_output['subsidized_units'] = \
                     parcel_output.deed_restricted_units - \
                     parcel_output.inclusionary_units
+
+                if settings["use_new_pda_id_in_topsheet"]:
+                    del parcel_output["pda"]
+                    parcel_output["pda"] = misc.reindex(new_pda_id.pda_id,
+                                                        parcel_output.parcel_id)
+
+                if settings["use_new_tra_id_in_topsheet"]:
+                    parcel_output["juris_tra"] = \
+                        misc.reindex(new_tra_id.juris_tra,
+                                    parcel_output.parcel_id)
+
+                if settings["use_new_hra_id_in_topsheet"]:
+                    parcel_output["juris_sesit"] = \
+                        misc.reindex(new_hra_id.juris_sesit,
+                                    parcel_output.parcel_id)
 
                 # columns re: affordable housing
                 summary_table['deed_restricted_units'] = \
