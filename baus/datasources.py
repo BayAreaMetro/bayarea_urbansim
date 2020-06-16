@@ -301,6 +301,28 @@ def new_tpp_id():
 
 
 @orca.table(cache=True)
+def new_pda_id():
+    return pd.read_csv(os.path.join(misc.data_dir(), "pda_id_2020.csv"),
+                       index_col="parcel_id")
+
+
+@orca.table(cache=True)
+def new_tra_id(scenario):
+    if scenario in ['20','21','22']:
+        return pd.read_csv(os.path.join(misc.data_dir(), "tra_id_2020_s202122.csv"),
+                        index_col="parcel_id")
+    elif scenario in ['23']:
+        return pd.read_csv(os.path.join(misc.data_dir(), "tra_id_2020_s23.csv"),
+                        index_col="parcel_id") 
+
+
+@orca.table(cache=True)
+def new_hra_id():
+    return pd.read_csv(os.path.join(misc.data_dir(), "hra_id_2020.csv"),
+                       index_col="parcel_id")
+
+
+@orca.table(cache=True)
 def maz():
     maz = pd.read_csv(os.path.join(misc.data_dir(), "maz_geography.csv"))
     maz = maz.drop_duplicates('MAZ').set_index('MAZ')
@@ -487,10 +509,15 @@ def parcels_geography(parcels, scenario, settings):
     df['juris_trich'] = df.juris_id + df.trich_id
 
     df["pda_id"] = df.pda_id.str.lower()
+    if scenario not in ["20", "21", "22", "23"]:
+        # danville wasn't supposed to be a pda
+        df["pda_id"] = df.pda_id.replace("dan1", np.nan)
 
-    # danville wasn't supposed to be a pda
-    df["pda_id"] = df.pda_id.replace("dan1", np.nan)
-
+    # Add other Draft Blueprint geographies: TRAs, PPA, sesit
+    if scenario in ["20", "21", "22", "23"]:
+        df["tra_id"] = df.tra_id.str.lower()
+        df["ppa_id"] = df.ppa_id.str.lower()
+        df["sesit_id"] = df.sesit_id.str.lower()
     return df
 
 
