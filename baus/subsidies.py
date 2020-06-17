@@ -99,10 +99,7 @@ def lump_sum_accounts(policy, year, buildings, coffer,
             if scenario not in acct["enable_in_scenarios"]:
                 continue
 
-            if scenario in acct["enable_in_scenarios"]:
-                amt = float(acct["total_amount"])
-
-            elif scenario in acct["alternate_amount_scenarios"]:
+            if scenario in acct["alternate_amount_scenarios"]:
                 amt = float(acct["alternate_total_amount"])
 
             amt *= years_per_iter
@@ -416,9 +413,9 @@ def calculate_vmt_fees(policy, year, buildings, vmt_fee_categories, coffer,
             # temporarily fix them here
             county_lookup.reset_index(inplace=True)
             county_lookup["PARCEL_ID"] = county_lookup["PARCEL_ID"].round().astype(int)
-            df = df.merge(county_lookup, 
+            df = df.merge(county_lookup,
                           left_on='parcel_id',
-                          right_on='PARCEL_ID', 
+                          right_on='PARCEL_ID',
                           how='left').drop(["PARCEL_ID"], axis=1)
             # assign fee to parcels based on county
             counties3 = ['ala', 'cnc', 'mar', 'nap', 'scl', 'sfr', 'smt',
