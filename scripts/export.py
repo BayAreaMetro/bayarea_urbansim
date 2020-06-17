@@ -32,7 +32,6 @@ fnames = [
     "county",
     "pda",
     "vmt_res_cat",
-    "vmt_nonres_cat",
     "max_dua",
     "max_far",
     "parcel_size",

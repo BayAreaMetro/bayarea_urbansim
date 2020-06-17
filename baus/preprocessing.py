@@ -60,22 +60,17 @@ def allocate_jobs(baseyear_taz_controls, mapping, buildings, parcels):
 
         weights = potential_add_locations / potential_add_locations.sum()
 
-        if len(potential_add_locations) > 0:
-            buildings_ids = potential_add_locations.sample(
-                cnt, replace=True, weights=weights)
+        # print taz, len(potential_add_locations),\
+        #     potential_add_locations.sum(), cnt
 
-            df["building_id"][df.taz == taz] = buildings_ids.index.values
+        buildings_ids = potential_add_locations.sample(
+            cnt, replace=True, weights=weights)
 
-        else:
-            # no locations for jobs; needs to be dealt with on the data side
-            print("ERROR in TAZ {}: {} jobs, {} potential locations".format(
-                taz, cnt, len(potential_add_locations)))
+        df["building_id"][df.taz == taz] = buildings_ids.index.values
 
     s = zone_id.loc[df.building_id].value_counts()
     # assert that we at least got the total employment right after assignment
-    # assert_series_equal(baseyear_taz_controls.emp_tot, s)
-    print("Jobs to assign: {}".format(baseyear_taz_controls.emp_tot.sum()))
-    print("Jobs assigned: {}".format(s.sum()))
+    assert_series_equal(baseyear_taz_controls.emp_tot, s)
 
     return df
 
@@ -102,10 +97,10 @@ def move_jobs_from_portola_to_san_mateo_county(parcels, buildings, jobs_df):
 
 
 @orca.step()
-def preproc_jobs(store, baseyear_taz_controls, mapping, parcels):
+def preproc_jobs(store, baseyear_taz_controls, settings, parcels):
     buildings = store['buildings']
 
-    jobs = allocate_jobs(baseyear_taz_controls, mapping, buildings, parcels)
+    jobs = allocate_jobs(baseyear_taz_controls, settings, buildings, parcels)
     jobs = move_jobs_from_portola_to_san_mateo_county(parcels, buildings, jobs)
     store['jobs_preproc'] = jobs
 
