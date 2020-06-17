@@ -50,7 +50,7 @@ def coffer(policy, scenario):
     elif scenario in ["20", "21", "22", "23"]:
         for key, acct in \
                 policy["acct_settings"]["lump_sum_accounts_d_b"].items():
-            d[acct["name"]] = accounts.Account(acct["name"]) 
+            d[acct["name"]] = accounts.Account(acct["name"])
 
     return d
 
@@ -797,7 +797,7 @@ def subsidized_residential_developer_lump_sum_accts(
         policy, summary, coffer, form_to_btype_func,
         scenario, settings):
 
-    for key, acct in policy["acct_settings"]["lump_sum_accounts"].items():
+    for key, acct in policy["acct_settings"]["lump_sum_accounts_d_b"].items():
 
         # quick return in order to save performance time
         if scenario not in acct["enable_in_scenarios"]:
