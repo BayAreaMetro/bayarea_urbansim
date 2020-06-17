@@ -99,10 +99,7 @@ def lump_sum_accounts(policy, year, buildings, coffer,
             if scenario not in acct["enable_in_scenarios"]:
                 continue
 
-            if scenario in acct["enable_in_scenarios"]:
-                amt = float(acct["total_amount"])
-
-            elif scenario in acct["alternate_amount_scenarios"]:
+            if scenario in acct["alternate_amount_scenarios"]:
                 amt = float(acct["alternate_total_amount"])
 
             amt *= years_per_iter
