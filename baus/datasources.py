@@ -486,7 +486,7 @@ def parcel_rejections():
 
 
 @orca.table(cache=True)
-def parcels_geography(parcels, scenario, settings):
+def parcels_geography(parcels, scenario, settings, policy):
     df = pd.read_csv(
         os.path.join(misc.data_dir(), "07_11_2019_parcels_geography.csv"),
         index_col="geom_id")
@@ -506,15 +506,16 @@ def parcels_geography(parcels, scenario, settings):
     # assert no empty juris values
     assert True not in df.juris_name.isnull().value_counts()
 
-    df['juris_trich'] = df.juris_id + df.trich_id
-
     df["pda_id"] = df.pda_id.str.lower()
-    if scenario not in ["20", "21", "22", "23"]:
-        # danville wasn't supposed to be a pda
+    if scenario not in policy["geographies_db_enable"]:
+        # danville wasn't supposed to be a pda in Horizon
         df["pda_id"] = df.pda_id.replace("dan1", np.nan)
 
-    # Add other Draft Blueprint geographies: TRAs, PPA, sesit
-    if scenario in ["20", "21", "22", "23"]:
+        # Add Horizon geographies 'juris_trich'
+        df['juris_trich'] = df.juris_id + df.trich_id
+
+    # Add Draft Blueprint geographies: TRAs, PPA, sesit
+    if scenario in policy["geographies_db_enable"]:
         df["tra_id"] = df.tra_id.str.lower()
         df["ppa_id"] = df.ppa_id.str.lower()
         df["sesit_id"] = df.sesit_id.str.lower()
