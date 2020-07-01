@@ -291,19 +291,19 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
              run_number, taz_geography, parcels_zoning_calculations,
              summary, settings, parcels_geography, abag_targets,
              new_tpp_id, new_pda_id, new_tra_id,
-             residential_units, mapping, scenario):
+             residential_units, mapping, scenario, policy):
 
     hh_by_subregion = misc.reindex(taz_geography.subregion,
                                    households.zone_id).value_counts()
     
-    if scenario in ["20", "21", "22", "23"]:
+    if scenario in policy["geographies_db_enable"]:
         households_df = orca.merge_tables(
             'households',
             [parcels_geography, buildings, households],
             columns=['pda_id', 'tpp_id', 'tra_id', 'ppa_id',
                      'sesit_id', 'income'])
 
-    elif scenario not in ["20", "21", "22", "23"]:
+    elif scenario not in policy["geographies_db_enable"]:
         households_df = orca.merge_tables(
             'households',
             [parcels_geography, buildings, households],
@@ -326,7 +326,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     # round to nearest 100s
     hhincome_by_intpp = (hhincome_by_intpp/100).round()*100
 
-    if scenario in ["20", "21", "22", "23"]:
+    if scenario in policy["geographies_db_enable"]:
         hh_by_intra = households_df.tra_id.notnull().value_counts()
         hh_by_insesit = households_df.sesit_id.notnull().value_counts()
 
@@ -366,7 +366,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     jobs_by_inpda = jobs_df.pda.notnull().value_counts()
     jobs_by_intpp = jobs_df.tpp_id.notnull().value_counts()
 
-    if scenario in ["20", "21", "22", "23"]:
+    if scenario in policy["geographies_db_enable"]:
         jobs_by_intra = jobs_df.tra_id.notnull().value_counts()
 
     capacity = parcels_zoning_calculations.\
@@ -374,7 +374,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
 
     if year == 2010:
         # save some info for computing growth measures
-        if scenario not in ["20", "21", "22", "23"]:
+        if scenario not in policy["geographies_db_enable"]:
             orca.add_injectable("base_year_measures", {
                 "hh_by_subregion": hh_by_subregion,
                 "jobs_by_subregion": jobs_by_subregion,
@@ -385,7 +385,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
                 "hhincome_by_intpp": hhincome_by_intpp,
                 "capacity": capacity
             })
-        elif scenario in ["20", "21", "22", "23"]:
+        elif scenario in policy["geographies_db_enable"]:
             orca.add_injectable("base_year_measures", {
                 "hh_by_subregion": hh_by_subregion,
                 "jobs_by_subregion": jobs_by_subregion,
@@ -455,11 +455,11 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     write("Base year mean income by whether household is in tpp:\n%s" %
           base_year_measures["hhincome_by_intpp"])
 
-    if scenario not in ["20", "21", "22", "23"]:
+    if scenario not in policy["geographies_db_enable"]:
         write("Horizon year mean income by whether household is in tpp:\n%s" %
               hhincome_by_intpp)
 
-    if scenario in ["20", "21", "22", "23"]:
+    if scenario in policy["geographies_db_enable"]:
         write("Draft Blueprint year mean income by whether household\
               is in tra:\n%s" % hhincome_by_intra)
         write("Draft Blueprint year mean income by whether household\
@@ -536,7 +536,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
           norm_and_round(diff))
 
     # write Draft Blueprint additional summaries
-    if scenario in ["20", "21", "22", "23"]:
+    if scenario in policy["geographies_db_enable"]:
         tmp = base_year_measures["hh_by_intra"]
         write("Households base year share in tras:\n%s" %
             norm_and_round(tmp))
