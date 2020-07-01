@@ -350,7 +350,7 @@ def scheduled_development_events(buildings, development_projects,
                                  demolish_events, summary, year, parcels,
                                  mapping, years_per_iter, parcels_geography,
                                  building_sqft_per_job, vmt_fee_categories,
-                                 static_parcels):
+                                 static_parcels, scenario, policy):
     # first demolish
     demolish = demolish_events.to_frame().\
         query("%d <= year_built < %d" % (year, year + years_per_iter))
@@ -397,8 +397,20 @@ def scheduled_development_events(buildings, development_projects,
     del new_buildings["zone_id"]
     new_buildings["pda"] = parcels_geography.pda_id.loc[
         new_buildings.parcel_id].values
-    new_buildings["juris_trich"] = parcels_geography.juris_trich.loc[
-        new_buildings.parcel_id].values
+    
+    # add Horizon geographies
+    if scenario not in policy["geographies_db_enable"]:
+        new_buildings["juris_trich"] = parcels_geography.juris_trich.loc[
+            new_buildings.parcel_id].values
+
+    # add Draft Blueprint geographies
+    if scenario in policy["geographies_db_enable"]:
+        new_buildings["tra_id"] = parcels_geography.tra_id.loc[
+            new_buildings.parcel_id].values
+        new_buildings["ppa_id"] = parcels_geography.ppa_id.loc[
+            new_buildings.parcel_id].values
+        new_buildings["sesit_id"] = parcels_geography.sesit_id.loc[
+            new_buildings.parcel_id].values
 
     summary.add_parcel_output(new_buildings)
 
