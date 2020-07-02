@@ -401,10 +401,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
                 "hh_by_intra": hh_by_intra,
                 "hh_by_insesit": hh_by_insesit,
                 "jobs_by_inpda": jobs_by_inpda,
-                "hh_by_intpp": hh_by_intpp,
-                "jobs_by_intpp": jobs_by_intpp,
                 "jobs_by_intra": jobs_by_intra,
-                "hhincome_by_intpp": hhincome_by_intpp,
                 "hhincome_by_intra": hhincome_by_intra,
                 "hhincome_by_insesit": hhincome_by_insesit,
                 "capacity": capacity
@@ -460,16 +457,19 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     du = buildings.deed_restricted_units.sum()
     write("Number of deed restricted units = %d" % du)
 
-    write("Base year mean income by whether household is in tpp:\n%s" %
-          base_year_measures["hhincome_by_intpp"])
-
     if scenario not in policy["geographies_db_enable"]:
+        write("Base year mean income by whether household is in tpp:\n%s" %
+            base_year_measures["hhincome_by_intpp"])
         write("Horizon year mean income by whether household is in tpp:\n%s" %
               hhincome_by_intpp)
 
     if scenario in policy["geographies_db_enable"]:
+        write("Base year mean income by whether household is in tra:\n%s" %
+            base_year_measures["hhincome_by_intra"])
         write("Draft Blueprint year mean income by whether household\
               is in tra:\n%s" % hhincome_by_intra)
+        write("Base year mean income by whether household is in hra:\n%s" %
+            base_year_measures["hhincome_by_insesit"])
         write("Draft Blueprint year mean income by whether household\
               is in hra:\n%s" % hhincome_by_insesit)
 
@@ -521,27 +521,28 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     write("Jobs pct of regional growth in pdas:\n%s" %
           norm_and_round(diff))
 
-    tmp = base_year_measures["hh_by_intpp"]
-    write("Households base year share in tpps:\n%s" %
-          norm_and_round(tmp))
+    if scenario not in policy["geographies_db_enable"]:
+        tmp = base_year_measures["hh_by_intpp"]
+        write("Households base year share in tpps:\n%s" %
+            norm_and_round(tmp))
 
-    write("Households share in tpps:\n%s" %
-          norm_and_round(hh_by_intpp))
+        write("Households share in tpps:\n%s" %
+            norm_and_round(hh_by_intpp))
 
-    diff = hh_by_intpp - base_year_measures["hh_by_intpp"]
-    write("Households pct of regional growth in tpps:\n%s" %
-          norm_and_round(diff))
+        diff = hh_by_intpp - base_year_measures["hh_by_intpp"]
+        write("Households pct of regional growth in tpps:\n%s" %
+            norm_and_round(diff))
 
-    tmp = base_year_measures["jobs_by_intpp"]
-    write("Jobs base year share in tpps:\n%s" %
-          norm_and_round(tmp))
+        tmp = base_year_measures["jobs_by_intpp"]
+        write("Jobs base year share in tpps:\n%s" %
+            norm_and_round(tmp))
 
-    write("Jobs share in tpps:\n%s" %
-          norm_and_round(jobs_by_intpp))
+        write("Jobs share in tpps:\n%s" %
+            norm_and_round(jobs_by_intpp))
 
-    diff = jobs_by_intpp - base_year_measures["jobs_by_intpp"]
-    write("Jobs pct of regional growth in tpps:\n%s" %
-          norm_and_round(diff))
+        diff = jobs_by_intpp - base_year_measures["jobs_by_intpp"]
+        write("Jobs pct of regional growth in tpps:\n%s" %
+            norm_and_round(diff))
 
     # write Draft Blueprint additional summaries
     if scenario in policy["geographies_db_enable"]:
