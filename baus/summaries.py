@@ -290,8 +290,8 @@ def config(policy, inputs, run_number, scenario, parcels,
 def topsheet(households, jobs, buildings, parcels, zones, year,
              run_number, taz_geography, parcels_zoning_calculations,
              summary, settings, parcels_geography, abag_targets,
-             new_pda_id,
-#             new_tpp_id, new_pda_id, new_tra_id,
+             new_tpp_id, new_pda_id,
+#            new_tra_id,
              residential_units, mapping, scenario, policy):
 
     hh_by_subregion = misc.reindex(taz_geography.subregion,
@@ -353,7 +353,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     elif scenario in policy["geographies_db_enable"]:
         jobs_df = orca.merge_tables(
             'jobs',
-            [parcels, parcels_geography, buildings, jobs],
+            [parcels, buildings, jobs],
             columns=['pda', 'tra_id', 'ppa_id'])
 
     if settings["use_new_tpp_id_in_topsheet"]:
