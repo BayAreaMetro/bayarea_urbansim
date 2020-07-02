@@ -802,9 +802,9 @@ def geographic_summary(parcels, parcels_geography, households,
     # add Draft Blueprint geographies: new pda, juris_tra, juris_sesit
     if scenario in policy["geographies_db_enable"]:
         
-        parcels_geography_df = parcels_geography.to_frame()
-        parcels_geography_df = parcels_geography_df.rename(columns = {
-            'PARCEL_ID':'parcel_id'})
+        # parcels_geography_df = parcels_geography.to_frame()
+        # parcels_geography_df = parcels_geography_df.rename(columns = {
+        #     'PARCEL_ID':'parcel_id'})
         
         if settings["use_new_pda_id_in_topsheet"]:
             del households_df["pda"]
@@ -816,9 +816,9 @@ def geographic_summary(parcels, parcels_geography, households,
             del buildings_df["pda"]
             buildings_df["pda"] = misc.reindex(new_pda_id.pda_id,
                                                buildings_df.parcel_id)
-            parcels_geography_df["pda"] = \
-                misc.reindex(new_pda_id.pda_id,
-                            parcels_geography_df.parcel_id)
+            # parcels_geography_df["pda"] = \
+            #     misc.reindex(new_pda_id.pda_id,
+            #                 parcels_geography_df.parcel_id)
 
 #        if settings["use_new_tra_id_in_topsheet"]:
 #            households_df["juris_tra"] = \
@@ -882,7 +882,8 @@ def geographic_summary(parcels, parcels_geography, households,
             if geography == 'superdistrict':
                 all_summary_geographies = buildings_df[geography].unique()
             else:
-                all_summary_geographies = parcels_geography_df[geography].unique()
+                #all_summary_geographies = parcels_geography_df[geography].unique()
+                all_summary_geographies = parcels[geography].unique()
             summary_table = \
                 summary_table.reindex(all_summary_geographies).fillna(0)
 
@@ -948,15 +949,15 @@ def geographic_summary(parcels, parcels_geography, households,
                     parcel_output["pda"] = misc.reindex(new_pda_id.pda_id,
                                                         parcel_output.parcel_id)
 
-                if settings["use_new_tra_id_in_topsheet"]:
-                    parcel_output["juris_tra"] = \
-                        misc.reindex(new_tra_id.juris_tra,
-                                    parcel_output.parcel_id)
+                # if settings["use_new_tra_id_in_topsheet"]:
+                #     parcel_output["juris_tra"] = \
+                #         misc.reindex(new_tra_id.juris_tra,
+                #                     parcel_output.parcel_id)
 
-                if settings["use_new_hra_id_in_topsheet"]:
-                    parcel_output["juris_sesit"] = \
-                        misc.reindex(new_hra_id.juris_sesit,
-                                    parcel_output.parcel_id)
+                # if settings["use_new_hra_id_in_topsheet"]:
+                #     parcel_output["juris_sesit"] = \
+                #         misc.reindex(new_hra_id.juris_sesit,
+                #                     parcel_output.parcel_id)
 
                 # columns re: affordable housing
                 summary_table['deed_restricted_units'] = \
