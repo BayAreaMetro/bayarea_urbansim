@@ -774,21 +774,22 @@ def geographic_summary(parcels, parcels_geography, households,
         [parcels, buildings, households],
         columns=['pda', 'zone_id', 'juris', 'superdistrict',
                  'persons', 'income', 'base_income_quartile',
-                 'juris_trich'])
+                 'juris_trich', 'juris_tra', 'juris_sesit'])
 
     jobs_df = orca.merge_tables(
         'jobs',
         [parcels, buildings, jobs],
         columns=['pda', 'superdistrict', 'juris', 'zone_id',
-                 'empsix', 'juris_trich'])
+                 'empsix', 'juris_trich', 'juris_tra', 'juris_sesit'])
 
     buildings_df = orca.merge_tables(
         'buildings',
         [parcels, buildings],
         columns=['pda', 'superdistrict', 'juris', 'building_type',
                  'zone_id', 'residential_units', 'building_sqft',
-                 'non_residential_sqft', 'juris_trich'])
+                 'non_residential_sqft', 'juris_trich', 'juris_tra', 'juris_sesit'])
 
+    # add Draft Blueprint geographies: new pda, juris_tra, juris_sesit
     if scenario in policy["geographies_db_enable"]:
         
         parcels_geography_df = parcels_geography.to_frame()
@@ -809,33 +810,33 @@ def geographic_summary(parcels, parcels_geography, households,
                 misc.reindex(new_pda_id.pda_id,
                             parcels_geography_df.parcel_id)
 
-        if settings["use_new_tra_id_in_topsheet"]:
-            households_df["juris_tra"] = \
-                misc.reindex(new_tra_id.juris_tra,
-                             households_df.parcel_id)            
-            jobs_df["juris_tra"] = \
-                misc.reindex(new_tra_id.juris_tra,
-                             jobs_df.parcel_id)
-            buildings_df["juris_tra"] = \
-                misc.reindex(new_tra_id.juris_tra,
-                             buildings_df.parcel_id)
-            parcels_geography_df["juris_tra"] = \
-                misc.reindex(new_tra_id.juris_tra,
-                            parcels_geography_df.parcel_id)           
+#        if settings["use_new_tra_id_in_topsheet"]:
+#            households_df["juris_tra"] = \
+#                misc.reindex(new_tra_id.juris_tra,
+#                             households_df.parcel_id)            
+#            jobs_df["juris_tra"] = \
+#                misc.reindex(new_tra_id.juris_tra,
+#                             jobs_df.parcel_id)
+#            buildings_df["juris_tra"] = \
+#                misc.reindex(new_tra_id.juris_tra,
+#                             buildings_df.parcel_id)
+#            parcels_geography_df["juris_tra"] = \
+#                misc.reindex(new_tra_id.juris_tra,
+#                            parcels_geography_df.parcel_id)           
 
-        if settings["use_new_hra_id_in_topsheet"]:
-            households_df["juris_sesit"] = \
-                misc.reindex(new_hra_id.juris_sesit,
-                             households_df.parcel_id)
-            jobs_df["juris_sesit"] = \
-                misc.reindex(new_hra_id.juris_sesit,
-                             jobs_df.parcel_id)
-            buildings_df["juris_sesit"] = \
-                misc.reindex(new_hra_id.juris_sesit,
-                             buildings_df.parcel_id)
-            parcels_geography_df["juris_sesit"] = \
-                misc.reindex(new_hra_id.juris_sesit,
-                            parcels_geography_df.parcel_id)
+#        if settings["use_new_hra_id_in_topsheet"]:
+#            households_df["juris_sesit"] = \
+#                misc.reindex(new_hra_id.juris_sesit,
+#                             households_df.parcel_id)
+#            jobs_df["juris_sesit"] = \
+#                misc.reindex(new_hra_id.juris_sesit,
+#                             jobs_df.parcel_id)
+#            buildings_df["juris_sesit"] = \
+#                misc.reindex(new_hra_id.juris_sesit,
+#                             buildings_df.parcel_id)
+#            parcels_geography_df["juris_sesit"] = \
+#                misc.reindex(new_hra_id.juris_sesit,
+#                            parcels_geography_df.parcel_id)
 
     parcel_output = summary.parcel_output
 
