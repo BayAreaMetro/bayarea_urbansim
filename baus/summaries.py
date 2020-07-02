@@ -629,6 +629,11 @@ def compare_to_targets(parcels, buildings, jobs, households, abag_targets,
         [parcels, buildings, households],
         columns=['pda', 'juris'])
 
+    if settings["use_new_pda_id_in_topsheet"]:
+        del households_df["pda"]
+        households_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                            households_df.parcel_id)
+
     households_df["pda_fill_juris"] = \
         households_df.pda.str.upper().replace("Total", np.nan).\
         str.upper().fillna(households_df.juris)
@@ -637,6 +642,11 @@ def compare_to_targets(parcels, buildings, jobs, households, abag_targets,
         'jobs',
         [parcels, buildings, jobs],
         columns=['pda', 'juris'])
+
+    if settings["use_new_pda_id_in_topsheet"]:
+        del jobs_df["pda"]
+        jobs_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                      jobs_df.parcel_id)  
 
     jobs_df["pda_fill_juris"] = \
         jobs_df.pda.str.upper().fillna(jobs_df.juris)
@@ -763,7 +773,7 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, settings,
 
 
 @orca.step()
-def geographic_summary(parcels, parcels_geography, households, 
+def geographic_summary(parcels, households, 
                        jobs, buildings, taz_geography,
                        new_pda_id,
 #                       new_tra_id, new_hra_id, new_pda_id,
