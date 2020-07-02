@@ -290,7 +290,8 @@ def config(policy, inputs, run_number, scenario, parcels,
 def topsheet(households, jobs, buildings, parcels, zones, year,
              run_number, taz_geography, parcels_zoning_calculations,
              summary, settings, parcels_geography, abag_targets,
-             new_tpp_id, new_pda_id, new_tra_id,
+             new_pda_id,
+#             new_tpp_id, new_pda_id, new_tra_id,
              residential_units, mapping, scenario, policy):
 
     hh_by_subregion = misc.reindex(taz_geography.subregion,
@@ -343,10 +344,17 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     jobs_by_subregion = misc.reindex(taz_geography.subregion,
                                      jobs.zone_id).value_counts()
 
-    jobs_df = orca.merge_tables(
-        'jobs',
-        [parcels, buildings, jobs],
-        columns=['pda'])
+    if scenario not in policy["geographies_db_enable"]:
+        jobs_df = orca.merge_tables(
+            'jobs',
+            [parcels, buildings, jobs],
+            columns=['pda'])
+
+    elif scenario in policy["geographies_db_enable"]:
+        jobs_df = orca.merge_tables(
+            'jobs',
+            [parcels, parcels_geography, buildings, jobs],
+            columns=['pda', 'tra_id', 'ppa_id'])
 
     if settings["use_new_tpp_id_in_topsheet"]:
         jobs_df["tpp_id"] = misc.reindex(new_tpp_id.tpp_id,
@@ -359,9 +367,9 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
                                          jobs_df.parcel_id)
 
     # add Draft Blueprint new tra_id
-    if settings["use_new_tra_id_in_topsheet"]:
-        jobs_df["tra_id"] = misc.reindex(new_tra_id.tra_id,
-                                         jobs_df.parcel_id)
+#    if settings["use_new_tra_id_in_topsheet"]:
+#        jobs_df["tra_id"] = misc.reindex(new_tra_id.tra_id,
+#                                         jobs_df.parcel_id)
 
     jobs_by_inpda = jobs_df.pda.notnull().value_counts()
     jobs_by_intpp = jobs_df.tpp_id.notnull().value_counts()
@@ -756,7 +764,8 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, settings,
 @orca.step()
 def geographic_summary(parcels, parcels_geography, households, 
                        jobs, buildings, taz_geography,
-                       new_tra_id, new_hra_id, new_pda_id,
+                       new_pda_id,
+#                       new_tra_id, new_hra_id, new_pda_id,
                        run_number, year, summary, final_year, scenario,
                        policy, settings):
     # using the following conditional b/c `year` is used to pull a column
