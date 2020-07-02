@@ -399,9 +399,8 @@ def scheduled_development_events(buildings, development_projects,
         new_buildings.parcel_id].values
     
     # add Horizon geographies
-    if scenario not in policy["geographies_db_enable"]:
-        new_buildings["juris_trich"] = parcels_geography.juris_trich.loc[
-            new_buildings.parcel_id].values
+    new_buildings["juris_trich"] = parcels_geography.juris_trich.loc[
+        new_buildings.parcel_id].values
 
     # add Draft Blueprint geographies
     if scenario in policy["geographies_db_enable"]:
