@@ -291,7 +291,6 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
              run_number, taz_geography, parcels_zoning_calculations,
              summary, settings, parcels_geography, abag_targets,
              new_tpp_id, new_pda_id,
-#            new_tra_id,
              residential_units, mapping, scenario, policy):
 
     hh_by_subregion = misc.reindex(taz_geography.subregion,
@@ -356,6 +355,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
             [parcels, buildings, jobs],
             columns=['pda', 'tra_id', 'ppa_id'])
 
+    # use Horizon new tpp_id
     if settings["use_new_tpp_id_in_topsheet"]:
         jobs_df["tpp_id"] = misc.reindex(new_tpp_id.tpp_id,
                                          jobs_df.parcel_id)
@@ -365,11 +365,6 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
         del jobs_df["pda"]
         jobs_df["pda"] = misc.reindex(new_pda_id.pda_id,
                                          jobs_df.parcel_id)
-
-    # add Draft Blueprint new tra_id
-#    if settings["use_new_tra_id_in_topsheet"]:
-#        jobs_df["tra_id"] = misc.reindex(new_tra_id.tra_id,
-#                                         jobs_df.parcel_id)
 
     jobs_by_inpda = jobs_df.pda.notnull().value_counts()
     jobs_by_intpp = jobs_df.tpp_id.notnull().value_counts()
@@ -605,6 +600,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
 
     for geo, typ, corr in compare_to_targets(parcels, buildings, jobs,
                                              households, abag_targets,
+                                             new_pda_id, settings,
                                              write_comparison_dfs=True):
         write("{} in {} have correlation of {:,.4f} with targets".format(
             typ, geo, corr
@@ -614,7 +610,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
 
 
 def compare_to_targets(parcels, buildings, jobs, households, abag_targets,
-                       write_comparison_dfs=False):
+                       new_pda_id, settings, write_comparison_dfs=False):
 
     # yes a similar join is used in the summarize step below - but it's
     # better to keep it clean and separate
@@ -773,11 +769,9 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, settings,
 
 
 @orca.step()
-def geographic_summary(parcels, households, 
-                       jobs, buildings, taz_geography,
-                       new_pda_id,
-#                       new_tra_id, new_hra_id, new_pda_id,
-                       run_number, year, summary, final_year, scenario,
+def geographic_summary(parcels, households, jobs, buildings,
+                       taz_geography, new_pda_id, run_number, year,
+                       summary, final_year, scenario,
                        policy, settings):
     # using the following conditional b/c `year` is used to pull a column
     # from a csv based on a string of the year in add_population()
@@ -809,54 +803,18 @@ def geographic_summary(parcels, households,
                  'zone_id', 'residential_units', 'building_sqft',
                  'non_residential_sqft', 'juris_trich', 'juris_tra', 'juris_sesit'])
 
-    # add Draft Blueprint geographies: new pda, juris_tra, juris_sesit
-    if scenario in policy["geographies_db_enable"]:
-        
-        # parcels_geography_df = parcels_geography.to_frame()
-        # parcels_geography_df = parcels_geography_df.rename(columns = {
-        #     'PARCEL_ID':'parcel_id'})
-        
-        if settings["use_new_pda_id_in_topsheet"]:
-            del households_df["pda"]
-            households_df["pda"] = misc.reindex(new_pda_id.pda_id,
-                                                households_df.parcel_id)
-            del jobs_df["pda"]
-            jobs_df["pda"] = misc.reindex(new_pda_id.pda_id,
-                                          jobs_df.parcel_id)
-            del buildings_df["pda"]
-            buildings_df["pda"] = misc.reindex(new_pda_id.pda_id,
-                                               buildings_df.parcel_id)
-            # parcels_geography_df["pda"] = \
-            #     misc.reindex(new_pda_id.pda_id,
-            #                 parcels_geography_df.parcel_id)
-
-#        if settings["use_new_tra_id_in_topsheet"]:
-#            households_df["juris_tra"] = \
-#                misc.reindex(new_tra_id.juris_tra,
-#                             households_df.parcel_id)            
-#            jobs_df["juris_tra"] = \
-#                misc.reindex(new_tra_id.juris_tra,
-#                             jobs_df.parcel_id)
-#            buildings_df["juris_tra"] = \
-#                misc.reindex(new_tra_id.juris_tra,
-#                             buildings_df.parcel_id)
-#            parcels_geography_df["juris_tra"] = \
-#                misc.reindex(new_tra_id.juris_tra,
-#                            parcels_geography_df.parcel_id)           
-
-#        if settings["use_new_hra_id_in_topsheet"]:
-#            households_df["juris_sesit"] = \
-#                misc.reindex(new_hra_id.juris_sesit,
-#                             households_df.parcel_id)
-#            jobs_df["juris_sesit"] = \
-#                misc.reindex(new_hra_id.juris_sesit,
-#                             jobs_df.parcel_id)
-#            buildings_df["juris_sesit"] = \
-#                misc.reindex(new_hra_id.juris_sesit,
-#                             buildings_df.parcel_id)
-#            parcels_geography_df["juris_sesit"] = \
-#                misc.reindex(new_hra_id.juris_sesit,
-#                            parcels_geography_df.parcel_id)
+    # add Draft Blueprint new pda
+    if scenario in policy["geographies_db_enable"] and \
+            settings["use_new_pda_id_in_topsheet"]:
+        del households_df["pda"]
+        households_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                            households_df.parcel_id)
+        del jobs_df["pda"]
+        jobs_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                      jobs_df.parcel_id)
+        del buildings_df["pda"]
+        buildings_df["pda"] = misc.reindex(new_pda_id.pda_id,
+                                           buildings_df.parcel_id)
 
     parcel_output = summary.parcel_output
 
@@ -892,7 +850,6 @@ def geographic_summary(parcels, households,
             if geography == 'superdistrict':
                 all_summary_geographies = buildings_df[geography].unique()
             else:
-                #all_summary_geographies = parcels_geography_df[geography].unique()
                 all_summary_geographies = parcels[geography].unique()
             summary_table = \
                 summary_table.reindex(all_summary_geographies).fillna(0)
@@ -958,16 +915,6 @@ def geographic_summary(parcels, households,
                     del parcel_output["pda"]
                     parcel_output["pda"] = misc.reindex(new_pda_id.pda_id,
                                                         parcel_output.parcel_id)
-
-                # if settings["use_new_tra_id_in_topsheet"]:
-                #     parcel_output["juris_tra"] = \
-                #         misc.reindex(new_tra_id.juris_tra,
-                #                     parcel_output.parcel_id)
-
-                # if settings["use_new_hra_id_in_topsheet"]:
-                #     parcel_output["juris_sesit"] = \
-                #         misc.reindex(new_hra_id.juris_sesit,
-                #                     parcel_output.parcel_id)
 
                 # columns re: affordable housing
                 summary_table['deed_restricted_units'] = \
