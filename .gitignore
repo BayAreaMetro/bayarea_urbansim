@@ -40,3 +40,4 @@ data/07_11_2019_parcels_geography.csv
 data/2015_12_21_zoning_parcels.csv
 baus/urban_data_internal/
 *.csv
+*.csv
