@@ -367,7 +367,7 @@ def scheduled_development_events(buildings, development_projects,
                                  demolish_events, summary, year, parcels,
                                  mapping, years_per_iter, parcels_geography,
                                  building_sqft_per_job, vmt_fee_categories,
-                                 static_parcels, scenario, policy):
+                                 static_parcels, base_year, scenario, policy):
     # first demolish
     # 6/3/20: current approach is to grab projects from the simulation year
     # and previous four years, however the base year is treated differently,
@@ -447,6 +447,12 @@ def scheduled_development_events(buildings, development_projects,
             new_buildings.parcel_id].values
         new_buildings["sesit_id"] = parcels_geography.sesit_id.loc[
             new_buildings.parcel_id].values
+        new_buildings["juris_tra"] = parcels_geography.juris_tra.loc[
+            new_buildings.parcel_id].values
+        new_buildings["juris_ppa"] = parcels_geography.juris_ppa.loc[
+            new_buildings.parcel_id].values
+        new_buildings["juris_sesit"] = parcels_geography.juris_sesit.loc[
+            new_buildings.parcel_id].values       
 
     summary.add_parcel_output(new_buildings)
 
