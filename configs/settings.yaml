@@ -314,7 +314,8 @@ parcel_size_factor: 10.764
 # quickly turn around a new parcels_geography file to replace the old one
 use_new_tpp_id_in_topsheet: True
 
-
+# Draft Blueprint has a new pda_id which didn't go into the parcels_geography file
+use_new_pda_id_in_topsheet: True
 
 
 
