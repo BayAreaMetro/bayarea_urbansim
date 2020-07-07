@@ -211,7 +211,6 @@ def config(policy, inputs, run_number, scenario, parcels,
         write("Public lands are in development projects")
     else:
         write("Public lands are not in development projects")
-    write("")
     # incubators
     inc_proj_on = dev_proj.\
     				loc[dev_proj['building_name'] == 'incubator', scen].sum()
@@ -258,6 +257,13 @@ def config(policy, inputs, run_number, scenario, parcels,
         write("Using default development limits")
     write("")
 
+    # SB 743
+    if policy["acct_settings"]["sb743_settings"]["enable"]:
+    	write("SB-743 is activated")
+    else:
+    	write("SB-743 is not activated")
+    write("")
+
     # OBAG
     policy_loc = (policy["acct_settings"]["lump_sum_accounts"]
                   ["obag_settings"])
@@ -281,50 +287,33 @@ def config(policy, inputs, run_number, scenario, parcels,
     write("")
 
     # VMT fees
-    if scenario in (policy["acct_settings"]["vmt_settings"]
-                    ["com_for_com_scenarios"]) and scenario in \
-            (policy["acct_settings"]["vmt_settings"]
-             ["alternate_geography_scenarios"]):
+    policy_loc = policy["acct_settings"]["vmt_settings"]
+    if scenario in (policy_loc["com_for_com_scenarios"]) and scenario in \
+    	            (policy_loc["alternate_geography_scenarios"]):
         write("VMT fees: com_for_com is activated with trich_id and cat_id")
         write("VMT fees: com_for_com is using alternate fee amounts")
-    elif scenario in (policy["acct_settings"]["vmt_settings"]
-                     ["com_for_com_scenarios"]) and scenario in \
-            (policy["acct_settings"]["vmt_settings"]
-             ["db_geography_scenarios"]):
+    elif scenario in (policy_loc["com_for_com_scenarios"]) and scenario in \
+    	              (policy_loc["db_geography_scenarios"]):
         write("VMT fees: com_for_com is activated but without subsidizing")
         write("VMT fees: com_for_com is using Draft Blueprint fee amounts")
-    elif scenario in (policy["acct_settings"]["vmt_settings"]
-                      ["com_for_com_scenarios"]):
-        write("VMT fees: com_for_com is activated with pda_id")
+    elif scenario in (policy_loc["com_for_com_scenarios"]):
+     	write("VMT fees: com_for_com is activated with pda_id")
         write("VMT fees: com_for_com is using default fee amounts")
     else:
         write("VMT fees: com_for_com is not activated")
 
-    if scenario in (policy["acct_settings"]["vmt_settings"]
-                    ["com_for_res_scenarios"]) and scenario in \
-            (policy["acct_settings"]["vmt_settings"]
-             ["alternate_geography_scenarios"]):
+    if scenario in (policy_loc["com_for_res_scenarios"]) and scenario in \
+    	            (policy_loc["alternate_geography_scenarios"]):
         write("VMT fees: com_for_res is activated with trich_id and cat_id")
         write("VMT fees: com_for_res is using alternate fee amounts")
-    elif scenario in (policy["acct_settings"]["vmt_settings"]
-                      ["com_for_res_scenarios"]):
+    elif scenario in (policy_loc["com_for_res_scenarios"]):
         write("VMT fees: com_for_res is activated with pda_id")
         write("VMT fees: com_for_res is using default fee amounts")
     else:
         write("VMT fees: com_for_res is not activated")
     write("")
 
-    # affordable housing bonds
-    counter = 0
-    counties = ["alameda", "contra_costa", "marin", "napa", "san_mateo",
-                "san_francisco", "santa_clara", "solano", "sonoma"]
-    for county in counties:
-        policy_loc = (policy["acct_settings"]["lump_sum_accounts"]
-                    [county+"_bond_settings"]["enable_in_scenarios"])
-        if scenario in policy_loc:
-            counter += 1
-    write("Affordable housing bonds are activated for %d counties" % counter)
-
+    # for futures round 2:
     # workplace preferences are in the development projects list
     # e-commerce should be embedded in the controls
     # telecommuting should be handled in the TM
@@ -338,6 +327,35 @@ def config(policy, inputs, run_number, scenario, parcels,
             if key != "jobs_housing_com_for_res_scenarios":
                 counter += 1
         write("Jobs-housing fees are activated for %d counties" % counter)
+    write("")
+
+    # affordable housing bonds
+    # activation
+    counter = 0
+    counties = ["alameda", "contra_costa", "marin", "napa", "san_mateo",
+                "san_francisco", "santa_clara", "solano", "sonoma"]
+    for county in counties:
+        policy_loc = (policy["acct_settings"]["lump_sum_accounts"]
+                    [county+"_bond_settings"]["enable_in_scenarios"])
+        if scenario in policy_loc:
+            counter += 1
+    write("Affordable housing bonds are activated for %d counties" % counter)
+    # funding applied
+    regional_funding = 0
+    counties = ["alameda", "contra_costa", "marin", "napa", "san_mateo",
+                "san_francisco", "santa_clara", "solano", "sonoma"]
+    for county in counties:
+        policy_loc = (policy["acct_settings"]["lump_sum_accounts"]
+                    [county+"_bond_settings"])
+    	if scenario in policy_loc["default_amount_scenarios_db"]:
+    		amount = float(policy_loc["total_amount_db"])
+    	elif scenario in policy_loc["alternate_amount_scenarios_db"]:
+            amount = float(policy_loc["alternate_total_amount_db"])
+        else:
+        	amount = float(policy_loc["total_amount"])
+        # sum annual ammount over the simulation period
+        regional_funding += amount*5*7
+    write("Total funding for deed-restricted housing is $%d" % regional_funding)
 
     f.close()
 
