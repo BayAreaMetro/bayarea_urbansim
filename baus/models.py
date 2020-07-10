@@ -367,7 +367,7 @@ def scheduled_development_events(buildings, development_projects,
                                  demolish_events, summary, year, parcels,
                                  mapping, years_per_iter, parcels_geography,
                                  building_sqft_per_job, vmt_fee_categories,
-                                 static_parcels, base_year, scenario, policy):
+                                 static_parcels, base_year):
     # first demolish
     # 6/3/20: current approach is to grab projects from the simulation year
     # and previous four years, however the base year is treated differently,
