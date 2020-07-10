@@ -745,8 +745,8 @@ def compare_to_targets(parcels, buildings, jobs, households, abag_targets,
 
         jobs_df["pda_pba40"] = jobs_df["pda"]
         del jobs_df["pda"]
-        jobs_df["pda_id_db"] = misc.reindex(new_pda_id.pda_id,
-                                            jobs_df.parcel_id)
+        jobs_df["pda_db"] = misc.reindex(new_pda_id.pda_id,
+                                         jobs_df.parcel_id)
 
     if scenario in policy["geographies_pba40_enable"]:
         households_df["pda_fill_juris"] = \
@@ -935,10 +935,10 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
         buildings_df["pda_db"] = misc.reindex(new_pda_id.pda_id,
                                               buildings_df.parcel_id)
 
-        parcel_output["pda_pba40"] = parcel_output["pda"]
-        del parcel_output["pda"]
-        parcel_output["pda_db"] = misc.reindex(new_pda_id.pda_id,
-                                               parcel_output.parcel_id)
+        parcels["pda_pba40"] = parcels["pda"]
+        del parcels["pda"]
+        parcels["pda_db"] = misc.reindex(new_pda_id.pda_id,
+                                         parcels.parcel_id)
 
     # because merge_tables returns multiple zone_id_'s, but not the one we need
     buildings_df = buildings_df.rename(columns={'zone_id_x': 'zone_id'})
@@ -1032,6 +1032,14 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
                 summary_table['non_residential_sqft'] / summary_table['totemp']
 
             if parcel_output is not None:
+                if settings["use_new_pda_id_in_topsheet"]:
+                    print('parcel_output datatype: {}'.format(type(parcel_output)))
+                    print('parcel_output columns: {}'.format(list(parcel_output)))
+                    print('parcel_output heads: {}'.format(parcel_output.head()))
+                    parcel_output["pda_pba40"] = parcel_output["pda"]
+                    del parcel_output["pda"]
+                    parcel_output["pda_db"] = misc.reindex(new_pda_id.pda_id,
+                                                        parcel_output.parcel_id)
                 parcel_output['subsidized_units'] = \
                     parcel_output.deed_restricted_units - \
                     parcel_output.inclusionary_units
