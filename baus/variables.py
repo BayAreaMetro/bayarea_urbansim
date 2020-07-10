@@ -408,6 +408,11 @@ def fees_per_sqft(parcels, policy, scenario):
 
 
 @orca.column('parcels', cache=True)
+def parcel_id(parcels, parcels_geography):
+    return parcels_geography.PARCEL_ID.reindex(parcels.index)
+
+
+@orca.column('parcels', cache=True)
 def pda(parcels, parcels_geography):
     return parcels_geography.pda_id.reindex(parcels.index)
 
