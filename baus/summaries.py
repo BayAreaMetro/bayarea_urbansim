@@ -898,72 +898,56 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
     else:
         base = False
 
-    if scenario not in policy["geographies_db_enable"]:
-        households_df = orca.merge_tables(
-            'households',
-            [parcels, buildings, households],
-            columns=['pda', 'zone_id', 'juris', 'superdistrict',
-                     'persons', 'income', 'base_income_quartile',
-                     'juris_trich'])
+    households_df = orca.merge_tables(
+        'households',
+        [parcels, buildings, households],
+        columns=['pda', 'zone_id', 'juris', 'superdistrict',
+                 'persons', 'income', 'base_income_quartile',
+                 'juris_trich', 'juris_tra', 'juris_sesit'])
 
-        jobs_df = orca.merge_tables(
-            'jobs',
-            [parcels, buildings, jobs],
-            columns=['pda', 'superdistrict', 'juris', 'zone_id',
-                     'empsix', 'juris_trich'])
+    jobs_df = orca.merge_tables(
+        'jobs',
+        [parcels, buildings, jobs],
+        columns=['pda', 'superdistrict', 'juris', 'zone_id',
+                 'empsix', 'juris_trich', 'juris_tra', 'juris_sesit'])
 
-        buildings_df = orca.merge_tables(
-            'buildings',
-            [parcels, buildings],
-            columns=['pda', 'superdistrict', 'juris', 'building_type',
-                     'zone_id', 'residential_units', 'building_sqft',
-                     'non_residential_sqft', 'juris_trich'])
-
-    elif scenario in policy["geographies_db_enable"]:
-        households_df = orca.merge_tables(
-            'households',
-            [parcels, buildings, households],
-            columns=['pda', 'zone_id', 'juris', 'superdistrict',
-                     'persons', 'income', 'base_income_quartile',
-                     'juris_trich', 'juris_tra', 'juris_sesit'])
-
-        jobs_df = orca.merge_tables(
-            'jobs',
-            [parcels, buildings, jobs],
-            columns=['pda', 'superdistrict', 'juris', 'zone_id',
-                     'empsix', 'juris_trich', 'juris_tra', 'juris_sesit'])
-
-        buildings_df = orca.merge_tables(
-            'buildings',
-            [parcels, buildings],
-            columns=['pda', 'superdistrict', 'juris', 'building_type',
-                     'zone_id', 'residential_units', 'building_sqft',
-                     'non_residential_sqft', 'juris_trich',
-                     'juris_tra', 'juris_sesit'])
-
-    # use Draft Blueprint new pda
-    if scenario in policy["geographies_db_enable"] and \
-            settings["use_new_pda_id_in_topsheet"]:
-        del households_df["pda"]
-        households_df["pda"] = misc.reindex(new_pda_id.pda_id,
-                                            households_df.parcel_id)
-        del jobs_df["pda"]
-        jobs_df["pda"] = misc.reindex(new_pda_id.pda_id,
-                                      jobs_df.parcel_id)
-        del buildings_df["pda"]
-        buildings_df["pda"] = misc.reindex(new_pda_id.pda_id,
-                                           buildings_df.parcel_id)
+    buildings_df = orca.merge_tables(
+        'buildings',
+        [parcels, buildings],
+        columns=['pda', 'superdistrict', 'juris', 'building_type',
+                 'zone_id', 'residential_units', 'building_sqft',
+                 'non_residential_sqft', 'juris_trich',
+                 'juris_tra', 'juris_sesit'])
 
     parcel_output = summary.parcel_output
+
+    # use Draft Blueprint new pda
     if settings["use_new_pda_id_in_topsheet"]:
+    	households_df["pda_pba40"] = households_df["pda"]
+        del households_df["pda"]
+        households_df["pda_db"] = misc.reindex(new_pda_id.pda_id,
+                                               households_df.parcel_id)
+        jobs_df["pda_pba40"] = jobs_df["pda"]
+        del jobs_df["pda"]
+        jobs_df["pda_db"] = misc.reindex(new_pda_id.pda_id,
+                                         jobs_df.parcel_id)
+        buildings_df["pda_pba40"] = buildings_df["pda"]
+        del buildings_df["pda"]
+        buildings_df["pda_db"] = misc.reindex(new_pda_id.pda_id,
+                                              buildings_df.parcel_id)
+
+        parcel_output["pda_pba40"] = parcel_output["pda"]
         del parcel_output["pda"]
-        parcel_output["pda"] = misc.reindex(new_pda_id.pda_id,
-                                            parcel_output.parcel_id)
+        parcel_output["pda_db"] = misc.reindex(new_pda_id.pda_id,
+                                               parcel_output.parcel_id)
 
     # because merge_tables returns multiple zone_id_'s, but not the one we need
     buildings_df = buildings_df.rename(columns={'zone_id_x': 'zone_id'})
 
-    geographies = ['superdistrict', 'pda', 'juris']
+    geographies = ['superdistrict', 'juris']
+
+    if scenario in policy["geographies_pba40_enable"]:
+    	geographies.append('pda_pba40')
 
     if (scenario in ["11", "12", "15"]) and\
        (scenario in policy["geographies_fr2_enable"]):
@@ -971,7 +955,7 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
 
     # append Draft Blueprint strategy geographis
     if scenario in policy["geographies_db_enable"]:
-        geographies.extend(['juris_tra','juris_sesit'])
+        geographies.extend(['pda_db','juris_tra','juris_sesit'])
 
     if year in [2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050]:
 
