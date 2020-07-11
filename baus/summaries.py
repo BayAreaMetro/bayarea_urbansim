@@ -305,24 +305,6 @@ def config(policy, inputs, run_number, scenario, parcels,
         write("VMT fees: com_for_res is not activated")
     write("")
 
-    # affordable housing bonds
-    counter = 0
-    counties = ["alameda", "contra_costa", "marin", "napa", "san_mateo",
-                "san_francisco", "santa_clara", "solano", "sonoma"]
-    if scenario not in ["20", "21", "22", "23"]:
-        for county in counties:
-            policy_loc = (policy["acct_settings"]["lump_sum_accounts"]
-                          [county+"_bond_settings"]["enable_in_scenarios"])
-            if scenario in policy_loc:
-                counter += 1
-    elif scenario in ["20", "21", "22", "23"]:
-        for county in counties:
-            policy_loc = (policy["acct_settings"]["lump_sum_accounts_d_b"]
-                          [county+"_bond_d_b_settings"]["enable_in_scenarios"])
-            if scenario in policy_loc:
-                counter += 1
-    write("Affordable housing bonds are activated for %d counties" % counter)
-
     # workplace preferences are in the development projects list
     # e-commerce should be embedded in the controls
     # telecommuting should be handled in the TM
@@ -336,6 +318,37 @@ def config(policy, inputs, run_number, scenario, parcels,
             if key != "jobs_housing_com_for_res_scenarios":
                 counter += 1
         write("Jobs-housing fees are activated for %d counties" % counter)
+
+    write("")
+
+    # affordable housing bonds
+    # activation
+    counter = 0
+    counties = ["alameda", "contra_costa", "marin", "napa", "san_mateo",
+                "san_francisco", "santa_clara", "solano", "sonoma"]
+    for county in counties:
+        policy_loc = (policy["acct_settings"]["lump_sum_accounts"]
+                      [county+"_bond_settings"]["enable_in_scenarios"])
+        if scenario in policy_loc:
+            counter += 1
+    write("Affordable housing bonds are activated for %d counties" % counter)
+    # funding applied
+    regional_funding = 0
+    counties = ["alameda", "contra_costa", "marin", "napa", "san_mateo",
+                "san_francisco", "santa_clara", "solano", "sonoma"]
+    for county in counties:
+        policy_loc = (policy["acct_settings"]["lump_sum_accounts"]
+                      [county+"_bond_settings"])
+        if scenario in policy_loc["default_amount_scenarios_db"]:
+            amount = float(policy_loc["total_amount_db"])
+        elif scenario in policy_loc["alternate_amount_scenarios_db"]:
+            amount = float(policy_loc["alternate_total_amount_db"])
+        else:
+            amount = float(policy_loc["total_amount"])
+        # sum annual ammount over the simulation period
+        regional_funding += amount*5*7
+    write("Total funding for deed-restricted housing is $%d"
+          % regional_funding)
 
     f.close()
 
@@ -533,7 +546,6 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
     if scenario in policy["geographies_pba40_enable"]:
         write("Base year mean income by whether household is in tpp:\n%s" %
               base_year_measures["hhincome_by_intpp"])
-
         write("PBA40 year mean income by whether household is in tpp:\n%s" %
               hhincome_by_intpp)
 
@@ -619,7 +631,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
         write("Jobs pct of regional growth in tpps:\n%s" %
               norm_and_round(diff))
 
-    # write Horizon additional summaries: rtich
+    # write Horizon additional summaries: trich
     if scenario in policy["geographies_horizon_enable"]:
         tmp = base_year_measures["hh_by_intrich"]
         write("Households base year share in trichs:\n%s" %
@@ -643,8 +655,30 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
         write("Jobs pct of regional growth in trichs:\n%s" %
               norm_and_round(diff))
 
-    # write Draft Blueprint additional summaries: tra, sesit(hra/dr)
+    # write Draft Blueprint additional summaries: pda, tra, sesit(hra/dr)
     if scenario in policy["geographies_db_enable"]:
+        tmp = base_year_measures["hh_by_inpda_pba50"]
+        write("Households base year share in pdas:\n%s" %
+              norm_and_round(tmp))
+
+        write("Households share in pdas:\n%s" %
+              norm_and_round(hh_by_inpda_pba50))
+
+        diff = hh_by_inpda_pba50 - base_year_measures["hh_by_inpda_pba50"]
+        write("Households pct of regional growth in pdas:\n%s" %
+              norm_and_round(diff))
+
+        tmp = base_year_measures["jobs_by_inpda_pba50"]
+        write("Jobs base year share in pdas:\n%s" %
+              norm_and_round(tmp))
+
+        write("Jobs share in pdas:\n%s" %
+              norm_and_round(jobs_by_inpda_pba50))
+
+        diff = jobs_by_inpda_pba50 - base_year_measures["jobs_by_inpda_pba50"]
+        write("Jobs pct of regional growth in pdas:\n%s" %
+              norm_and_round(diff))
+
         tmp = base_year_measures["hh_by_intra"]
         write("Households base year share in tras:\n%s" %
               norm_and_round(tmp))
@@ -936,7 +970,6 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
                                               buildings_df.parcel_id)
 
         parcels["pda_pba40"] = parcels["pda"]
-        del parcels["pda"]
         parcels["pda_db"] = misc.reindex(new_pda_id.pda_id,
                                          parcels.parcel_id)
 
@@ -1033,13 +1066,9 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
 
             if parcel_output is not None:
                 if settings["use_new_pda_id_in_topsheet"]:
-                    print('parcel_output datatype: {}'.format(type(parcel_output)))
-                    print('parcel_output columns: {}'.format(list(parcel_output)))
-                    print('parcel_output heads: {}'.format(parcel_output.head()))
                     parcel_output["pda_pba40"] = parcel_output["pda"]
-                    del parcel_output["pda"]
                     parcel_output["pda_db"] = misc.reindex(new_pda_id.pda_id,
-                                                        parcel_output.parcel_id)
+                                                           parcel_output.parcel_id)
                 parcel_output['subsidized_units'] = \
                     parcel_output.deed_restricted_units - \
                     parcel_output.inclusionary_units
