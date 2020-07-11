@@ -696,25 +696,25 @@ def topsheet(households, jobs, buildings, parcels, zones, year,
 
     # write Draft Blueprint additional summaries: pda, tra, sesit(hra/dr)
     if scenario in policy["geographies_db_enable"]:
-        tmp = base_year_measures["hh_by_inpda_pba50"]
+        tmp = base_year_measures["hh_by_inpda_db"]
         write("Households base year share in pdas:\n%s" %
               norm_and_round(tmp))
 
         write("Households share in pdas:\n%s" %
-              norm_and_round(hh_by_inpda_pba50))
+              norm_and_round(hh_by_inpda_db))
 
-        diff = hh_by_inpda_pba50 - base_year_measures["hh_by_inpda_pba50"]
+        diff = hh_by_inpda_db - base_year_measures["hh_by_inpda_db"]
         write("Households pct of regional growth in pdas:\n%s" %
               norm_and_round(diff))
 
-        tmp = base_year_measures["jobs_by_inpda_pba50"]
+        tmp = base_year_measures["jobs_by_inpda_db"]
         write("Jobs base year share in pdas:\n%s" %
               norm_and_round(tmp))
 
         write("Jobs share in pdas:\n%s" %
-              norm_and_round(jobs_by_inpda_pba50))
+              norm_and_round(jobs_by_inpda_db))
 
-        diff = jobs_by_inpda_pba50 - base_year_measures["jobs_by_inpda_pba50"]
+        diff = jobs_by_inpda_db - base_year_measures["jobs_by_inpda_db"]
         write("Jobs pct of regional growth in pdas:\n%s" %
               norm_and_round(diff))
 
