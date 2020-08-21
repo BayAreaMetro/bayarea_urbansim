@@ -263,6 +263,7 @@ def baseyear_taz_controls():
 def base_year_summary_taz(mapping):
     df = pd.read_csv(os.path.join('output',
                                   'baseyear_taz_summaries_2010.csv'),
+                     dtype = {'taz1454': int},
                      index_col="zone_id")
     cmap = mapping["county_id_tm_map"]
     df['COUNTY_NAME'] = df.COUNTY.map(cmap)
@@ -303,6 +304,7 @@ def zoning_lookup():
 def zoning_baseline(parcels, zoning_lookup, settings):
     df = pd.read_csv(os.path.join(misc.data_dir(),
                      "2020_06_22_zoning_parcels_hybrid_pba50.csv"),
+    				 dtype = {'geom_id': int}
                      index_col="geom_id")
     df = pd.merge(df, zoning_lookup.to_frame(),
                   left_on="zoning_id", right_index=True)
@@ -319,9 +321,13 @@ def new_tpp_id():
 
 @orca.table(cache=True)
 def maz():
-    maz = pd.read_csv(os.path.join(misc.data_dir(), "maz_geography.csv"))
+    maz = pd.read_csv(os.path.join(misc.data_dir(), "maz_geography.csv"),
+    				  dtype = {'MAZ': int,
+    					       'TAZ': int})
     maz = maz.drop_duplicates('MAZ').set_index('MAZ')
     taz1454 = pd.read_csv(os.path.join(misc.data_dir(), "maz22_taz1454.csv"),
+    					  dtype = {'maz':     int,
+    					           'TAZ1454': int}
                           index_col='maz')
     maz['taz1454'] = taz1454.TAZ1454
     return maz
@@ -331,6 +337,8 @@ def maz():
 def parcel_to_maz():
     return pd.read_csv(os.path.join(misc.data_dir(),
                                     "2018_05_23_parcel_to_maz22.csv"),
+        			   dtype = {'PARCEL_ID': int,
+    					        'maz':       int}
                        index_col="PARCEL_ID")
 
 
@@ -493,6 +501,9 @@ def parcel_rejections():
 def parcels_geography(parcels, scenario, settings):
     df = pd.read_csv(
         os.path.join(misc.data_dir(), "2020_07_10_parcels_geography.csv"),
+        dtype = {'PARCEL_ID':       int,
+        		 'geom_id':         int,
+        		 'jurisdiction_id': int}
         index_col="geom_id")
     df = geom_id_to_parcel_id(df, parcels)
 
@@ -531,8 +542,9 @@ def parcels_geography(parcels, scenario, settings):
 @orca.table(cache=True)
 def parcels_subzone():
     return pd.read_csv(os.path.join(misc.data_dir(),
-                                    '2018_10_17_parcel_to_taz1454sub.csv'),
+                                    '2020_08_17_parcel_to_taz1454sub.csv'),
                        usecols=['taz_sub', 'PARCEL_ID', 'county'],
+                       dtype = {'PARCEL_ID': int}
                        index_col='PARCEL_ID')
 
 
@@ -834,6 +846,7 @@ def employment_controls(employment_controls_unstacked):
 def zone_forecast_inputs():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "zone_forecast_inputs.csv"),
+        dtype = {'zone_id': int},
         index_col="zone_id")
 
 
@@ -841,6 +854,7 @@ def zone_forecast_inputs():
 def taz_forecast_inputs():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "taz_forecast_inputs.csv"),
+        dtype = {'TAZ1454': int},
         index_col="TAZ1454")
 
 
@@ -850,6 +864,7 @@ def taz_forecast_inputs():
 def vmt_fee_categories():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "vmt_fee_zonecats.csv"),
+        dtype = {'taz': int},
         index_col="taz")
 
 
