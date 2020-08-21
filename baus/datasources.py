@@ -303,8 +303,9 @@ def zoning_lookup():
 @orca.table(cache=True)
 def zoning_baseline(parcels, zoning_lookup, settings):
     df = pd.read_csv(os.path.join(misc.data_dir(),
-                     "2020_06_22_zoning_parcels_hybrid_pba50.csv"),
-    				 dtype={'geom_id': int},
+                                  ("2020_06_22_zoning_parcels_"
+                                   "hybrid_pba50.csv")),
+                     dtype={'geom_id': int},
                      index_col="geom_id")
     df = pd.merge(df, zoning_lookup.to_frame(),
                   left_on="zoning_id", right_index=True)
@@ -322,12 +323,12 @@ def new_tpp_id():
 @orca.table(cache=True)
 def maz():
     maz = pd.read_csv(os.path.join(misc.data_dir(), "maz_geography.csv"),
-    				  dtype={'MAZ': int,
-    					     'TAZ': int})
+                      dtype={'MAZ': int,
+                             'TAZ': int})
     maz = maz.drop_duplicates('MAZ').set_index('MAZ')
     taz1454 = pd.read_csv(os.path.join(misc.data_dir(), "maz22_taz1454.csv"),
-    					  dtype={'maz':     int,
-    					         'TAZ1454': int},
+                          dtype={'maz':     int,
+                                 'TAZ1454': int},
                           index_col='maz')
     maz['taz1454'] = taz1454.TAZ1454
     return maz
@@ -336,9 +337,9 @@ def maz():
 @orca.table(cache=True)
 def parcel_to_maz():
     return pd.read_csv(os.path.join(misc.data_dir(),
-                                    "2018_05_23_parcel_to_maz22.csv"),
-        			   dtype={'PARCEL_ID': int,
-    					      'maz':       int},
+                                    "2020_08_17_parcel_to_maz22.csv"),
+                       dtype={'PARCEL_ID': int,
+                              'maz':       int},
                        index_col="PARCEL_ID")
 
 
@@ -502,8 +503,8 @@ def parcels_geography(parcels, scenario, settings):
     df = pd.read_csv(
         os.path.join(misc.data_dir(), "2020_07_10_parcels_geography.csv"),
         dtype={'PARCEL_ID':       int,
-        	   'geom_id':         int,
-        	   'jurisdiction_id': int},
+               'geom_id':         int,
+               'jurisdiction_id': int},
         index_col="geom_id")
     df = geom_id_to_parcel_id(df, parcels)
 
