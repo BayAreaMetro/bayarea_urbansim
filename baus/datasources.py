@@ -672,6 +672,10 @@ def get_dev_projects_table(scenario, parcels):
     current_dev_proj = ("2020_0731_1607_development_projects.csv")
     orca.add_injectable("dev_proj_file", current_dev_proj)
     df = pd.read_csv(os.path.join(urban_data_repo, current_dev_proj))
+    # convert geom_id to integer
+    df["geom_id"] = df.geom_id.fillna(0)
+    df["geom_id"] = df.geom_id.apply(lambda x: int(round(x)))
+
     df = reprocess_dev_projects(df)
 
     # this filters project by scenario
