@@ -677,12 +677,14 @@ def get_dev_projects_table(scenario, parcels):
     df["geom_id"] = df.geom_id.apply(lambda x: int(round(x)))
 
     df = reprocess_dev_projects(df)
+    orca.add_injectable("devproj_len", len(df))
 
     # this filters project by scenario
     scen = 'scen' + str(scenario)
     if scen in df:
         # df[scenario] is 1s and 0s indicating whether to include it
         df = df[df[scen].astype('bool')]
+    orca.add_injectable("devproj_len_scen", len(df))
 
     df = df.dropna(subset=['geom_id'])
 
@@ -696,6 +698,7 @@ def get_dev_projects_table(scenario, parcels):
     df = df.set_index("geom_id")
     df = geom_id_to_parcel_id(df, parcels).reset_index()  # use parcel id
     df["geom_id"] = geom_id.values  # add it back again cause it goes away
+    orca.add_injectable("devproj_len_geomid", len(df))
 
     return df
 
@@ -739,6 +742,8 @@ def development_projects(parcels, mapping, scenario):
     # need a year built to get built
     df = df.dropna(subset=["year_built"])
     df = df[df.action.isin(["add", "build"])]
+
+    orca.add_injectable("devproj_len_proc", len(df)) 
 
     print("Describe of development projects")
     # this makes sure dev projects has all the same columns as buildings
