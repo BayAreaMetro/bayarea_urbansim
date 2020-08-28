@@ -963,6 +963,8 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
                                            index=[geography],
                                            aggfunc=[np.size])
 
+            print('{}: columns of summary_table: \n{}'.format(geography,
+                                                              summary_table.head()))
             summary_table.columns = ['tothh']
 
             # fill in 0 values where there are NA's so that summary table
