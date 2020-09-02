@@ -255,12 +255,17 @@ def landmarks():
 
 @orca.table(cache=True)
 def baseyear_taz_controls():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "baseyear_taz_controls.csv"))
+    print('baseyear_taz_controls field types: \n{}'.format(test.dtypes))
     return pd.read_csv(os.path.join("data",
                        "baseyear_taz_controls.csv"), index_col="taz1454")
 
 
 @orca.table(cache=True)
 def base_year_summary_taz(mapping):
+    test = pd.read_csv(os.path.join('output',
+                                    'baseyear_taz_summaries_2010.csv'))
+    print('baseyear_taz_summaries_2010 field types: \n{}'.format(test.dtypes))
     df = pd.read_csv(os.path.join('output',
                                   'baseyear_taz_summaries_2010.csv'),
                      dtype={'taz1454': int},
@@ -273,6 +278,8 @@ def base_year_summary_taz(mapping):
 # non-residential rent data
 @orca.table(cache=True)
 def costar(store, parcels):
+    test = pd.read_csv(os.path.join(misc.data_dir(), "2015_08_29_costar.csv"))
+    print('2015_08_29_costar field types: \n{}'.format(test.dtypes))
     df = pd.read_csv(os.path.join(misc.data_dir(), '2015_08_29_costar.csv'))
 
     df["PropertyType"] = df.PropertyType.replace("General Retail", "Retail")
@@ -294,6 +301,8 @@ def costar(store, parcels):
 
 @orca.table(cache=True)
 def zoning_lookup():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "2020_06_22_zoning_lookup_hybrid_pba50.csv"))
+    print('zoning lookup hybrid field types: \n{}'.format(test.dtypes))
     return pd.read_csv(os.path.join(misc.data_dir(),
                        "2020_06_22_zoning_lookup_hybrid_pba50.csv"),
                        index_col='id')
@@ -302,6 +311,10 @@ def zoning_lookup():
 # zoning for use in the "baseline" scenario
 @orca.table(cache=True)
 def zoning_baseline(parcels, zoning_lookup, settings):
+    test = pd.read_csv(os.path.join(misc.data_dir(),
+                                  ("2020_06_22_zoning_parcels_"
+                                   "hybrid_pba50.csv")))
+    print('zoning_parcels hybrid field types: \n{}'.format(test.dtypes))
     df = pd.read_csv(os.path.join(misc.data_dir(),
                                   ("2020_06_22_zoning_parcels_"
                                    "hybrid_pba50.csv")),
@@ -322,10 +335,14 @@ def new_tpp_id():
 
 @orca.table(cache=True)
 def maz():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "maz_geography.csv"))
+    print('maz_geography field types: \n{}'.format(test.dtypes))
     maz = pd.read_csv(os.path.join(misc.data_dir(), "maz_geography.csv"),
                       dtype={'MAZ': int,
                              'TAZ': int})
     maz = maz.drop_duplicates('MAZ').set_index('MAZ')
+    test = pd.read_csv(os.path.join(misc.data_dir(), "maz22_taz1454.csv"))
+    print('maz22_taz1454 field types: \n{}'.format(test.dtypes))
     taz1454 = pd.read_csv(os.path.join(misc.data_dir(), "maz22_taz1454.csv"),
                           dtype={'maz':     int,
                                  'TAZ1454': int},
@@ -336,6 +353,8 @@ def maz():
 
 @orca.table(cache=True)
 def parcel_to_maz():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "2020_08_17_parcel_to_maz22.csv"))
+    print('2020_08_17_parcel_to_maz22 field types: \n{}'.format(test.dtypes))
     return pd.read_csv(os.path.join(misc.data_dir(),
                                     "2020_08_17_parcel_to_maz22.csv"),
                        dtype={'PARCEL_ID': int,
@@ -345,6 +364,8 @@ def parcel_to_maz():
 
 @orca.table(cache=True)
 def county_forecast_inputs():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "county_forecast_inputs.csv"))
+    print('county_forecast_inputs field types: \n{}'.format(test.dtypes))
     return pd.read_csv(os.path.join(misc.data_dir(),
                                     "county_forecast_inputs.csv"),
                        index_col="COUNTY")
@@ -352,12 +373,16 @@ def county_forecast_inputs():
 
 @orca.table(cache=True)
 def county_employment_forecast():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "county_employment_forecast.csv"))
+    print('county_employment_forecast field types: \n{}'.format(test.dtypes))
     return pd.read_csv(os.path.join(misc.data_dir(),
                        "county_employment_forecast.csv"))
 
 
 @orca.table(cache=True)
 def taz2_forecast_inputs(regional_demographic_forecast):
+    test = pd.read_csv(os.path.join(misc.data_dir(), "taz2_forecast_inputs.csv"))
+    print('taz2_forecast_inputs field types: \n{}'.format(test.dtypes))
     t2fi = pd.read_csv(os.path.join(misc.data_dir(),
                                     "taz2_forecast_inputs.csv"),
                        index_col='TAZ').replace('#DIV/0!', np.nan)
@@ -470,6 +495,8 @@ def zoning_scenario(parcels_geography, scenario, policy, mapping):
 @orca.table(cache=True)
 def parcels(store):
     df = store['parcels']
+    print('parcels field types: \n{}'.format(df.dtypes))
+    df.to_csv('parcels_h5.csv')
     # add a lat/lon to synthetic parcels to avoid a Pandana error
     df.loc[2054503, "x"] = -122.1697
     df.loc[2054503, "y"] = 37.4275
@@ -500,6 +527,9 @@ def parcel_rejections():
 
 @orca.table(cache=True)
 def parcels_geography(parcels, scenario, settings):
+    test = pd.read_csv(
+        os.path.join(misc.data_dir(), "2020_07_10_parcels_geography.csv"))
+    print('parcels_geography field types: \n{}'.format(test.dtypes))
     df = pd.read_csv(
         os.path.join(misc.data_dir(), "2020_07_10_parcels_geography.csv"),
         dtype={'PARCEL_ID':       int,
@@ -509,6 +539,9 @@ def parcels_geography(parcels, scenario, settings):
     df = geom_id_to_parcel_id(df, parcels)
 
     # this will be used to map juris id to name
+    test = pd.read_csv(
+        os.path.join(misc.data_dir(), "census_id_to_name.csv"))
+    print('census_id_to_name field types: \n{}'.format(test.dtypes))
     juris_name = pd.read_csv(
         os.path.join(misc.data_dir(), "census_id_to_name.csv"),
         index_col="census_id").name10
@@ -542,6 +575,9 @@ def parcels_geography(parcels, scenario, settings):
 
 @orca.table(cache=True)
 def parcels_subzone():
+    test = pd.read_csv(os.path.join(misc.data_dir(),
+                                    '2020_08_17_parcel_to_taz1454sub.csv'))
+    print('parcel_to_taz1454sub field types: \n{}'.format(test.dtypes))
     return pd.read_csv(os.path.join(misc.data_dir(),
                                     '2020_08_17_parcel_to_taz1454sub.csv'),
                        usecols=['taz_sub', 'PARCEL_ID', 'county'],
@@ -854,6 +890,9 @@ def employment_controls(employment_controls_unstacked):
 
 @orca.table(cache=True)
 def zone_forecast_inputs():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "zone_forecast_inputs.csv"))
+    print('zone_forecast_inputs field types: \n{}'.format(test.dtypes))
+
     return pd.read_csv(
         os.path.join(misc.data_dir(), "zone_forecast_inputs.csv"),
         dtype={'zone_id': int},
@@ -862,6 +901,8 @@ def zone_forecast_inputs():
 
 @orca.table(cache=True)
 def taz_forecast_inputs():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "taz_forecast_inputs.csv"))
+    print('taz_forecast_inputs field types: \n{}'.format(test.dtypes))
     return pd.read_csv(
         os.path.join(misc.data_dir(), "taz_forecast_inputs.csv"),
         dtype={'TAZ1454': int},
@@ -872,6 +913,8 @@ def taz_forecast_inputs():
 # in terms of vmt fees
 @orca.table(cache=True)
 def vmt_fee_categories():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "vmt_fee_zonecats.csv"))
+    print('vmt_fee_zonecats field types: \n{}'.format(test.dtypes))
     return pd.read_csv(
         os.path.join(misc.data_dir(), "vmt_fee_zonecats.csv"),
         dtype={'taz': int},
@@ -880,6 +923,8 @@ def vmt_fee_categories():
 
 @orca.table(cache=True)
 def superdistricts():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "superdistricts.csv"))
+    print('superdistricts field types: \n{}'.format(test.dtypes))
     return pd.read_csv(
         os.path.join(misc.data_dir(), "superdistricts.csv"),
         index_col="number")
@@ -887,11 +932,15 @@ def superdistricts():
 
 @orca.table(cache=True)
 def abag_targets():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "abag_targets.csv"))
+    print('abag_targets field types: \n{}'.format(test.dtypes))
     return pd.read_csv(os.path.join(misc.data_dir(), "abag_targets.csv"))
 
 
 @orca.table(cache=True)
 def taz_geography(superdistricts, mapping):
+    test = pd.read_csv(os.path.join(misc.data_dir(), "taz_geography.csv"))
+    print('taz_geography field types: \n{}'.format(test.dtypes))
     tg = pd.read_csv(
         os.path.join(misc.data_dir(), "taz_geography.csv"),
         index_col="zone")
@@ -914,6 +963,8 @@ def taz_geography(superdistricts, mapping):
 
 @orca.table(cache=True)
 def taz2_price_shifters():
+    test = pd.read_csv(os.path.join(misc.data_dir(), "taz2_price_shifters.csv"))
+    print('taz2_price_shifters field types: \n{}'.format(test.dtypes))
     return pd.read_csv(os.path.join(misc.data_dir(),
                                     "taz2_price_shifters.csv"),
                        index_col="TAZ")

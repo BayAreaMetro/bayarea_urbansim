@@ -912,6 +912,13 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
     else:
         base = False
 
+    parcels_df = parcels.to_frame()
+    parcels_df.to_csv("runs/run{}_parcels_df_{}.csv".format(run_number,year))
+
+    buildings_df = buildings.to_frame()
+    buildings_df.to_csv("runs/run{}_buildings_df_{}.csv".format(run_number,year))
+
+
     households_df = orca.merge_tables(
         'households',
         [parcels, buildings, households],
@@ -963,6 +970,11 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
                                            values=['persons'],
                                            index=[geography],
                                            aggfunc=[np.size])
+
+            households_df.to_csv(
+                "runs/run{}_households_df_{}.csv".format(run_number, geography))
+#            summary_table.to_csv(
+#                "runs/run{}_summary_table_{}.csv".format(run_number, geography))
 
             print('{}: columns of summary_table: \n{}'.format(geography,
                                                               summary_table.head()))
