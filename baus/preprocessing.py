@@ -87,23 +87,11 @@ def move_jobs_from_portola_to_san_mateo_county(parcels, buildings, jobs_df):
     # need to move jobs from portola valley to san mateo county
     NUM_IN_PORTOLA = 1500
 
-    print('Parcels: \n'.format(parcels))
-
-    print('Dtypes of buildings: \n{}'.format(buildings.dtypes))
-    print('Type of index of buildings: {}'.format(buildings.index))
-    print('Dtypes of jobs_df: \n{}'.format(jobs_df.dtypes))
-    print('Type of index of jobs_df: {}'.format(jobs_df.index))
-
     juris = misc.reindex(
         parcels.juris, misc.reindex(buildings.parcel_id, jobs_df.building_id))
 
-    # juris should be a series indexed by the index of jobs_df and has juris
-    # as the values
-    print('juris: \n{}'.format(juris))
-
     # find jobs in portols valley to move
     portola = jobs_df[juris == "Portola Valley"]
-    print('Length of portola jobs: {}'.format(len(portola)))
     move = portola.sample(len(portola) - NUM_IN_PORTOLA)
 
     # find places in san mateo to which to move them
