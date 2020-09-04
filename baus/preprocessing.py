@@ -86,7 +86,7 @@ def allocate_jobs(baseyear_taz_controls, mapping, buildings, parcels):
 def move_jobs_from_portola_to_san_mateo_county(parcels, buildings, jobs_df):
     # need to move jobs from portola valley to san mateo county
     NUM_IN_PORTOLA = 1500
-  
+
     print('Parcels: \n'.format(parcels))
 
     print('Dtypes of buildings: \n{}'.format(buildings.dtypes))

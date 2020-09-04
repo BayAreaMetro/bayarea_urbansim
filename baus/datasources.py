@@ -256,7 +256,7 @@ def landmarks():
 @orca.table(cache=True)
 def baseyear_taz_controls():
     return pd.read_csv(os.path.join("data",
-                           "baseyear_taz_controls.csv"),
+                                    "baseyear_taz_controls.csv"),
                        dtype={'taz1454': np.int64},
                        index_col="taz1454")
 
@@ -678,7 +678,7 @@ def get_dev_projects_table(scenario, parcels):
     # requires the user has MTC's urban_data_internal
     # repository alongside bayarea_urbansim
     urban_data_repo = ("../urban_data_internal/development_projects/")
-    #current_dev_proj = ("2020_0731_1607_development_projects.csv")
+    # current_dev_proj = ("2020_0731_1607_development_projects.csv")
     current_dev_proj = ('2020_0902_1352_development_projects.csv')
     orca.add_injectable("dev_proj_file", current_dev_proj)
     df = pd.read_csv(os.path.join(urban_data_repo, current_dev_proj),
@@ -751,7 +751,7 @@ def development_projects(parcels, mapping, scenario):
     df = df.dropna(subset=["year_built"])
     df = df[df.action.isin(["add", "build"])]
 
-    orca.add_injectable("devproj_len_proc", len(df)) 
+    orca.add_injectable("devproj_len_proc", len(df))
 
     print("Describe of development projects")
     # this makes sure dev projects has all the same columns as buildings
