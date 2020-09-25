@@ -538,7 +538,7 @@ def parcels_geography(parcels, scenario, settings, policy):
         df['juris_sesit'] = df.juris + '-' + df.sesit_id
     else:
         # add Draft Blueprint geographies
-        df["pda_id_pba50"] = df.pda_id_pba50.str.lower()
+        df["pda_id_pba50"] = df.pda_id_pba50_db.str.lower()
         df["tra_id"] = df.tra_id.str.lower()
         df['juris_tra'] = df.juris + '-' + df.tra_id
         df["ppa_id"] = df.ppa_id.str.lower()
