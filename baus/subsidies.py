@@ -779,10 +779,9 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
                 "description": "Developing subsidized building",
                 "year": year,
                 "residential_units": new_building.residential_units,
+                "inclusionary_units": new_building.inclusionary_units,
                 "building_id": index
             }
-            account.add_transaction(amt, subaccount=subacct,
-                                    metadata=metadata)
 
             if create_deed_restricted:
 
@@ -809,6 +808,14 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
                 # also correct the debug output
                 new_buildings.loc[index, "deed_restricted_units"] =\
                     int(round(subsidized_units))
+
+            metadata['deed_restricted_units'] = \
+                    new_buildings.loc[index,'deed_restricted_units']
+            metadata['subsidized_units'] = \
+                    new_buildings.loc[index,'deed_restricted_units'] - \
+                    new_buildings.loc[index,'inclusionary_units']                 
+            account.add_transaction(amt, subaccount=subacct,
+                                    metadata=metadata)
 
         # turn off this assertion for the Draft Blueprint
         # affordable housing policy since the number of deed restricted units
