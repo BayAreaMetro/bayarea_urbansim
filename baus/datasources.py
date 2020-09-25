@@ -527,7 +527,18 @@ def parcels_geography(parcels, scenario, settings, policy):
     # danville wasn't supposed to be a pda
     df["pda_id_pba40"] = df.pda_id_pba40.replace("dan1", np.nan)
 
-    # Use Final Blueprint geographies: PDA, TRA, PPA, sesit
+    # add PBA50 geographies: PDA, TRA, PPA, sesit
+    # default to Draft Blueprint
+    df["pda_id_pba50"] = df.pda_id_pba50_db.str.lower()
+    df["gg_id"] = df.gg_id.str.lower()
+    df["tra_id"] = df.tra_id.str.lower()
+    df['juris_tra'] = df.juris + '-' + df.tra_id
+    df["ppa_id"] = df.ppa_id.str.lower()
+    df['juris_ppa'] = df.juris + '-' + df.ppa_id
+    df["sesit_id"] = df.sesit_id.str.lower()
+    df['juris_sesit'] = df.juris + '-' + df.sesit_id
+
+    # use Final Blueprint version in FB scenarios
     if scenario in policy['geographies_fb_enable']:
         df["pda_id_pba50"] = df.pda_id_pba50_fb.str.lower()
         df["gg_id"] = df.fbp_gg_id.str.lower()
@@ -537,16 +548,7 @@ def parcels_geography(parcels, scenario, settings, policy):
         df['juris_ppa'] = df.juris + '-' + df.ppa_id
         df["sesit_id"] = df.fbp_sesit_id.str.lower()
         df['juris_sesit'] = df.juris + '-' + df.sesit_id
-    else:
-        # add Draft Blueprint geographies
-        df["pda_id_pba50"] = df.pda_id_pba50_db.str.lower()
-        df["gg_id"] = df.gg_id.str.lower()
-        df["tra_id"] = df.tra_id.str.lower()
-        df['juris_tra'] = df.juris + '-' + df.tra_id
-        df["ppa_id"] = df.ppa_id.str.lower()
-        df['juris_ppa'] = df.juris + '-' + df.ppa_id
-        df["sesit_id"] = df.sesit_id.str.lower()
-        df['juris_sesit'] = df.juris + '-' + df.sesit_id
+
     return df
 
 
