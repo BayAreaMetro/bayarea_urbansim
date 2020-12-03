@@ -29,8 +29,7 @@ ruCJpsNDb9TPyyyrJ13Vl9LtZ-xZDqyZ5762Kju_a-nydWOqk0tB6ri9fPHh67sElVVA.'
 ###Urbansim Setup
 urbansim_run_location           = 'C:/Users/{}/Box/Modeling and Surveys/Urban Modeling/Bay Area UrbanSim/PBA50/'.format(os.getenv('USERNAME'))
 us_2050_DBP_Plus_runid         = 'Draft Blueprint runs/Blueprint Plus Crossing (s23)/v1.7.1- FINAL DRAFT BLUEPRINT/run98'
-us_2050_FBP_Nov      = 'Final Blueprint runs/Final Blueprint (s24)/BAUS v2.19/run262'
-#us_2050_FBP_Oct_v11      = 'Final Blueprint runs/Final Blueprint (s24)/BAUS v2.9/run160'
+us_2050_FBP_Nov      = 'Final Blueprint runs/Final Blueprint (s24)/BAUS v2.25/run182'
 
 list_us_runid = [us_2050_DBP_Plus_runid,us_2050_FBP_Nov] 
 
@@ -278,7 +277,7 @@ if __name__ == '__main__':
         for model_year in (2015, 2050):
             parcel_file = urbansim_runid+'_parcel_data_{}.csv'.format(model_year)
             logger.info('Reading {} parcel data from {}'.format(model_year, parcel_file))
-            parcel_output = pd.read_csv(parcel_file)
+            parcel_output = pd.read_csv(parcel_file, engine='python' )
 
             logger.info('  Read {} rows'.format(len(parcel_output)))
 
