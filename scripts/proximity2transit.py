@@ -19,19 +19,29 @@ LOG_FILE          = os.path.join(WORKING_DIR,"proximity2transit_{}.log".format(N
 WORKSPACE_GDB     = "workspace_{}.GDB".format(NOW)
 
 # To make these accessible, login to the server via the ArcGIS Pro GUI
-MTC_ONLINE_TRANSIT15_URL = 'https://arcgis.ad.mtc.ca.gov/server/rest/services/Hosted/Existing_Transit_Stops_2020/FeatureServer/0'
-MTC_ONLINE_TRANSIT50_URL = 'https://arcgis.ad.mtc.ca.gov/server/rest/services/Hosted/transitstops_01_2020_potential/FeatureServer/0'
+MTC_ONLINE_TRANSIT_URL = 'https://arcgis.ad.mtc.ca.gov/server/rest/services/Hosted/DRAFT_transit_stops_planned_existing_01_2021/FeatureServer/\
+0?token=qfm30yuQYooZDutSH8EvOs0Dm5v8ebszeE-B48VEw2HcmrNvB_X1AWZ--CP_jQzVI9eREVXfkN2XTqg\
+IpSj2J8j12F3wMzajhTdIM3dAobQwbJE2kJg-DB06j6gD-yHqCyxhAynGAVCdAqtvMuoYV3NyBH7Ye_uowos7un\
+hxKX2Bc3NNCPKcueIu4zmJrlZWE7UKU5wGuglc-vVxjxrg5pvn8zh_HgHcAfKj8XkZOJ4.'
 MTC_ONLINE_BACOUNTY_URL  = 'https://arcgis.ad.mtc.ca.gov/server/rest/services/Hosted/county_region/FeatureServer/\
 0?token=CjEwvAXFsqxLRQUDXcXdE2UiCvnfSdSnbwyLWY9nyEd3_X-8fqweg4FGuxjPXZ-GLsX8Hu5K_u0JfQP\
 8VlapfgMcPFqFNzAkh7gjRLJnjO_a72KZtHGm3OSl-GLC3v4hqxpS478NRaSkQJB5fCLtvn_9nDiagBLbpldEwgL\
 ruCJpsNDb9TPyyyrJ13Vl9LtZ-xZDqyZ5762Kju_a-nydWOqk0tB6ri9fPHh67sElVVA.'
+MTC_ONLINE_TAZ_URL = 'https://arcgis.ad.mtc.ca.gov/server/rest/services/Hosted/taz_category/FeatureServer/\
+0?token=BJaIzf_AGv0xs3qOCRsGq1QGDJRi-oT1T2HNUjjdRS_rtglT9HmP523amh626byf7YyYkkY0FvP6mcrc\
+beLuttvpuc6mNL9K7HTFIUCaOEGLICEsqX4M3DahihVWZUfj1rVMmxI0CiECH6L_H0U-91bK3TevqBE2oOj4om0lw\
+KhnKJVgE4yrf3y5GcTwe8yXMTZUZYMQSl-GxuKrbSYukYONX5Giyxn8NBx2kGGCf_4.'
+MTC_ONLINE_TRACT_URL = 'https://arcgis.ad.mtc.ca.gov/server/rest/services/Hosted/tract_category/FeatureServer/\
+0?token=5RNhXyoN6RmjOZmb9t4-uB-D0qqL1ZxZmcleQmVyif-5krodzSD-zaapplnxhORIhorr1szQ0099rbwkVe\
+MsD-qZFF1bWqwvuQweifh4vBuBda6MBO3Ac9q-oEq4Wt6ESrtBuPi3ctPrk26cH4k_VBiwDJwhE4F4SczIOMyvNfwe\
+jI9PglfGfZFw8N45yh71ywfAOoppATaxBDYQ7Ujv-hUS-DJZsi8voIpMg78RGpQ.'
 
 ###Urbansim Setup
 urbansim_run_location           = 'C:/Users/{}/Box/Modeling and Surveys/Urban Modeling/Bay Area UrbanSim/PBA50/'.format(os.getenv('USERNAME'))
 us_2050_DBP_Final         = 'Draft Blueprint runs/Blueprint Plus Crossing (s23)/v1.7.1- FINAL DRAFT BLUEPRINT/run98'
 us_2050_FBP_Final      = 'Final Blueprint runs/Final Blueprint (s24)/BAUS v2.25 - FINAL VERSION/run182'
 
-list_us_runid = [us_2050_DBP_Final,us_2050_FBP_Final] 
+list_us_runid = [us_2050_DBP_Final]#,us_2050_FBP_Final] 
 
 
 def log_workspace_contents(logger):
@@ -97,13 +107,13 @@ def create_transit_features(logger, transit_type):
    
     else:
         if transit_type=="noplan":
-            logger.info('Selecting "Under Construction" stops for no plan')
+            logger.info('Selecting "Under Construction" or "Open" stops for no plan')
             new_major = arcpy.management.SelectLayerByAttribute(input_layer, "NEW_SELECTION", 
-                                                                '"status" = \'Under Construction\'')
+                                                                '"status" = \'Under Construction\' Or status=\'Open\'')
         elif transit_type=="blueprint":
-            logger.info('Selecting "Under Construction" or "Draft Blueprint" stops for no plan')
+            logger.info('Selecting "Under Construction" or "Open" or "Final Blueprint" stops for no plan')
             new_major = arcpy.management.SelectLayerByAttribute(input_layer, "NEW_SELECTION", 
-                                                                '"status" = \'Under Construction\' Or status=\'Draft Blueprint\'')
+                                                                '"status" = \'Under Construction\' Or status=\'Open\' Or status=\'Final Blueprint\'')
 
         arcpy.CopyFeatures_management(new_major, prefix+"_new_major")  # save selection to new feature class
         new_major_result = arcpy.GetCount_management(prefix+"_new_major")
@@ -120,7 +130,7 @@ def create_transit_features(logger, transit_type):
     logger.info('Creating buffer for stops with headway < 15min => {}_hdwy15buf'.format(prefix))
 
     if transit_type=="current":
-        hdwy15 = arcpy.SelectLayerByAttribute_management(input_layer, "NEW_SELECTION", '"hdwy_15min" = 1') 
+        hdwy15 = arcpy.SelectLayerByAttribute_management(input_layer, "NEW_SELECTION", "am_av_hdwy <= 15 And pm_av_hdwy <= 15") 
         arcpy.CopyFeatures_management(hdwy15, prefix+"_hdwy15")  # save selection to new feature class
         hdwy15_result = arcpy.GetCount_management(prefix+"_hdwy15")
         logger.info("  {}_hdwy15 has {} rows".format(prefix, hdwy15_result[0]))
@@ -134,7 +144,7 @@ def create_transit_features(logger, transit_type):
     logger.info('Creating buffer for stops with headway 15-30 min => {}_hdwy30buf'.format(prefix))
 
     if transit_type=="current":
-        hdwy30 = arcpy.SelectLayerByAttribute_management(input_layer, "NEW_SELECTION", '"hdwy_30min" = 1')
+        hdwy30 = arcpy.SelectLayerByAttribute_management(input_layer, "NEW_SELECTION", "am_av_hdwy > 15 And am_av_hdwy <= 30 And pm_av_hdwy > 15 And pm_av_hdwy <= 30")
         arcpy.CopyFeatures_management(hdwy30, prefix+"_hdwy30")  # save selection to new feature class
         hdwy30_result = arcpy.GetCount_management(prefix+"_hdwy30")
         logger.info("  {}_hdwy30 has {} rows".format(prefix, hdwy30_result[0]))
@@ -148,7 +158,7 @@ def create_transit_features(logger, transit_type):
     logger.info('Creating buffer for stops with headway 30+ min => {}_hdwy30plusbuf'.format(prefix))
 
     if transit_type=="current":
-        hdwy30plus = arcpy.SelectLayerByAttribute_management(input_layer, "NEW_SELECTION", '"hdwy_class" = \'31 mins or more\'')
+        hdwy30plus = arcpy.SelectLayerByAttribute_management(input_layer, "NEW_SELECTION", "am_av_hdwy > 30 Or pm_av_hdwy > 30")
         arcpy.CopyFeatures_management(hdwy30plus, prefix+"_hdwy30plus")  # save selection to new feature class
         hdwy30plus_result = arcpy.GetCount_management(prefix+"_hdwy30plus")
         logger.info("  {}_hdwy30plus has {} rows".format(prefix, hdwy30plus_result[0]))
@@ -232,21 +242,27 @@ if __name__ == '__main__':
     arcpy.env.workspace = os.path.join(WORKING_DIR,WORKSPACE_GDB)
     arcpy.env.overwriteOutput = True
 
-    transit_current_portal   = arcpy.MakeFeatureLayer_management(MTC_ONLINE_TRANSIT15_URL,'transit_current_portal')
-    transit_potential_portal = arcpy.MakeFeatureLayer_management(MTC_ONLINE_TRANSIT50_URL,'transit_potential_portal')
+    transit_layer            = arcpy.MakeFeatureLayer_management(MTC_ONLINE_TRANSIT_URL,'transit_layer')
     bacounty_portal          = arcpy.MakeFeatureLayer_management(MTC_ONLINE_BACOUNTY_URL,'bacounty_portal')
+    taz_portal               = arcpy.MakeFeatureLayer_management(MTC_ONLINE_TAZ_URL,'taz_portal')
+    tract_portal             = arcpy.MakeFeatureLayer_management(MTC_ONLINE_TRACT_URL,'tract_portal')
 
-    transit_current          = os.path.join(arcpy.env.workspace, "transit_current")
-    transit_potential        = os.path.join(arcpy.env.workspace, "transit_potential")
     bacounty                 = os.path.join(arcpy.env.workspace, "bacounty")
+    taz                      = os.path.join(arcpy.env.workspace, "taz")
+    tract                    = os.path.join(arcpy.env.workspace, "tract")
 
-    if arcpy.Exists(transit_current):   arcpy.Delete_management(transit_current)
-    if arcpy.Exists(transit_potential): arcpy.Delete_management(transit_potential)
     if arcpy.Exists(bacounty):          arcpy.Delete_management(bacounty)
-
-    arcpy.FeatureClassToFeatureClass_conversion(transit_current_portal,   arcpy.env.workspace,'transit_current')
-    arcpy.FeatureClassToFeatureClass_conversion(transit_potential_portal, arcpy.env.workspace,'transit_potential')
+    if arcpy.Exists(taz):               arcpy.Delete_management(taz)
+    if arcpy.Exists(tract):             arcpy.Delete_management(tract)
     arcpy.FeatureClassToFeatureClass_conversion(bacounty_portal,          arcpy.env.workspace,'bacounty')
+    arcpy.FeatureClassToFeatureClass_conversion(taz_portal,               arcpy.env.workspace,'taz')
+    arcpy.FeatureClassToFeatureClass_conversion(tract_portal,             arcpy.env.workspace,'tract')
+
+    transit_current = arcpy.SelectLayerByAttribute_management(transit_layer, "NEW_SELECTION", "status = 'Existing/Built'")
+    arcpy.CopyFeatures_management(transit_current, 'transit_current')     
+
+    transit_potential = arcpy.SelectLayerByAttribute_management(transit_layer, "NEW_SELECTION", "status <> 'Existing/Built'")
+    arcpy.CopyFeatures_management(transit_potential, 'transit_potential')
 
     # log info about the workspace
     log_workspace_contents(logger)
@@ -316,7 +332,7 @@ if __name__ == '__main__':
                 transit_features = ['trn_cur_cat5']
             elif model_year == 2050:
                 # no plan and blueprint
-                transit_features = ['trn_np_cat5', 'trn_bp_cat5']
+                transit_features = ['trn_np_cat5', 'trn_fp_cat5']
 
             for transit_feature in transit_features:
 
@@ -363,10 +379,18 @@ if __name__ == '__main__':
                 logger.info("spatial joining parcel_fc with {}".format(transit_feature))
                 arcpy.SpatialJoin_analysis(target_features='parcel_fc', join_features=transit_feature, 
                                            out_feature_class='parcel_fc_join_trn')
+
+                logger.info("spatial joining parcel_fc_join_trn with {}".format(taz))
+                arcpy.SpatialJoin_analysis(target_features='parcel_fc_join_trn', join_features=taz, 
+                                           out_feature_class='parcel_fc_join_trn_taz')
+
+                logger.info("spatial joining parcel_fc_join_trn_taz with {}".format(tract))
+                arcpy.SpatialJoin_analysis(target_features='parcel_fc_join_trn_taz', join_features=tract, 
+                                           out_feature_class='parcel_fc_join_trn_taz_tract')
                 logger.info("    ...complete")
 
-                prox_sdf = pd.DataFrame.spatial.from_featureclass('parcel_fc_join_trn')
-                prox_sdf = prox_sdf.groupby('Service_Level').agg({'tothh':'sum', 'hhq1':'sum', 
+                prox_sdf = pd.DataFrame.spatial.from_featureclass('parcel_fc_join_trn_taz_tract')
+                prox_sdf = prox_sdf.groupby('area_type','Service_Level').agg({'tothh':'sum', 'hhq1':'sum', 
                                                                  'totemp':'sum', 'RETEMPN':'sum',
                                                                  'MWTEMPN':'sum'}).reset_index()
 
@@ -378,6 +402,7 @@ if __name__ == '__main__':
                 prox_sdf['year'         ] = str(model_year)
                 prox_sdf['modelrunID'   ] = us_runid
                 prox_sdf['transit'      ] = transit_feature
+                prox_sdf['taz_cat'      ] = taz
 
                 logger.info("prox_sdf:\n{}".format(prox_sdf))
                 all_prox = all_prox.append(prox_sdf)
