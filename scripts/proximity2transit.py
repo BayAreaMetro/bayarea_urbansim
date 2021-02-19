@@ -38,10 +38,11 @@ jI9PglfGfZFw8N45yh71ywfAOoppATaxBDYQ7Ujv-hUS-DJZsi8voIpMg78RGpQ.'
 
 ###Urbansim Setup
 urbansim_run_location           = 'C:/Users/{}/Box/Modeling and Surveys/Urban Modeling/Bay Area UrbanSim/PBA50/'.format(os.getenv('USERNAME'))
+#keep DBP for future
 us_2050_DBP_Final         = 'Draft Blueprint runs/Blueprint Plus Crossing (s23)/v1.7.1- FINAL DRAFT BLUEPRINT/run98'
 us_2050_FBP_Final      = 'Final Blueprint runs/Final Blueprint (s24)/BAUS v2.25 - FINAL VERSION/run182'
 
-list_us_runid = [us_2050_DBP_Final]#,us_2050_FBP_Final] 
+list_us_runid = [us_2050_FBP_Final]#,us_2050_FBP_Final] 
 
 
 def log_workspace_contents(logger):
@@ -88,7 +89,7 @@ def create_transit_features(logger, transit_type):
         curprefix   = "trn_cur"
     elif transit_type == "blueprint":
         input_layer = "transit_potential"
-        prefix      = "trn_bp"
+        prefix      = "trn_fp"
         curprefix   = "trn_cur"
     else:
         logger.fatal("Unsupported transit_type {}".format(transit_type))
@@ -284,6 +285,7 @@ if __name__ == '__main__':
 
     ### Bring in urbansim results
     all_prox = pd.DataFrame()
+    taz_prox    = pd.DataFrame()
 
     for us_runid in list_us_runid:
         logger.info("")
@@ -389,8 +391,8 @@ if __name__ == '__main__':
                                            out_feature_class='parcel_fc_join_trn_taz_tract')
                 logger.info("    ...complete")
 
-                prox_sdf = pd.DataFrame.spatial.from_featureclass('parcel_fc_join_trn_taz_tract')
-                prox_sdf = prox_sdf.groupby('area_type','Service_Level').agg({'tothh':'sum', 'hhq1':'sum', 
+                prox_sdf_ba = pd.DataFrame.spatial.from_featureclass('parcel_fc_join_trn_taz_tract')
+                prox_sdf = prox_sdf_ba.groupby('Service_Level').agg({'tothh':'sum', 'hhq1':'sum', 
                                                                  'totemp':'sum', 'RETEMPN':'sum',
                                                                  'MWTEMPN':'sum'}).reset_index()
 
@@ -402,16 +404,77 @@ if __name__ == '__main__':
                 prox_sdf['year'         ] = str(model_year)
                 prox_sdf['modelrunID'   ] = us_runid
                 prox_sdf['transit'      ] = transit_feature
-                prox_sdf['taz_cat'      ] = taz
+                prox_sdf['area'         ] = 'Region'
 
                 logger.info("prox_sdf:\n{}".format(prox_sdf))
                 all_prox = all_prox.append(prox_sdf)
 
+                prox_sdf_coc = prox_sdf_ba[prox_sdf_ba.coc == 1]
+                prox_sdf_coc = prox_sdf_coc.groupby('Service_Level').agg({'tothh':'sum', 'hhq1':'sum', 
+                                                                 'totemp':'sum', 'RETEMPN':'sum',
+                                                                 'MWTEMPN':'sum'}).reset_index()
+
+                prox_sdf_coc['tothh_share'  ] = round(prox_sdf_coc.tothh  /prox_sdf_coc.tothh.sum(),  2)
+                prox_sdf_coc['hhq1_share'   ] = round(prox_sdf_coc.hhq1   /prox_sdf_coc.hhq1.sum()  , 2)
+                prox_sdf_coc['totemp_share' ] = round(prox_sdf_coc.totemp /prox_sdf_coc.totemp.sum(), 2)
+                prox_sdf_coc['RETEMPN_share'] = round(prox_sdf_coc.RETEMPN/prox_sdf_coc.RETEMPN.sum(),2)
+                prox_sdf_coc['MWTEMPN_share'] = round(prox_sdf_coc.MWTEMPN/prox_sdf_coc.MWTEMPN.sum(),2)
+                prox_sdf_coc['year'         ] = str(model_year)
+                prox_sdf_coc['modelrunID'   ] = us_runid
+                prox_sdf_coc['transit'      ] = transit_feature
+                prox_sdf_coc['area'         ] = 'CoCs'
+
+                logger.info("prox_sdf_coc:\n{}".format(prox_sdf_coc))
+                all_prox = all_prox.append(prox_sdf_coc)
+
+                prox_sdf_hra = prox_sdf_ba[prox_sdf_ba.hra == 1]
+                prox_sdf_hra = prox_sdf_hra.groupby('Service_Level').agg({'tothh':'sum', 'hhq1':'sum', 
+                                                                 'totemp':'sum', 'RETEMPN':'sum',
+                                                                 'MWTEMPN':'sum'}).reset_index()
+
+                prox_sdf_hra['tothh_share'  ] = round(prox_sdf_hra.tothh  /prox_sdf_hra.tothh.sum(),  2)
+                prox_sdf_hra['hhq1_share'   ] = round(prox_sdf_hra.hhq1   /prox_sdf_hra.hhq1.sum()  , 2)
+                prox_sdf_hra['totemp_share' ] = round(prox_sdf_hra.totemp /prox_sdf_hra.totemp.sum(), 2)
+                prox_sdf_hra['RETEMPN_share'] = round(prox_sdf_hra.RETEMPN/prox_sdf_hra.RETEMPN.sum(),2)
+                prox_sdf_hra['MWTEMPN_share'] = round(prox_sdf_hra.MWTEMPN/prox_sdf_hra.MWTEMPN.sum(),2)
+                prox_sdf_hra['year'         ] = str(model_year)
+                prox_sdf_hra['modelrunID'   ] = us_runid
+                prox_sdf_hra['transit'      ] = transit_feature
+                prox_sdf_hra['area'         ] = 'HRAs'
+
+                logger.info("prox_sdf_hra:\n{}".format(prox_sdf_hra))
+                all_prox = all_prox.append(prox_sdf_hra)
+
                 logger.info("all_prox:\n{}".format(all_prox))
 
+                prox_sdf_taz = prox_sdf_ba.groupby(['area_type','Service_Level']).agg({'tothh':'sum', 'hhq1':'sum', 
+                                                                 'totemp':'sum', 'RETEMPN':'sum',
+                                                                 'MWTEMPN':'sum'}).reset_index()
+
+                prox_sdf_taz['tothh_share'  ] = round(prox_sdf_taz.tothh  /prox_sdf_taz.tothh.sum(),  2)
+                prox_sdf_taz['hhq1_share'   ] = round(prox_sdf_taz.hhq1   /prox_sdf_taz.hhq1.sum()  , 2)
+                prox_sdf_taz['totemp_share' ] = round(prox_sdf_taz.totemp /prox_sdf_taz.totemp.sum(), 2)
+                prox_sdf_taz['RETEMPN_share'] = round(prox_sdf_taz.RETEMPN/prox_sdf_taz.RETEMPN.sum(),2)
+                prox_sdf_taz['MWTEMPN_share'] = round(prox_sdf_taz.MWTEMPN/prox_sdf_taz.MWTEMPN.sum(),2)
+                prox_sdf_taz['year'         ] = str(model_year)
+                prox_sdf_taz['modelrunID'   ] = us_runid
+                prox_sdf_taz['transit'      ] = transit_feature
+
+                logger.info("prox_sdf:\n{}".format(prox_sdf_taz))
+                taz_prox = taz_prox.append(prox_sdf_taz)
+
+                logger.info("taz_prox:\n{}".format(taz_prox))
+
+
+
     # write it
-    outfile = 'metrics_proximity_{}.csv'.format(NOW)
+    outfile_ba = 'metrics_proximity_{}.csv'.format(NOW)
     logger.info("")
     all_prox.to_csv('metrics_proximity_{}.csv'.format(NOW), index=False)
-    logger.info("Wrote {}".format(outfile))
+    logger.info("Wrote {}".format(outfile_ba))
+
+    outfile_taz = 'metrics_proximity__taz{}.csv'.format(NOW)
+    logger.info("")
+    taz_prox.to_csv('metrics_proximity_taz_{}.csv'.format(NOW), index=False)
+    logger.info("Wrote {}".format(outfile_taz))
 
