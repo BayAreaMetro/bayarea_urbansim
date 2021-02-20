@@ -43,7 +43,7 @@ us_2050_DBP_Final         = 'Draft Blueprint runs/Blueprint Plus Crossing (s23)/
 us_2050_FBP_Final      = 'Final Blueprint runs/Final Blueprint (s24)/BAUS v2.25 - FINAL VERSION/run182'
 us_2050_NP_EIR         = 'EIR runs/Baseline Large (s25) runs/NP_v8/run314'
 
-list_us_runid = [us_2050_FBP_Final, us_2050_NP_EIR]#,us_2050_FBP_Final] 
+list_us_runid = [us_2050_FBP_Final, us_2050_NP_EIR]#, us_2050_FBP_Final, us_2050_DBP_Final] 
 
 
 def log_workspace_contents(logger):
