@@ -41,9 +41,11 @@ urbansim_run_location           = 'C:/Users/{}/Box/Modeling and Surveys/Urban Mo
 #keep DBP for future
 us_2050_DBP_Final         = 'Draft Blueprint runs/Blueprint Plus Crossing (s23)/v1.7.1- FINAL DRAFT BLUEPRINT/run98'
 us_2050_FBP_Final      = 'Final Blueprint runs/Final Blueprint (s24)/BAUS v2.25 - FINAL VERSION/run182'
-us_2050_NP_EIR         = 'EIR runs/Baseline Large (s25) runs/NP_v8/run314'
+us_2050_NP_EIR         = 'EIR runs/Baseline Large (s25) runs/NP_v8_FINAL/run314'
+us_2050_ALT1_EIR         = 'EIR runs/Alt1 (s26) runs/Alt1_v3_test_far_tiers_FINAL_EIR_ALT/run375'
+us_2050_ALT2_EIR         = 'EIR runs/Alt2 (s28) runs/Alt2_v1_FINAL_EIR_ALT/run374'
 
-list_us_runid = [us_2050_FBP_Final, us_2050_NP_EIR]#, us_2050_FBP_Final, us_2050_DBP_Final] 
+list_us_runid = [us_2050_NP_EIR, us_2050_ALT1_EIR, us_2050_ALT2_EIR, us_2050_FBP_Final]#, us_2050_FBP_Final, us_2050_DBP_Final] 
 
 
 def log_workspace_contents(logger):
@@ -297,6 +299,8 @@ if __name__ == '__main__':
             if model_year == 2050:
                 if us_runid == us_2050_FBP_Final:
                     parcel_file = urbansim_runid+'_parcel_data_{}_UBI.csv'.format(model_year)
+                else:
+                    parcel_file = urbansim_runid+'_parcel_data_{}.csv'.format(model_year)
             else: 
                 parcel_file = urbansim_runid+'_parcel_data_{}.csv'.format(model_year)
             logger.info('Reading {} parcel data from {}'.format(model_year, parcel_file))
