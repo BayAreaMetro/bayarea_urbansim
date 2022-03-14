@@ -7,11 +7,15 @@ import pandas as pd
 import numpy as np
 from functools import reduce
 from urbansim import accounts
-from urbansim_defaults import utils
+# import urbansim_defaults.utils from local copy instead of from 
+# urbansim_defaults python package to help debug
+from src_for_debug.urbansim_defaults.urbansim_defaults import utils
 from six import StringIO
 from urbansim.utils import misc
 from baus.utils import add_buildings
-from urbansim.developer import sqftproforma
+# import urbansim.sqftproforma from local copy instead of from 
+# urbansim python package to help debug
+from src_for_debug.urbansim.urbansim.developer import sqftproforma
 
 
 # this method is a custom profit to probability function where we test the
@@ -1174,6 +1178,10 @@ def subsidized_residential_developer_lump_sum_accts(
         # but the only cost is in time - the results should be the same
         orca.eval_step("subsidized_residential_feasibility")
         feasibility = orca.get_table("feasibility").to_frame()
+        print('export feasibility from res lump-sum-accts for year {}'.format(year))
+        feasibility.to_csv('runs/run{}_feasibility_subResDev_{}.csv'.format(
+            orca.get_injectable("run_number"), year))
+
         feasibility = feasibility.stack(level=0).\
             reset_index(level=1, drop=True)
 

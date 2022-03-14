@@ -11,7 +11,9 @@ from orca_test import OrcaSpec, TableSpec, ColumnSpec, InjectableSpec
 from urbansim.developer.developer import Developer as dev
 from urbansim.models.relocation import RelocationModel
 from urbansim.utils import misc
-from urbansim_defaults import utils
+# import urbansim_defaults.utils from local copy instead of from
+# urbansim_defaults python package to help debug
+from src_for_debug.urbansim_defaults.urbansim_defaults import utils
 
 
 ###############################################################################
@@ -757,6 +759,14 @@ def rsh_simulate(residential_units, aggregations, settings, rsh_config):
                            out_fname='unit_residential_price')
 
     _mtc_clip(residential_units, 'unit_residential_price', settings)
+
+    print('export residential_units table from rsh_simulate')
+
+    residential_units_export = orca.get_table("residential_units").to_frame()
+    residential_units_export.to_csv('runs/run{}_residential_units_rshSim_{}.csv'.format(
+        orca.get_injectable("run_number"),
+        orca.get_injectable("year")))
+
     return
 
 
@@ -777,6 +787,14 @@ def rrh_simulate(residential_units, aggregations, settings, rrh_config):
 
     _mtc_clip(residential_units, 'unit_residential_rent',
               settings, price_scale=0.05/12)
+
+    print('export residential_units table from rrh_simulate')
+
+    residential_units_export = orca.get_table("residential_units").to_frame()
+    residential_units_export.to_csv('runs/run{}_residential_units_rrhSim_{}.csv'.format(
+        orca.get_injectable("run_number"),
+        orca.get_injectable("year")))
+
     return
 
 

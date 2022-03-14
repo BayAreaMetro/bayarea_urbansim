@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 import pandas as pd
 import logging
@@ -11,6 +13,8 @@ class SqFtProFormaConfig(object):
     This class encapsulates the configuration options for the square
     foot based pro forma.
 
+    Parameters
+    ----------
     parcel_sizes : list
         A list of parcel sizes to test.  Interestingly, right now
         the parcel sizes cancel in this style of pro forma computation so
@@ -146,10 +150,10 @@ class SqFtProFormaConfig(object):
             }
         }
 
-        self.profit_factor = 1.05
+        self.profit_factor = 1.1
         self.building_efficiency = .7
         self.parcel_coverage = .8
-        self.cap_rate = .04
+        self.cap_rate = .05
 
         self.parking_rates = {
             "retail": 2.0,
@@ -195,7 +199,7 @@ class SqFtProFormaConfig(object):
         self.parking_rates = np.array([self.parking_rates[use] for use in self.uses])
         self.res_ratios = {}
         assert len(self.uses) == len(self.residential_uses)
-        for k, v in self.forms.iteritems():
+        for k, v in self.forms.items():
             self.forms[k] = np.array([self.forms[k].get(use, 0.0) for use in self.uses])
             # normalize if not already
             self.forms[k] /= self.forms[k].sum()
@@ -210,23 +214,23 @@ class SqFtProFormaConfig(object):
         fars = pd.Series(self.fars)
         assert len(fars[fars > 20]) == 0
         assert len(fars[fars <= 0]) == 0
-        for k, v in self.forms.iteritems():
+        for k, v in self.forms.items():
             assert isinstance(v, dict)
-            for k2, v2 in self.forms[k].iteritems():
+            for k2, v2 in self.forms[k].items():
                 assert isinstance(k2, str)
                 assert isinstance(v2, float)
-            for k2, v2 in self.forms[k].iteritems():
+            for k2, v2 in self.forms[k].items():
                 assert isinstance(k2, str)
                 assert isinstance(v2, float)
-        for k, v in self.parking_rates.iteritems():
+        for k, v in self.parking_rates.items():
             assert isinstance(k, str)
             assert k in self.uses
             assert 0 <= v < 5
-        for k, v in self.parking_sqft_d.iteritems():
+        for k, v in self.parking_sqft_d.items():
             assert isinstance(k, str)
             assert k in self.parking_configs
             assert 50 <= v <= 1000
-        for k, v in self.parking_sqft_d.iteritems():
+        for k, v in self.parking_sqft_d.items():
             assert isinstance(k, str)
             assert k in self.parking_cost_d
             assert 10 <= v <= 300
@@ -235,7 +239,7 @@ class SqFtProFormaConfig(object):
             if np.isinf(v):
                 continue
             assert 0 <= v <= 1000
-        for k, v in self.costs.iteritems():
+        for k, v in self.costs.items():
             assert isinstance(k, str)
             assert k in self.uses
             for i in v:
@@ -312,10 +316,12 @@ class SqFtProForma(object):
 
         """
         c = self.config
+        print('test this _generate_lookup function')
+        print(c)
 
         # get all the building forms we can use
         keys = c.forms.keys()
-        keys.sort()
+        keys = sorted(keys)
         df_d = {}
         for name in keys:
             # get the use distribution for each
@@ -419,6 +425,7 @@ class SqFtProForma(object):
     def get_ave_cost_sqft(self, form, parking_config):
         """
         Get the average cost per sqft for the pro forma for a given form
+
         Parameters
         ----------
         form : string
@@ -426,12 +433,14 @@ class SqFtProForma(object):
             the config
         parking_config : string
             The parking configuration to get debug info for
+
         Returns
         -------
         cost : series
             A series where the index is the far and the values are the average
             cost per sqft at which the building is "break even" given the
             configuration parameters that were passed at run time.
+
         """
         return self.dev_d[(form, parking_config)].ave_cost_sqft
 
@@ -669,7 +678,7 @@ class SqFtProForma(object):
 
         df_d = self.dev_d
         keys = df_d.keys()
-        keys.sort()
+        keys = sorted(keys)
         for key in keys:
             logger.debug("\n" + str(key) + "\n")
             logger.debug(df_d[key])
@@ -678,7 +687,7 @@ class SqFtProForma(object):
             logger.debug(self.get_ave_cost_sqft(form, "surface"))
 
         keys = c.forms.keys()
-        keys.sort()
+        keys = sorted(keys)
         cnt = 1
         share = None
         fig = plt.figure(figsize=(12, 3 * len(keys)))

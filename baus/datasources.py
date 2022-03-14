@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 import os
 from urbansim_defaults import datasources
-from urbansim_defaults import utils
+# import urbansim_defaults.utils from local copy instead of from 
+# urbansim_defaults python package to help debug
+from src_for_debug.urbansim_defaults.urbansim_defaults import utils
 from urbansim.utils import misc
 import orca
 from baus import preprocessing

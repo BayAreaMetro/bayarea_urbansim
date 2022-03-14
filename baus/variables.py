@@ -4,7 +4,9 @@ from urbansim.utils import misc
 import orca
 from baus import datasources
 from baus.utils import nearest_neighbor, groupby_random_choice
-from urbansim_defaults import utils
+# import urbansim_defaults.utils from local copy instead of from 
+# urbansim_defaults python package to help debug
+from src_for_debug.urbansim_defaults.urbansim_defaults import utils
 from urbansim_defaults import variables
 
 
@@ -893,7 +895,19 @@ def cml(parcels, mandatory_accessibility,
                              0.0134) * acc_seg.loc[0, col]
             cols_to_sum.append(col)
     mand_acc['weighted_sum'] = mand_acc[cols_to_sum].sum(axis=1)
+    parcels_chk = parcels.to_frame(['parcel_id', 'subzone'])
+    parcels_chk.to_csv('runs/run{}_parcel_chk_cml_{}.csv'.format(
+            orca.get_injectable("run_number"),
+            orca.get_injectable("year")))
+    print('mandatory logsum: out of {} parcels, {} is missing subzone'.format(
+        parcels_chk.shape[0], parcels_chk.loc[parcels_chk.subzone.isnull()].shape[0]))
     df = misc.reindex(mand_acc.weighted_sum, parcels.subzone)
+    print(df)
+    df_export = df.copy().reset_index()
+    df_export.to_csv('runs/run{}_df_cml_{}.csv'.format(
+            orca.get_injectable("run_number"),
+            orca.get_injectable("year")))
+    print('stats on parcels missing cml: \n{}'.format(df.isnull().sum()))
     return df.reindex(parcels.index).fillna(-1)
 
 
@@ -911,7 +925,18 @@ def cnml(parcels, non_mandatory_accessibility,
                               0.0175) * acc_seg.loc[0, col]
             cols_to_sum.append(col)
     nmand_acc['weighted_sum'] = nmand_acc[cols_to_sum].sum(axis=1)
+    parcels_chk = parcels.to_frame(['parcel_id', 'subzone'])
+    parcels_chk.to_csv('runs/run{}_parcel_chk_cnml_{}.csv'.format(
+            orca.get_injectable("run_number"),
+            orca.get_injectable("year")))
+    print('non-mandatory logsum: out of {} parcels, {} are missing subzone'.format(
+        parcels_chk.shape[0], parcels_chk.loc[parcels_chk.subzone.isnull()].shape[0]))
     df = misc.reindex(nmand_acc.weighted_sum, parcels.subzone)
+    df_export = df.copy().reset_index()
+    df_export.to_csv('runs/run{}_df_cnml_{}.csv'.format(
+            orca.get_injectable("run_number"),
+            orca.get_injectable("year")))
+    print('stats on parcels missing cnml: \n{}'.format(df.isnull().sum()))
     return df.reindex(parcels.index).fillna(-1)
 
 
@@ -919,10 +944,21 @@ def cnml(parcels, non_mandatory_accessibility,
 def combo_logsum(parcels):
     df = parcels.to_frame(['cml', 'cnml'])
     combo = df.cml + df.cnml
+    print(combo)
     # since the logsum methodology in the travel model has changed,
     # we need to shift the values to align with the ones used for estimation
     combo = combo - 170
+    print('before combo_logsum adjustment, {} parcels have 0 or negative combo logsum'.format(
+        len(combo.loc[(combo <= 0)])))
+    combo_export = combo.copy().reset_index()
+    combo_export.to_csv('runs/run{}_df_combo_logsum_beforeAdjust_{}.csv'.format(
+            orca.get_injectable("run_number"),
+            orca.get_injectable("year")))
     combo.loc[(combo <= 0)] = 1
+    combo_export = combo.copy().reset_index()
+    combo_export.to_csv('runs/run{}_df_combo_logsum_afterAdjust_{}.csv'.format(
+            orca.get_injectable("run_number"),
+            orca.get_injectable("year")))
     return combo
 
 

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import json
 
 import orca
@@ -7,7 +9,9 @@ from urbansim.models import RegressionModel, SegmentedRegressionModel, \
     MNLDiscreteChoiceModel, SegmentedMNLDiscreteChoiceModel, \
     GrowthRateTransition, transition
 from urbansim.models.supplydemand import supply_and_demand
-from urbansim.developer import sqftproforma, developer
+# from urbansim.developer import sqftproforma, developer
+from urbansim.developer import developer
+from src_for_debug.urbansim.urbansim.developer import sqftproforma
 from urbansim.utils import misc
 
 
@@ -81,10 +85,10 @@ def check_nas(df):
         s_cnt = df[col].count()
         if df_cnt != s_cnt:
             fail = True
-            print "Found %d nas or inf (out of %d) in column %s" % \
-                  (df_cnt-s_cnt, df_cnt, col)
+            print("Found %d nas or inf (out of %d) in column %s" % \
+                  (df_cnt-s_cnt, df_cnt, col))
 
-#    assert not fail, "NAs were found in dataframe, please fix"
+    assert not fail, "NAs were found in dataframe, please fix"
 
 
 def table_reprocess(cfg, df):
@@ -157,8 +161,8 @@ def table_reprocess(cfg, df):
             df = df.dropna(subset=[fname])
         else:
             assert 0, "Fill type not found!"
-        print "Filling column {} with value {} ({} values)".\
-            format(fname, val, fill_cnt)
+        print("Filling column {} with value {} ({} values)".\
+            format(fname, val, fill_cnt))
         df[fname] = df[fname].fillna(val).astype(dtyp)
     return df
 
@@ -313,7 +317,8 @@ def lcm_estimate(cfg, choosers, chosen_fname, buildings, join_tbls, out_cfg=None
 
 def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
                  supply_fname, vacant_fname,
-                 enable_supply_correction=None, cast=False):
+                 enable_supply_correction=None, cast=False,
+                 alternative_ratio=2.0):
     """
     Simulate the location choices for the specified choosers
 
@@ -344,6 +349,10 @@ def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
         an identifier which segments buildings into submarkets
     cast : boolean
         Should the output be cast to match the existing column.
+    alternative_ratio : float, optional
+        Value to override the setting in urbansim.models.dcm.predict_from_cfg.
+        Above this ratio of alternatives to choosers (default of 2.0), the
+        alternatives will be sampled to improve computational performance
     """
     cfg = misc.config(cfg)
 
@@ -362,10 +371,10 @@ def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
     available_units = buildings[supply_fname]
     vacant_units = buildings[vacant_fname]
 
-    print "There are %d total available units" % available_units.sum()
-    print "    and %d total choosers" % len(choosers)
-    print "    but there are %d overfull buildings" % \
-          len(vacant_units[vacant_units < 0])
+    print("There are %d total available units" % available_units.sum())
+    print("    and %d total choosers" % len(choosers))
+    print("    but there are %d overfull buildings" % \
+          len(vacant_units[vacant_units < 0]))
 
     vacant_units = vacant_units[vacant_units > 0]
 
@@ -379,17 +388,17 @@ def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
     units = locations_df.loc[indexes].reset_index()
     check_nas(units)
 
-    print "    for a total of %d temporarily empty units" % vacant_units.sum()
-    print "    in %d buildings total in the region" % len(vacant_units)
+    print("    for a total of %d temporarily empty units" % vacant_units.sum())
+    print("    in %d buildings total in the region" % len(vacant_units))
 
     if missing > 0:
-        print "WARNING: %d indexes aren't found in the locations df -" % \
-            missing
-        print "    this is usually because of a few records that don't join "
-        print "    correctly between the locations df and the aggregations tables"
+        print("WARNING: %d indexes aren't found in the locations df -" % \
+            missing)
+        print("    this is usually because of a few records that don't join ")
+        print("    correctly between the locations df and the aggregations tables")
 
     movers = choosers_df[choosers_df[out_fname] == -1]
-    print "There are %d total movers for this LCM" % len(movers)
+    print("There are %d total movers for this LCM" % len(movers))
 
     if enable_supply_correction is not None:
         assert isinstance(enable_supply_correction, dict)
@@ -428,11 +437,11 @@ def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
             # write final shifters to the submarket_table for use in debugging
             orca.get_table(submarket_table)["price_shifters"] = submarkets_ratios
 
-        print "Running supply and demand"
-        print "Simulated Prices"
-        print buildings[price_col].describe()
-        print "Submarket Price Shifters"
-        print submarkets_ratios.describe()
+        print("Running supply and demand")
+        print("Simulated Prices")
+        print(buildings[price_col].describe())
+        print("Submarket Price Shifters")
+        print(submarkets_ratios.describe())
         # we want new prices on the buildings, not on the units, so apply
         # shifters directly to buildings and ignore unit prices
         orca.add_column(buildings.name,
@@ -440,15 +449,16 @@ def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
         new_prices = buildings[price_col] * \
             submarkets_ratios.loc[buildings[submarket_col]].values
         buildings.update_col_from_series(price_col, new_prices)
-        print "Adjusted Prices"
-        print buildings[price_col].describe()
+        print("Adjusted Prices")
+        print(buildings[price_col].describe())
 
     if len(movers) > vacant_units.sum():
-        print "WARNING: Not enough locations for movers"
-        print "    reducing locations to size of movers for performance gain"
+        print("WARNING: Not enough locations for movers")
+        print("    reducing locations to size of movers for performance gain")
         movers = movers.head(int(vacant_units.sum()))
 
-    new_units, _ = yaml_to_class(cfg).predict_from_cfg(movers, units, cfg)
+    new_units, _ = yaml_to_class(cfg).predict_from_cfg(movers, units, cfg, 
+                                        alternative_ratio=alternative_ratio)
 
     # new_units returns nans when there aren't enough units,
     # get rid of them and they'll stay as -1s
@@ -472,8 +482,8 @@ def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
         buildings.update_col_from_series(price_col, new_prices)
 
     vacant_units = buildings[vacant_fname]
-    print "    and there are now %d empty units" % vacant_units.sum()
-    print "    and %d overfull buildings" % len(vacant_units[vacant_units < 0])
+    print("    and there are now %d empty units" % vacant_units.sum())
+    print("    and %d overfull buildings" % len(vacant_units[vacant_units < 0]))
 
 
 def simple_relocation(choosers, relocation_rate, fieldname, cast=False):
@@ -496,10 +506,10 @@ def simple_relocation(choosers, relocation_rate, fieldname, cast=False):
     -------
     Nothing
     """
-    print "Total agents: %d" % len(choosers)
+    print("Total agents: %d" % len(choosers))
     _print_number_unplaced(choosers, fieldname)
 
-    print "Assigning for relocation..."
+    print("Assigning for relocation...")
     chooser_ids = np.random.choice(choosers.index, size=int(relocation_rate *
                                    len(choosers)), replace=False)
     choosers.update_col_from_series(fieldname,
@@ -529,9 +539,9 @@ def simple_transition(tbl, rate, location_fname):
     transition = GrowthRateTransition(rate)
     df = tbl.to_frame(tbl.local_columns)
 
-    print "%d agents before transition" % len(df.index)
+    print("%d agents before transition" % len(df.index))
     df, added, copied, removed = transition.transition(df, None)
-    print "%d agents after transition" % len(df.index)
+    print("%d agents after transition" % len(df.index))
 
     df.loc[added, location_fname] = -1
     orca.add_table(tbl.name, df)
@@ -572,24 +582,24 @@ def full_transition(agents, agent_controls, year, settings, location_fname, link
     ct = agent_controls.to_frame()
     hh = agents.to_frame(agents.local_columns +
                          settings.get('add_columns', []))
-    print "Total agents before transition: {}".format(len(hh))
+    print("Total agents before transition: {}".format(len(hh)))
     linked_tables = linked_tables or {}
-    for table_name, (table, col) in linked_tables.iteritems():
-        print "Total %s before transition: %s" % (table_name, len(table))
+    for table_name, (table, col) in linked_tables.items():
+        print("Total %s before transition: %s" % (table_name, len(table)))
     tran = transition.TabularTotalsTransition(ct, settings['total_column'])
     model = transition.TransitionModel(tran)
     new, added_hh_idx, new_linked = model.transition(hh, year, linked_tables=linked_tables)
     new.loc[added_hh_idx, location_fname] = -1
-    print "Total agents after transition: {}".format(len(new))
+    print("Total agents after transition: {}".format(len(new)))
     orca.add_table(agents.name, new)
-    for table_name, table in new_linked.iteritems():
-        print "Total %s after transition: %s" % (table_name, len(table))
+    for table_name, table in new_linked.items():
+        print("Total %s after transition: %s" % (table_name, len(table)))
         orca.add_table(table_name, table)
 
 
 def _print_number_unplaced(df, fieldname):
-    print "Total currently unplaced: %d" % \
-          df[fieldname].value_counts().get(-1, 0)
+    print("Total currently unplaced: %d" % \
+          df[fieldname].value_counts().get(-1, 0))
 
 
 def run_feasibility(parcels, parcel_price_callback,
@@ -657,13 +667,14 @@ def run_feasibility(parcels, parcel_price_callback,
     if residential_to_yearly:
         df["residential"] *= pf.config.cap_rate
 
-    print "Describe of the yearly rent by use"
-    print df[pf.config.uses].describe()
+    print("Describe of the yearly rent by use")
+    print(df[pf.config.uses].describe())
 
     d = {}
+    d_all = {}
     forms = forms_to_test or pf.config.forms
     for form in forms:
-        print "Computing feasibility for form %s" % form
+        print("Computing feasibility for form %s" % form)
         allowed = parcel_use_allowed_callback(form).loc[df.index]
 
         newdf = df[allowed]
@@ -679,10 +690,19 @@ def run_feasibility(parcels, parcel_price_callback,
 
         d[form] = pf.lookup(form, newdf, only_built=only_built,
                             pass_through=pass_through)
+        d_all[form] = pf.lookup(form, newdf, only_built=False,
+                                pass_through=pass_through)
         if residential_to_yearly and "residential" in pass_through:
             d[form]["residential"] /= pf.config.cap_rate
+            d_all[form]["residential"] /= pf.config.cap_rate
 
     far_predictions = pd.concat(d.values(), keys=d.keys(), axis=1)
+    far_predictions_all = pd.concat(d_all.values(), keys=d.keys(), axis=1)
+    print('format of far_predictions_all in step run_feasibility: ', format(far_predictions_all))
+    print('export far_predictions_all in step run_feasibility')
+    far_predictions_all.to_csv('runs/run{}_feasibility_allParcels_{}.csv'.format(
+        orca.get_injectable("run_number"),
+        orca.get_injectable("year")))
 
     orca.add_table("feasibility", far_predictions)
 
@@ -700,18 +720,18 @@ def _remove_developed_buildings(old_buildings, new_buildings, unplace_agents):
 
     old_buildings = old_buildings[np.logical_not(redev_buildings)]
     l2 = len(old_buildings)
-    if l2-l > 0:
-        print "Dropped {} buildings because they were redeveloped".\
-            format(l2-l)
+    if l-l2 > 0:
+        print("Dropped {} buildings because they were redeveloped".\
+            format(l-l2))
 
     for tbl in unplace_agents:
         agents = orca.get_table(tbl).local
         displaced_agents = agents.building_id.isin(drop_buildings.index)
-        print "Unplaced {} before: {}".format(tbl, len(agents.query(
-                                              "building_id == -1")))
+        print("Unplaced {} before: {}".format(tbl, len(agents.query(
+                                              "building_id == -1"))))
         agents.building_id[displaced_agents] = -1
-        print "Unplaced {} after: {}".format(tbl, len(agents.query(
-                                             "building_id == -1")))
+        print("Unplaced {} after: {}".format(tbl, len(agents.query(
+                                             "building_id == -1"))))
 
     return old_buildings
 
@@ -796,8 +816,8 @@ def run_developer(forms, agents, buildings, supply_fname, parcel_size,
                                buildings[supply_fname].sum(),
                                target_vacancy)
 
-    print "{:,} feasible buildings before running developer".format(
-          len(dev.feasibility))
+    print("{:,} feasible buildings before running developer".format(
+          len(dev.feasibility)))
 
     new_buildings = dev.pick(forms,
                              target_units,
@@ -836,13 +856,13 @@ def run_developer(forms, agents, buildings, supply_fname, parcel_size,
     if add_more_columns_callback is not None:
         new_buildings = add_more_columns_callback(new_buildings)
 
-    print "Adding {:,} buildings with {:,} {}".\
+    print("Adding {:,} buildings with {:,} {}".\
         format(len(new_buildings),
                int(new_buildings[supply_fname].sum()),
-               supply_fname)
+               supply_fname))
 
-    print "{:,} feasible buildings after running developer".format(
-          len(dev.feasibility))
+    print("{:,} feasible buildings after running developer".format(
+          len(dev.feasibility)))
 
     old_buildings = buildings.to_frame(buildings.local_columns)
     new_buildings = new_buildings[buildings.local_columns]
@@ -878,14 +898,14 @@ def scheduled_development_events(buildings, new_buildings,
         columns as the local columns in the buildings table.
     """
 
-    print "Adding {:,} buildings as scheduled development events".format(
-          len(new_buildings))
+    print("Adding {:,} buildings as scheduled development events".format(
+          len(new_buildings)))
 
     old_buildings = buildings.to_frame(buildings.local_columns)
     new_buildings = new_buildings[buildings.local_columns]
 
-    print "Res units before: {:,}".format(old_buildings.residential_units.sum())
-    print "Non-res sqft before: {:,}".format(old_buildings.non_residential_sqft.sum())
+    print("Res units before: {:,}".format(old_buildings.residential_units.sum()))
+    print("Non-res sqft before: {:,}".format(old_buildings.non_residential_sqft.sum()))
 
     if remove_developed_buildings:
         old_buildings = \
@@ -893,8 +913,8 @@ def scheduled_development_events(buildings, new_buildings,
 
     all_buildings = developer.Developer.merge(old_buildings, new_buildings)
 
-    print "Res units after: {:,}".format(all_buildings.residential_units.sum())
-    print "Non-res sqft after: {:,}".format(all_buildings.non_residential_sqft.sum())
+    print("Res units after: {:,}".format(all_buildings.residential_units.sum()))
+    print("Non-res sqft after: {:,}".format(all_buildings.non_residential_sqft.sum()))
 
     orca.add_table("buildings", all_buildings)
     return new_buildings

@@ -1020,7 +1020,7 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, settings,
         df = orca.get_table("dropped_buildings").to_frame()
         print("Dropped buildings", df.describe())
         df.to_csv(
-            "runs/run{}_dropped_buildings.csv".format(run_number)
+            "runs/run{}_dropped_buildings_{}.csv".format(run_number, year)
         )
 
 
@@ -1063,6 +1063,11 @@ def geographic_summary(parcels, households, jobs, buildings, taz_geography,
                  'juris_trich', 'juris_tra', 'juris_sesit', 'juris_ppa'])
 
     parcel_output = summary.parcel_output
+    if summary.parcel_output is not None:
+        # parcel_output_export = parcel_output.to_frame()
+        parcel_output.to_csv(
+            "runs/run{}_parcel_output_{}.csv".format(run_number, year)
+            )
 
     # because merge_tables returns multiple zone_id_'s, but not the one we need
     buildings_df = buildings_df.rename(columns={'zone_id_x': 'zone_id'})
@@ -1304,8 +1309,8 @@ def building_summary(parcels, run_number, year,
                      buildings,
                      initial_year, final_year):
 
-    if year not in [initial_year, 2015, final_year]:
-        return
+    # if year not in [initial_year, 2015, final_year]:
+    #     return
 
     df = orca.merge_tables(
         'buildings',
@@ -1330,8 +1335,14 @@ def parcel_summary(parcels, buildings, households, jobs,
                    initial_year, final_year, parcels_geography,
                    scenario, policy):
 
-    if year not in [2010, 2015, 2035, 2050]:
-        return
+    # if year not in [2010, 2015, 2035, 2050]:
+    #     return
+
+    df_allCols = parcels.to_frame()
+    df_allCols.to_csv(
+        os.path.join("runs", "run%d_parcel_data_allCols_%d.csv" %
+                     (run_number, year))
+    )
 
     df = parcels.to_frame([
         "geom_id",
