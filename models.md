@@ -23,17 +23,21 @@ CONTENTS
 ---
 
 ## Hazards
-### [slr_inundate](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/slr.py#L16) selects parcels lost to sea level rise in specific years
-### [slr_remove_dev](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/slr.py#L86) removes buildings, households, and jobs from parcels hit by sea level rise
+### [slr_inundate](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/slr.py#L16) 
+selects parcels lost to sea level rise in specific years
+### [slr_remove_dev](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/slr.py#L86) 
+removes buildings, households, and jobs from parcels hit by sea level rise
 ### [eq_code_buildings](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/earthquake.py#L19)
-### [earthquake_demolish](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/earthquake.py#L252) destroys buildings in earthquake scenario
+### [earthquake_demolish](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/earthquake.py#L252) 
+destroys buildings in earthquake scenario
 
 ## Accessibility
 ### [neighborhood_vars](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/models.py#L1098)
 ### [regional_vars](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/models.py#L1109)
 
 ## Nonresidential Prices
-### [nrh_simulate](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/ual.py#L708) applies a hedonic model to forecast commercial rents based on the sitation in the forecast year
+### [nrh_simulate](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/ual.py#L708) 
+applies a hedonic model to forecast commercial rents based on the sitation in the forecast year
 
 ## New and Moving Households and Jobs
 ### [household_relocation](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/ual.py#L784)
