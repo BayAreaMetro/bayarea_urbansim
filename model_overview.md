@@ -36,7 +36,7 @@ BAUS is used to forecast the future by advancing through repeated steps that cha
 * HH/employee location choices: Households and employees are assigned to new locations based on logistic regresssion models that capture the preferences of particular segments (e.g., lower income households, retail jobs).
 * Produce summary tables: Numerous zonal summaries of the detailed geodatabaase are produced for analysis of urban change and for use in the Travel Model; this step includes additional post-processing to get the data ready for the Travel Model's population synthesizer.
 
-Detail on each sub-model
+[Detailed List of Sub-Models](https://github.com/BayAreaMetro/bayarea_urbansim/blob/gh-pages/models.md)
 
 Typically, a set of BAUS inputs or assumptions are modified to produce a scenario. Policies such as zoning or fees can be modified. Control totals can be adjusted. Assumptions about preferences or financical situations can be adjusted. The package of changes is then simulated to forecast its impact on the future urban landscape and these outcomes are often enterered into the travel model to predict future year travel patterns and greenhouse gas emmissions.
 
