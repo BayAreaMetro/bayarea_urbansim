@@ -118,9 +118,9 @@ write out tables related to x
 ### [geographic_summary](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/summaries.py#L1028)
 write out tables related to x
 ### [travel_model_output](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/summaries.py#L1467) 
-write out tables for inputs to Travel Model 1.5
+summarize or calculate TM1.5 population synthesizer marginal inputs variables and write out tables with this data
 ### OFF [travel_model_2_output](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/summaries.py#L1765)
-write out tables for inputs to Travel Model 2
+summarize or calculate TM2 population synthesizer marginal inputs and direct TM2 inputs and write out tables with this data
 ### [hazards_slr_summary](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/summaries.py#L2266)
 write out tables related to sea level rise impacts
 ### [hazards_eq_summary](https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/summaries.py#L2350)
