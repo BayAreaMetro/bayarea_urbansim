@@ -1,0 +1,20 @@
+field name
+building_id
+non_residential_sqft
+parcel_id
+building_type
+source
+year_built
+preserved_units
+inclusionary_units
+deed_restricted_units
+residential_units
+subsidized_units
+unit_price
+zone_id
+job_spaces
+vacant_res_units
+geom_id
+x
+y
+performance_zone

@@ -1,0 +1,43 @@
+field_name_level1,field_name_level2,source,format,info
+parcel_id,,,int,Parcel index
+,parking_config,created by run_feasibility(),string,"parking type, e.g. deck, surface"
+,building_sqft,created by run_feasibility(),float,The number of square feet for the building to build. Keep in mind this includes parking and common space. Will need a helpful function to convert from gross square feet to actual usable square feet in residential units.
+,building_cost,created by run_feasibility(),float,The cost of constructing the building as given by the ave_cost_per_sqft from the cost model (for this FAR) and the number of square feet.
+,parking_ratio,,,
+,stories,,,
+,total_cost,created by run_feasibility(),float,The cost of constructing the building plus the cost of acquisition of the current parcel/building.
+,building_revenue,created by run_feasibility(),float,"The NPV of the revenue for the building to be built, which is the number of square feet times the yearly rent divided by the cap rate (with a few adjustment factors including building efficiency)."
+,max_profit_far,created by run_feasibility(),float,The FAR of the maximum profit building (constrained by the max_far and max_height from the input dataframe).
+,max_profit,created by run_feasibility(),float,The profit for the maximum profit building (constrained by the max_far and max_height from the input dataframe).
+,oldest_building,pass_through from input parcel frame,,
+,total_sqft,pass_through from input parcel frame,,
+,total_residential_units,pass_through from input parcel frame,,
+,max_far,pass_through from input parcel frame,,
+,max_dua,pass_through from input parcel frame,,
+,land_cost,pass_through from input parcel frame,,
+,residential,pass_through from input parcel frame,,
+,min_max_fars,pass_through from input parcel frame,,
+,max_height,pass_through from input parcel frame,,
+,building_purchase_price,pass_through from input parcel frame,,
+,building_purchase_price_sqft,pass_through from input parcel frame,,
+,residential_sales_price_sqft,pass_through from input parcel frame,,https://app.asana.com/0/0/1201856230375726/f
+,pda_pba40,pass_through from input parcel frame,,
+,pda_pba50,pass_through from input parcel frame,,
+,trich_id,pass_through from input parcel frame,,
+,cat_id,pass_through from input parcel frame,,
+,tra_id,pass_through from input parcel frame,,
+,ppa_id,pass_through from input parcel frame,,
+,sesit_id,pass_through from input parcel frame,,
+,coc_id,pass_through from input parcel frame,,
+,juris,pass_through from input parcel frame,,
+,county,pass_through from input parcel frame,,
+,superdistrict,pass_through from input parcel frame,,
+,geom_id,pass_through from input parcel frame,,
+,vmt_res_cat,pass_through from input parcel frame,,
+,vmt_nonres_cat,pass_through from input parcel frame,,
+,residential_sqft,created by run_feasibility(),float,
+,non_residential_sqft,created by run_feasibility(),float,
+,fees,created by run_feasibility(),,
+,policy_based_revenue_reduction,created by run_feasibility(),,
+,deed_restricted_units,created by run_feasibility(),,
+,inclusionary_units,created by run_feasibility(),,
