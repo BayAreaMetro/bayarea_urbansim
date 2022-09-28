@@ -817,7 +817,7 @@ def residential_units(store):
 
 @orca.table(cache=True)
 def household_controls_unstacked():
-    fname = get_control_file(type='household')
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
     orca.add_injectable("household_control_file", fname)
     return pd.read_csv(os.path.join(misc.data_dir(), fname),
                        index_col='year')
@@ -828,20 +828,6 @@ def regional_demographic_forecast():
     fname = get_control_file(type='demographic_forecast')
     orca.add_injectable("reg_dem_control_file", fname)
     return pd.read_csv(os.path.join(misc.data_dir(), fname))
-
-
-def get_control_file(type):
-    controls = orca.get_injectable('inputs')['control_tables'][type]
-    sc = orca.get_injectable('scenario')
-    sc_file = 's{}_{}_controls_input_file'.format(sc, type)
-    gen_file = '{}_controls_input_file'.format(type)
-    if sc_file in controls:
-        fname = controls[sc_file]
-    elif gen_file in controls:
-        fname = controls[gen_file]
-    else:
-        fname = '{}_controls.csv'.format(type)
-    return fname
 
 
 # the following overrides household_controls
@@ -860,14 +846,14 @@ def household_controls(household_controls_unstacked):
 
 @orca.table(cache=True)
 def employment_controls_unstacked():
-    fname = get_control_file(type='employment')
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
     orca.add_injectable("employment_control_file", fname)
     return pd.read_csv(os.path.join(misc.data_dir(), fname), index_col='year')
 
 
 @orca.table(cache=True)
 def regional_controls():
-    fname = get_control_file(type='regional')
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
     orca.add_injectable("reg_control_file", fname)
     return pd.read_csv(os.path.join('data', fname), index_col="year")
 
