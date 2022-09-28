@@ -167,11 +167,7 @@ def _proportional_jobs_model(
 
 @orca.step()
 def accessory_units(year, buildings, parcels, scenario, policy):
-    if scenario in policy["adus_bp_enable"]:
-        add_units = pd.read_csv("data/accessory_units_bp.csv",
-                                index_col="juris")[str(year)]
-    else:
-        add_units = pd.read_csv("data/accessory_units.csv",
+    add_units = pd.read_csv("data/accessory_units.csv",
                                 index_col="juris")[str(year)]
     buildings_juris = misc.reindex(parcels.juris, buildings.parcel_id)
     res_buildings = buildings_juris[buildings.general_type == "Residential"]
