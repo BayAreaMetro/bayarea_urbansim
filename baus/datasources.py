@@ -117,62 +117,23 @@ def limits_settings(policy, scenario):
 
 
 @orca.injectable(cache=True)
-def inclusionary_housing_settings(policy, scenario):
-    # for inclustionary housing, each scenario is different
-    # there is no inheritance
+def inclusionary_housing_settings(policy):
 
-    s = policy['inclusionary_housing_settings']
-
-    if (scenario in ["11", "12", "15"]) and\
-       (scenario not in policy["inclusionary_fr2_enable"]):
-        print("Using Futures Round 1 (PBA40) inclusionary settings")
-        fr1 = str(int(scenario) - 10)
-        s = s[fr1]
-
-    elif scenario in s.keys():
-        print("Using inclusionary settings for scenario: %s" % scenario)
-        s = s[scenario]
-
-    elif "default" in s.keys():
-        print("Using default inclusionary settings")
-        s = s["default"]
+    if policy['inclusionary_zoning']:
+    	s = policy['development_limits']["scenario"]
+    else:
+        s = policy['development_limits']["default"]
 
     d = {}
-    if (scenario in policy["inclusionary_d_b_enable"]):
-        for item in s:
-            # this is a list of draft blueprint strategy geographies (represented
-            # by pba50chcat) with an inclusionary rate that is the same
-            # for all the pba50chcats in the list
-            print("Setting inclusionary rates for geographies %d pba50chcat \
-                  to %.2f" % (len(item["values"]), item["amount"]))
-            # this is a list of inclusionary rates and the pba50chcat
-            # geographies they apply to - need to turn it in a map
-            # of pba50chcat names to rates
-            for pba50chcat in item["values"]:
-                d[pba50chcat] = item["amount"]
-    elif (scenario in policy["inclusionary_fb_enable"]):
-        for item in s:
-            # this is a list of final blueprint strategy geographies (represented
-            # by fbpchcat) with an inclusionary rate that is the same
-            # for all the fbpchcat in the list
-            print("Setting inclusionary rates for geographies %d fbpchcat \
-                  to %.2f" % (len(item["values"]), item["amount"]))
-            # this is a list of inclusionary rates and the fbpchcat
-            # geographies they apply to - need to turn it in a map
-            # of fbpchcat names to rates
-            for fbpchcat in item["values"]:
-                d[fbpchcat] = item["amount"]
-    else:
-        for item in s:
-            # this is a list of cities with an inclusionary rate that is the
-            # same for all the cities in the list
-            print("Setting inclusionary rates for %d cities to %.2f" %
-                  (len(item["values"]), item["amount"]))
-            # this is a list of inclusionary rates and the cities they apply
-            # to - need tro turn it in a map of city names to rates
-            for juris in item["values"]:
-                d[juris] = item["amount"]
-
+    for item in s:
+        # this is a list of geographiess with an inclusionary rate that is the
+        # same for all the geographies in the list
+        print("Setting inclusionary rates for %d cities to %.2f" %
+              (len(item["values"]), item["amount"]))
+        # this is a list of inclusionary rates and the geographies they apply
+        # to - need to turn it into a map of geographies to rates
+        for geog in item["values"]:
+            d[geog] = item["amount"]
     return d
 
 
@@ -961,7 +922,7 @@ def slr_parcel_inundation_mitigation():
 @orca.table(cache=True)
 def slr_progression():
     return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_progression_C.csv"))
+        os.path.join(misc.data_dir(), "slr_progression.csv"))
 
 
 # census tracts for parcels, to assign earthquake probabilities
