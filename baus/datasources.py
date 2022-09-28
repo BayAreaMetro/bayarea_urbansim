@@ -183,78 +183,63 @@ def building_sqft_per_job(settings):
 
 @orca.injectable(cache=True)
 def elcm_config():
-    return get_config_file('elcm')
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.injectable(cache=True)
 def hlcm_owner_config():
-    return get_config_file('hlcm_owner')
+    return 
 
 
 @orca.injectable(cache=True)
 def hlcm_owner_no_unplaced_config():
-    return get_config_file('hlcm_owner_no_unplaced')
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.injectable(cache=True)
 def hlcm_owner_lowincome_config():
-    return get_config_file('hlcm_owner_lowincome')
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.injectable(cache=True)
 def hlcm_owner_lowincome_no_unplaced_config():
-    return get_config_file('hlcm_owner_lowincome_no_unplaced')
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.injectable(cache=True)
 def hlcm_renter_config():
-    return get_config_file('hlcm_renter')
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.injectable(cache=True)
 def hlcm_renter_no_unplaced_config():
-    return get_config_file('hlcm_renter_no_unplaced')
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.injectable(cache=True)
 def hlcm_renter_lowincome_config():
-    return get_config_file('hlcm_renter_lowincome')
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.injectable(cache=True)
 def hlcm_renter_lowincome_no_unplaced_config():
-    return get_config_file('hlcm_renter_lowincome_no_unplaced')
-
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 @orca.injectable(cache=True)
 def rsh_config():
-    fname = get_config_file('rsh')
-    orca.add_injectable("rsh_file", fname)
+    df = pd.read_csv(os.path.join(misc.data_dir()))
+    orca.add_injectable("rsh_file", df)
     return get_config_file('rsh')
 
 
 @orca.injectable(cache=True)
 def rrh_config():
-    return get_config_file('rrh')
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.injectable(cache=True)
 def nrh_config():
-    return get_config_file('nrh')
-
-
-def get_config_file(type):
-    configs = orca.get_injectable('inputs')['model_configs'][type.
-                                                             split('_')[0]]
-    sc = orca.get_injectable('scenario')
-    sc_cfg = 's{}_{}_config'.format(sc, type)
-    gen_cfg = '{}_config'.format(type)
-    if sc_cfg in configs:
-        return configs[sc_cfg]
-    elif gen_cfg in configs:
-        return configs[gen_cfg]
-    else:
-        return '{}.yaml'.format(type)
+    return pd.read_csv(os.path.join(misc.data_dir()))
 
 
 @orca.step()
@@ -643,8 +628,8 @@ def parcels_subzone():
 
 @orca.table(cache=False)
 def mandatory_accessibility(year):
-    df = pd.read_csv(os.path.join(
-        misc.data_dir(), year))
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
+    orca.add_injectable("mand_acc_file_2010", df)
     df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
     df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
     df.loc[df.subzone == 2, 'subzone'] = 'b'  # long walk
@@ -654,8 +639,8 @@ def mandatory_accessibility(year):
 
 @orca.table(cache=False)
 def non_mandatory_accessibility(year):
-    df = pd.read_csv(os.path.join(
-        misc.data_dir(), year))
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
+	orca.add_injectable("nonmand_acc_file_2010", df)
     df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
     df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
     df.loc[df.subzone == 2, 'subzone'] = 'b'  # long walk
@@ -665,8 +650,8 @@ def non_mandatory_accessibility(year):
 
 @orca.table(cache=False)
 def accessibilities_segmentation(year):
-    df = pd.read_csv(os.path.join(
-        misc.data_dir(), year))
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
+    orca.add_injectable("acc_seg_file_2010", df)
     df['AV'] = df['hasAV'].apply(lambda x: 'AV' if x == 1 else 'noAV')
     df['label'] = (df['incQ_label'] + '_' + df['autoSuff_label'] +
                    '_' + df['AV'])
@@ -825,7 +810,7 @@ def household_controls_unstacked():
 
 @orca.table(cache=True)
 def regional_demographic_forecast():
-    fname = get_control_file(type='demographic_forecast')
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
     orca.add_injectable("reg_dem_control_file", fname)
     return pd.read_csv(os.path.join(misc.data_dir(), fname))
 
