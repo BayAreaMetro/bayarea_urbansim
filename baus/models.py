@@ -51,36 +51,11 @@ def employment_relocation_rates():
     return df
 
 
-# this for future round2
-# also includes draft blueprint
+
 @orca.table(cache=True)
-def household_relocation_rates(scenario, policy):
-    if scenario in policy['futures_scenarios']:
-        if scenario in policy['reloc_fr2_enable']:
-            df = pd.read_csv(os.path.join("data",
-                             "household_relocation_rates_fr2.csv"))
-            orca.add_injectable("hh_reloc", 'activated')
-            print("File used is: household_relocation_rates_fr2.csv")
-        else:
-            df = pd.read_csv(os.path.join("data",
-                             "household_relocation_rates_fr_base.csv"))
-            orca.add_injectable("hh_reloc", 'not activated')
-            print("File used is: household_relocation_rates_fr_base.csv")
-    elif scenario in policy['reloc_db_enable']:
-        df = pd.read_csv(os.path.join("data",
-                         "household_relocation_rates_db_var.csv"))
-        orca.add_injectable("hh_reloc", 'activated')
-        print("File used is: household_relocation_rates_db_var.csv")
-    elif scenario in policy['reloc_fb_enable']:
-        df = pd.read_csv(os.path.join("data",
-                         "household_relocation_rates_fb.csv"))
-        orca.add_injectable("hh_reloc", 'activated')
-        print("File used is: household_relocation_rates_fb.csv")
-    else:
-        df = pd.read_csv(os.path.join("data",
-                         "household_relocation_rates_db_base.csv"))
-        orca.add_injectable("hh_reloc", 'not activated')
-        print("File used is: household_relocation_rates_db_base.csv")
+def renter_protections(policy):
+    if policy['renter_protections_enable']:
+    df = pd.read_csv(os.path.join())
     return df
 
 
