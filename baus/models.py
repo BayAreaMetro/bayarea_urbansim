@@ -55,7 +55,7 @@ def employment_relocation_rates():
 @orca.table(cache=True)
 def renter_protections(policy):
     if policy['renter_protections_enable']:
-    df = pd.read_csv(os.path.join())
+        df = pd.read_csv(os.path.join(renter_protections_relocation_rates.csv))
     return df
 
 

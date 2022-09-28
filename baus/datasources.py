@@ -943,8 +943,6 @@ def zones(store):
     # sort index so it prints out nicely when we want it to
     return store['zones'].sort_index()
 
-
-# SLR inundation levels for parcels, with full, partial, or no mitigation
 @orca.table(cache=True)
 def slr_parcel_inundation():
     return pd.read_csv(
@@ -952,79 +950,18 @@ def slr_parcel_inundation():
         dtype={'parcel_id': np.int64},
         index_col='parcel_id')
 
-
 @orca.table(cache=True)
-def slr_parcel_inundation_mf():
+def slr_parcel_inundation_mitigation():
     return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_parcel_inundation_mf.csv"),
+        os.path.join(misc.data_dir(), "slr_parcel_inundation_mitigation.csv"),
         dtype={'parcel_id': np.int64},
         index_col='parcel_id')
 
 
 @orca.table(cache=True)
-def slr_parcel_inundation_mp():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_parcel_inundation_mp.csv"),
-        dtype={'parcel_id': np.int64},
-        index_col='parcel_id')
-
-
-# SLR inundation levels for parcels for Blueprint, where slr_parcel_inundation_d_b
-# is the new base case (no mitigation)
-@orca.table(cache=True)
-def slr_parcel_inundation_d_b():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_parcel_inundation_d_b.csv"),
-        dtype={'parcel_id': np.int64},
-        index_col='parcel_id')
-
-
-@orca.table(cache=True)
-def slr_parcel_inundation_d_bb():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_parcel_inundation_d_bb.csv"),
-        dtype={'parcel_id': np.int64},
-        index_col='parcel_id')
-
-
-@orca.table(cache=True)
-def slr_parcel_inundation_d_bp():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_parcel_inundation_d_bp.csv"),
-        dtype={'parcel_id': np.int64},
-        index_col='parcel_id')
-
-@orca.table(cache=True)
-def slr_parcel_inundation_f_b_np():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_parcel_inundation_f_b_np.csv"),
-        index_col='parcel_id')
-
-
-# SLR progression by year, for "futures" C, B, R
-@orca.table(cache=True)
-def slr_progression_C():
+def slr_progression():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "slr_progression_C.csv"))
-
-
-@orca.table(cache=True)
-def slr_progression_B():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_progression_B.csv"))
-
-
-@orca.table(cache=True)
-def slr_progression_R():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_progression_R.csv"))
-
-
-# SLR progression for draft blueprint
-@orca.table(cache=True)
-def slr_progression_d_b():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_progression_d_b.csv"))
 
 
 # census tracts for parcels, to assign earthquake probabilities
