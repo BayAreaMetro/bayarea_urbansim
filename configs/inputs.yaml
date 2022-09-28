@@ -88,22 +88,6 @@ control_tables:
     s28_demographic_forecast_controls_input_file: regional_demographic_forecast_s28.csv
     s29_demographic_forecast_controls_input_file: regional_demographic_forecast_s29.csv
 
-
-logsums:
-  mandatory:
-    logsum: mandatoryAccessibilities_2015.csv
-    logsum_2010: mandatoryAccessibilities_2015.csv
-    logsum_2030: mandatoryAccessibilities_2050.csv
-  non_mandatory:
-    logsum: nonMandatoryAccessibilities_2015.csv
-    logsum_2010: nonMandatoryAccessibilities_2035.csv
-    logsum_2030: nonMandatoryAccessibilities_2050.csv
-  segmentation:
-    logsum: AccessibilityMarkets_2015.csv
-    logsum_2010_s29: AccessibilityMarkets_2035_s29.csv
-    logsum_2030_s29: AccessibilityMarkets_2050_s29.csv
-
-
 model_configs:
   hlcm:
     hlcm_owner_config: hlcm_owner.yaml
