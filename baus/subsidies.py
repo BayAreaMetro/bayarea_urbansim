@@ -134,13 +134,8 @@ def preserve_affordable(prservation_policy, year, base_year, policy, residential
     orca.add_table("buildings", buildings)
 
 
-@orca.injectable(cache=True)
-def acct_settings(policy):
-    return policy["acct_settings"]
-
-
 @orca.step()
-def lump_sum_accounts(policy, year, buildings, coffer,
+def residential_lump_sum_accounts(year, buildings, coffer,
                       summary, years_per_iter):
 
     s = policy["acct_settings"]["lump_sum_accounts"]
@@ -185,7 +180,7 @@ def office_lump_sum_accounts(policy, year, buildings, coffer,
 # this will compute the reduction in revenue from a project due to
 # inclustionary housing - the calculation will be described in thorough
 # comments alongside the code
-def inclusionary_housing_revenue_reduction(feasibility, units):
+def inclusionary_housing_revenue_reduction(inclusionary_policy, feasibility, units):
 
     print("Computing adjustments due to inclusionary housing")
 
@@ -200,15 +195,12 @@ def inclusionary_housing_revenue_reduction(feasibility, units):
     households = orca.get_table("households")
     buildings = orca.get_table("buildings")
     parcels_geography = orca.get_table("parcels_geography")
-    policy = orca.get_injectable("policy")
 
-    # TODO: parcels_geography will use a "iz_geog" column for each run
     h = orca.merge_tables("households",
                               [households, buildings, parcels_geography],
                               columns=["juris_name",
-                                       "income",
-                                       "iz_geog"])
-    AMI = h.groupby(h.iz_geog).income.quantile(.5)
+                                       "income"])
+    AMI = h.groupby(h.gg).income.quantile(.5)
 
     # per Aksel Olsen (@akselx)
     # take 90% of AMI and multiple by 33% to get the max amount a
@@ -235,32 +227,30 @@ def inclusionary_housing_revenue_reduction(feasibility, units):
     # e.g. specific neighborhoods get specific amounts -
     # http://sf-moh.org/modules/showdocument.aspx?documentid=7253
 
-    pct_inclusionary = orca.get_injectable("inclusionary_housing_settings")
 
-    # for PBA50, calculate revenue reduction by strategy geographies
-    # draft blueprint strategy geography: pba50chcat
 
-    # otherwise, calculate by jurisdiction
-    else:
-        iz_geog = parcels_geography.inclusionary_geog.loc[feasibility.index]
-        pct_affordable = iz_geog.map(pct_inclusionary).fillna(0)
-        value_can_afford = iz_geog.map(value_can_afford)
+    # calculate revenue reduction by strategy geographies
 
-        num_affordable_units = (units * pct_affordable).fillna(0).astype("int")
+    pct_inclusionary = inclusionary_policy.inclusionary_pct
+    geog = parcels_geography.gg.loc[feasibility.index]
+    pct_affordable = geog.map(pct_inclusionary).fillna(0)
+    value_can_afford = geog.map(value_can_afford)
 
-        ave_price_per_unit = \
-            feasibility[('residential', 'building_revenue')] / units
+    num_affordable_units = (units * pct_affordable).fillna(0).astype("int")
 
-        revenue_diff_per_unit = \
-            (ave_price_per_unit - value_can_afford).fillna(0)
-        print("Revenue difference per unit (not zero values)")
-        print(revenue_diff_per_unit[revenue_diff_per_unit > 0].describe())
+    ave_price_per_unit = \
+        feasibility[('residential', 'building_revenue')] / units
 
-        revenue_reduction = revenue_diff_per_unit * num_affordable_units
+    revenue_diff_per_unit = \
+        (ave_price_per_unit - value_can_afford).fillna(0)
+    print("Revenue difference per unit (not zero values)")
+    print(revenue_diff_per_unit[revenue_diff_per_unit > 0].describe())
 
-        s = num_affordable_units.groupby(parcels_geography.juris_name).sum()
-        print("Feasibile affordable units by jurisdiction")
-        print(s[s > 0].sort_values())
+    revenue_reduction = revenue_diff_per_unit * num_affordable_units
+
+    s = num_affordable_units.groupby(parcels_geography.juris_name).sum()
+    print("Feasibile affordable units by jurisdiction")
+    print(s[s > 0].sort_values())
 
     return revenue_reduction, num_affordable_units
 
@@ -315,64 +305,71 @@ def policy_modifications_of_profit(feasibility, parcels):
     feasibility[("residential", "inclusionary_units")] = \
         num_affordable_units
 
-    policy = orca.get_injectable("policy")
+    # SB-743
+    sb_743_settings = sb_743
 
-    if "sb743_settings" in policy["acct_settings"]:
+    pct_modifications = feasibility[("residential", "vmt_res_cat")].\
+        map(sb743_settings.pcts) + 1
 
-        sb743_settings = policy["acct_settings"]["sb743_settings"]
+    print("Modifying profit for SB743:\n",
+          pct_modifications.describe())
 
-        if sb743_settings["enable"]:
+    feasibility[("residential", "max_profit")] *= pct_modifications
 
-            pct_modifications = feasibility[("residential", "vmt_res_cat")].\
-                map(sb743_settings["sb743_pcts"]) + 1
+    # land value tax
+    lvt = land_value_tax
 
-            print("Modifying profit for SB743:\n",
-                  pct_modifications.describe())
+    pcts = lvt.pcts
+    # need to bound the breaks with a reasonable low and high goalpost
+    breaks = [-1]+lvt.breaks+[2]
+    bins = (pct, breaks)
 
-            feasibility[("residential", "max_profit")] *= pct_modifications
+    pzc = orca.get_table("parcels_zoning_calculations")
+    s = pzc.zoned_build_ratio
+    # map the breakpoints defined in yaml to the pcts defined there
+    pct_modifications = pd.cut(s, breaks, labels=pcts).\
+        astype('float') + 1
+    # if some parcels got skipped, fill them in with no modification
+    pct_modifications = \
+        pct_modifications.reindex(pzc.index).fillna(1.0)
 
-    if "land_value_tax_settings" in policy["acct_settings"]:
+    print("Modifying profit for Land Value Tax:\n",
+          pct_modifications.describe())
 
-        s = policy["acct_settings"]["land_value_tax_settings"]
+    feasibility[("residential", "max_profit")] *= pct_modifications
 
-            bins = s["bins"]
-            pcts = bins["pcts"]
-            # need to boud the breaks with a reasonable low and high goalpost
-            breaks = [-1]+bins["breaks"]+[2]
+    
+    # profitability adjustment formulas
+    parcels_geography = orca.get_table("parcels_geography")
 
-            pzc = orca.get_table("parcels_zoning_calculations")
-            s = pzc.zoned_build_ratio
-            # map the breakpoints defined in yaml to the pcts defined there
-            pct_modifications = pd.cut(s, breaks, labels=pcts).\
-                astype('float') + 1
-            # if some parcels got skipped, fill them in with no modification
-            pct_modifications = \
-                pct_modifications.reindex(pzc.index).fillna(1.0)
+    ## parking requirements
+    pr = parking_requirements
+    formula = pr.profitability_adjustment_formula
+    pct_modifications = \
+        parcels_geography.local.eval(formula)
+    pct_modifications += 1.0
 
-            print("Modifying profit for Land Value Tax:\n",
-                  pct_modifications.describe())
+    print("Modifying profit for %s:\n" % policy["name"],
+          pct_modifications.describe())
+    print("Formula: \n{}".format(formula))
 
-            feasibility[("residential", "max_profit")] *= pct_modifications
+    feasibility[("residential", "max_profit")] *= pct_modifications
 
-    if "profitability_adjustment_policies" in policy["acct_settings"]:
+    print("There are %d affordable units if all feasible projects are built" %
+          feasibility[("residential", "deed_restricted_units")].sum())
 
-        for key, policy in \
-                policy["acct_settings"][
-                    "profitability_adjustment_policies"].items():
+    ## ceqa reform
+    cr = ceqa_reform
+    formula = cr.profitability_adjustment_formula
+    pct_modifications = \
+        parcels_geography.local.eval(formula)
+    pct_modifications += 1.0
 
-                parcels_geography = orca.get_table("parcels_geography")
+    print("Modifying profit for %s:\n" % policy["name"],
+          pct_modifications.describe())
+    print("Formula: \n{}".format(formula))
 
-                formula = policy["profitability_adjustment_formula"]
-
-                pct_modifications = \
-                    parcels_geography.local.eval(formula)
-                pct_modifications += 1.0
-
-                print("Modifying profit for %s:\n" % policy["name"],
-                      pct_modifications.describe())
-                print("Formula: \n{}".format(formula))
-
-                feasibility[("residential", "max_profit")] *= pct_modifications
+    feasibility[("residential", "max_profit")] *= pct_modifications
 
     print("There are %d affordable units if all feasible projects are built" %
           feasibility[("residential", "deed_restricted_units")].sum())
