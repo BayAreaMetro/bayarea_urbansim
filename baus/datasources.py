@@ -840,6 +840,12 @@ def tracts_earthquake():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "tract_damage_earthquake.csv"))
 
+# earthquake and fire damage probabilities for census tracts
+@orca.table(cache=True)
+def jobs_housing_fees():
+    return pd.read_csv(
+        os.path.join(misc.data_dir(), "jobs_housing_fees.csv"))
+
 
 # this specifies the relationships between tables
 orca.broadcast('buildings', 'residential_units', cast_index=True,

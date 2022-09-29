@@ -469,11 +469,8 @@ def calculate_vmt_fees(year, buildings, vmt_fee_categories, coffer,
 
 
 @orca.step()
-def calculate_jobs_housing_fees(policy, year, buildings,
+def calculate_jobs_housing_fees(jobs_housing_fees, year, buildings,
                                 coffer, summary, years_per_iter):
-
-    jobs_housing_settings = \
-        policy["acct_settings"]["jobs_housing_fee_settings"]
 
     # this is the frame that knows which devs are subsidized
     df = summary.parcel_output
@@ -484,48 +481,22 @@ def calculate_jobs_housing_fees(policy, year, buildings,
     if not len(df):
         return
 
-    print("%d projects pass the jobs_housing filter" % len(df))
+    # apply com_for_res fees to the dataframe
 
-    juris_lookup = orca.get_table("parcels_geography").to_frame()
-    juris_lookup = juris_lookup[['PARCEL_ID', 'juris_name']].\
-        rename(columns={'PARCEL_ID': 'PARCELID',
-               'juris_name': 'jurisname'})
+    for i in jobs_housings_fees:
+        geography = jobs_housing_fees[i].receiving_buildings_geography
+        df = df.loc[df.geography == jobs_housing_fees[i].receiving_buildings_filter]
+        print("Applying jobs-housing fees to %d commerical sqft" % df.non_residential_sqft.sum())
 
-    county_lookup = orca.get_table("parcels_subzone").\
-        to_frame().reset_index()
-    county_lookup = county_lookup[['PARCEL_ID', 'county']].\
-        rename(columns={'PARCEL_ID': 'PARCELID', 'county': 'county3'})
-
-    df = df.merge(juris_lookup,
-                  left_on='parcel_id',
-                  right_on='PARCELID',
-                  how='left').merge(county_lookup,
-                                    on='PARCELID', how='left')
-
-    # calculate jobs-housing fees for each county's acct
-    for key, acct in jobs_housing_settings.items():
-        df_sub = df.loc[df.county3 == acct["county_name"]]
-        print("Applying jobs-housing fees to %d commerical sqft" %
-              df_sub.non_residential_sqft.sum())
         total_fees = 0
-        df_sub["com_for_res_jobs_housing_fees"] = \
-            df_sub.jurisname.map(
-            acct["jobs_housing_fee_com_for_res_amounts"])
-        total_fees += (df_sub.com_for_res_jobs_housing_fees *
-                       df_sub.non_residential_sqft).sum()
-        print("Adding total jobs-housing fees for res amount of $%.2f"
-              % total_fees)
+        df["com_for_res_jobs_housing_fees"] = jobs_houing_fees[i].fees_per_sqft
+        total_fees += (df.com_for_res_jobs_housing_fees * df.non_residential_sqft).sum()
+        print("Adding total jobs-housing fees for res amount of $%.2f" % total_fees)
 
-        metadata = {
-            "description": "%s subsidies from\
-                jobs-housing development fees" % acct["name"],
-            "year": year
-        }
+        metadata = {"description": "%s subsidies from jobs-housing development fees" % jobs_housing_fees[i].acct,"year": year}
 
         # add to the subaccount in coffer
-        coffer[acct["name"]].add_transaction(total_fees,
-                                             subaccount=acct["name"],
-                                             metadata=metadata)
+        coffer[acct["name"]].add_transaction(total_fees, jobs_housing_fees[i].name, metadata=metadata)
 
 
 #@orca.step()
