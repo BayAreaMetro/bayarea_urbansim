@@ -17,21 +17,10 @@ import yaml
 # TABLES AND INJECTABLES
 #####################
 
-
-# define new settings files- these have been subdivided from the
-# general settings file
-# this is similar to the code for settings in urbansim_defaults
 @orca.injectable('hazards', cache=True)
 def hazards():
     with open(os.path.join(misc.configs_dir(), "hazards.yaml")) as f:
         return yaml.load(f)
-
-
-@orca.injectable('policy', cache=True)
-def policy():
-    with open(os.path.join(misc.configs_dir(), "policy.yaml")) as f:
-        return yaml.load(f)
-
 
 @orca.injectable('inputs', cache=True)
 def inputs():
@@ -44,7 +33,6 @@ def inputs():
 def mapping():
     with open(os.path.join(misc.configs_dir(), "mapping.yaml")) as f:
         return yaml.load(f)
-
 
 # now that there are new settings files, override the locations of certain
 # settings already defined in urbansim_defaults
@@ -79,36 +67,15 @@ def store(settings):
 
 
 @orca.injectable(cache=True)
-def limits_settings(policy, scenario):
-    # for limits, we inherit from the default
-    # limits set the max number of job spaces or res units that may be
-    # built per juris for each scenario - usually these represent actual
-    # policies in place in each city which limit development
+def job_caps():
 
-    # set up so that fr2 limits can be turned off as needed
-    # instead of looking for fr2 limits, the fr1 scenario is used
-    if (scenario in ["11", "12", "15"]) and\
-       (scenario not in policy["office_caps_fr2_enable"]):
-        scenario = str(int(scenario) - 10)
+	d = policy['development_limits']
 
-    # set up so that eir alts limits can be turned off as needed
-    # current 2 eir alts s26, s28, only s28 uses office caps
-    # so for s26, use default instead
-    if (scenario in ["26","28"]) and\
-       (scenario not in policy["office_caps_eir_enable"]):
-        scenario = "default"
-
-    d = policy['development_limits']
-
-    if scenario in d.keys():
-        print("Using limits for scenario: %s" % scenario)
-        assert "default" in d
-
-        d_scen = d[scenario]
-        d = d["default"]
-        for key, value in d_scen.items():
-            d.setdefault(key, {})
-            d[key].update(value)
+	d_scen = d['scenario']
+	d = d["default"]
+    for key, value in d_scen.items():
+        d.setdefault(key, {})
+        d[key].update(value)
 
         return d
 
@@ -414,36 +381,8 @@ def maz_forecast_inputs(regional_demographic_forecast):
 @orca.table(cache=True)
 def zoning_scenario(parcels_geography, scenario, policy, mapping):
 
-    if (scenario in ["11", "12", "15"]) and\
-       (scenario not in policy["geographies_fr2_enable"]):
-        scenario = str(int(scenario) - 10)
-
     scenario_zoning = pd.read_csv(
         os.path.join(misc.data_dir(), 'zoning_mods_%s.csv' % scenario))
-
-    if "ppa_id" in scenario_zoning.columns:
-        ppa_up = scenario_zoning.loc[(scenario_zoning.ppa_id == 'ppa') & 
-            (scenario_zoning.add_bldg == 'IW')].far_up.sum()
-        if ppa_up > 0:
-            orca.add_injectable("ppa_upzoning", "enabled")
-        else:
-            orca.add_injectable("ppa_upzoning", "not enabled")
-    else:
-        orca.add_injectable("ppa_upzoning", "not enabled")
-
-    if "ppa_id" in scenario_zoning.columns:
-        comm_up = scenario_zoning.loc[(scenario_zoning.ppa_id != 'ppa')].\
-            far_up.sum()
-        if comm_up > 0:
-            orca.add_injectable("comm_upzoning", "enabled")
-        else:
-           orca.add_injectable("comm_upzoning", "not enabled") 
-    else:
-        comm_up = scenario_zoning.far_up.sum()
-        if comm_up > 0:
-            orca.add_injectable("comm_upzoning", "enabled")
-        else:
-           orca.add_injectable("comm_upzoning", "not enabled") 
 
     for k in mapping["building_type_map"].keys():
         scenario_zoning[k] = np.nan
@@ -457,17 +396,8 @@ def zoning_scenario(parcels_geography, scenario, policy, mapping):
 
     add_drop_helper("add_bldg", 1)
     add_drop_helper("drop_bldg", 0)
-
-    if scenario in policy['geographies_fb_enable']:     # PBA50 Final Blueprint
-        join_col = 'fbpzoningmodcat'
-    elif scenario in policy['geographies_db_enable']:   # PBA50 Draft Blueprint
-        join_col = 'pba50zoningmodcat'
-    elif scenario in policy['geographies_eir_enable']:  # PBA50 EIR
-        join_col = 'eirzoningmodcat'
-    elif 'zoninghzcat' in scenario_zoning.columns:      # Horizon
-        join_col = 'zoninghzcat'
-    else:                                               # PBA40
-        join_col = 'zoningmodcat'
+                                              
+    join_col = 'zoningmodcat'
 
     print('join_col of zoningmods is {}'.format(join_col))
 
@@ -510,7 +440,7 @@ def parcel_rejections():
 
 @orca.table(cache=True)
 def parcels_geography(parcels, scenario, settings, policy):
-    file = os.path.join(misc.data_dir(), "2021_02_25_parcels_geography.csv")
+    file = os.path.join(misc.data_dir(), "parcels_geography.csv")
     print('Version of parcels_geography: {}'.format(file))
     df = pd.read_csv(file,
                      dtype={'PARCEL_ID':       np.int64,
@@ -539,37 +469,6 @@ def parcels_geography(parcels, scenario, settings, policy):
     df["pda_id_pba40"] = df.pda_id_pba40.str.lower()
     # danville wasn't supposed to be a pda
     df["pda_id_pba40"] = df.pda_id_pba40.replace("dan1", np.nan)
-
-    # Add Draft Blueprint geographies: PDA, TRA, PPA, sesit
-    if scenario in policy['geographies_db_enable']:
-        df["pda_id_pba50"] = df.pda_id_pba50_db.str.lower()
-        df["gg_id"] = df.gg_id.str.lower()
-        df["tra_id"] = df.tra_id.str.lower()
-        df['juris_tra'] = df.juris + '-' + df.tra_id
-        df["ppa_id"] = df.ppa_id.str.lower()
-        df['juris_ppa'] = df.juris + '-' + df.ppa_id
-        df["sesit_id"] = df.sesit_id.str.lower()
-        df['juris_sesit'] = df.juris + '-' + df.sesit_id
-    # Use EIR version
-    elif scenario in policy['geographies_eir_enable']:
-        df["pda_id_pba50"] = df.pda_id_pba50_fb.str.lower()
-        df["gg_id"] = df.eir_gg_id.str.lower()
-        df["tra_id"] = df.eir_tra_id.str.lower()
-        df['juris_tra'] = df.juris + '-' + df.tra_id
-        df["ppa_id"] = df.eir_ppa_id.str.lower()
-        df['juris_ppa'] = df.juris + '-' + df.ppa_id
-        df["sesit_id"] = df.eir_sesit_id.str.lower()
-        df['juris_sesit'] = df.juris + '-' + df.sesit_id
-    # Otherwise, default to Final Blueprint geographies: PDA, TRA, PPA, sesit
-    else:
-        df["pda_id_pba50"] = df.pda_id_pba50_fb.str.lower()
-        df["gg_id"] = df.fbp_gg_id.str.lower()
-        df["tra_id"] = df.fbp_tra_id.str.lower()
-        df['juris_tra'] = df.juris + '-' + df.tra_id
-        df["ppa_id"] = df.fbp_ppa_id.str.lower()
-        df['juris_ppa'] = df.juris + '-' + df.ppa_id
-        df["sesit_id"] = df.fbp_sesit_id.str.lower()
-        df['juris_sesit'] = df.juris + '-' + df.sesit_id
 
     # add coc
     df['coc_id'] = df.eir_coc_id.str.lower()
