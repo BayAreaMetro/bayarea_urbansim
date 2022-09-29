@@ -36,7 +36,7 @@ def profit_to_prob_func(df):
 
 
 @orca.injectable(cache=True)
-def coffer(policy, scenario):
+def coffer():
     d = {
         "vmt_res_acct":  accounts.Account("vmt_res_acct"),
         "vmt_com_acct":  accounts.Account("vmt_com_acct")
@@ -50,22 +50,17 @@ def coffer(policy, scenario):
             policy["acct_settings"]["office_lump_sum_accounts"].items():
         d[acct["name"]] = accounts.Account(acct["name"])    
 
-    if scenario in (policy["acct_settings"]["jobs_housing_fee_settings"]
-                    ["jobs_housing_com_for_res_scenarios"]):
-        for key, acct in \
-                policy["acct_settings"]["jobs_housing_fee_settings"].items():
-            if key != "jobs_housing_com_for_res_scenarios":
-                d[acct["name"]] = accounts.Account(acct["name"])
+    for key, acct in \
+            policy["acct_settings"]["jobs_housing_fee_settings"].items():
+        d[acct["name"]] = accounts.Account(acct["name"])
 
     return d
 
 
 @orca.step()
-def preserve_affordable(year, base_year, scenario, policy, residential_units,
+def preserve_affordable(year, base_year, policy, residential_units,
                         taz_geography, buildings, parcels_geography):
 
-    if scenario not in policy["unit_preservation"]["enable_in_scenarios"]:
-        return
 
     # join several geography columns to units table so that we can apply units
     res_units = residential_units.to_frame()
@@ -151,50 +146,13 @@ def acct_settings(policy):
 
 @orca.step()
 def lump_sum_accounts(policy, year, buildings, coffer,
-                      summary, years_per_iter, scenario):
+                      summary, years_per_iter):
 
     s = policy["acct_settings"]["lump_sum_accounts"]
 
     for key, acct in s.items():
 
-        if scenario not in acct["enable_in_scenarios"]:
-            continue
-
-        if "alternate_geography_scenarios" in acct and \
-                scenario in acct["alternate_geography_scenarios"]:
-            acct["receiving_buildings_filter"] = \
-                acct["alternate_buildings_filter"]
-        elif "geography_scenarios_fb" in acct and \
-                scenario in acct["geography_scenarios_fb"]:
-            acct["receiving_buildings_filter"] = \
-                acct["receiving_buildings_filter_fb"]
-        elif "geography_scenarios_fb_alt1" in acct and \
-                scenario in acct["geography_scenarios_fb_alt1"]:
-            acct["receiving_buildings_filter"] = \
-                acct["receiving_buildings_filter_fb_alt1"]
-        elif "geography_scenarios_fb_alt2" in acct and \
-                scenario in acct["geography_scenarios_fb_alt2"]:
-            acct["receiving_buildings_filter"] = \
-                acct["receiving_buildings_filter_fb_alt2"]
-
-        if "default_amount_scenarios_db" in acct and \
-                scenario in acct["default_amount_scenarios_db"]:
-            amt = float(acct["total_amount_db"])
-
-        elif "alternate_amount_scenarios_db" in acct and \
-                scenario in acct["alternate_amount_scenarios_db"]:
-            amt = float(acct["alternate_total_amount_db"])
-
-        elif "default_amount_scenarios_fb" in acct and \
-                scenario in acct["default_amount_scenarios_fb"]:
-            amt = float(acct["total_amount_fb"])
-
-        elif "alt2_amount_scenarios_fb" in acct and \
-                scenario in acct["alt2_amount_scenarios_fb"]:
-            amt = float(acct["total_amount_alt2"])
-
-        else:
-            amt = float(acct["total_amount"])
+            amt = float(acct["total_amount_fb"]
 
         amt *= years_per_iter
 
@@ -209,13 +167,12 @@ def lump_sum_accounts(policy, year, buildings, coffer,
 
 @orca.step()
 def office_lump_sum_accounts(policy, year, buildings, coffer,
-                             summary, years_per_iter, scenario):
+                             summary, years_per_iter):
 
     s = policy["acct_settings"]["office_lump_sum_accounts"]
 
     for key, acct in s.items():
-        if scenario not in acct["enable_in_scenarios"]:
-            continue
+
 
         amt = float(acct["total_amount"])
 
@@ -383,8 +340,6 @@ def policy_modifications_of_profit(feasibility, parcels):
 
         s = policy["acct_settings"]["land_value_tax_settings"]
 
-        if orca.get_injectable("scenario") in s["enable_in_scenarios"]:
-
             bins = s["bins"]
             pcts = bins["pcts"]
             # need to boud the breaks with a reasonable low and high goalpost
@@ -410,21 +365,9 @@ def policy_modifications_of_profit(feasibility, parcels):
                 policy["acct_settings"][
                     "profitability_adjustment_policies"].items():
 
-            if orca.get_injectable("scenario") in \
-                    policy["enable_in_scenarios"]:
-
                 parcels_geography = orca.get_table("parcels_geography")
 
-                if "alternate_geography_scenarios" in policy and \
-                        orca.get_injectable("scenario") in \
-                        policy["alternate_geography_scenarios"]:
-                    formula = policy["alternate_adjustment_formula"]
-                elif "geography_scenarios_fb" in policy and \
-                        orca.get_injectable("scenario") in \
-                        policy["geography_scenarios_fb"]:
-                    formula = policy["profitability_adjustment_formula_fb"]
-                else:
-                    formula = policy["profitability_adjustment_formula"]
+                formula = policy["profitability_adjustment_formula"]
 
                 pct_modifications = \
                     parcels_geography.local.eval(formula)
@@ -443,8 +386,8 @@ def policy_modifications_of_profit(feasibility, parcels):
 
 
 @orca.step()
-def calculate_vmt_fees(policy, year, buildings, vmt_fee_categories, coffer,
-                       summary, years_per_iter, scenario):
+def calculate_vmt_fees(year, buildings, vmt_fee_categories, coffer,
+                       summary, years_per_iter):
 
     vmt_settings = policy["acct_settings"]["vmt_settings"]
 
@@ -462,25 +405,17 @@ def calculate_vmt_fees(policy, year, buildings, vmt_fee_categories, coffer,
 
     total_fees = 0
 
-    if scenario in vmt_settings["res_for_res_scenarios"]:
+    # maps the vmt fee amounts designated in the policy settings to
+    # the projects based on their categorized vmt levels
+    df["res_for_res_fees"] = df.vmt_res_cat.map(
+        vmt_settings["res_for_res_fee_amounts"])
+    total_fees += (df.res_for_res_fees * df.residential_units).sum()
+    print("Applying vmt fees to %d units" % df.residential_units.sum())
 
-        # maps the vmt fee amounts designated in the policy settings to
-        # the projects based on their categorized vmt levels
-        df["res_for_res_fees"] = df.vmt_res_cat.map(
-            vmt_settings["res_for_res_fee_amounts"])
-        total_fees += (df.res_for_res_fees * df.residential_units).sum()
-        print("Applying vmt fees to %d units" % df.residential_units.sum())
-
-    if scenario in vmt_settings["com_for_res_scenarios"]:
-
-        if scenario in vmt_settings["alternate_geography_scenarios"]:
-            df["com_for_res_fees"] = df.vmt_nonres_cat.map(
+    df["com_for_res_fees"] = df.vmt_nonres_cat.map(
                 vmt_settings["alternate_com_for_res_fee_amounts"])
-        else:
-            df["com_for_res_fees"] = df.vmt_nonres_cat.map(
-                vmt_settings["com_for_res_fee_amounts"])
-        total_fees += (df.com_for_res_fees * df.non_residential_sqft).sum()
-        print("Applying vmt fees to %d commerical sqft" %
+    total_fees += (df.com_for_res_fees * df.non_residential_sqft).sum()
+    print("Applying vmt fees to %d commerical sqft" %
               df.non_residential_sqft.sum())
 
     print("Adding total vmt fees for res amount of $%.2f" % total_fees)
@@ -497,41 +432,35 @@ def calculate_vmt_fees(policy, year, buildings, vmt_fee_categories, coffer,
 
     total_fees = 0
 
-    if scenario in vmt_settings["com_for_com_scenarios"]:
-        # assign fees by county for Draft Blueprint scenarios
-        if scenario in vmt_settings["db_geography_scenarios"]:
-            # assign county to parcels
-            county_lookup = orca.get_table("parcels_subzone").to_frame()
-            county_lookup = county_lookup[["county"]].\
-                rename(columns={'county': 'county3'})
-            county_lookup.reset_index(inplace=True)
-            county_lookup = county_lookup.\
-                rename(columns={'PARCEL_ID': 'PARCELID'})
+    # assign county to parcels
+    county_lookup = orca.get_table("parcels_subzone").to_frame()
+    county_lookup = county_lookup[["county"]].\
+        rename(columns={'county': 'county3'})
+    county_lookup.reset_index(inplace=True)
+    county_lookup = county_lookup.\
+        rename(columns={'PARCEL_ID': 'PARCELID'})
 
-            df = df.merge(county_lookup,
-                          left_on='parcel_id',
-                          right_on='PARCELID',
-                          how='left')
-            # assign fee to parcels based on county
-            counties3 = ['ala', 'cnc', 'mar', 'nap', 'scl', 'sfr', 'smt',
-                         'sol', 'son']
-            counties = ['alameda', 'contra_costa', 'marin', 'napa',
-                        'santa_clara', 'san_francisco', 'san_mateo',
-                        'solano', 'sonoma']
-            for county3, county in zip(counties3, counties):
-                df.loc[df["county3"] == county3, "com_for_com_fees"] = \
-                    df.vmt_nonres_cat.\
-                    map(vmt_settings["db_com_for_com_fee_amounts"][county])
-        # assign fees for Horizon scenarios
-        if scenario in vmt_settings["alternate_geography_scenarios"]:
-            df["com_for_com_fees"] = df.vmt_nonres_cat.map(
-                vmt_settings["alternate_com_for_com_fee_amounts"])
-        else:
-            df["com_for_com_fees"] = df.vmt_nonres_cat.map(
-                vmt_settings["com_for_com_fee_amounts"])
-        total_fees += (df.com_for_com_fees * df.non_residential_sqft).sum()
-        print("Applying vmt fees to %d commerical sqft" %
-              df.non_residential_sqft.sum())
+    df = df.merge(county_lookup,
+                  left_on='parcel_id',
+                  right_on='PARCELID',
+                  how='left')
+    # assign fee to parcels based on county
+    counties3 = ['ala', 'cnc', 'mar', 'nap', 'scl', 'sfr', 'smt',
+                 'sol', 'son']
+    counties = ['alameda', 'contra_costa', 'marin', 'napa',
+                'santa_clara', 'san_francisco', 'san_mateo',
+                'solano', 'sonoma']
+    for county3, county in zip(counties3, counties):
+        df.loc[df["county3"] == county3, "com_for_com_fees"] = \
+            df.vmt_nonres_cat.\
+            map(vmt_settings["db_com_for_com_fee_amounts"][county])
+
+    df["com_for_com_fees"] = df.vmt_nonres_cat.map(
+        vmt_settings["alternate_com_for_com_fee_amounts"])
+
+    total_fees += (df.com_for_com_fees * df.non_residential_sqft).sum()
+    print("Applying vmt fees to %d commerical sqft" %
+      df.non_residential_sqft.sum())
 
     print("Adding total vmt fees for com amount of $%.2f" % total_fees)
 
@@ -541,7 +470,7 @@ def calculate_vmt_fees(policy, year, buildings, vmt_fee_categories, coffer,
 
 @orca.step()
 def calculate_jobs_housing_fees(policy, year, buildings,
-                                coffer, summary, years_per_iter, scenario):
+                                coffer, summary, years_per_iter):
 
     jobs_housing_settings = \
         policy["acct_settings"]["jobs_housing_fee_settings"]
@@ -557,49 +486,46 @@ def calculate_jobs_housing_fees(policy, year, buildings,
 
     print("%d projects pass the jobs_housing filter" % len(df))
 
-    if scenario in jobs_housing_settings["jobs_housing_com_for_res_scenarios"]:
-        # assign jurisdiction to parcels
-        juris_lookup = orca.get_table("parcels_geography").to_frame()
-        juris_lookup = juris_lookup[['PARCEL_ID', 'juris_name']].\
-            rename(columns={'PARCEL_ID': 'PARCELID',
-                   'juris_name': 'jurisname'})
+    juris_lookup = orca.get_table("parcels_geography").to_frame()
+    juris_lookup = juris_lookup[['PARCEL_ID', 'juris_name']].\
+        rename(columns={'PARCEL_ID': 'PARCELID',
+               'juris_name': 'jurisname'})
 
-        county_lookup = orca.get_table("parcels_subzone").\
-            to_frame().reset_index()
-        county_lookup = county_lookup[['PARCEL_ID', 'county']].\
-            rename(columns={'PARCEL_ID': 'PARCELID', 'county': 'county3'})
+    county_lookup = orca.get_table("parcels_subzone").\
+        to_frame().reset_index()
+    county_lookup = county_lookup[['PARCEL_ID', 'county']].\
+        rename(columns={'PARCEL_ID': 'PARCELID', 'county': 'county3'})
 
-        df = df.merge(juris_lookup,
-                      left_on='parcel_id',
-                      right_on='PARCELID',
-                      how='left').merge(county_lookup,
-                                        on='PARCELID', how='left')
+    df = df.merge(juris_lookup,
+                  left_on='parcel_id',
+                  right_on='PARCELID',
+                  how='left').merge(county_lookup,
+                                    on='PARCELID', how='left')
 
-        # calculate jobs-housing fees for each county's acct
-        for key, acct in jobs_housing_settings.items():
-            if key != "jobs_housing_com_for_res_scenarios":
-                df_sub = df.loc[df.county3 == acct["county_name"]]
-                print("Applying jobs-housing fees to %d commerical sqft" %
-                      df_sub.non_residential_sqft.sum())
-                total_fees = 0
-                df_sub["com_for_res_jobs_housing_fees"] = \
-                    df_sub.jurisname.map(
-                    acct["jobs_housing_fee_com_for_res_amounts"])
-                total_fees += (df_sub.com_for_res_jobs_housing_fees *
-                               df_sub.non_residential_sqft).sum()
-                print("Adding total jobs-housing fees for res amount of $%.2f"
-                      % total_fees)
+    # calculate jobs-housing fees for each county's acct
+    for key, acct in jobs_housing_settings.items():
+        df_sub = df.loc[df.county3 == acct["county_name"]]
+        print("Applying jobs-housing fees to %d commerical sqft" %
+              df_sub.non_residential_sqft.sum())
+        total_fees = 0
+        df_sub["com_for_res_jobs_housing_fees"] = \
+            df_sub.jurisname.map(
+            acct["jobs_housing_fee_com_for_res_amounts"])
+        total_fees += (df_sub.com_for_res_jobs_housing_fees *
+                       df_sub.non_residential_sqft).sum()
+        print("Adding total jobs-housing fees for res amount of $%.2f"
+              % total_fees)
 
-                metadata = {
-                    "description": "%s subsidies from\
-                        jobs-housing development fees" % acct["name"],
-                    "year": year
-                }
+        metadata = {
+            "description": "%s subsidies from\
+                jobs-housing development fees" % acct["name"],
+            "year": year
+        }
 
-                # add to the subaccount in coffer
-                coffer[acct["name"]].add_transaction(total_fees,
-                                                     subaccount=acct["name"],
-                                                     metadata=metadata)
+        # add to the subaccount in coffer
+        coffer[acct["name"]].add_transaction(total_fees,
+                                             subaccount=acct["name"],
+                                             metadata=metadata)
 
 
 #@orca.step()
@@ -617,16 +543,7 @@ def subsidized_office_developer(feasibility, coffer, formula, year,
 
     feasibility = feasibility.dropna(subset=["max_profit"])
 
-    # add necessary columns for filters
-    policy = orca.get_injectable("policy")
-    scenario = orca.get_injectable("scenario")
-
-    if scenario in policy["geographies_db_enable"] or \
-        scenario in policy["geographies_fb_enable"] or \
-        scenario in policy["geographies_eir_enable"]:
-        feasibility["pda_id"] = feasibility.pda_pba50
-    else:
-        feasibility["pda_id"] = feasibility.pda_pba40
+    feasibility["pda_id"] = feasibility.pda_pba40
 
     # filter to receiving zone
     feasibility = feasibility.query(formula)
@@ -811,57 +728,11 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
     # 10k / unit
     feasibility['subsidy_per_unit'] = feasibility.subsidy_per_unit.clip(10000)
     
-    # add necessary columns for filters
-    policy = orca.get_injectable("policy")
-    scenario = orca.get_injectable("scenario")
-
-    if orca.get_injectable("scenario") in policy["geographies_db_enable"] or \
-        orca.get_injectable("scenario") in policy["geographies_fb_enable"] or \
-        orca.get_injectable("scenario") in policy["geographies_eir_enable"]:
-        feasibility["pda_id"] = feasibility.pda_pba50
-    else:
-        feasibility["pda_id"] = feasibility.pda_pba40
+    feasibility["pda_id"] = feasibility.pda_pba40
    
     # step 5
-    if "alternate_buildings_filter" in acct_settings and \
-            orca.get_injectable("scenario") in \
-            acct_settings["alternate_geography_scenarios"]:
-        feasibility = feasibility.\
+    feasibility = feasibility.\
             query(acct_settings["alternate_buildings_filter"])
-    elif "receiving_buildings_filter_fb" in acct_settings and \
-            orca.get_injectable("scenario") in \
-            acct_settings["geography_scenarios_fb"]:
-        print("receiving_buildings_filter: {}".format(
-                acct_settings["receiving_buildings_filter_fb"]))
-        feasibility = feasibility.\
-            query(acct_settings["receiving_buildings_filter_fb"])
-    elif "receiving_buildings_filter_fb_alt1" in acct_settings and \
-            orca.get_injectable("scenario") in \
-            acct_settings["geography_scenarios_fb_alt1"]:
-        print("receiving_buildings_filter: {}".format(
-                acct_settings["receiving_buildings_filter_fb_alt1"]))
-        feasibility = feasibility.\
-            query(acct_settings["receiving_buildings_filter_fb_alt1"])
-    elif "receiving_buildings_filter_fb_alt2" in acct_settings and \
-            orca.get_injectable("scenario") in \
-            acct_settings["geography_scenarios_fb_alt2"]:
-        print("receiving_buildings_filter: {}".format(
-                acct_settings["receiving_buildings_filter_fb_alt2"]))
-        feasibility = feasibility.\
-            query(acct_settings["receiving_buildings_filter_fb_alt2"])
-    elif "db_receiving_buildings_filter" in acct_settings and \
-            orca.get_injectable("scenario") in \
-            acct_settings["db_geography_scenarios"]:
-        print("receiving_buildings_filter: {}".format(
-                acct_settings["db_receiving_buildings_filter"]))
-        feasibility = feasibility.\
-            query(acct_settings["db_receiving_buildings_filter"])
-    elif "receiving_buildings_filter" in acct_settings:
-        feasibility = feasibility.\
-            query(acct_settings["receiving_buildings_filter"])
-    else:
-        # otherwise all buildings are valid
-        pass
 
     new_buildings_list = []
     sending_bldgs = acct_settings["sending_buildings_subaccount_def"]
@@ -1082,47 +953,41 @@ def subsidized_residential_developer_jobs_housing(
     for key, acct in (policy["acct_settings"]
                       ["jobs_housing_fee_settings"].items()):
 
-        if key != "jobs_housing_com_for_res_scenarios":
-            print("Running the subsidized developer for jobs-housing acct: %s"
-                  % acct["name"])
-            orca.eval_step("subsidized_residential_feasibility")
-            feasibility = orca.get_table("feasibility").to_frame()
-            feasibility = feasibility.stack(level=0).\
-                reset_index(level=1, drop=True)
+        print("Running the subsidized developer for jobs-housing acct: %s"
+              % acct["name"])
+        orca.eval_step("subsidized_residential_feasibility")
+        feasibility = orca.get_table("feasibility").to_frame()
+        feasibility = feasibility.stack(level=0).\
+            reset_index(level=1, drop=True)
 
-            run_subsidized_developer(feasibility,
-                                     parcels,
-                                     buildings,
-                                     households,
-                                     acct,
-                                     settings,
-                                     coffer[acct["name"]],
-                                     year,
-                                     form_to_btype_func,
-                                     add_extra_columns_func,
-                                     summary,
-                                     create_deed_restricted=acct[
-                                        "subsidize_affordable"],
-                                     policy_name=acct["name"])
+        run_subsidized_developer(feasibility,
+                                 parcels,
+                                 buildings,
+                                 households,
+                                 acct,
+                                 settings,
+                                 coffer[acct["name"]],
+                                 year,
+                                 form_to_btype_func,
+                                 add_extra_columns_func,
+                                 summary,
+                                 create_deed_restricted=acct[
+                                    "subsidize_affordable"],
+                                 policy_name=acct["name"])
 
-            buildings = orca.get_table("buildings")
+        buildings = orca.get_table("buildings")
 
-            # set to an empty dataframe to save memory
-            orca.add_table("feasibility", pd.DataFrame())
+        # set to an empty dataframe to save memory
+        orca.add_table("feasibility", pd.DataFrame())
 
 
 @orca.step()
 def subsidized_residential_developer_lump_sum_accts(
         households, buildings, add_extra_columns_func,
         parcels_geography, year, acct_settings, parcels,
-        policy, summary, coffer, form_to_btype_func,
-        scenario, settings):
+        policy, summary, coffer, form_to_btype_func):
 
     for key, acct in policy["acct_settings"]["lump_sum_accounts"].items():
-
-        # quick return in order to save performance time
-        if scenario not in acct["enable_in_scenarios"]:
-            continue
 
         print("Running the subsidized developer for acct: %s" % acct["name"])
 
@@ -1157,24 +1022,17 @@ def subsidized_residential_developer_lump_sum_accts(
 
 @orca.step()
 def subsidized_office_developer_vmt(
-    parcels, settings, scenario, coffer, buildings, year, policy,
+    parcels, settings, coffer, buildings, year, policy,
     add_extra_columns_func, summary):
 
     vmt_acct_settings = policy["acct_settings"]["vmt_settings"]
-
-    if scenario in vmt_acct_settings["com_for_com_scenarios"]:
 
         print("Running subsidized office developer for acct: VMT com_for_com")
 
         orca.eval_step("alt_feasibility")
         feasibility = orca.get_table("feasibility").to_frame()
 
-        if "alternate_geography_scenarios" in vmt_acct_settings \
-            and orca.get_injectable("scenario") in \
-            vmt_acct_settings["alternate_geography_scenarios"]:
-            formula = vmt_acct_settings["alternate_buildings_filter"]
-        else:
-            formula = vmt_acct_settings["receiving_buildings_filter"]
+        formula = vmt_acct_settings["alternate_buildings_filter"]
 
         print('office receiving_buildings_filter: {}'.format(formula))
 
@@ -1196,14 +1054,10 @@ def subsidized_office_developer_vmt(
 
 @orca.step()
 def subsidized_office_developer_lump_sum_accts(
-    parcels, settings, scenario, coffer, buildings, year, policy,
+    parcels, settings, coffer, buildings, year, policy,
     add_extra_columns_func, summary):
 
     for key, acct in policy["acct_settings"]["office_lump_sum_accounts"].items():
-
-        # quick return in order to save performance time
-        if scenario not in acct["enable_in_scenarios"]:
-            continue
 
         print("Running the subsidized office developer for acct: %s" % acct["name"])
 
