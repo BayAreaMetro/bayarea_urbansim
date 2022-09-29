@@ -58,7 +58,7 @@ def coffer():
 
 
 @orca.step()
-def preserve_affordable(year, base_year, policy, residential_units,
+def preserve_affordable(prservation_policy, year, base_year, policy, residential_units,
                         taz_geography, buildings, parcels_geography):
 
 
@@ -68,13 +68,9 @@ def preserve_affordable(year, base_year, policy, residential_units,
     parcels_geog = parcels_geography.to_frame()
     taz_geog = taz_geography.to_frame()
 
-    res_units = res_units.merge(bldgs[['parcel_id']], left_on='building_id', 
-                                right_index=True, how='left').\
-        merge(parcels_geog[['gg_id', 'sesit_id', 'tra_id',
-              'juris']], left_on='parcel_id', right_index=True, how='left').\
+    res_units = res_units.merge(bldgs[['parcel_id']], left_on='building_id', right_index=True, how='left').\
+        merge(parcels_geog[['gg_id', 'sesit_id', 'tra_id', 'juris']], left_on='parcel_id', right_index=True, how='left').\
         merge(taz_geog, left_on='zone_id', right_index=True, how='left')
-
-    s = policy["unit_preservation"]["settings"]
 
     # only preserve units that are not already deed-restricted
     res_units = res_units.loc[res_units.deed_restricted != 1]
@@ -82,26 +78,25 @@ def preserve_affordable(year, base_year, policy, residential_units,
     # initialize list of units to mark deed restricted
     dr_units = []
     
-    # apply deed-restriced units by geography (county here)
-    for geog, value in s.items(): 
+    # apply deed-restriced units by geography
+    for i in preservation_policy: 
 
         # apply deed-restriced units by filters within each geography 
         l = ['first', 'second', 'third', 'fourth']
         for item in l:
 
-            if value[item+"_unit_filter"] is None or \
-                value[item+"_unit_target"] is None:
+            if preservation_policy[i].first_unit_target is None
                     continue
             
-            filter_nm = value[item+"_unit_filter"]
-            unit_target = value[item+"_unit_target"]
+            filter_nm = preservation_policy[i].[item+"_unit_filter"]
+            unit_target = preservation_policy[i].[item+"_unit_target"]
 
             # exclude units that have been preserved through this loop
             res_units = res_units[~res_units.index.isin(dr_units)]
 
             # subset units to the geography
-            geography = policy["unit_preservation"]["geography"]
-            geog_units = res_units.loc[res_units[geography] == geog]
+            geography = preservation_policy[i].geography
+            geog_units = res_units.loc[res_units[geography] == preservation_policy[i].geography_name]
             # subset units to the filters within the geography
             filter_units = geog_units.query(filter_nm)
 
@@ -152,7 +147,7 @@ def lump_sum_accounts(policy, year, buildings, coffer,
 
     for key, acct in s.items():
 
-            amt = float(acct["total_amount_fb"]
+            amt = float(acct["total_amount_fb"])
 
         amt *= years_per_iter
 

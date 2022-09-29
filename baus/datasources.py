@@ -846,6 +846,11 @@ def jobs_housing_fees():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "jobs_housing_fees.csv"))
 
+@orca.table(cache=True)
+def preservation_policy():
+    return pd.read_csv(
+        os.path.join(misc.data_dir(), "preservation_policy.csv"))
+
 
 # this specifies the relationships between tables
 orca.broadcast('buildings', 'residential_units', cast_index=True,
