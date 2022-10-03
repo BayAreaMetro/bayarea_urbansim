@@ -109,6 +109,14 @@ def nrh_config():
 
 ### BASIS INPUTS ###
 
+@orca.injectable(cache=True)
+def existing_inclusionary()
+    return return os.path.join(misc.data_dir(), "existing_inclusionary.csv")
+
+@orca.injectable(cache=True)
+def existing_job_caps():
+    return os.path.join(misc.data_dir(), "existing_job_caps.csv")
+
 @orca.table(cache=True)
 def parcels(store):
     df = store['parcels']
@@ -124,7 +132,6 @@ def taz(zones):
 
 @orca.table(cache=True)
 def parcels_geography(parcels, settings):
-
     file = os.path.join(misc.data_dir(), "parcels_geography.csv")
     df = pd.read_csv(file,
                      dtype={'PARCEL_ID':       np.int64,
@@ -134,14 +141,12 @@ def parcels_geography(parcels, settings):
     return df
 
 @orca.table(cache=True)
-def development_projects(parcels, mapping, scenario):
-    df = get_dev_projects_table(scenario, parcels)
-    return df
+def development_projects(parcels): 
+    return os.path.join(misc.data_dir(), "development_projects.csv")
 
 @orca.table(cache=True)
-def demolish_events(parcels, settings, scenario):
+def demolish_events(parcels, settings, development_projects):
     df = development_projects
-
     # keep demolish and build records
     return df[df.action.isin(["demolish", "build"])]
 
@@ -149,16 +154,13 @@ def demolish_events(parcels, settings, scenario):
 def jobs(store):
     return print_error_if_not_available(store, 'jobs_preproc')
 
-
 @orca.table(cache=True)
 def households(store):
     return print_error_if_not_available(store, 'households_preproc')
 
-
 @orca.table(cache=True)
 def buildings(store):
     return print_error_if_not_available(store, 'buildings_preproc')
-
 
 @orca.table(cache=True)
 def residential_units(store):
@@ -187,8 +189,7 @@ def parcels_tract():
 
 @orca.table(cache=True)
 def zoning_lookup():
-    file = os.path.join(misc.data_dir(),
-                       "2020_11_05_zoning_lookup_hybrid_pba50.csv")
+    file = os.path.join(misc.data_dir(), "2020_11_05_zoning_lookup_hybrid_pba50.csv")
     print('Version of zoning_lookup: {}'.format(file))
     return pd.read_csv(file,
                        dtype={'id': np.int64},
@@ -196,8 +197,7 @@ def zoning_lookup():
 
 @orca.table(cache=True)
 def zoning_baseline(parcels, zoning_lookup, settings):
-    file = os.path.join(misc.data_dir(),
-                        "2020_11_05_zoning_parcels_hybrid_pba50.csv")
+    file = os.path.join(misc.data_dir(), "2020_11_05_zoning_parcels_hybrid_pba50.csv")
     print('Version of zoning_parcels: {}'.format(file))                    
     df = pd.read_csv(file,
                      dtype={'geom_id':   np.int64,
@@ -220,13 +220,6 @@ def slr_parcel_inundation():
         index_col='parcel_id')
 
 @orca.table(cache=True)
-def slr_parcel_inundation_mitigation():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "slr_parcel_inundation_mitigation.csv"),
-        dtype={'parcel_id': np.int64},
-        index_col='parcel_id')
-
-@orca.table(cache=True)
 def slr_progression():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "slr_progression.csv"))
@@ -238,23 +231,33 @@ def tracts_earthquake():
         os.path.join(misc.data_dir(), "tract_damage_earthquake.csv"))
 
 
+
 ### POLICY INPUT FILES ###
 
 @orca.table(cache=True)
-def zoning_scenario(parcels_geography, scenario, policy, mapping):
+def telework(): 
+	df = pd.read_csv(os.path.join(misc.data_dir(),
+		"superdistricts.csv"), index_col="number")
+	return df
 
-    scenario_zoning = pd.read_csv(
-        os.path.join(misc.data_dir(), 'zoning_mods_%s.csv' % scenario))
+@orca.injectable(cache=True)
+def job_caps_policy(jop):
+    return os.path.join(misc.data_dir(), "job_caps_policy.csv")
+
+@orca.table(cache=True)
+def zoning_scenario(parcels_geography, scenario, mapping):
+
+    df = pd.read_csv(os.path.join(misc.data_dir()))
 
     for k in mapping["building_type_map"].keys():
-        scenario_zoning[k] = np.nan
+        df[k] = np.nan
 
     def add_drop_helper(col, val):
-        for ind, item in scenario_zoning[col].items():
+        for ind, item in df[col].items():
             if not isinstance(item, str):
                 continue
             for btype in item.split():
-                scenario_zoning.loc[ind, btype] = val
+                df.loc[ind, btype] = val
 
     add_drop_helper("add_bldg", 1)
     add_drop_helper("drop_bldg", 0)
@@ -264,7 +267,7 @@ def zoning_scenario(parcels_geography, scenario, policy, mapping):
     print('join_col of zoningmods is {}'.format(join_col))
 
     return pd.merge(parcels_geography.to_frame().reset_index(),
-                    scenario_zoning,
+                    df,
                     on=join_col,
                     how='left').set_index('parcel_id')
 
@@ -278,28 +281,11 @@ def vmt_fee_categories():
         index_col="taz")
 
 @orca.injectable(cache=True)
-def job_caps():
-
-	d = policy['development_limits']
-
-	d_scen = d['scenario']
-	d = d["default"]
-    for key, value in d_scen.items():
-        d.setdefault(key, {})
-        d[key].update(value)
-
-        return d
-
-    print("Using default limits")
-    return d["default"]
-
-@orca.injectable(cache=True)
-def inclusionary_housing_settings(policy):
+def inclusionary_housing_settings():
 
     if policy['inclusionary_zoning']:
     	s = policy['development_limits']["scenario"]
-    else:
-        s = policy['development_limits']["default"]
+
 
     d = {}
     for item in s:
@@ -313,7 +299,7 @@ def inclusionary_housing_settings(policy):
             d[geog] = item["amount"]
     return d
 
- @orca.table(cache=True)
+@orca.table(cache=True)
 def jobs_housing_fees():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "jobs_housing_fees.csv"))
@@ -332,6 +318,17 @@ def inclusionary_policy():
 def vmt_fees():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "vmt_fees.csv"))
+
+@orca.table(cache=True)
+def slr_parcel_inundation_mitigation():
+    return pd.read_csv(
+        os.path.join(misc.data_dir(), "slr_parcel_inundation_mitigation.csv"),
+        dtype={'parcel_id': np.int64},
+        index_col='parcel_id')
+
+@orca.injectable(cache=True)
+def inclusionary_policy()
+    return os.path.join(misc.data_dir(), "inclusionary_policy.csv")
 
 
 
@@ -358,7 +355,6 @@ def baseyear_taz_controls():
                                     "baseyear_taz_controls.csv"),
                        dtype={'taz1454': np.int64},
                        index_col="taz1454")
-
 
 @orca.table(cache=True)
 def base_year_summary_taz(mapping):
@@ -551,21 +547,6 @@ def taz2_price_shifters():
                                     "taz2_price_shifters.csv"),
                        dtype={'TAZ': np.int64},
                        index_col="TAZ")
-
-@orca.table(cache=True)
-def superdistricts(scenario): 
-	sd_scenario_file = os.path.join(misc.data_dir(), 
-		("superdistricts_s{}.csv").format(scenario))
-	# scenarios could contain policies (eg telework) and/or other modifications
-	if os.path.isfile(sd_scenario_file): 
-		superdistricts = pd.read_csv(sd_scenario_file, index_col="number")
-		orca.add_injectable("sqft_per_job_settings", "for this scenario")
-	# the default includes a telework assumption and SD adjustments
-	else:
-		superdistricts = pd.read_csv(os.path.join(misc.data_dir(),
-			"superdistricts.csv"), index_col="number")
-		orca.add_injectable("sqft_per_job_settings", "default")
-	return superdistricts
 
 
 

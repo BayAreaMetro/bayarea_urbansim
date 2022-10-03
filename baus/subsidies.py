@@ -1,5 +1,4 @@
 from __future__ import print_function
-
 import sys
 import time
 import orca
@@ -227,8 +226,6 @@ def inclusionary_housing_revenue_reduction(inclusionary_policy, feasibility, uni
     # e.g. specific neighborhoods get specific amounts -
     # http://sf-moh.org/modules/showdocument.aspx?documentid=7253
 
-
-
     # calculate revenue reduction by strategy geographies
 
     pct_inclusionary = inclusionary_policy.inclusionary_pct
@@ -378,10 +375,10 @@ def policy_modifications_of_profit(feasibility, parcels):
 
 
 @orca.step()
-def calculate_vmt_fees(year, buildings, vmt_fee_categories, coffer,
+def calculate_vmt_fees(vmt_fees, year, buildings, vmt_fee_categories, coffer,
                        summary, years_per_iter):
 
-    vmt_settings = policy["acct_settings"]["vmt_settings"]
+    vmt_settings = vmt_fees
 
     # this is the frame that knows which devs are subsidized
     df = summary.parcel_output
