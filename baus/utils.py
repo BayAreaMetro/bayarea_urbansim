@@ -1,5 +1,4 @@
 from __future__ import print_function
-
 import pandas as pd
 import numpy as np
 import orca
@@ -8,18 +7,10 @@ import sys
 from urbansim_defaults.utils import _remove_developed_buildings
 from urbansim.developer.developer import Developer as dev
 import itertools as it
-# for urbanforecast.com visualizer
-if "URBANSIM_SLACK" in os.environ:
-    import boto3
-    import time
-    import requests
-    import json
 
 
-#####################
-# UTILITY FUNCTIONS
-#####################
 
+### UTILITY FUNCTIONS ###
 
 # This is really simple and basic (hackish) code to solve a very important
 # problem.  I'm calling an orca step and want to serialize the tables that
@@ -248,17 +239,15 @@ def simple_ipf(seed_matrix, col_marginals, row_marginals, tolerance=1, cnt=0):
                       tolerance, cnt+1)
 
 
-"""
-BELOW IS A SET OF UTITLIES TO COMPARE TWO SUMMARY DATAFRAMES, MAINLY LOOKING
-FOR PCT DIFFERENCE AND THEN FORMATTING INTO A DESCRIPTION OR INTO AN EXCEL
-OUTPUT FILE WHICH IS COLOR CODED TO HIGHLIGHT THE DIFFERENCES
-"""
+### UTITLIES TO COMPARE TWO SUMMARY DATAFRAMES ###
+
+# mainly looking for pcr differency and then formatting
+# into a description or into an excel output file which is
+# color-coded to highlight the differences
 
 # for labels and cols in df1, find value in df2, and make sure value is
 # within pctdiff - if not return dataframe col, row and values in two frames
 # pctdiff should be specified as a number between 1 and 100
-
-
 def compare_dfs(df1, df2):
 
     df3 = pd.DataFrame(index=df1.index, columns=df1.columns)
@@ -367,39 +356,7 @@ def compare_summary(df1, df2, index_names=None, pctdiff=10,
     return buf
 
 
-def ue_config(run_num, host):
-    data = {
-        'taz_url': ('https://landuse.s3.us-west-2.amazonaws.com/'
-                    'run{}_simulation_output.json'.format(run_num)),
-        'parcel_url': ('https://landuse.s3.us-west-2.amazonaws.com/'
-                       'run{}_parcel_output.csv'.format(run_num)),
-        'timestamp': time.time(),
-        'name': 'Simulation run {}, Machine {}'.format(run_num, host)
-    }
-
-    r = requests.post(
-            'https://forecast-feedback.firebaseio.com/simulations.json',
-            json.dumps(data))
-
-    return r.text
-
-
-def ue_files(run_num):
-    s3 = boto3.client('s3')
-    resp1 = s3.upload_file(
-        'runs/run{}_simulation_output.json'.format(run_num),
-        'landuse',
-        'run{}_simulation_output.json'.format(run_num),
-        ExtraArgs={'ACL': 'public-read'})
-    resp2 = s3.upload_file(
-        'runs/run{}_parcel_output.csv'.format(run_num),
-        'landuse',
-        'run{}_parcel_output.csv'.format(run_num),
-        ExtraArgs={'ACL': 'public-read'})
-    return resp1, resp2
-
-
-# MIGRATED FROM OUTPUT_CSV_UTILS.PY
+### OUTPUT UTILITIES ###
 
 geography = 'taz'
 

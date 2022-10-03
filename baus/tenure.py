@@ -1,5 +1,4 @@
 from __future__ import print_function
-
 import os
 import math
 import yaml
@@ -14,11 +13,8 @@ from urbansim.utils import misc
 from urbansim_defaults import utils
 
 
-###############################################################################
-#
-# (1) UAL ORCA STEPS FOR DATA MODEL INITIALIZATION
-#
-###############################################################################
+
+### STEPS FOR DATA MODEL INITIALIZATION ###
 
 
 def _create_empty_units(buildings):
@@ -251,12 +247,8 @@ def load_rental_listings():
     return
 
 
-###############################################################################
-#
-# (2) UAL ORCA STEPS FOR DATA MODEL MAINTENANCE
-#
-###############################################################################
 
+### STEPS FOR DATA MODEL MAINTENANCE ###
 
 @orca.step()
 def reconcile_placed_households(households, residential_units):
@@ -695,11 +687,8 @@ def save_intermediate_tables(households, buildings, parcels,
         table.to_frame().to_hdf(filename, table.name)
 
 
-###############################################################################
-#
-# (3) UAL ORCA STEPS FOR SIMULATION LOGIC
-#
-###############################################################################
+
+### STEPS FOR SIMULATION LOGIC ###
 
 
 # have to define this here because urbansim_defaults incorrectly calls the

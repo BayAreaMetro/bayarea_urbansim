@@ -8,28 +8,55 @@ from urbansim_defaults import utils
 from urbansim_defaults import variables
 
 
-'''
-There's some really interesting side-effects of orca cache behavior which
-affects how the cache is used here - see this for more info
-https://github.com/UDST/orca/issues/16
-In general I try to be very conservative on when to use the cache
-I don't trust myself to be able to use it right
-'''
+# There are side-effects of orca cache behavior which affect
+# how the cache is used here (https://github.com/UDST/orca/issues/16)
+# In general I try to be very conservative on when to use the cache
 
-#####################
-# HOUSEHOLDS VARIABLES
-#####################
 
+### HOUSEHOLD VARIABLES ###
 
 @orca.column('households', cache=True)
 def tmnode_id(households, buildings):
     return misc.reindex(buildings.tmnode_id, households.building_id)
 
 
-#####################
-# COSTAR VARIABLES
-#####################
+### JOB VARIABLES ###
 
+@orca.column('jobs', cache=True)
+def tmnode_id(jobs, buildings):
+    return misc.reindex(buildings.tmnode_id, jobs.building_id)
+
+
+@orca.column('jobs', cache=True)
+def naics(jobs):
+    return jobs.sector_id
+
+
+@orca.column('jobs', cache=True)
+def empsix_id(jobs, mapping):
+    return jobs.empsix.map(mapping['empsix_name_to_id'])
+
+
+
+### JOBS VARIABLES ###
+
+@orca.column('jobs', cache=True)
+def tmnode_id(jobs, buildings):
+    return misc.reindex(buildings.tmnode_id, jobs.building_id)
+
+
+@orca.column('jobs', cache=True)
+def naics(jobs):
+    return jobs.sector_id
+
+
+@orca.column('jobs', cache=True)
+def empsix_id(jobs, mapping):
+    return jobs.empsix.map(mapping['empsix_name_to_id'])
+
+
+
+### COSTAR VARIABLES ###
 
 @orca.column('costar')
 def juris_ave_income(parcels, costar):
@@ -67,29 +94,8 @@ def transit_type(costar, parcels_geography):
         reindex(costar.index).fillna('none')
 
 
-#####################
-# JOBS VARIABLES
-#####################
 
-
-@orca.column('jobs', cache=True)
-def tmnode_id(jobs, buildings):
-    return misc.reindex(buildings.tmnode_id, jobs.building_id)
-
-
-@orca.column('jobs', cache=True)
-def naics(jobs):
-    return jobs.sector_id
-
-
-@orca.column('jobs', cache=True)
-def empsix_id(jobs, mapping):
-    return jobs.empsix.map(mapping['empsix_name_to_id'])
-
-
-#############################
-# RESIDENTIAL UNITS VARIABLES
-#############################
+### RESIDENTIAL UNITS VARIABLES ###
 
 # move zone_id from buildings to residential units
 @orca.column('residential_units', cache=True)
@@ -112,10 +118,8 @@ def vacant_units(residential_units, households):
             households.unit_id != -1].value_counts(), fill_value=0)
 
 
-#####################
-# BUILDINGS VARIABLES
-#####################
 
+### BUILDINGS VARIABLES ###
 
 @orca.column('buildings', cache=True)
 def general_type(buildings, building_type_map):
@@ -307,10 +311,8 @@ def combo_logsum(buildings, parcels):
     return misc.reindex(parcels.combo_logsum, buildings.parcel_id)
 
 
-#####################
-# NODES VARIABLES
-#####################
 
+### NODES VARIABLES ###
 
 # these are computed outcomes of accessibility variables
 @orca.column('nodes')
@@ -320,9 +322,7 @@ def retail_ratio(nodes):
     return nodes.sum_income_3000 / nodes.retail_sqft_3000.clip(lower=1)
 
 
-#####################
-# PARCELS VARIABLES
-#####################
+### PARCELS VARIABLES ###
 
 @orca.column('parcels')
 def maz_id(parcels, parcel_to_maz):
@@ -382,8 +382,7 @@ def vmt_com_fees(parcels, policy):
         parcels.vmt_nonres_cat.map(vmt_settings["com_for_com_fee_amounts"])
 
 
-# compute the fees per unit for each parcel
-# (since feees are specified spatially)
+# compute the fees per unit for each parcel (since fees are specified spatially)
 @orca.column('parcels', cache=True)
 def fees_per_unit(parcels, policy, scenario):
     s = pd.Series(0, index=parcels.index)
@@ -409,85 +408,8 @@ def fees_per_sqft(parcels, policy, scenario):
 
 
 @orca.column('parcels', cache=True)
-def pda_pba40(parcels, parcels_geography):
-    return parcels_geography.pda_id_pba40.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def pda_pba50(parcels, parcels_geography):
-    return parcels_geography.pda_id_pba50.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def trich_id(parcels, parcels_geography):
-    return parcels_geography.trich_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def cat_id(parcels, parcels_geography):
-    return parcels_geography.cat_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_trich(parcels, parcels_geography):
-    return parcels_geography.juris_trich.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def tra_id(parcels, parcels_geography):
-    return parcels_geography.tra_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_tra(parcels, parcels_geography):
-    return parcels_geography.juris_tra.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def sesit_id(parcels, parcels_geography):
-    return parcels_geography.sesit_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_sesit(parcels, parcels_geography):
-    return parcels_geography.juris_sesit.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def ppa_id(parcels, parcels_geography):
-    return parcels_geography.ppa_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_ppa(parcels, parcels_geography):
-    return parcels_geography.juris_ppa.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def coc_id(parcels, parcels_geography):
-    return parcels_geography.coc_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_coc(parcels, parcels_geography):
-    return parcels_geography.juris_coc.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
 def superdistrict(parcels, taz_geography):
     return misc.reindex(taz_geography.superdistrict, parcels.zone_id)
-
-
-# perffoot is a dummy indicating the FOOTprint for the PERFormance targets
-@orca.column('parcels', cache=True)
-def urban_footprint(parcels, parcels_geography):
-    return parcels_geography.perffoot.reindex(parcels.index)
-
-
-# perfzone is a dummy for geography for a performance target
-@orca.column('parcels', cache=True)
-def performance_zone(parcels, parcels_geography):
-    return parcels_geography.perfarea.reindex(parcels.index)
 
 
 # urbanized is a dummy for urbanized area, sourced from shapefile at:
@@ -557,12 +479,8 @@ def parcel_average_price(use, quantile=.5):
                         orca.get_table('parcels').node_id)
 
 
-#############################
-# Functions for Checking
-# Allowed Uses and Building
-# Types on Parcels
-#############################
 
+### ALLOWED USES AND BUILDING TYPES ON PARCELS ###
 
 @orca.injectable("parcel_is_allowed_func", autocall=False)
 def parcel_is_allowed(form):
@@ -744,14 +662,13 @@ def max_dua(parcels_zoning_calculations, parcels, scenario, settings):
     # first we combine the zoning columns
     s = parcels_zoning_calculations.effective_max_dua * ~parcels.nodev
 
-    if scenario != ["1"]:
-        # we had trouble with the zoning outside of the footprint
-        # make sure we have rural zoning outside of the footprint
-        s2 = parcels.urban_footprint.map({0: .01, 1: np.nan})
-        s = pd.concat([s, s2], axis=1).min(axis=1)
+    # we had trouble with the zoning outside of the footprint
+    # make sure we have rural zoning outside of the footprint
+    s2 = parcels.urban_footprint.map({0: .01, 1: np.nan})
+    s = pd.concat([s, s2], axis=1).min(axis=1)
 
     if settings["dont_build_most_dense_building"]:
-        # in this case we shrink the zoning such that we don't built the
+        # in this case we shrink the zoning such that we don't builD the
         # tallest building in a given zone
         # if there no building in the zone currently, we make the max_dua = 4
         s2 = parcels.built_dua.groupby(parcels.zone_id).max()
@@ -973,35 +890,6 @@ def zone_combo_logsum(zones):
     return combo
 
 
-# This is an all computed table which takes calculations from the below and
-# puts it in a computed dataframe.  The catch here is that UrbanSim only
-# needs one scenario's zoning at a time.  This dataframe gives you the
-# zoning for all 4 scenarios at the same time for comparison sake.  Therefore
-# it switches scenarios, clears the cache and recomputes the columns - this
-# is not really normal UrbanSim operation but it immensely useful for debugging
-@orca.table()
-def parcels_zoning_by_scenario(parcels, parcels_zoning_calculations,
-                               zoning_baseline):
-
-    df = pd.DataFrame(index=parcels.index)
-    df["baseline_dua"] = zoning_baseline.max_dua
-    df["baseline_far"] = zoning_baseline.max_far
-    df["baseline_height"] = zoning_baseline.max_height
-    df["zoning_name"] = zoning_baseline["name"]
-    df["zoning_source"] = zoning_baseline["tablename"]
-
-    for scenario in [str(i) for i in range(4)]:
-        orca.clear_cache()
-        orca.add_injectable("scenario", scenario)
-        z = orca.get_table("parcels_zoning_calculations")
-        df["max_dua_%s" % scenario] = z.effective_max_dua
-        df["max_far_%s" % scenario] = z.effective_max_far
-        df["du_underbuild_%s" % scenario] = z.zoned_du_underbuild
-        df["non_res_cat_%s" % scenario] = z.non_res_categories
-
-    return df
-
-
 @orca.column('zones')
 def ave_unit_sqft(buildings):
     return buildings.sqft_per_unit.groupby(buildings.zone_id).quantile(.6)
@@ -1011,10 +899,9 @@ GROSS_AVE_UNIT_SIZE = 1000.0
 PARCEL_USE_EFFICIENCY = .8
 HEIGHT_PER_STORY = 12.0
 
-###################################
-#   Zoning Capacity Variables
-###################################
 
+
+###  ZONED CAPACITY VARIABLES ###
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def zoned_du(parcels, parcels_zoning_calculations):
@@ -1112,12 +999,6 @@ def effective_max_far(zoning_baseline, parcels, scenario):
 def effective_max_office_far(parcels_zoning_calculations):
     return parcels_zoning_calculations.effective_max_far * \
         parcel_is_allowed('office')
-
-
-########################################
-# there are a number of variables
-# here that try to get at zoned capacity
-########################################
 
 
 @orca.column('parcels_zoning_calculations')
