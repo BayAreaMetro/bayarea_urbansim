@@ -1538,23 +1538,3 @@ def slack_report(year, base_year, slack_enabled, run_number, devproj_len,
         import socket
         slack = Slacker(os.environ["SLACK_TOKEN"])
         host = socket.gethostname()
-
-        if year == base_year:
-            dropped_devproj_scen = devproj_len - devproj_len_scen
-            dropped_devproj_geomid = devproj_len_scen - devproj_len_geomid
-            dropped_devproj_proc = devproj_len_geomid - devproj_len_proc
-            slack.chat.post_message(
-                '#urbansim_sim_update',
-                'Development projects for run %d on %s: %d to start, '
-                '%d dropped by scenario filter, '
-                '%d dropped by geom_id check, '
-                '%d dropped by processing'
-                % (run_number, host, devproj_len, dropped_devproj_scen,
-                   dropped_devproj_geomid, dropped_devproj_proc), as_user=True)
-
-        unplaced_hh = orca.get_injectable("unplaced_hh")
-        if unplaced_hh > 0:
-            slack.chat.post_message(
-                '#urbansim_sim_update',
-                'WARNING: unplaced households in %d for run %d on %s'
-                % (year, run_number, host), as_user=True)

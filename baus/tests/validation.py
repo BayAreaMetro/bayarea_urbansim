@@ -74,12 +74,6 @@ def check_residential_units(residential_units, buildings):
 # but due to the nature of control totals it exists here
 def check_no_unplaced_households(households, year):
     print("Check no unplaced households")
-    # for some reason, since we added renter/owner models, we do have
-    # unplaced households in the first couple of years, which eventually
-    # evens out
-    # 02 26 2019 ET: all years can be activated now that tenure is off
-    # if year <= 2030:
-    #    return
     assert -1 not in households.building_id.value_counts()
 
 
@@ -110,19 +104,13 @@ def simulation_validation(
         parcels, buildings, households, jobs, residential_units, year,
         household_controls, employment_controls, mapping):
 
-    # this does a save and restore state for debugging
-    # d = save_and_restore_state(locals())
-    # for k in d.keys():
-    #     locals()[k].local = d[k]
-
     check_job_controls(jobs, employment_controls, year, mapping)
 
     check_household_controls(households, household_controls, year)
 
     check_residential_units(residential_units, buildings)
 
-    # change this to a Slack warning, while model will still complete
-#    check_no_unplaced_households(households, year)
+    check_no_unplaced_households(households, year)
 
     check_no_unplaced_jobs(jobs, year)
 
