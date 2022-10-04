@@ -102,8 +102,7 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, settings,
 
 @orca.step()
 def geographic_summary(parcels, households, jobs, buildings, taz_geography,
-                       run_number, year, summary, final_year, scenario,
-                       policy, settings):
+                       run_number, year, summary, final_year, settings):
     # using the following conditional b/c `year` is used to pull a column
     # from a csv based on a string of the year in add_population()
     # and in add_employment() and 2009 is the
@@ -1312,11 +1311,7 @@ def adjust_hhkids(df, year, rdf, total_hh):
 
 
 @orca.step()
-def hazards_slr_summary(run_number, year, scenario, households, jobs, parcels,
-                        hazards):
-
-    if scenario not in hazards["slr_scenarios"]["enable_in"]:
-        return
+def hazards_slr_summary(run_number, year, households, jobs, parcels):
 
     destroy_parcels = orca.get_table("destroy_parcels")
     if len(destroy_parcels) > 0:
@@ -1396,11 +1391,7 @@ def hazards_slr_summary(run_number, year, scenario, households, jobs, parcels,
 
 
 @orca.step()
-def hazards_eq_summary(run_number, year, households, jobs, parcels, buildings,
-                       scenario, hazards):
-
-    if scenario not in hazards["eq_scenarios"]["enable_in"]:
-        return
+def hazards_eq_summary(run_number, year, households, jobs, parcels, buildings):
 
     if year == 2035:
 

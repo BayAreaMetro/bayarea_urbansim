@@ -80,7 +80,7 @@ def slr_remove_dev(buildings, year, parcels, households, jobs):
 
 
 @orca.step()
-def eq_code_buildings(buildings, year, scenario, hazards):
+def eq_code_buildings(buildings, year):
 
     if year == 2035:
         # tags buildings that exist in 2035 with a fragility coefficient
@@ -311,7 +311,7 @@ def eq_code_buildings(buildings, year, scenario, hazards):
 
 @orca.step()
 def earthquake_demolish(parcels, parcels_tract, tracts_earthquake, buildings,
-                        households, jobs, residential_units, year, hazards):
+                        households, jobs, residential_units, year):
 
     if year == 2035:
         # assign each parcel to a census tract using the lookup table
@@ -361,27 +361,26 @@ def earthquake_demolish(parcels, parcels_tract, tracts_earthquake, buildings,
                 len(build_frag) * existing_pct))]
             # in "strategies" scenarios, exclude some existing buildings
             # from destruction due to retrofit
-            if scenario in hazards["eq_scenarios"]["mitigation"]:
-                retrofit_codes = ['DU01G1N', 'DU01G2N', 'MF01G1N', 'MF01G2N',
-                                  'MF25G1N', 'MF25G2N', 'MF25G3N', 'MF25G4N',
-                                  'SF01G1N', 'SF2PG1N']
-                top_build_frag_bldgs = buildings[buildings.index.isin
-                                                 (top_build_frag.index)]
-                retrofit_bldgs = top_build_frag_bldgs[top_build_frag_bldgs.
-                                                      earthquake_code.isin
-                                                      (retrofit_codes)]
-                retro_no = int(round(float(len(retrofit_bldgs))/2))
-                retrofit_set = np.random.choice(retrofit_bldgs.index,
-                                                retro_no, replace=False)
-                # update top_build_frag to remove retrofit buildings
-                top_build_frag = top_build_frag[~top_build_frag.index.isin
-                                                (retrofit_set)]
-                # add table of retrofit buildings that weren't destroyed
-                retrofit_bldgs_set = buildings[buildings.index.isin
-                                               (retrofit_set)]
-                retrofit_bldgs_tot = retrofit_bldgs_tot. \
-                    append(retrofit_bldgs_set)
-                orca.add_table("retrofit_bldgs_tot", retrofit_bldgs_tot)
+            retrofit_codes = ['DU01G1N', 'DU01G2N', 'MF01G1N', 'MF01G2N',
+                              'MF25G1N', 'MF25G2N', 'MF25G3N', 'MF25G4N',
+                              'SF01G1N', 'SF2PG1N']
+            top_build_frag_bldgs = buildings[buildings.index.isin
+                                             (top_build_frag.index)]
+            retrofit_bldgs = top_build_frag_bldgs[top_build_frag_bldgs.
+                                                  earthquake_code.isin
+                                                  (retrofit_codes)]
+            retro_no = int(round(float(len(retrofit_bldgs))/2))
+            retrofit_set = np.random.choice(retrofit_bldgs.index,
+                                            retro_no, replace=False)
+            # update top_build_frag to remove retrofit buildings
+            top_build_frag = top_build_frag[~top_build_frag.index.isin
+                                            (retrofit_set)]
+            # add table of retrofit buildings that weren't destroyed
+            retrofit_bldgs_set = buildings[buildings.index.isin
+                                           (retrofit_set)]
+            retrofit_bldgs_tot = retrofit_bldgs_tot. \
+                append(retrofit_bldgs_set)
+            orca.add_table("retrofit_bldgs_tot", retrofit_bldgs_tot)
             # add to a list of buildings to destroy
             buildings_top = top_build_frag.index
             existing_buildings.extend(buildings_top)

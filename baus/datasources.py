@@ -245,7 +245,7 @@ def job_caps_policy(jop):
     return os.path.join(misc.data_dir(), "job_caps_policy.csv")
 
 @orca.table(cache=True)
-def zoning_scenario(parcels_geography, scenario, mapping):
+def zoning_scenario(parcels_geography, mapping):
 
     df = pd.read_csv(os.path.join(misc.data_dir()))
 

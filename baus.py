@@ -154,46 +154,60 @@ def run_models(MODE):
         if IN_YEAR:
             orca.run([
 
-                "slr_inundate",
-                "slr_remove_dev",
-                "eq_code_buildings",
-                "earthquake_demolish",
+                    # sea level rise models
+                    "slr_inundate",
+                    "slr_remove_dev",
+                    # earthquake models
+                    "eq_code_buildings",
+                    "earthquake_demolish",
 
-                "neighborhood_vars",
-                "regional_vars",
-                "rsh_simulate",
-                "rrh_simulate",
-                "nrh_simulate",
-                "assign_tenure_to_new_units",
+                    # accessibility calcs
+                    "neighborhood_vars",    
+                    "regional_vars", 
+                    "price_vars",                
 
-                "household_relocation",
-                "households_transition",
-                "reconcile_unplaced_households",
-                "jobs_transition",
+                    # household relocation rates and new households
+                    "household_relocation",
+                    "households_transition",
+                    "reconcile_unplaced_households",
+                    # job relocation rates and new jobs
+                    "jobs_transition",
 
-                "hlcm_owner_lowincome_simulate",
-                "hlcm_renter_lowincome_simulate",
-                "hlcm_owner_simulate",
-                "hlcm_renter_simulate",
-                "hlcm_owner_simulate_no_unplaced",
-                "hlcm_owner_lowincome_simulate_no_unplaced",
-                "hlcm_renter_simulate_no_unplaced",
-                "hlcm_renter_lowincome_simulate_no_unplaced",
-                "reconcile_placed_households",
-                "elcm_simulate",
-                "price_vars",
+                    # non-residential rent price model
+                    "nrh_simulate",
+                    # residential rent and sale price models
+                    "rsh_simulate",
+                    "rrh_simulate",
 
-                "simulation_validation",
-                "parcel_summary",
-                "building_summary",
-                "geographic_summary",
-                "travel_model_output",
-                "travel_model_2_output",
-                "hazards_slr_summary",
-                "hazards_eq_summary",
-                "diagnostic_output",
-                "config",
-                "slack_report"
+                    # PLACE AGENTS IN BUILDINGS #
+                    # Q1 households can choose deed-restricted units first, 
+                    # then unplaced Q1 + Q2, Q3, Q4 are placed in deed-restricted or market-rate
+                    # owners choose from owner owner units, renters choose from renter units
+                    "hlcm_owner_lowincome_simulate",
+                    "hlcm_renter_lowincome_simulate",
+                    "hlcm_owner_simulate",
+                    "hlcm_renter_simulate",
+                    # force placement of any unplaced households
+                    "hlcm_owner_simulate_no_unplaced",
+                    "hlcm_owner_lowincome_simulate_no_unplaced",
+                    "hlcm_renter_simulate_no_unplaced",
+                    "hlcm_renter_lowincome_simulate_no_unplaced",
+                    "reconcile_placed_households",
+                    # run standard job placement models       
+                    "elcm_simulate",           
+
+                    # WRITE SUMMARIES #
+                    "topsheet",
+                    "simulation_validation",
+                    "parcel_summary",
+                    "building_summary",
+                    "diagnostic_output",
+                    "geographic_summary",
+                    "travel_model_output",
+                    "travel_model_2_output",
+                    "hazards_slr_summary",
+                    "hazards_eq_summary",
+                    "slack_report"
 
             ], iter_vars=[IN_YEAR])
 
@@ -214,10 +228,8 @@ def run_models(MODE):
 
 			        # accessibility calcs
 			        "neighborhood_vars",    
-			        "regional_vars",        
-
-			        # non-residential rent price model
-			        "nrh_simulate",         
+			        "regional_vars",
+                    "price_vars",                
 
 			        # household relocation rates and new households
 			        "household_relocation",
@@ -227,10 +239,6 @@ def run_models(MODE):
 			        "jobs_relocation",
 			        "jobs_transition",
 
-			        # housing price calculations
-			        "balance_rental_and_ownership_hedonics",
-			        "price_vars",
-
 			        # CREATE BUILDINGS #
 
 			        # development pipeline
@@ -238,12 +246,15 @@ def run_models(MODE):
 
 			        # preserve some units
 			        "preserve_affordable",
-			        # total the money available for subsidized residential development
+			        # count the money available for subsidized residential development
 			        "lump_sum_accounts",
 			        "subsidized_residential_developer_lump_sum_accts",
 			        # count the money available for subsidized commercial development
 			        "office_lump_sum_accounts",
 			        "subsidized_office_developer_lump_sum_accts",
+                    # count the money in the fee accounts
+                    "calculate_vmt_fees",
+                    "calculate_jobs_housing_fees",
 
 			        # run feasibility, then run the models that use the subsidized accounts
 			        "alt_feasibility",
@@ -251,41 +262,37 @@ def run_models(MODE):
 			        "subsidized_residential_developer_vmt",
 					"subsidized_residential_feasibility",
 			        "subsidized_residential_developer_jobs_housing",
+                    "subsidized_office_developer_vmt",
 
-			        # run the core developer models
+			        # run the core developer models for buildings
 			        "residential_developer",
+                    "accessory_units",
 			        "developer_reprocess",
 			        "retail_developer",
 			        "office_developer",
 
-			        # additional 
-			        "subsidized_office_developer_vmt",
-			        "accessory_units",
-			        "calculate_vmt_fees",
-
-			        # update unit counts
+			        # update residential unit counts and assign tenure
 			        "remove_old_units",
 			        "initialize_new_units",
 			        "reconcile_unplaced_households",
+                    "balance_rental_and_ownership_hedonics",
+                    "assign_tenure_to_new_units",
 
+			        # non-residential rent price model
+			        "nrh_simulate",
 			        # residential rent and sale price models
 			        "rsh_simulate",
 			        "rrh_simulate",
-
-			        # assign tenure
-			        "assign_tenure_to_new_units",
 
 			        # PLACE AGENTS IN BUILDINGS #
 
 			        # Q1 households can choose deed-restricted units first, 
 			        # then unplaced Q1 + Q2, Q3, Q4 are placed in deed-restricted or market-rate
+                    # owners choose from owner owner units, renters choose from renter units
 			        "hlcm_owner_lowincome_simulate",
 			        "hlcm_renter_lowincome_simulate",
-
-			        # owners choose from owner owner units, renters choose from renter units
 			        "hlcm_owner_simulate",
 			        "hlcm_renter_simulate",
-
 			        # force placement of any unplaced households
 			        "hlcm_owner_simulate_no_unplaced",
 			        "hlcm_owner_lowincome_simulate_no_unplaced",
@@ -304,8 +311,6 @@ def run_models(MODE):
 			        "parcel_summary",
 			        "building_summary",
 			        "diagnostic_output",
-			        "calculate_vmt_fees",
-			        "calculate_jobs_housing_fees",
 			        "geographic_summary",
 			        "travel_model_output",
 			        "travel_model_2_output",
