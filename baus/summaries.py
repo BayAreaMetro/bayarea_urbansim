@@ -1491,28 +1491,26 @@ def hazards_eq_summary(run_number, year, households, jobs, parcels, buildings):
                                         % (run_number, year)))
 
         # print out retrofit buildings that were saved
-        if scenario in hazards["eq_scenarios"]["mitigation"]:
-            retrofit_bldgs_tot = orca.get_table("retrofit_bldgs_tot")
-            retrofit_bldgs_tot = retrofit_bldgs_tot.to_frame()
-            retrofit_bldgs_tot_taz = misc.reindex(parcels.zone_id,
-                                                  retrofit_bldgs_tot.parcel_id)
-            retrofit_bldgs_tot['taz'] = retrofit_bldgs_tot_taz
-            retrofit_bldgs_tot['count'] = 1
-            retrofit_bldgs_tot = retrofit_bldgs_tot[[
-                'taz', 'residential_units', 'residential_sqft',
-                'non_residential_sqft', 'building_sqft', 'stories',
-                'redfin_sale_price', 'non_residential_rent',
-                'deed_restricted_units', 'residential_price', 'count']]
-            retrofit_bldgs_tot = retrofit_bldgs_tot.groupby(['taz']).sum()
-            retrofit_bldgs_tot.\
-                to_csv(os.path.join(
-                       "runs", "run%d_hazards_eq_retrofit_buildings_%d.csv"
-                       % (run_number, year)))
+        retrofit_bldgs_tot = orca.get_table("retrofit_bldgs_tot")
+        retrofit_bldgs_tot = retrofit_bldgs_tot.to_frame()
+        retrofit_bldgs_tot_taz = misc.reindex(parcels.zone_id,
+                                              retrofit_bldgs_tot.parcel_id)
+        retrofit_bldgs_tot['taz'] = retrofit_bldgs_tot_taz
+        retrofit_bldgs_tot['count'] = 1
+        retrofit_bldgs_tot = retrofit_bldgs_tot[[
+            'taz', 'residential_units', 'residential_sqft',
+            'non_residential_sqft', 'building_sqft', 'stories',
+            'redfin_sale_price', 'non_residential_rent',
+            'deed_restricted_units', 'residential_price', 'count']]
+        retrofit_bldgs_tot = retrofit_bldgs_tot.groupby(['taz']).sum()
+        retrofit_bldgs_tot.\
+            to_csv(os.path.join(
+                   "runs", "run%d_hazards_eq_retrofit_buildings_%d.csv"
+                   % (run_number, year)))
 
     # print out buildings in 2030, 2035, and 2050 so Horizon team can compare
     # building inventory by TAZ
-    if year in [2030, 2035, 2050] and scenario in \
-       hazards["eq_scenarios"]["enable_in"]:
+    if year in [2030, 2035, 2050]:
         buildings = buildings.to_frame()
         buildings_taz = misc.reindex(parcels.zone_id,
                                      buildings.parcel_id)
