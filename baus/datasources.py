@@ -13,7 +13,6 @@ import yaml
 
 
 
-
 ### MISC INJECTABLES ###
 
 @orca.injectable('mapping', cache=True)

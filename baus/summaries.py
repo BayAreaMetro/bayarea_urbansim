@@ -1525,14 +1525,3 @@ def hazards_eq_summary(run_number, year, households, jobs, parcels, buildings):
         buildings.to_csv(os.path.join("runs",
                          "run%d_hazards_eq_buildings_list_%d.csv"
                                       % (run_number, year)))
-
-
-@orca.step()
-def slack_report(year, base_year, slack_enabled, run_number, devproj_len,
-                 devproj_len_scen, devproj_len_geomid, devproj_len_proc):
-
-    if slack_enabled:
-        from slacker import Slacker
-        import socket
-        slack = Slacker(os.environ["SLACK_TOKEN"])
-        host = socket.gethostname()
