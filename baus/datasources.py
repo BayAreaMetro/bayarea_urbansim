@@ -329,6 +329,9 @@ def slr_parcel_inundation_mitigation():
 def inclusionary_policy()
     return os.path.join(misc.data_dir(), "inclusionary_policy.csv")
 
+@orca.injectable(cache=True)
+def obag_policy()
+    return os.path.join(misc.data_dir(), "obag.csv")
 
 
 ### ZONAL FORECAST FILES ###

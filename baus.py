@@ -24,11 +24,12 @@ BRANCH = os.popen('git rev-parse --abbrev-ref HEAD').read()
 CURRENT_COMMIT = os.popen('git rev-parse HEAD').read() 
 LOGS = True
 SLACK = "URBANSIM_SLACK" in os.environ
-RANDOM_SEED = True
 MODE = "simulation"
 EVERY_NTH_YEAR = 5
 IN_YEAR, OUT_YEAR = 2010, 2050
-S3 = False
+RANDOM_SEED = True
+if RANDOM_SEED:
+    np.random.seed(12)
 
 
 ### INJECTABLES ### 
@@ -38,7 +39,7 @@ orca.add_injectable("base_year", IN_YEAR)
 orca.add_injectable("slack_enabled", SLACK)
 
 
-### PARSER ARGS ###
+### PARSER ###
 
 parser = argparse.ArgumentParser(description='Run UrbanSim models.')
 
@@ -53,9 +54,6 @@ parser.add_argument('--random-seed', action='store_true', dest='random_seed',
 
 parser.add_argument('--disable-slack', action='store_true', dest='noslack',
                     help='disable slack outputs')
-
-
-### OPTIONS ###
 
 options = parser.parse_args()
 
@@ -72,22 +70,7 @@ if options.noslack:
     SLACK = False
 
 
-### ADDITIONAL SETTINGS ###
-
-if LOGS:
-    print('***The Standard stream is being written to /runs.log***')
-    sys.stdout = sys.stderr = open("runs/run.log", 'w')
-
-if RANDOM_SEED:
-    np.random.seed(12)
-
-if SLACK:
-    from slacker import Slacker
-    slack = Slacker(os.environ["SLACK_TOKEN"])
-    host = socket.gethostname()
-
-
-### MODES AND THEIR SUB-MODELS ###
+### RUN MODES ###
 
 def run_models(MODE):
 
@@ -112,16 +95,6 @@ def run_models(MODE):
             "rrh_estimate",         
             "hlcm_owner_estimate",  
             "hlcm_renter_estimate", 
-        ])
- 
-
-    elif MODE == "preprocessing":
-
-        orca.run([
-            "preproc_jobs",
-            "preproc_households",
-            "preproc_buildings",
-            "initialize_residential_units"
         ])
 
 
@@ -246,9 +219,10 @@ def run_models(MODE):
 
 			        # preserve some units
 			        "preserve_affordable",
+                    if baus_run["obag"]:
 			        # count the money available for subsidized residential development
-			        "lump_sum_accounts",
-			        "subsidized_residential_developer_lump_sum_accts",
+    			        "lump_sum_accounts",
+    			        "subsidized_residential_developer_lump_sum_accts",
 			        # count the money available for subsidized commercial development
 			        "office_lump_sum_accounts",
 			        "subsidized_office_developer_lump_sum_accts",
@@ -331,12 +305,21 @@ def run_models(MODE):
         raise "Invalid mode"
 
 
-### RUN MODEL, PRINT KEY INFO AND SLACK MESSAGES ###
+### RUN MODEL, PRINT LOG AND SLACK MESSAGES ###
+
+if LOGS:
+    print('***The Standard stream is being written to /runs.log***')
+    sys.stdout = sys.stderr = open("runs/run.log", 'w')
 
 print("Started", time.ctime())
 print("Current Branch : ", BRANCH.rstrip())
 print("Current Commit : ", CURRENT_COMMIT.rstrip())
 print("Random Seed : ", RANDOM_SEED)
+
+if SLACK:
+    from slacker import Slacker
+    slack = Slacker(os.environ["SLACK_TOKEN"])
+    host = socket.gethostname()
 
 if SLACK and MODE == "simulation":
     slack.chat.post_message(
