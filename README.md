@@ -1,5 +1,9 @@
-Docs for Bay Area UrbanSim.
+Bay Area UrbanSim documentation is now being created via [mkdocs](https://www.mkdocs.org), with multiple
+versions deployed (by branch) via [mike](https://github.com/jimporter/mike).
 
-Starting point borrowed from the personal website of [Joshua Lande](https://github.com/joshualande/joshualande.github.io).
+A legacy version of the documentation is saved in the [`legacy_gh_pages`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/legacy_gh_pages) branch for reference.
 
-The sitemap.xml file was inspired by [this post](http://jethrokuan.github.io/2013/12/20/SEO-with-Jekyll.html).
+To update documentation for a non-documentation branch, e.g. "main", "develop":
+* install the mkdocs and mike packages: `pip install mkdocs`, `pip install mike`, `pip install mkdocs-autorefs`
+* edit `mkdocs.yml` located in the repo's root dir, and the markdown files located in the "docs" folder
+* in cmd window, cd to the root dir, call `mike deploy [branch_name]`
