@@ -13,6 +13,26 @@ import yaml
 
 
 
+### FILE STORAGE ###
+
+# some info on where to get the accessibliity networks
+build_networks:
+  walk:
+      name: 2015_06_01_osm_bayarea4326.h5
+      max_distance: 3000
+  drive:
+      name: 2015_08_03_tmnet.h5
+      max_distance: 45
+      weight_col: "CTIMEA"
+
+# these are the tables that get auto-merged to buildings/parcels in the hedonic and lcms
+aggregation_tables:
+  - nodes
+  - tmnodes
+  - logsums
+  - buildings
+
+
 ### MISC INJECTABLES ###
 
 @orca.injectable('mapping', cache=True)
@@ -182,8 +202,6 @@ def parcels_tract():
                'zone_id':   np.int64},
         index_col='parcel_id')
 
-
-
 # ZONING
 
 @orca.table(cache=True)
@@ -235,8 +253,7 @@ def tracts_earthquake():
 
 @orca.table(cache=True)
 def telework(): 
-	df = pd.read_csv(os.path.join(misc.data_dir(),
-		"superdistricts.csv"), index_col="number")
+	df = pd.read_csv(os.path.join(misc.data_dir(), "superdistricts.csv"), index_col="number")
 	return df
 
 @orca.injectable(cache=True)
@@ -303,15 +320,36 @@ def jobs_housing_fees():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "jobs_housing_fees.csv"))
 
-@orca.table(cache=True)
-def preservation_policy():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "preservation_policy.csv"))
+
 
 @orca.table(cache=True)
+def household_controls_unstacked():
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
+    orca.add_injectable("household_control_file", fname)
+    return pd.read_csv(os.path.join(misc.data_dir(), fname),
+                       index_col='year')
+
+@orca.table(cache=True)
+def preservation_policy():
+    try:
+      df = pd.read_csv("../inputs/basis/policy/inclusionary_policy.csv")
+      orca.add_injectable("preservation_policy_on", True)
+    except Exception as e:
+      orca.add_injectable("preservation_policy_on", False)
+      return
+    return df
+
+@orca.injectable(cache=True)
+def preservation_policy_enabled():
+    if preservation_policy:
+      enabled = True
+    else:
+      enabled = False
+    return enabled
+     
+@orca.table(cache=True)
 def inclusionary_policy():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "inclusionary_policy.csv"))
+    return
 
 @orca.table(cache=True)
 def vmt_fees():

@@ -57,7 +57,7 @@ def coffer():
 
 
 @orca.step()
-def preserve_affordable(prservation_policy, year, base_year, policy, residential_units,
+def preserve_affordable(preservation_policy, year, base_year, residential_units,
                         taz_geography, buildings, parcels_geography):
 
 

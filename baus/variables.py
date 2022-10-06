@@ -12,7 +12,6 @@ from urbansim_defaults import variables
 # how the cache is used here (https://github.com/UDST/orca/issues/16)
 # In general I try to be very conservative on when to use the cache
 
-
 ### HOUSEHOLD VARIABLES ###
 
 @orca.column('households', cache=True)
@@ -895,13 +894,11 @@ def ave_unit_sqft(buildings):
     return buildings.sqft_per_unit.groupby(buildings.zone_id).quantile(.6)
 
 
+###  ZONED CAPACITY VARIABLES ###
+
 GROSS_AVE_UNIT_SIZE = 1000.0
 PARCEL_USE_EFFICIENCY = .8
 HEIGHT_PER_STORY = 12.0
-
-
-
-###  ZONED CAPACITY VARIABLES ###
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def zoned_du(parcels, parcels_zoning_calculations):

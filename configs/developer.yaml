@@ -1,0 +1,173 @@
+# cap rate for use in the developer model
+cap_rate: 0.04
+
+# settings for the feasibility model - parcel_filter is very important and is a rule of
+# which parcels to consider - we don't consider nodev properties, historic properties, and
+# optionally we don't look at small lot single family
+feasibility:
+  parcel_filter: (nodev != 1 and manual_nodev != 1 and sdem != 1 and oldest_building > 1906
+    and oldest_building_age > 20 and (total_residential_units != 1 or parcel_acres > 1.0)
+    and first_building_type != 'HO' and first_building_type != 'SC')
+  residential_to_yearly: True
+  simple_zoning: True
+
+
+# this is really because we don't have caps right now for retail
+# we can disallow new retail per city using this list of cities
+eliminate_retail_zoning_from_juris:
+  - 'Sonoma County'
+  - 'Contra Costa County'
+  - 'San Mateo County'
+  - 'Solano County'
+  - 'Napa County'
+  - 'Marin County'
+  - 'Benicia'
+  - 'Brentwood'
+  - 'Antioch'
+  - 'Atherton'
+  - 'Fairfax'
+  - 'Hillsborough'
+  - 'Belvedere'
+  - 'Yountville'
+  - 'Woodside'
+  - 'Monte Sereno'
+  - 'Los Altos Hills'
+  - 'Half Moon Bay'
+  - 'Larkspur'
+  - 'Portola Valley'
+  - 'Saratoga'
+  - 'Cloverdale'
+  - 'Livermore'
+  - 'Los Gatos'
+  - 'Tiburon'
+  - 'Piedmont'
+  - 'Ross'
+  - 'Atherton'
+  - 'Belmont'
+  - 'Clayton'
+
+# settings that get passed to the residential developer as kwargs
+residential_developer:
+  target_vacancy: .03
+  min_unit_size: 1000
+  bldg_sqft_per_job: 400
+  max_parcel_size: 150000000
+
+# settings that get passed to the non-residential developer as kwargs
+non_residential_developer:
+  kwargs:
+    target_vacancy: .05
+    bldg_sqft_per_job: 400
+  type_splits:
+    Industrial: 0.0
+    Retail: 0.2
+    Office: 0.8
+
+# jobs sqft per building type
+building_sqft_per_job:
+  HS: 400
+  HT: 400
+  HM: 400
+  OF: 355
+  HO: 1161
+  SC: 470
+  IL: 661
+  IW: 960
+  IH: 825
+  RS: 445
+  RB: 445
+  MR: 383
+  MT: 383
+  ME: 383
+
+# a settings to not build the most dense building in any zone, even if zoning allows
+# it - reduces zoning to match the most dense building
+dont_build_most_dense_building: True
+
+# the weight to use to combine profit vs ROC to create a probability.  A 1.0 would mean
+# equal weights.  0.5 means profit is half as much as ROC
+profit_vs_return_on_cost_combination_factor: 0.5
+
+# sqft per unit is often bad so we clip it to certain sizes - these are the
+# sizes the developer model will be testing
+ave_sqft_per_unit_clip:
+  lower: 800
+  upper: 2500
+
+# we don't have great sqft_per_unit info across the bay area (building data
+# is poor on this metric) so we use DUA to get a clue as to sqft per unit
+# we assume high DUA areas will yield slightly smaller units
+clip_sqft_per_unit_based_on_dua:
+  - threshold: 50
+    max: 1000
+  - threshold: 100
+    max: 900
+  - threshold: 150
+    max: 800
+
+    # maps building type ids to general building types
+building_type_map:
+  HS: Residential
+  HT: Residential
+  HM: Residential
+  OF: Office
+  HO: Hotel
+  SC: School
+  IL: Industrial
+  IW: Industrial
+  IH: Industrial
+  RS: Retail
+  RB: Retail
+  MR: Residential
+  MT: Retail
+  ME: Office
+  PA: Parking
+  PA2: Parking
+
+# this maps building "forms" from the developer model to building types used in the buildings table
+form_to_btype:
+  residential:
+    - HS
+    - HT
+    - HM
+  industrial:
+    - IL
+    - IW
+    - IH
+  retail:
+    - RS
+    - RB
+  office:
+    - OF
+  mixedresidential:
+    - MR
+  mixedoffice:
+    - ME
+  select_non_residential:
+    - OF
+    - HO
+    - SC
+    - IL
+    - IW
+    - IH
+    - RS
+    - RB
+    - MR
+
+# add residential units if the number of households exceeds the number of units in
+# the base year data
+reconcile_residential_units_and_households: True
+
+# same as above but for non-res
+reconcile_non_residential_sqft_and_jobs: True
+
+# if households or jobs are in building that don't exist, unplace them so they can be
+# placed the next time through the LCMs
+remove_invalid_building_ids: True
+
+# sets nan to zero so later models can run - usually used when these prices aren't
+# used but there is a check to force the models to fail before filters are applied
+set_nan_price_to_zero: True
+
+# convert square meters to square feet
+parcel_size_factor: 10.764

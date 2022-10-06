@@ -95,13 +95,7 @@ def run_models(MODE):
             "rrh_estimate",         
             "hlcm_owner_estimate",  
             "hlcm_renter_estimate", 
-        ])
-
-
-    elif MODE == "debug":
-
-        orca.run(["simulation_validation"], [2010])
-
+        ], iter_vars=[2010])
 
     elif MODE == "feasibility":
 
@@ -112,14 +106,12 @@ def run_models(MODE):
             "rsh_simulate",                 
             "nrh_simulate",                 
             "price_vars",
-            "subsidized_residential_feasibility"
 
         ], iter_vars=[2010])
 
         df = orca.get_table("feasibility").to_frame()
         df = df.stack(level=0).reset_index(level=1, drop=True)
         df.to_csv("output/feasibility.csv")
-
 
     elif MODE == "simulation":
 
@@ -189,7 +181,6 @@ def run_models(MODE):
 			def get_simulation_models():
 			    
 			    models = [
-
 			    	# INITIAL MODELS AND CALCS #
 
 			    	# sea level rise models
@@ -217,12 +208,12 @@ def run_models(MODE):
 			        # development pipeline
 			        "scheduled_development_events",
 
-			        # preserve some units
-			        "preserve_affordable",
-                    if baus_run["obag"]:
+                    if orca.get_injectable("preservation_policy_on"):
+                        # preserve some units
+                        "preserve_affordable",
 			        # count the money available for subsidized residential development
-    			        "lump_sum_accounts",
-    			        "subsidized_residential_developer_lump_sum_accts",
+			        "lump_sum_accounts",
+			        "subsidized_residential_developer_lump_sum_accts",
 			        # count the money available for subsidized commercial development
 			        "office_lump_sum_accounts",
 			        "subsidized_office_developer_lump_sum_accts",
