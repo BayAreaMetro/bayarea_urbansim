@@ -1,7 +1,6 @@
 ### Overview
 
-Bay Area UrbanSim documentation is now being created via [mkdocs](https://www.mkdocs.org), with multiple
-versions deployed (by branch) via [mike](https://github.com/jimporter/mike).
+Bay Area UrbanSim documentation is now being created via [mkdocs](https://www.mkdocs.org), with multiple versions deployed (by branch) via [mike](https://github.com/jimporter/mike).
 
 Different versions of the documentation are stored in the various folders in this repo, e.g. "main"; folder names are the same as the branch names. The Github documentation page [http://bayareametro.github.io/bayarea_urbansim/](http://bayareametro.github.io/bayarea_urbansim/) has a drop-down menu of versions.
 
