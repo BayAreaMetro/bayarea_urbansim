@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://bayareametro_urbansim.com/main/</loc>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/main/</loc>
          <lastmod>2022-10-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://bayareametro_urbansim.com/main/input/</loc>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/main/input/</loc>
          <lastmod>2022-10-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://bayareametro_urbansim.com/main/model_overview/</loc>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/main/model_overview/</loc>
          <lastmod>2022-10-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://bayareametro_urbansim.com/main/output/</loc>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/main/output/</loc>
          <lastmod>2022-10-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://bayareametro_urbansim.com/main/pba50/</loc>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/main/pba50/</loc>
          <lastmod>2022-10-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://bayareametro_urbansim.com/main/user_guide/</loc>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/main/user_guide/</loc>
          <lastmod>2022-10-06</lastmod>
          <changefreq>daily</changefreq>
     </url>
