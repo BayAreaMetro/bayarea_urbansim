@@ -208,9 +208,9 @@ def run_models(MODE):
 			        # development pipeline
 			        "scheduled_development_events",
 
+                    # if configured in the inputs: preserve units
                     if orca.get_injectable("preservation_policy_on"):
-                        # preserve some units
-                        "preserve_affordable",
+                        "preserve_affordable",    
 			        # count the money available for subsidized residential development
 			        "lump_sum_accounts",
 			        "subsidized_residential_developer_lump_sum_accts",
@@ -221,13 +221,34 @@ def run_models(MODE):
                     "calculate_vmt_fees",
                     "calculate_jobs_housing_fees",
 
-			        # run feasibility, then run the models that use the subsidized accounts
-			        "alt_feasibility",
+
+			        # run feasibility - why?
+			        # "alt_feasibility"
+
+                    # if configured in the inputs: 
+                    # run the policy models that modify feasibility
+                    if orca_injectable("ceqa_reform_on"):
+                        "policy_modifications_of_profit_ceq_reform"
+                    if orca_injectable("parking_requirements_on"):
+                        "policy_modifications_of_profit_parking_requirements"
+                    if orca_injectable("land_value_tax_on"):
+                        "policy_modifications_of_profit_land_value_tax"
+                    if orca_injectable("land_value_tax_on"):
+                        "policy_modifications_of_profit_sb743"
+                    # ONLY 1/2 of IZ
+                    if orca_injectable("inclsuionary_zoning_on"):
+                        "policy_modifications_of_profit_inclusionary_zoning"
+
+                    # run subsidized residential developer feasibility
 			        "subsidized_residential_feasibility",
-			        "subsidized_residential_developer_vmt",
+
+                    "subsidized_residential_developer_vmt",
+
 					"subsidized_residential_feasibility",
 			        "subsidized_residential_developer_jobs_housing",
                     "subsidized_office_developer_vmt",
+
+
 
 			        # run the core developer models for buildings
 			        "residential_developer",
