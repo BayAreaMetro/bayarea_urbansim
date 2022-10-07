@@ -2,32 +2,37 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/main/</loc>
-         <lastmod>2022-10-06</lastmod>
+         <lastmod>2022-10-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/main/input/</loc>
-         <lastmod>2022-10-06</lastmod>
+         <lastmod>2022-10-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/main/model_overview/</loc>
-         <lastmod>2022-10-06</lastmod>
+         <lastmod>2022-10-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/main/output/</loc>
-         <lastmod>2022-10-06</lastmod>
+         <lastmod>2022-10-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/main/pba50/</loc>
-         <lastmod>2022-10-06</lastmod>
+         <lastmod>2022-10-07</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/main/submodels-reference/</loc>
+         <lastmod>2022-10-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/main/user_guide/</loc>
-         <lastmod>2022-10-06</lastmod>
+         <lastmod>2022-10-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
