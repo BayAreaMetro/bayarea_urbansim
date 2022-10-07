@@ -16,17 +16,17 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/main/models-reference/</loc>
+         <lastmod>2022-10-07</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/main/output/</loc>
          <lastmod>2022-10-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/main/pba50/</loc>
-         <lastmod>2022-10-07</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>http://bayareametro.github.io/bayarea_urbansim/main/submodels-reference/</loc>
          <lastmod>2022-10-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
