@@ -474,6 +474,19 @@
     models
   </a>
   
+    <nav class="md-nav" aria-label="models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#baus.models.elcm_simulate" class="md-nav__link">
+    elcm_simulate()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -521,6 +534,19 @@
   <a href="#baus.models" class="md-nav__link">
     models
   </a>
+  
+    <nav class="md-nav" aria-label="models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#baus.models.elcm_simulate" class="md-nav__link">
+    elcm_simulate()
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -572,6 +598,47 @@
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 class="doc doc-heading" id="baus.models.elcm_simulate">
+<code class="highlight language-python"><span class="n">elcm_simulate</span><span class="p">(</span><span class="n">jobs</span><span class="p">,</span> <span class="n">buildings</span><span class="p">,</span> <span class="n">aggregations</span><span class="p">,</span> <span class="n">elcm_config</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>testing docstring</p>
+
+      <details class="quote">
+        <summary>Source code in <code>baus\models.py</code></summary>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@orca</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">elcm_simulate</span><span class="p">(</span><span class="n">jobs</span><span class="p">,</span> <span class="n">buildings</span><span class="p">,</span> <span class="n">aggregations</span><span class="p">,</span> <span class="n">elcm_config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    testing docstring</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">buildings</span><span class="o">.</span><span class="n">local</span><span class="p">[</span><span class="s2">&quot;non_residential_rent&quot;</span><span class="p">]</span> <span class="o">=</span> \
+        <span class="n">buildings</span><span class="o">.</span><span class="n">local</span><span class="o">.</span><span class="n">non_residential_rent</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">lcm_simulate</span><span class="p">(</span><span class="n">elcm_config</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">buildings</span><span class="p">,</span> <span class="n">aggregations</span><span class="p">,</span>
+                              <span class="s2">&quot;building_id&quot;</span><span class="p">,</span> <span class="s2">&quot;job_spaces&quot;</span><span class="p">,</span>
+                              <span class="s2">&quot;vacant_job_spaces&quot;</span><span class="p">,</span> <span class="n">cast</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+      </details>
+  </div>
+
+</div>
 
 
 
