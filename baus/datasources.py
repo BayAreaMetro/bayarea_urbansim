@@ -313,6 +313,49 @@ def inclusionary_zoning():
 
 
 @orca.table(cache=True)
+def housing_bonds():
+    try:
+      df = pd.read_csv("../inputs/policy/housing_bonds.csv")
+      orca.add_injectable("housing_bonds_on", True)
+    except Exception as e:
+      orca.add_injectable("housing_bonds_on", False)
+      return
+    return df
+
+@orca.table(cache=True)
+def office_bonds():
+    try:
+      df = pd.read_csv("../inputs/policy/vmt_fees.csv")
+      orca.add_injectable("office_bonds_on", True)
+    except Exception as e:
+      orca.add_injectable("office_bonds_on", False)
+      return
+    return df
+
+
+@orca.table(cache=True)
+def vmt_fees():
+    try:
+      df = pd.read_csv("../inputs/policy/vmt_fees.csv")
+      orca.add_injectable("vmt_fees_on", True)
+    except Exception as e:
+      orca.add_injectable("vmt_fees_on", False)
+      return
+    return df
+
+
+@orca.table(cache=True)
+def vmt_fee_categories():
+    try:
+      df = pd.read_csv("../inputs/policy/vmt_fee_zonecats.csv")
+    except Exception as e:
+      return
+    return df
+
+
+
+
+@orca.table(cache=True)
 def telework(): 
 	df = pd.read_csv(os.path.join(misc.data_dir(), "superdistricts.csv"), index_col="number")
 	return df
@@ -348,31 +391,10 @@ def zoning_scenario(parcels_geography, mapping):
                     on=join_col,
                     how='left').set_index('parcel_id')
 
-# this is the set of categories by zone of sending and receiving zones
-# in terms of vmt fees
-@orca.table(cache=True)
-def vmt_fee_categories():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "vmt_fee_zonecats.csv"),
-        dtype={'taz': np.int64},
-        index_col="taz")
-
 @orca.table(cache=True)
 def jobs_housing_fees():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "jobs_housing_fees.csv"))
-
-@orca.table(cache=True)
-def household_controls_unstacked():
-    df = pd.read_csv(os.path.join(misc.data_dir(), year))
-    orca.add_injectable("household_control_file", fname)
-    return pd.read_csv(os.path.join(misc.data_dir(), fname),
-                       index_col='year')
-
-@orca.table(cache=True)
-def vmt_fees():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "vmt_fees.csv"))
 
 @orca.table(cache=True)
 def slr_parcel_inundation_mitigation():
@@ -384,6 +406,8 @@ def slr_parcel_inundation_mitigation():
 @orca.injectable(cache=True)
 def obag_policy()
     return os.path.join(misc.data_dir(), "obag.csv")
+
+
 
 
 ### ZONAL FORECAST FILES ###
@@ -554,6 +578,13 @@ def employment_controls(employment_controls_unstacked):
     # rename to match legacy table
     df.columns = ['empsix_id', 'number_of_jobs']
     return df
+
+@orca.table(cache=True)
+def household_controls_unstacked():
+    df = pd.read_csv(os.path.join(misc.data_dir(), year))
+    orca.add_injectable("household_control_file", fname)
+    return pd.read_csv(os.path.join(misc.data_dir(), fname),
+                       index_col='year')
 
 
 

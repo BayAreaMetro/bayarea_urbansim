@@ -208,47 +208,43 @@ def run_models(MODE):
 			        # development pipeline
 			        "scheduled_development_events",
 
+
                     # if configured in the inputs: preserve units
                     if orca.get_injectable("preservation_policy_on"):
-                        "preserve_affordable",    
-			        # count the money available for subsidized residential development
-			        "lump_sum_accounts",
-			        "subsidized_residential_developer_lump_sum_accts",
-			        # count the money available for subsidized commercial development
-			        "office_lump_sum_accounts",
-			        "subsidized_office_developer_lump_sum_accts",
-                    # count the money in the fee accounts
-                    "calculate_vmt_fees",
-                    "calculate_jobs_housing_fees",
+                        "preserve_affordable",
 
 
-			        # run feasibility - why?
-			        # "alt_feasibility"
-
-                    # if configured in the inputs: 
-                    # run the policy models that modify feasibility
-                    if orca_injectable("ceqa_reform_on"):
+                    # if configured in the inputs: run the policy models that modify feasibility
+                    if orca.get_injectable("ceqa_reform_on"):
                         "policy_modifications_of_profit_ceq_reform"
-                    if orca_injectable("parking_requirements_on"):
+                    if orca.get_injectable("parking_requirements_on"):
                         "policy_modifications_of_profit_parking_requirements"
-                    if orca_injectable("land_value_tax_on"):
+                    if orca.get_injectable("land_value_tax_on"):
                         "policy_modifications_of_profit_land_value_tax"
-                    if orca_injectable("land_value_tax_on"):
+                    if orca.get_injectable("sb743_on"):
                         "policy_modifications_of_profit_sb743"
-                    # ONLY 1/2 of IZ
-                    if orca_injectable("inclsuionary_zoning_on"):
+                    # and create deed restricted units?
+                    if orca.get_injectable("inclsuionary_zoning_on"):
                         "policy_modifications_of_profit_inclusionary_zoning"
 
-                    # run subsidized residential developer feasibility
-			        "subsidized_residential_feasibility",
-
-                    "subsidized_residential_developer_vmt",
-
-					"subsidized_residential_feasibility",
-			        "subsidized_residential_developer_jobs_housing",
-                    "subsidized_office_developer_vmt",
-
-
+                    # if configured in the inputs: run the policy models that subsidize development from bonds
+                    if orca.get_injectable("housing_bonds_on"):
+    			        "lump_sum_accounts_housing_bonds",
+                        "subsidized_residential_feasibility",
+    			        "subsidized_residential_developer_lump_sum_accts",
+                    if orca.get_injectable("office_bonds_on"):
+    			        "lump_sum_accounts_office_bonds",
+                        "subsidized_office_feasibility",
+    			        "subsidized_office_developer_lump_sum_accts",
+                    # if configured in the inputs: run the policy models that subsidize development from fees
+                    if orca.get_injectable("vmt_fees_on"):
+                        "calculate_vmt_fees",
+                        "subsidized_office_developer_vmt",
+                        "subsidized_residential_developer_vmt",
+                    if orca.get_injectable("jobs_housing_fees_on"):
+                        "calculate_jobs_housing_fees",
+                        "subsidized_residential_developer_jobs_housing",
+                        
 
 			        # run the core developer models for buildings
 			        "residential_developer",

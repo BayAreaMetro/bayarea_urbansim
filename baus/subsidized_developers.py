@@ -13,109 +13,15 @@ from baus.utils import add_buildings
 from urbansim.developer import sqftproforma
 
 
-#@orca.step()
-def subsidized_office_developer(feasibility, coffer, formula, year,
-                                add_extra_columns_func, buildings,
-                                summary, coffer_acct_name):
 
-    # get the total subsidy for subsidizing office
-    total_subsidy = coffer[coffer_acct_name].\
-        total_transactions_by_subacct("regional")
-
-    # get the office feasibility frame and sort by profit per sqft
-    
-    feasibility = feasibility.loc[:, "office"]
-
-    feasibility = feasibility.dropna(subset=["max_profit"])
-
-    feasibility["pda_id"] = feasibility.pda_pba40
-
-    # filter to receiving zone
-    feasibility = feasibility.query(formula)
-
-    feasibility["non_residential_sqft"] = \
-        feasibility.non_residential_sqft.astype("int")
-
-    feasibility["max_profit_per_sqft"] = feasibility.max_profit / \
-        feasibility.non_residential_sqft
-
-    # sorting by our choice metric as we're going to pick our devs
-    # in order off the top
-    feasibility = feasibility.sort_values(['max_profit_per_sqft'])
-
-    # make parcel_id available
-    feasibility = feasibility.reset_index()
-
-    print("%.0f subsidy with %d developments to choose from" % (
-        total_subsidy, len(feasibility)))
-
-    devs = []
-
-    for dev_id, d in feasibility.iterrows():
-
-        # the logic here is that we allow each dev to have a "normal"
-        # profit per square foot and once it does we guarantee that it
-        # gets build - we assume the planning commission for each city
-        # enables this to happen.  If a project gets enough profit already
-        # we just allow it to compete on the open market - e.g. in the
-        # non-subsidized office developer
-
-        NORMAL_PROFIT_PER_SQFT = 70  # assume price is around $700/sqft
-
-        if d.max_profit_per_sqft >= NORMAL_PROFIT_PER_SQFT:
-            #  competes in open market
-            continue
-        else:
-            amt = (NORMAL_PROFIT_PER_SQFT - d.max_profit_per_sqft) * \
-                d.non_residential_sqft
-
-            if amt > total_subsidy:
-                # we don't have enough money to buy yet
-                continue
-
-        metadata = {
-            "description": "Developing subsidized office building",
-            "year": year,
-            "non_residential_sqft": d["non_residential_sqft"],
-            "juris": d["juris"],
-            "tra_id": d["tra_id"],
-            "parcel_id": d["parcel_id"],
-            "index": dev_id
-        }
-
-        coffer[coffer_acct_name].add_transaction(-1*amt, subaccount="regional",
-                                                 metadata=metadata)
-
-        total_subsidy -= amt
-
-        devs.append(d)
-
-    if len(devs) == 0:
-        return
-
-    # record keeping - add extra columns to match building dataframe
-    # add the buidings and demolish old buildings, and add to debug output
-    devs = pd.DataFrame(devs, columns=feasibility.columns)
-
-    print("Building {:,} subsidized office sqft in {:,} projects".format(
-        devs.non_residential_sqft.sum(), len(devs)))
-    print("%.0f subsidy left" %total_subsidy)
-
-    devs["form"] = "office"
-    devs = add_extra_columns_func(devs)
-
-    add_buildings(buildings, devs)
-
-    summary.add_parcel_output(devs)
-
-
-def run_subsidized_developer(feasibility, parcels, buildings, households,
-                             acct_settings, settings, account, year,
-                             form_to_btype_func, add_extra_columns_func,
-                             summary, create_deed_restricted=False,
+def subsidized_residentail_developer(feasibility, parcels, buildings, households, acct_settings, account, year,
+                             form_to_btype_func, add_extra_columns_func, summary, create_deed_restricted=False,
                              policy_name="Unnamed"):
     """
-    The subsidized residential developer model.
+    The subsidized residential developer model. It is designed to run before the normal
+    residential developer - it will prioritize the developments we're subsidizing (although this is not strictly required - 
+    running this model after the market rate developer will just create a temporarily larger supply of units, which will probably 
+    create less market rate development in the next simulated year).
 
     Parameters
     ----------
@@ -153,41 +59,17 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
     -------
     Nothing
 
-    Subsidized residential developer is designed to run before the normal
-    residential developer - it will prioritize the developments we're
-    subsidizing (although this is not strictly required - running this model
-    after the market rate developer will just create a temporarily larger
-    supply of units, which will probably create less market rate development in
-    the next simulated year)
-    the steps for subsidizing are essentially these
-
-    1 run feasibility with only_built set to false so that the feasibility of
-        unprofitable units are recorded
-    2 temporarily filter to ONLY unprofitable units to check for possible
-        subsidized units (normal developer takes care of market-rate units)
-    3 compute the number of units in these developments
-    4 divide cost by number of units in order to get the subsidy per unit
-    5 filter developments to parcels in "receiving zone" similar to the way we
-        identified "sending zones"
-    6 iterate through subaccounts one at a time as subsidy will be limited
-        to available funds in the subaccount (usually by jurisdiction)
-    7 sort ascending by subsidy per unit so that we minimize subsidy (but total
-        subsidy is equivalent to total building cost)
-    8 cumsum the total subsidy in the buildings and locate the development
-        where the subsidy is less than or equal to the amount in the account -
-        filter to only those buildings (these will likely be built)
-    9 pass the results as "feasible" to run_developer - this is sort of a
-        boundary case of developer but should run OK
-    10 for those developments that get built, make sure to subtract from
-        account and keep a record (on the off chance that demand is less than
-        the subsidized units, run through the standard code path, although it's
-        very unlikely that there would be more subsidized housing than demand)
     """
-    # step 2
+
+    # step 1 - run feasibility with only_built set to false so that the feasibility of
+    # unprofitable units are recorded
+    
+    # step 2 - temporarily filter to only unprofitable units to check for possible
+    # subsidized units (normal developer takes care of market-rate units)
     feasibility = feasibility.replace([np.inf, -np.inf], np.nan)
     feasibility = feasibility[feasibility.max_profit < 0]
 
-    # step 3
+    # step 3- compute the number of units in these developments
     feasibility['ave_sqft_per_unit'] = parcels.ave_sqft_per_unit
     feasibility['residential_units'] = \
         np.floor(feasibility.residential_sqft / feasibility.ave_sqft_per_unit)
@@ -198,32 +80,29 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
     feasibility = feasibility[
         feasibility.residential_units > feasibility.total_residential_units]
 
-    # step 3C
-    # towards the end, because we're about to sort by subsidy per unit, some
-    # large projects never get built, because it could be a 100 unit project
-    # times a 500k subsidy per unit.  thus we're going to try filtering by
-    # the maximum subsidy for a single development here
+    # step 3C - because we're about to sort by subsidy per unit, some
+    # large projects never get built due to the cost, so we're going to try filtering by
+    # the maximum subsidy for a single development
     feasibility = feasibility[feasibility.max_profit > -50*1000000]
 
-    # step 4
+    # step 4 - divide cost by number of units in order to get the subsidy per unit
     feasibility['subsidy_per_unit'] = \
         -1 * feasibility['max_profit'] / feasibility['residential_units']
-    # assumption that even if the developer says this property is almost
-    # profitable, even the administration costs are likely to cost at least
-    # 10k / unit
+    # assumes that even if the developer says a property is almost
+    # profitable, the administration costs are likely to cost at least 10k / unit
     feasibility['subsidy_per_unit'] = feasibility.subsidy_per_unit.clip(10000)
     
     feasibility["pda_id"] = feasibility.pda_pba40
    
-    # step 5
-    feasibility = feasibility.\
-            query(acct_settings["alternate_buildings_filter"])
+    # step 5 - filter developments to parcels in "receiving zone" similar to the way we identified "sending zones"
+    feasibility = feasibility.query(acct_settings["alternate_buildings_filter"])
 
     new_buildings_list = []
     sending_bldgs = acct_settings["sending_buildings_subaccount_def"]
     feasibility["regional"] = 1
     feasibility["subaccount"] = feasibility.eval(sending_bldgs)
-    # step 6
+
+    # step 6 - iterate through subaccounts one at a time as subsidy will be limited to available funds in the subaccount
     for subacct, amount in account.iter_subaccounts():
         print("Subaccount: ", subacct)
 
@@ -233,12 +112,11 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
         if len(df) == 0:
             continue
 
-        # step 7
+        # step 7 - sort ascending by subsidy per unit so that we minimize subsidy (total subsidy is equivalent to total building cost)
         df = df.sort_values(['subsidy_per_unit'], ascending=True)
-        # df.to_csv('subsidized_units_%d_%s_%s.csv' %
-        #           (orca.get_injectable("year"), account.name, subacct))
 
-        # step 8
+        # step 8 - sum the total subsidy in the buildings and locate the development
+        # where the subsidy is less than or equal to the amount in the account, filter to only those buildings
         print("Amount in subaccount: ${:,.2f}".format(amount))
         num_bldgs = int((-1*df.max_profit).cumsum().searchsorted(amount))
 
@@ -246,8 +124,8 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
             continue
 
         # technically we only build these buildings if there's demand
-        # print "Building {:d} subsidized buildings".format(num_bldgs)
         df = df.iloc[:int(num_bldgs)]
+        print("Building {:d} subsidized buildings".format(num_bldgs))
 
         df.columns = pd.MultiIndex.from_tuples(
             [("residential", col) for col in df.columns])
@@ -255,7 +133,8 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
         sys.stdout, old_stdout = StringIO(), sys.stdout
 
         kwargs = settings['residential_developer']
-        # step 9
+        # step 9 - pass the results as "feasible" to run_developer - this is sort of a
+        # boundary case of developer but should run okay
         new_buildings = utils.run_developer(
             "residential",
             households,
@@ -280,7 +159,8 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
         # for a partial unit, even if it's not built in this specific building
         partial_subsidized_units = 0
 
-        # step 10
+        # step 10 - for the developments that get built, make sure to subtract from the account and keep a record
+        # on the off chance that demand is less than the subsidized units, run through the standard code path
         for index, new_building in new_buildings.iterrows():
 
             amt = new_building.max_profit
@@ -294,43 +174,32 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
 
             if create_deed_restricted:
 
-                revenue_per_unit = new_building.building_revenue / \
-                    new_building.residential_units
+                revenue_per_unit = new_building.building_revenue / new_building.residential_units
                 total_subsidy = abs(new_building.max_profit)
-                subsidized_units = total_subsidy / revenue_per_unit + \
-                    partial_subsidized_units
+                subsidized_units = total_subsidy / revenue_per_unit + partial_subsidized_units
                 # right now there are inclusionary requirements
                 already_subsidized_units = new_building.deed_restricted_units
 
                 # get remainder
                 partial_subsidized_units = subsidized_units % 1
                 # round off for now
-                subsidized_units = int(subsidized_units) + \
-                    already_subsidized_units
+                subsidized_units = int(subsidized_units) + already_subsidized_units
                 # cap at number of residential units
-                subsidized_units = min(subsidized_units,
-                                       new_building.residential_units)
+                subsidized_units = min(subsidized_units, new_building.residential_units)
 
-                buildings.local.loc[index, "deed_restricted_units"] =\
-                    int(round(subsidized_units))
+                buildings.local.loc[index, "deed_restricted_units"] = int(round(subsidized_units))
 
-                buildings.local.loc[index, "subsidized_units"] = \
-                    buildings.local.loc[index, "deed_restricted_units"] - \
+                buildings.local.loc[index, "subsidized_units"] = buildings.local.loc[index, "deed_restricted_units"] - \
                     buildings.local.loc[index, "inclusionary_units"]
 
                 # also correct the debug output
-                new_buildings.loc[index, "deed_restricted_units"] = \
-                    int(round(subsidized_units))
-                new_buildings.loc[index, "subsidized_units"] = \
-                    new_buildings.loc[index, "deed_restricted_units"] - \
+                new_buildings.loc[index, "deed_restricted_units"] = int(round(subsidized_units))
+                new_buildings.loc[index, "subsidized_units"] = new_buildings.loc[index, "deed_restricted_units"] - \
                     new_buildings.loc[index, "inclusionary_units"]
 
-            metadata['deed_restricted_units'] = \
-                new_buildings.loc[index, 'deed_restricted_units']
-            metadata['subsidized_units'] = \
-                new_buildings.loc[index, 'subsidized_units']
-            account.add_transaction(amt, subaccount=subacct,
-                                    metadata=metadata)
+            metadata['deed_restricted_units'] = new_buildings.loc[index, 'deed_restricted_units']
+            metadata['subsidized_units'] = new_buildings.loc[index, 'subsidized_units']
+            account.add_transaction(amt, subaccount=subacct, metadata=metadata)
 
         # turn off this assertion for the Draft Blueprint
         # affordable housing policy since the number of deed restricted units
@@ -362,10 +231,8 @@ def run_subsidized_developer(feasibility, parcels, buildings, households,
 
 
 @orca.step()
-def subsidized_residential_feasibility(
-        parcels, model_settings,
-        add_extra_columns_func, parcel_sales_price_sqft_func,
-        parcel_is_allowed_func, parcels_geography):
+def subsidized_residential_feasibility(parcels, model_settings, add_extra_columns_func, parcel_sales_price_sqft_func,
+                                       parcel_is_allowed_func, parcels_geography):
 
     kwargs = settings['feasibility'].copy()
     kwargs["only_built"] = False
@@ -389,7 +256,7 @@ def subsidized_residential_feasibility(
     feasibility = feasibility.join(parcels_geography.to_frame(),
                                    rsuffix='_y')
 
-    # add the multiindex back
+    # add the multi-index back
     feasibility.columns = pd.MultiIndex.from_tuples(
             [("residential", col) for col in feasibility.columns])
 
@@ -400,59 +267,102 @@ def subsidized_residential_feasibility(
     df = df.stack(level=0).reset_index(level=1, drop=True)
 
 
+def subsidized_office_developer(feasibility, coffer, formula, year, add_extra_columns_func, buildings,
+                                summary, coffer_acct_name):
+
+    # get the total subsidy for subsidizing office
+    total_subsidy = coffer[coffer_acct_name].total_transactions_by_subacct("regional")
+    
+    # get the office feasibility frame and sort by profit per sqft
+    feasibility = feasibility.loc[:, "office"]
+    feasibility = feasibility.dropna(subset=["max_profit"])
+
+    # filter to receiving zone
+    feasibility = feasibility.query(formula)
+    feasibility["non_residential_sqft"] = feasibility.non_residential_sqft.astype("int")
+    feasibility["max_profit_per_sqft"] = feasibility.max_profit / feasibility.non_residential_sqft
+
+    # sort to most profitable projects
+    feasibility = feasibility.sort_values(['max_profit_per_sqft'])
+    # make parcel_id available
+    feasibility = feasibility.reset_index()
+
+    print("%.0f subsidy with %d developments to choose from" % (
+        total_subsidy, len(feasibility)))
+
+    devs = []
+
+    for dev_id, d in feasibility.iterrows():
+
+        # allow each dev to have a "normal" profit per square foot and once it does guarantee that it
+        # gets built- if a project gets enough profit already we just allow it to compete on the open market
+
+        # assume price is around $700/sqft
+        NORMAL_PROFIT_PER_SQFT = 700  
+
+        if d.max_profit_per_sqft >= NORMAL_PROFIT_PER_SQFT:
+            #  competes in open market
+            continue
+        else:
+            amt = (NORMAL_PROFIT_PER_SQFT - d.max_profit_per_sqft) * d.non_residential_sqft
+
+            if amt > total_subsidy:
+                # we don't have enough money for the project yet
+                continue
+
+        metadata = {"description": "Developing subsidized office building",
+                    "year": year,
+                    "non_residential_sqft": d["non_residential_sqft"],
+                    "juris": d["juris"],
+                    "parcel_id": d["parcel_id"],
+                    "index": dev_id}
+
+        coffer[coffer_acct_name].add_transaction(-1*amt, subaccount="regional", metadata=metadata)
+        total_subsidy -= amt
+
+        devs.append(d)
+
+    if len(devs) == 0:
+        return
+
+    # add columns to match building dataframe
+    devs = pd.DataFrame(devs, columns=feasibility.columns)
+    devs["form"] = "office"
+    devs = add_extra_columns_func(devs)
+    print("Building {:,} subsidized office sqft in {:,} projects".format(devs.non_residential_sqft.sum(), len(devs)))
+    print("%.0f subsidy left" %total_subsidy)
+    # add the buidings and demolish old buildings, and 
+    add_buildings(buildings, devs)
+    # add to debug output
+    summary.add_parcel_output(devs)
+
+
 @orca.step()
-def subsidized_residential_developer_vmt(
-        households, buildings, add_extra_columns_func,
-        parcels_geography, year, acct_settings, parcels,
-        settings, summary, coffer, form_to_btype_func, feasibility):
+def subsidized_residential_developer_vmt(households, buildings, add_extra_columns_func, parcels_geography, 
+                                         year, acct_settings, parcels, summary, coffer, form_to_btype_func, feasibility):
 
     feasibility = feasibility.to_frame()
     feasibility = feasibility.stack(level=0).reset_index(level=1, drop=True)
 
-    run_subsidized_developer(feasibility,
-                             parcels,
-                             buildings,
-                             households,
-                             acct_settings["vmt_settings"],
-                             settings,
-                             coffer["vmt_res_acct"],
-                             year,
-                             form_to_btype_func,
-                             add_extra_columns_func,
-                             summary,
-                             create_deed_restricted=True,
-                             policy_name="VMT")
+    subsidized_residential_develope(feasibility, parcels, buildings, households, acct_settings["vmt_settings"],
+                                    settings, coffer["vmt_res_acct"], year, form_to_btype_func, add_extra_columns_func,
+                                    summary, create_deed_restricted=True, policy_name="VMT")
 
 
 @orca.step()
-def subsidized_residential_developer_jobs_housing(
-        households, buildings, add_extra_columns_func,
-        parcels_geography, year, acct_settings, parcels,
-        policy, summary, coffer, form_to_btype_func, settings):
+def subsidized_residential_developer_jobs_housing(households, buildings, add_extra_columns_func, parcels_geography, year, acct_settings, 
+                                                  parcels, policy, summary, coffer, form_to_btype_func, settings):
 
-    for key, acct in (policy["acct_settings"]
-                      ["jobs_housing_fee_settings"].items()):
+    for i in jobs_housing_fees.to_frame():
 
-        print("Running the subsidized developer for jobs-housing acct: %s"
-              % acct["name"])
+        print("Running the subsidized developer for jobs-housing acct: %s" % acct["name"])
         orca.eval_step("subsidized_residential_feasibility")
         feasibility = orca.get_table("feasibility").to_frame()
-        feasibility = feasibility.stack(level=0).\
-            reset_index(level=1, drop=True)
+        feasibility = feasibility.stack(level=0).reset_index(level=1, drop=True)
 
-        run_subsidized_developer(feasibility,
-                                 parcels,
-                                 buildings,
-                                 households,
-                                 acct,
-                                 settings,
-                                 coffer[acct["name"]],
-                                 year,
-                                 form_to_btype_func,
-                                 add_extra_columns_func,
-                                 summary,
-                                 create_deed_restricted=acct[
-                                    "subsidize_affordable"],
+        subsidized_residential_developer(feasibility, parcels, buildings, households, acct, settings,
+                                 coffer[acct["name"]], year, form_to_btype_func, add_extra_columns_func,
+                                 summary, create_deed_restricted=acct["subsidize_affordable"],
                                  policy_name=acct["name"])
 
         buildings = orca.get_table("buildings")
@@ -462,37 +372,20 @@ def subsidized_residential_developer_jobs_housing(
 
 
 @orca.step()
-def subsidized_residential_developer_lump_sum_accts(
-        households, buildings, add_extra_columns_func,
-        parcels_geography, year, acct_settings, parcels,
-        policy, summary, coffer, form_to_btype_func):
+def subsidized_residential_developer_lump_sum_accts(households, buildings, add_extra_columns_func, parcels_geography, 
+                                                    year, acct_settings, parcels,summary, coffer, form_to_btype_func):
 
-    for key, acct in policy["acct_settings"]["lump_sum_accounts"].items():
+    for i in resential_lump_sum_accounts.to_frame():
 
         print("Running the subsidized developer for acct: %s" % acct["name"])
 
-        # need to rerun the subsidized feasibility every time and get new
-        # results - this is not ideal and is a story to fix in pivotal,
-        # but the only cost is in time - the results should be the same
         orca.eval_step("subsidized_residential_feasibility")
         feasibility = orca.get_table("feasibility").to_frame()
-        feasibility = feasibility.stack(level=0).\
-            reset_index(level=1, drop=True)
+        feasibility = feasibility.stack(level=0).reset_index(level=1, drop=True)
 
-        run_subsidized_developer(feasibility,
-                                 parcels,
-                                 buildings,
-                                 households,
-                                 acct,
-                                 settings,
-                                 coffer[acct["name"]],
-                                 year,
-                                 form_to_btype_func,
-                                 add_extra_columns_func,
-                                 summary,
-                                 create_deed_restricted=acct[
-                                    "subsidize_affordable"],
-                                 policy_name=acct["name"])
+        run_subsidized_developer(feasibility, parcels, buildings, households, acct, settings, coffer[acct["name"]],
+                                 year, form_to_btype_func, add_extra_columns_func, summary,
+                                 create_deed_restricted=acct["subsidize_affordable"], policy_name=acct["name"])
 
         buildings = orca.get_table("buildings")
 
@@ -501,11 +394,10 @@ def subsidized_residential_developer_lump_sum_accts(
 
 
 @orca.step()
-def subsidized_office_developer_vmt(
-    parcels, settings, coffer, buildings, year, policy,
-    add_extra_columns_func, summary):
+def subsidized_office_developer_vmt(parcels, settings, coffer, buildings, year, policy,
+                                    add_extra_columns_func, summary):
 
-    vmt_acct_settings = policy["acct_settings"]["vmt_settings"]
+    for i in vmt_fee_accounts.to_frame():
 
         print("Running subsidized office developer for acct: VMT com_for_com")
 
@@ -513,33 +405,24 @@ def subsidized_office_developer_vmt(
         feasibility = orca.get_table("feasibility").to_frame()
 
         formula = vmt_acct_settings["alternate_buildings_filter"]
-
         print('office receiving_buildings_filter: {}'.format(formula))
 
-        subsidized_office_developer(feasibility,
-                                    coffer,
-                                    formula,
-                                    year,
-                                    add_extra_columns_func,
-                                    buildings,
-                                    summary, 
-                                    coffer_acct_name="vmt_com_acct")
+        subsidized_office_developer(feasibility, coffer, formula, year, add_extra_columns_func, buildings,
+                                    summary, coffer_acct_name="vmt_com_acct")
 
         buildings = orca.get_table("buildings")
 
-        # set to an empty dataframe to save memory
-        # this is ok because baus.py will run alt_reasibility in the next step
+        # set to an empty dataframe to save memory since alt_feasibility will be run again
         orca.add_table("feasibility", pd.DataFrame())
 
 
 @orca.step()
-def subsidized_office_developer_lump_sum_accts(
-    parcels, settings, coffer, buildings, year, policy,
-    add_extra_columns_func, summary):
+def subsidized_office_developer_lump_sum_accts(parcels, coffer, buildings, year, policy,
+                                               add_extra_columns_func, summary):
 
-    for key, acct in policy["acct_settings"]["office_lump_sum_accounts"].items():
+    for i in office_lump_sum_accounts.to_frame()
 
-        print("Running the subsidized office developer for acct: %s" % acct["name"])
+        print("Running the subsidized office developer for acct: %s" % office_lump_sum_accounts.to_frame())
 
         orca.eval_step("alt_feasibility")
         feasibility = orca.get_table("feasibility").to_frame()
@@ -547,16 +430,10 @@ def subsidized_office_developer_lump_sum_accts(
         formula = acct["receiving_buildings_filter"]
         print('office receiving_buildings_filter: {}'.format(formula))
 
-        subsidized_office_developer(feasibility,
-                                    coffer,
-                                    formula,
-                                    year,
-                                    add_extra_columns_func,
-                                    buildings,
-                                    summary, 
-                                    coffer_acct_name=acct["name"])
+        subsidized_office_developer(feasibility, coffer, formula, year, add_extra_columns_func,
+                                    buildings, summary, coffer_acct_name=acct["name"])
 
         buildings = orca.get_table("buildings")
 
-        # set to an empty dataframe to save memory
+        # set to an empty dataframe to save memory since alt_feasibility will be run again
         orca.add_table("feasibility", pd.DataFrame())

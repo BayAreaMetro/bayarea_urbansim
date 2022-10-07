@@ -84,24 +84,6 @@ def nearest_neighbor(df1, df2):
     return df1.index.values[indexes]
 
 
-# need to reindex from geom id to the id used on parcels
-def geom_id_to_parcel_id(df, parcels):
-    s = parcels.geom_id  # get geom_id
-    s = pd.Series(s.index, index=s.values)  # invert series
-    df["new_index"] = s.loc[df.index]  # get right parcel_id for each geom_id
-    df = df.dropna(subset=["new_index"])
-    df["new_index"] = df.new_index.astype('int')
-    df = df.set_index("new_index", drop=True)
-    df.index.name = "parcel_id"
-    return df
-
-
-def parcel_id_to_geom_id(s):
-    parcels = orca.get_table("parcels")
-    g = parcels.geom_id  # get geom_id
-    return pd.Series(g.loc[s.values].values, index=s.index)
-
-
 # This is best described by example. Imagine s is a series where the
 # index is parcel ids and the values are cities, while counts is a
 # series where the index is cities and the values are counts.  You
@@ -578,6 +560,9 @@ def compare_outcome_for(variable, runs, set_geography):
     write_csvs(df2, variable, runs)
 
 
+
+### METRICS UTILS ###
+
 def subtract_base_year_urban_footprint(run_number):
     base_year_filename = \
         'runs/run{}_urban_footprint_summary_summaries_{}.csv'.\
@@ -591,3 +576,27 @@ def subtract_base_year_urban_footprint(run_number):
     sdf.to_csv(
         'runs/run{}_urban_footprint_subtracted_summaries_{}.csv'
         .format(run_number, 2040))
+
+
+
+### DEVELOPER UTILS ###    
+
+# this method is a custom profit to probability function where we test the
+# combination of different metrics like return on cost and raw profit
+def profit_to_prob_func(df):
+    # the clip is because we still might build negative profit buildings
+    # (when we're subsidizing them) and choice doesn't allow negative
+    # probability options
+    max_profit = df.max_profit.clip(1)
+
+    factor = float(orca.get_injectable("settings")[
+        "profit_vs_return_on_cost_combination_factor"])
+
+    df['return_on_cost'] = max_profit / df.total_cost
+
+    # now we're going to make two pdfs and weight them
+    ROC_p = df.return_on_cost.values / df.return_on_cost.sum()
+    profit_p = max_profit / max_profit.sum()
+    p = 1.0 * ROC_p + factor * profit_p
+
+    return p / p.sum()
