@@ -14,6 +14,7 @@ A legacy version of the documentation is saved in the [`legacy_gh_pages`](https:
 
 mkdocs: `pip install mkdocs`
 mike: `pip install mike`, `pip install mkdocs-autorefs`
+docstring support: `pip install mkdocstrings[python]`
 
 #### Create and update documentation for a non-documentation branch
 
