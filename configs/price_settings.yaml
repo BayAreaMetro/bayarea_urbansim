@@ -1,3 +1,20 @@
+# where to get the accessibliity networks
+build_networks:
+  walk:
+      name: 2015_06_01_osm_bayarea4326.h5
+      max_distance: 3000
+  drive:
+      name: 2015_08_03_tmnet.h5
+      max_distance: 45
+      weight_col: "CTIMEA"
+
+# these are the tables that get auto-merged to buildings/parcels in the hedonic and lcms
+aggregation_tables:
+  - nodes
+  - tmnodes
+  - logsums
+  - buildings
+
 # clip the prices that come out of the sales hedonic
 rsh_simulate:
   low: 200

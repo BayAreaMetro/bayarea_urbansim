@@ -12,8 +12,11 @@ from baus.utils import add_buildings
 @orca.injectable(cache=True)
 def coffer():
 
-    d = {"vmt_res_acct":  accounts.Account("vmt_res_acct"), 
+	d = {"vmt_res_acct":  accounts.Account("vmt_res_acct"), 
          "vmt_com_acct":  accounts.Account("vmt_com_acct")}
+
+	for i in housing_bonds.to_frame()
+		d[housing_bonds[i].name] = accounts.Account(housing_bonds[i].name)
 
     return d
 
@@ -79,7 +82,7 @@ def calculate_vmt_fees(vmt_fees, year, buildings, vmt_fee_categories, coffer, su
     print("Adding total vmt fees for com amount of $%.2f" % total_fees)
     metadata = {"description": "VMT development fees", "year": year}
     # add the total fees collected to the coffer for commercial development
-    coffer["vmt_com_acct"].add_transaction(total_fees, subaccount="regional", metadata=metadata)
+    coffer["vmt_com_acct"].add_transaction(total_fees, subaccount=1 metadata=metadata)
 
 
 @orca.step()
@@ -107,4 +110,4 @@ def calculate_jobs_housing_fees(jobs_housing_fees, year, buildings, coffer, summ
         metadata = {"description": "%s subsidies from jobs-housing development fees" % jobs_housing_fees[i].acct,"year": year}
 
         # add to the subaccount in coffer
-        coffer[acct["name"]].add_transaction(total_fees, jobs_housing_fees[i].name, metadata=metadata)
+        coffer[acct["vmt_com_acct"].add_transaction(total_fees, subaccount=1, metadata=metadata)

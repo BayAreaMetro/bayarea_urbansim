@@ -13,26 +13,6 @@ import yaml
 
 
 
-### FILE STORAGE ###
-
-# some info on where to get the accessibliity networks
-build_networks:
-  walk:
-      name: 2015_06_01_osm_bayarea4326.h5
-      max_distance: 3000
-  drive:
-      name: 2015_08_03_tmnet.h5
-      max_distance: 45
-      weight_col: "CTIMEA"
-
-# these are the tables that get auto-merged to buildings/parcels in the hedonic and lcms
-aggregation_tables:
-  - nodes
-  - tmnodes
-  - logsums
-  - buildings
-
-
 ### MISC INJECTABLES ###
 
 @orca.injectable('mapping', cache=True)
@@ -69,7 +49,6 @@ def store(settings):
 @orca.injectable(cache=True)
 def building_sqft_per_job(settings):
     return settings['building_sqft_per_job']
-
 
 
 ### CONFIG FILES ###
@@ -123,7 +102,6 @@ def rrh_config():
 @orca.injectable(cache=True)
 def nrh_config():
     return pd.read_csv(os.path.join(misc.data_dir()))
-
 
 
 ### BASIS INPUTS ###
@@ -191,18 +169,8 @@ def landmarks():
     return pd.read_csv(os.path.join(misc.data_dir(), 'landmarks.csv'),
                        index_col="name")
 
-# CROSSWALKS
 
-# census tracts for parcels, to assign earthquake probabilities
-@orca.table(cache=True)
-def parcels_tract():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "parcel_tract_xwalk.csv"),
-        dtype={'parcel_id': np.int64,
-               'zone_id':   np.int64},
-        index_col='parcel_id')
-
-# BASE YEAR ZONING
+# BASE YEAR ZONING #
 
 @orca.table(cache=True)
 def zoning_lookup():
@@ -227,7 +195,7 @@ def zoning_baseline(parcels, zoning_lookup, settings):
 
     return df
 
-# BASE YEAR HAZARDS
+# BASE YEAR HAZARDS #
 
 @orca.table(cache=True)
 def slr_parcel_inundation():
@@ -247,14 +215,23 @@ def tracts_earthquake():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "tract_damage_earthquake.csv"))
 
+# census tract-parcela xwalk
+@orca.table(cache=True)
+def parcels_tract():
+    return pd.read_csv(
+        os.path.join(misc.data_dir(), "parcel_tract_xwalk.csv"),
+        dtype={'parcel_id': np.int64,
+               'zone_id':   np.int64},
+        index_col='parcel_id')
 
 
-### FORECAST POLICY INPUT FILES ###
+
+### PLAN POLICY INPUT FILES ###
 
 @orca.table(cache=True)
 def preservation():
     try:
-      df = pd.read_csv("../inputs/policy/preservation.csv")
+      df = pd.read_csv("../inputs/plamn_policy/preservation.csv")
       orca.add_injectable("preservation_on", True)
     except Exception as e:
       orca.add_injectable("preservation_on", False)
@@ -264,7 +241,7 @@ def preservation():
 @orca.table(cache=True)
 def ceqa_reform():
     try:
-      df = pd.read_csv("../inputs/policy/ceqa_reform.csv")
+      df = pd.read_csv("../inputs/plan_policy/ceqa_reform.csv")
       orca.add_injectable("ceqa_reform_on", True)
     except Exception as e:
       orca.add_injectable("ceqa_reform_on", False)
@@ -274,7 +251,7 @@ def ceqa_reform():
 @orca.table(cache=True)
 def parkings_reqs():
     try:
-      df = pd.read_csv("../inputs/policy/parking_requirements.csv")
+      df = pd.read_csv("../inputs/plan_policy/parking_requirements.csv")
       orca.add_injectable("parking_requirements_on", True)
     except Exception as e:
       orca.add_injectable("parking_requirements_on", False)
@@ -284,7 +261,7 @@ def parkings_reqs():
 @orca.table(cache=True)
 def land_value_tax():
     try:
-      df = pd.read_csv("../inputs/policy/land_value_tax_settings.csv")
+      df = pd.read_csv("../inputs/plan_policy/land_value_tax_settings.csv")
       orca.add_injectable("land_value_tax_on", True)
     except Exception as e:
       orca.add_injectable("land_value_tax_on", False)
@@ -294,7 +271,7 @@ def land_value_tax():
 @orca.table(cache=True)
 def sb743():
     try:
-      df = pd.read_csv("../inputs/policy/sb743_settings.csv")
+      df = pd.read_csv("../inputs/plan_policy/sb743_settings.csv")
       orca.add_injectable("sb743_on", True)
     except Exception as e:
       orca.add_injectable("sb743_on", False)
@@ -304,18 +281,17 @@ def sb743():
 @orca.injectable(cache=True)
 def inclusionary_zoning():
     try:
-      df = pd.read_csv("../inputs/policy/inclusionary_zoning.csv")
+      df = pd.read_csv("../inputs/plan_policy/inclusionary_zoning.csv")
       orca.add_injectable("inclusionary_zoning_on", True)
     except Exception as e:
       orca.add_injectable("inclusionary_zoning_on", False)
       return
     return df
 
-
 @orca.table(cache=True)
 def housing_bonds():
     try:
-      df = pd.read_csv("../inputs/policy/housing_bonds.csv")
+      df = pd.read_csv("../inputs/plan_policy/housing_bonds.csv")
       orca.add_injectable("housing_bonds_on", True)
     except Exception as e:
       orca.add_injectable("housing_bonds_on", False)
@@ -325,29 +301,27 @@ def housing_bonds():
 @orca.table(cache=True)
 def office_bonds():
     try:
-      df = pd.read_csv("../inputs/policy/vmt_fees.csv")
+      df = pd.read_csv("../inputs/plan_policy/vmt_fees.csv")
       orca.add_injectable("office_bonds_on", True)
     except Exception as e:
       orca.add_injectable("office_bonds_on", False)
       return
     return df
 
-
 @orca.table(cache=True)
 def vmt_fees():
     try:
-      df = pd.read_csv("../inputs/policy/vmt_fees.csv")
+      df = pd.read_csv("../inputs/_plan_policy/vmt_fees.csv")
       orca.add_injectable("vmt_fees_on", True)
     except Exception as e:
       orca.add_injectable("vmt_fees_on", False)
       return
     return df
 
-
 @orca.table(cache=True)
 def vmt_fee_categories():
     try:
-      df = pd.read_csv("../inputs/policy/vmt_fee_zonecats.csv")
+      df = pd.read_csv("../inputs/plan_policy/vmt_fee_zonecats.csv")
     except Exception as e:
       return
     return df

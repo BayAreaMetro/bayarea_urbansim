@@ -208,13 +208,11 @@ def run_models(MODE):
 			        # development pipeline
 			        "scheduled_development_events",
 
-
-                    # if configured in the inputs: preserve units
+                    # if  in the inputs: preserve units
                     if orca.get_injectable("preservation_policy_on"):
                         "preserve_affordable",
 
-
-                    # if configured in the inputs: run the policy models that modify feasibility
+                    # if  in the inputs: run the policy models that modify feasibility
                     if orca.get_injectable("ceqa_reform_on"):
                         "policy_modifications_of_profit_ceq_reform"
                     if orca.get_injectable("parking_requirements_on"):
@@ -227,7 +225,7 @@ def run_models(MODE):
                     if orca.get_injectable("inclsuionary_zoning_on"):
                         "policy_modifications_of_profit_inclusionary_zoning"
 
-                    # if configured in the inputs: run the policy models that subsidize development from bonds
+                    # if in the inputs: run the policy models that subsidize development from bonds
                     if orca.get_injectable("housing_bonds_on"):
     			        "lump_sum_accounts_housing_bonds",
                         "subsidized_residential_feasibility",
@@ -236,7 +234,7 @@ def run_models(MODE):
     			        "lump_sum_accounts_office_bonds",
                         "subsidized_office_feasibility",
     			        "subsidized_office_developer_lump_sum_accts",
-                    # if configured in the inputs: run the policy models that subsidize development from fees
+                    # if in the inputs: run the policy models that subsidize development from fees
                     if orca.get_injectable("vmt_fees_on"):
                         "calculate_vmt_fees",
                         "subsidized_office_developer_vmt",
