@@ -11,43 +11,6 @@ feasibility:
   residential_to_yearly: True
   simple_zoning: True
 
-
-### are there any other limits / adjusters / calibrators like this? where are they?
-
-# this is really because we don't have caps right now for retail
-# we can disallow new retail per city using this list of cities
-eliminate_retail_zoning_from_juris:
-  - 'Sonoma County'
-  - 'Contra Costa County'
-  - 'San Mateo County'
-  - 'Solano County'
-  - 'Napa County'
-  - 'Marin County'
-  - 'Benicia'
-  - 'Brentwood'
-  - 'Antioch'
-  - 'Atherton'
-  - 'Fairfax'
-  - 'Hillsborough'
-  - 'Belvedere'
-  - 'Yountville'
-  - 'Woodside'
-  - 'Monte Sereno'
-  - 'Los Altos Hills'
-  - 'Half Moon Bay'
-  - 'Larkspur'
-  - 'Portola Valley'
-  - 'Saratoga'
-  - 'Cloverdale'
-  - 'Livermore'
-  - 'Los Gatos'
-  - 'Tiburon'
-  - 'Piedmont'
-  - 'Ross'
-  - 'Atherton'
-  - 'Belmont'
-  - 'Clayton'
-
 # settings that get passed to the residential developer as kwargs
 residential_developer:
   target_vacancy: .03

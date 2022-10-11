@@ -44,7 +44,7 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     if len(dps) == 0:
         return
 
-    new_buildings = utils.scheduled_development_events(buildings, dps, remove_developed_buildings=False,
+    new_buildings = utils.scheduled_development_events(buildings, dps, remove_developed_buildings=False, 
                                                        unplace_agents=['households', 'jobs'])
     new_buildings["form"] = new_buildings.building_type.map(mapping['building_type_map']).str.lower()
     new_buildings["job_spaces"] = new_buildings.non_residential_sqft / new_buildings.building_type.fillna("OF").map(building_sqft_per_job)
@@ -75,19 +75,13 @@ def residential_developer(feasibility, households, buildings, parcels, year, set
     if typ in limits_settings:
 
         geog = parcels_geography.geog.reindex(parcels.index).fillna('Other')
-
         geog_list = limits_settings[typ].keys()
+
         for juris, limit in limits_settings[typ].items():
 
-            # the actual target is the limit times the number of years run
-            # so far in the simulation (plus this year), minus the amount
-            # built in previous years - in other words, you get rollover
-            # and development is lumpy
-
-            current_total = parcels.total_residential_units[
-                (juris_name == juris) & (parcels.newest_building >= 2010)]\
-                .sum()
-
+            # the target is the limit times the number of years run so far in the simulation (plus this year), minus the amount
+            # built in previous years - in other words, you get rollover and development is lumpy
+            current_total = parcels.total_residential_units[(juris_name == juris) & (parcels.newest_building >= 2010)].sum()
             target = (year - 2010 + 1) * limit - current_total
             # make sure we don't overshoot the total development of the limit
             # for the horizon year - for instance, in Half Moon Bay we have
@@ -106,8 +100,7 @@ def residential_developer(feasibility, households, buildings, parcels, year, set
 
     else:
         # otherwise use all parcels with total number of units
-        targets.append((parcels.index == parcels.index,
-                        num_units, None, "none"))
+        targets.append((parcels.index == parcels.index, num_units, None, "none"))
 
     for parcel_mask, target, final_target, juris in targets:
 
@@ -145,37 +138,28 @@ def residential_developer(feasibility, households, buildings, parcels, year, set
                 # only can reduce by as many units as we have
                 overshoot = min(overshoot, current_units)
                 # used below - this is the pct we need to reduce the building
-                overshoot_pct = \
-                    (current_units - overshoot) / float(current_units)
+                overshoot_pct = (current_units - overshoot) / float(current_units)
 
                 buildings.local.loc[index, "residential_units"] -= overshoot
 
                 # we also need to fix the other columns so they make sense
-                for col in ["residential_sqft", "building_sqft",
-                            "deed_restricted_units", "inclusionary_units",
-                            "subsidized_units"]:
+                for col in ["residential_sqft", "building_sqft", "deed_restricted_units", "inclusionary_units", "subsidized_units"]:
                     val = buildings.local.loc[index, col]
                     # reduce by pct but round to int
                     buildings.local.loc[index, col] = int(val * overshoot_pct)
                 # also fix the corresponding columns in new_buildings
-                for col in ["residential_sqft","building_sqft",
-                            "residential_units", "deed_restricted_units",
-                            "inclusionary_units", "subsidized_units"]:
+                for col in ["residential_sqft","building_sqft", "residential_units", "deed_restricted_units", "inclusionary_units", "subsidized_units"]:
                     val = new_buildings.loc[index, col]
                     new_buildings.loc[index, col] = int(val * overshoot_pct)
-                for col in ["policy_based_revenue_reduction",
-                            "max_profit"]:
+                for col in ["policy_based_revenue_reduction", "max_profit"]:
                     val = new_buildings.loc[index, col]
                     new_buildings.loc[index, col] = val * overshoot_pct
 
         summary.add_parcel_output(new_buildings)
 
 
-### add retail zoning settings here- eh, shouldn't
-
 @orca.step()
-def retail_developer(jobs, buildings, parcels, nodes, feasibility,
-                     settings, summary, add_extra_columns_func, net):
+def retail_developer(jobs, buildings, parcels, nodes, feasibility, settings, summary, add_extra_columns_func, net):
 
     dev_settings = developer_settings['non_residential_developer']
     all_units = dev.compute_units_to_build(len(jobs), buildings.job_spaces.sum(), dev_settings['kwargs']['target_vacancy'])
@@ -218,8 +202,7 @@ def retail_developer(jobs, buildings, parcels, nodes, feasibility,
         target -= d.non_residential_sqft
 
         # add redeveloped sqft to target
-        filt = "general_type == 'Retail' and parcel_id == %d" % \
-            d["parcel_id"]
+        filt = "general_type == 'Retail' and parcel_id == %d" % d["parcel_id"]
         target += bldgs.query(filt).non_residential_sqft.sum()
 
         devs.append(d)
@@ -231,8 +214,7 @@ def retail_developer(jobs, buildings, parcels, nodes, feasibility,
     # add the buidings and demolish old buildings, and add to debug output
     devs = pd.DataFrame(devs, columns=feasibility.columns)
 
-    print("Building {:,} retail sqft in {:,} projects".format(
-        devs.non_residential_sqft.sum(), len(devs)))
+    print("Building {:,} retail sqft in {:,} projects".format(devs.non_residential_sqft.sum(), len(devs)))
     if target > 0:
         print("   WARNING: retail target not met")
 
