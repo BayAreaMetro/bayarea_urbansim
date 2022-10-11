@@ -12,6 +12,8 @@ feasibility:
   simple_zoning: True
 
 
+### are there any other limits / adjusters / calibrators like this? where are they?
+
 # this is really because we don't have caps right now for retail
 # we can disallow new retail per city using this list of cities
 eliminate_retail_zoning_from_juris:

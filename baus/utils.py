@@ -342,7 +342,6 @@ def compare_summary(df1, df2, index_names=None, pctdiff=10,
 
 geography = 'taz'
 
-
 # loosely borrowed from https://gist.github.com/haleemur/aac0ac216b3b9103d149
 def format_df(df, formatters=None, **kwargs):
     formatting_columns = list(set(formatters.keys()).intersection(df.columns))
@@ -561,31 +560,12 @@ def compare_outcome_for(variable, runs, set_geography):
 
 
 
-### METRICS UTILS ###
-
-def subtract_base_year_urban_footprint(run_number):
-    base_year_filename = \
-        'runs/run{}_urban_footprint_summary_summaries_{}.csv'.\
-        format(run_number, 2010)
-    bdf = pd.read_csv(base_year_filename, index_col=0)
-    outcome_year_filename = \
-        'runs/run{}_urban_footprint_summary_summaries_{}.csv'.\
-        format(run_number, 2040)
-    odf = pd.read_csv(outcome_year_filename, index_col=0)
-    sdf = odf - bdf
-    sdf.to_csv(
-        'runs/run{}_urban_footprint_subtracted_summaries_{}.csv'
-        .format(run_number, 2040))
-
-
 
 ### DEVELOPER UTILS ###    
 
-# this method is a custom profit to probability function where we test the
-# combination of different metrics like return on cost and raw profit
 def profit_to_prob_func(df):
-    # the clip is because we still might build negative profit buildings
-    # (when we're subsidizing them) and choice doesn't allow negative
+    # a custom profit to probability function where we test the combination of different metrics like return on cost and raw profit
+    # clip since we still might build negative profit buildings (when we're subsidizing them) and choice doesn't allow negative
     # probability options
     max_profit = df.max_profit.clip(1)
 
@@ -600,3 +580,82 @@ def profit_to_prob_func(df):
     p = 1.0 * ROC_p + factor * profit_p
 
     return p / p.sum()
+
+
+@orca.injectable(autocall=False)
+def add_extra_columns_func(df):
+    df['source'] = 'developer_model'
+
+    for col in ["residential_price", "non_residential_rent"]:
+        df[col] = 0
+
+    if "deed_restricted_units" not in df.columns:
+        df["deed_restricted_units"] = 0
+    else:
+        print("Number of deed restricted units built = %d" %
+              df.deed_restricted_units.sum())
+    df["preserved_units"] = 0.0
+
+    if "inclusionary_units" not in df.columns:
+        df["inclusionary_units"] = 0
+    else:
+        print("Number of inclusionary units built = %d" %
+              df.inclusionary_units.sum())
+
+    if "subsidized_units" not in df.columns:
+        df["subsidized_units"] = 0
+    else:
+        print("Number of subsidized units built = %d" %
+              df.subsidized_units.sum())
+
+    df["redfin_sale_year"] = 2012
+    df["redfin_sale_price"] = np.nan
+
+    if "residential_units" not in df:
+        df["residential_units"] = 0
+
+    if "parcel_size" not in df:
+        df["parcel_size"] = \
+            orca.get_table("parcels").parcel_size.loc[df.parcel_id]
+
+    if orca.is_injectable("year") and "year_built" not in df:
+        df["year_built"] = orca.get_injectable("year")
+
+    if orca.is_injectable("form_to_btype_func") and \
+            "building_type" not in df:
+        form_to_btype_func = orca.get_injectable("form_to_btype_func")
+        df["building_type"] = df.apply(form_to_btype_func, axis=1)
+
+    return df
+
+
+@orca.injectable(autocall=False)
+def supply_and_demand_multiplier_func(demand, supply):
+    s = demand / supply
+    settings = orca.get_injectable('settings')
+    print("Number of submarkets where demand exceeds supply:", len(s[s > 1.0]))
+    # print "Raw relationship of supply and demand\n", s.describe()
+    supply_correction = settings["price_equilibration"]
+    clip_change_high = supply_correction["kwargs"]["clip_change_high"]
+    t = s
+    t -= 1.0
+    t = t / t.max() * (clip_change_high-1)
+    t += 1.0
+    s.loc[s > 1.0] = t.loc[s > 1.0]
+    return s, (s <= 1.0).all()
+
+
+@orca.injectable(autocall=False)
+def form_to_btype_func(building):
+    # map a specific building that we build to a specific building type
+    mapping = orca.get_injectable('mapping')
+    form = building.form
+    dua = building.residential_units / (building.parcel_size / 43560.0)
+    # precise mapping of form to building type for residential
+    if form is None or form == "residential":
+        if dua < 16:
+            return "HS"
+        elif dua < 32:
+            return "HT"
+        return "HM"
+    return mapping["form_to_btype"][form][0]

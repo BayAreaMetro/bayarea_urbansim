@@ -13,6 +13,25 @@ from baus.utils import add_buildings
 from urbansim.developer import sqftproforma
 
 
+@orca.step()
+def alt_feasibility(parcels, settings, parcel_sales_price_sqft_func, parcel_is_allowed_func):
+
+    kwargs = settings['feasibility']
+    config = sqftproforma.SqFtProFormaConfig()
+    config.parking_rates["office"] = 1.5
+    config.parking_rates["retail"] = 1.5
+    config.building_efficiency = .85
+    config.parcel_coverage = .85
+    config.cap_rate = settings["cap_rate"]
+
+    utils.run_feasibility(parcels, parcel_sales_price_sqft_func, parcel_is_allowed_func, config=config, **kwargs)
+
+    f = subsidies.policy_modifications_of_profit(orca.get_table('feasibility').to_frame(), parcels)
+
+    orca.add_table("feasibility", f)
+    
+
+
 ### SUBSIDIZED RESIDENTIAL MODELS ###
 
 def subsidized_residentail_developer(feasibility, parcels, buildings, households, acct_settings, account, year,

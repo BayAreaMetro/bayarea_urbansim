@@ -208,11 +208,11 @@ def run_models(MODE):
 			        # development pipeline
 			        "scheduled_development_events",
 
-                    # if  in the inputs: preserve units
+                    # preserve units
                     if orca.get_injectable("preservation_policy_on"):
                         "preserve_affordable",
 
-                    # if  in the inputs: run the policy models that modify feasibility
+                    # run the policy models that modify profit
                     if orca.get_injectable("ceqa_reform_on"):
                         "policy_modifications_of_profit_ceq_reform"
                     if orca.get_injectable("parking_requirements_on"):
@@ -221,24 +221,28 @@ def run_models(MODE):
                         "policy_modifications_of_profit_land_value_tax"
                     if orca.get_injectable("sb743_on"):
                         "policy_modifications_of_profit_sb743"
+
                     # and create deed restricted units?
                     if orca.get_injectable("inclsuionary_zoning_on"):
                         "policy_modifications_of_profit_inclusionary_zoning"
 
-                    # if in the inputs: run the policy models that subsidize development from bonds
+                    # run the policy models that subsidize development
+                    # applying housing bonds
                     if orca.get_injectable("housing_bonds_on"):
     			        "lump_sum_accounts_housing_bonds",
                         "subsidized_residential_feasibility",
     			        "subsidized_residential_developer_lump_sum_accts",
+                    # applying office bonds
                     if orca.get_injectable("office_bonds_on"):
     			        "lump_sum_accounts_office_bonds",
                         "subsidized_office_feasibility",
     			        "subsidized_office_developer_lump_sum_accts",
-                    # if in the inputs: run the policy models that subsidize development from fees
+                    # collecting vmt fees for housing/office
                     if orca.get_injectable("vmt_fees_on"):
                         "calculate_vmt_fees",
-                        "subsidized_office_developer_vmt",
+                        "subsidized_office_developer_vmt_fees",
                         "subsidized_residential_developer_vmt",
+                    # collecting jobs-housing fees for housing
                     if orca.get_injectable("jobs_housing_fees_on"):
                         "calculate_jobs_housing_fees",
                         "subsidized_residential_developer_jobs_housing",
