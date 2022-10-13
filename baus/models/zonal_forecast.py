@@ -1,8 +1,24 @@
-@orca.table(cache=True)
-def taz2_forecast_inputs(regional_demographic_forecast):
-    t2fi = pd.read_csv(os.path.join(misc.data_dir(), "taz2_forecast_inputs.csv"), dtype={'TAZ': np.int64}, index_col='TAZ').replace('#DIV/0!', np.nan)
+from __future__ import print_function
+import sys
+import os
+import orca
+import pandas as pd
+from pandas.util import testing as pdt
+import numpy as np
+from baus.utils import random_indexes, round_series_match_target,scale_by_target, simple_ipf, format_df
+from urbansim.utils import misc
+import urbansim
+import urbansim_defaults
+import orca
+import orca_test
+import pandana
 
+
+@orca.table(cache=True)
+def taz2_forecast_inputs(taz2_forecast_inputs, regional_demographic_forecast):
+    t2fi = tax2_forecast_inputs.to_frame()
     rdf = regional_demographic_forecast.to_frame()
+
     # apply regional share of hh by size to MAZs with no households in 2010
     t2fi.loc[t2fi.shrw0_2010.isnull(), 'shrw0_2010'] = rdf.loc[rdf.year == 2010, 'shrw0'].values[0]
     t2fi.loc[t2fi.shrw1_2010.isnull(), 'shrw1_2010'] = rdf.loc[rdf.year == 2010, 'shrw1'].values[0]
@@ -20,24 +36,26 @@ def taz2_forecast_inputs(regional_demographic_forecast):
     t2fi.loc[t2fi.shry_2010.isnull(), 'shry_2010'] = rdf.loc[rdf.year == 2010, 'shry'].values[0]
 
     t2fi[['shrw0_2010', 'shrw1_2010', 'shrw2_2010', 'shrw3_2010', 'shra1_2010', 'shra2_2010', 'shra3_2010', 'shra4_2010', 'shrn_2010',
-          'shry_2010']] = t2fi[['shrw0_2010', 'shrw1_2010', 'shrw2_2010', 'shrw3_2010', 'shra1_2010', 'shra2_2010',
-                                'shra3_2010', 'shra4_2010', 'shrn_2010',
-                                'shry_2010']].astype('float')
+          'shry_2010']] = t2fi[['shrw0_2010', 'shrw1_2010', 'shrw2_2010', 'shrw3_2010', 'shra1_2010', 'shra2_2010', 'shra3_2010', 
+                                'shra4_2010', 'shrn_2010', 'shry_2010']].astype('float')
     return t2fi
 
+
 @orca.table(cache=True)
-def maz_forecast_inputs(regional_demographic_forecast):
+def maz_forecast_inputs(maz_forecast_inputs, regional_demographic_forecast):
+    mfi = maz_forecast_inputs.to_frame()
     rdf = regional_demographic_forecast.to_frame()
-    mfi = pd.read_csv(os.path.join(misc.data_dir(), "maz_forecast_inputs.csv"), dtype={'MAZ': np.int64}, index_col='MAZ').replace('#DIV/0!', np.nan)
 
     # apply regional share of hh by size to MAZs with no households in 2010
     mfi.loc[mfi.shrs1_2010.isnull(), 'shrs1_2010'] = rdf.loc[rdf.year == 2010, 'shrs1'].values[0]
     mfi.loc[mfi.shrs2_2010.isnull(), 'shrs2_2010'] = rdf.loc[rdf.year == 2010, 'shrs2'].values[0]
     mfi.loc[mfi.shrs3_2010.isnull(), 'shrs3_2010'] = rdf.loc[rdf.year == 2010, 'shrs3'].values[0]
+
     # the fourth category here is missing the 'r' in the csv
     mfi.loc[mfi.shs4_2010.isnull(), 'shs4_2010'] = rdf.loc[rdf.year == 2010, 'shrs4'].values[0]
     mfi[['shrs1_2010', 'shrs2_2010', 'shrs3_2010',
          'shs4_2010']] = mfi[['shrs1_2010', 'shrs2_2010', 'shrs3_2010', 'shs4_2010']].astype('float')
+
     return mfi
 
 

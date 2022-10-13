@@ -1,6 +1,17 @@
-
-
-
+from __future__ import print_function
+import os
+import sys
+import yaml
+import numpy as np
+import pandas as pd
+import orca
+import pandana.network as pdna
+from urbansim.developer import sqftproforma
+from urbansim.developer.developer import Developer as dev
+from urbansim.utils import misc, networks
+from urbansim_defaults import models, utils
+from baus import datasources, subsidies, summaries, variables
+from baus.utils import add_buildings, groupby_random_choice, parcel_id_to_geom_id, round_series_match_target
 
 
 @orca.step()
@@ -212,7 +223,7 @@ def proportional_elcm(jobs, households, buildings, parcels,
     jobs.update_col_from_series("building_id", s, cast=True)
 
 
-    def proportional_job_allocation(parcel_id):
+def proportional_job_allocation(parcel_id):
     # this method takes a parcel and increases the number of jobs on the
     # parcel in proportion to the ratio of sectors that existed in the base yr
     # this is because elcms can't get the distribution right in some cases, eg

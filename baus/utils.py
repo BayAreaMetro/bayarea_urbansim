@@ -10,8 +10,6 @@ import itertools as it
 
 
 
-### UTILITY FUNCTIONS ###
-
 # This is really simple and basic (hackish) code to solve a very important
 # problem.  I'm calling an orca step and want to serialize the tables that
 # are passed in so that I can add code to this orca step and test it quickly
@@ -57,8 +55,7 @@ def save_and_restore_state(in_d, outhdf="save_state.h5"):
 
 # similar to the function in urbansim_defaults, except it assumes you want
 # to use your own pick function
-def add_buildings(buildings, new_buildings,
-                  remove_developed_buildings=True):
+def add_buildings(buildings, new_buildings, remove_developed_buildings=True):
 
     old_buildings = buildings.to_frame(buildings.local_columns)
     new_buildings = new_buildings[buildings.local_columns]
@@ -221,263 +218,6 @@ def simple_ipf(seed_matrix, col_marginals, row_marginals, tolerance=1, cnt=0):
                       tolerance, cnt+1)
 
 
-### UTITLIES TO COMPARE TWO SUMMARY DATAFRAMES ###
-
-# mainly looking for pcr differency and then formatting
-# into a description or into an excel output file which is
-# color-coded to highlight the differences
-
-# for labels and cols in df1, find value in df2, and make sure value is
-# within pctdiff - if not return dataframe col, row and values in two frames
-# pctdiff should be specified as a number between 1 and 100
-def compare_dfs(df1, df2):
-
-    df3 = pd.DataFrame(index=df1.index, columns=df1.columns)
-
-    # for each row
-    for label, row in df1.iterrows():
-
-        # assume row exists in comparison
-        rowcomp = df2.loc[label]
-
-        # for each value
-        for col, val in row.iteritems():
-
-            val2 = rowcomp[col]
-
-            df3.loc[label, col] = \
-                int(abs(val - val2) / ((val + val2 + .01) / 2.0) * 100.0)
-
-    return df3
-
-
-# identify small values as a boolean T/F for each column
-def small_vals(df):
-
-    df = df.copy()
-
-    for col in df.columns:
-        df[col] = df[col] < df[col].mean() - .5*df[col].std()
-
-    return df
-
-
-def compare_dfs_excel(df1, df2, excelname="out.xlsx"):
-    import palettable
-    import xlsxwriter
-
-    writer = pd.ExcelWriter(excelname, engine='xlsxwriter')
-
-    df1.reset_index().to_excel(writer, index=False, sheet_name='df1')
-    df2.reset_index().to_excel(writer, index=False, sheet_name='df2')
-    writer.sheets['df1'].set_zoom(150)
-    writer.sheets['df2'].set_zoom(150)
-
-    df3 = compare_dfs(df1, df2)
-
-    df3.reset_index().to_excel(writer, index=False, sheet_name='comparison')
-
-    workbook = writer.book
-    worksheet = writer.sheets['comparison']
-    worksheet.set_zoom(150)
-
-    color_range = "B2:Z{}".format(len(df1)+1)
-
-    reds = palettable.colorbrewer.sequential.Blues_5.hex_colors
-    reds = {
-        i: workbook.add_format({'bg_color': reds[i]})
-        for i in range(len(reds))
-    }
-
-    blues = palettable.colorbrewer.sequential.Oranges_5.hex_colors
-    blues = {
-        i: workbook.add_format({'bg_color': blues[i]})
-        for i in range(len(blues))
-    }
-
-    def apply_format(worksheet, df, format, filter):
-
-        s = df.stack()
-
-        for (lab, col), val in filter(s).iteritems():
-
-            rowind = df.index.get_loc(lab)+2
-            colind = df.columns.get_loc(col)+1
-            colletter = xlsxwriter.utility.xl_col_to_name(colind)
-
-            worksheet.write(colletter+str(rowind), val, format)
-
-    for i in range(5):
-        apply_format(worksheet, df3, reds[i], lambda s: s[s > i*10+10])
-
-    df3[small_vals(df1)] = np.nan
-    for i in range(5):
-        apply_format(worksheet, df3, blues[i], lambda s: s[s > i*10+10])
-
-    writer.save()
-
-
-# compare certain columns of two dataframes for differences above a certain
-# amount and return a string describing the differences
-def compare_summary(df1, df2, index_names=None, pctdiff=10,
-                    cols=["tothh", "totemp"], geog_name="Superdistrict"):
-
-    if cols:
-        df1, df2 = df1[cols], df2[cols]
-
-    df3 = compare_dfs(df1, df2)
-    df3[small_vals(df1)] = np.nan
-    s = df3[cols].stack()
-
-    buf = ""
-    for (lab, col), val in s[s > 10].iteritems():
-        lab = index_names.loc[lab]
-        buf += "%s '%s' is %d%% off in column '%s'\n" % \
-            (geog_name, lab, val, col)
-
-    return buf
-
-
-### OUTPUT UTILITIES ###
-
-geography = 'taz'
-
-# loosely borrowed from https://gist.github.com/haleemur/aac0ac216b3b9103d149
-def format_df(df, formatters=None, **kwargs):
-    formatting_columns = list(set(formatters.keys()).intersection(df.columns))
-    df_copy = df[formatting_columns].copy()
-    na_rep = kwargs.get('na_rep') or ''
-    for col, formatter in formatters.items():
-        try:
-            df[col] = df[col].apply(lambda x: na_rep if pd.isnull(x)
-                                    else formatter.format(x))
-        except KeyError:
-            print('{} does not exist in the dataframe.'.format(col)) +\
-                'Ignoring the formatting specifier'
-    return df
-
-
-def get_base_year_df(base_run_year=2010):
-    geography_id = 'zone_id' if geography == 'taz' else geography
-    df = pd.read_csv(
-        'output/baseyear_{}_summaries_{}.csv'.format(geography, base_run_year),
-        index_col=geography_id)
-    df = df.fillna(0)
-    return df
-
-
-def get_outcome_df(run, year=2040):
-    geography_id = 'zone_id' if geography == 'taz' else geography
-    df = pd.read_csv(
-        'http://urbanforecast.com/runs/run' +
-        '%(run)d_%(geography)s_summaries_%(year)d.csv'
-        % {"run": run, "year": year, "geography": geography},
-        index_col=geography_id)
-    df = df.fillna(0)
-    return df
-
-
-def write_outcome_csv(df, run, geography, year=2040):
-    geography_id = 'zone_id' if geography == 'taz' else geography
-    f = 'runs/run%(run)d_%(geography)s_summaries_%(year)d.csv' \
-        % {"run": run, "year": year, "geography": geography}
-    df = df.fillna(0)
-    df.to_csv(f)
-
-
-def compare_series(base_series, outcome_series, index):
-    s = base_series
-    s1 = outcome_series
-    d = {
-        'Count': s1,
-        'Share': s1 / s1.sum(),
-        'Percent_Change': 100 * (s1 - s) / s,
-        'Share_Change': (s1 / s1.sum()) - (s / s.sum())
-    }
-    # there must be a less verbose way to do this:
-    columns = ['Count', 'Share', 'Percent_Change',
-               'Share_Change']
-    df = pd.DataFrame(d, index=index, columns=columns)
-    return df
-
-
-def compare_outcome(run, base_series, formatters):
-    df = get_outcome_df(run)
-    s = df[base_series.name]
-    df = compare_series(base_series, s, df.index)
-    df = format_df(df, formatters)
-    return df
-
-
-def remove_characters(word, characters=b' _aeiou'):
-    return word.translate(None, characters)
-
-
-def make_esri_columns(df):
-    df.columns = [str(x[0]) + str(x[1]) for x in df.columns]
-    df.columns = [remove_characters(x) for x in df.columns]
-    return df
-    df.to_csv(f)
-
-
-def to_esri_csv(df, variable, runs):
-    f = 'compare/esri_' +\
-        '%(variable)s_%(runs)s.csv'\
-        % {"variable": variable,
-           "runs": '-'.join(str(x) for x in runs)}
-    df = make_esri_columns(df)
-    df.to_csv(f)
-
-
-def write_bundle_comparison_csv(df, variable, runs):
-    df = make_esri_columns(df)
-    if variable == "tothh" or variable == "TOTHH":
-        headers = ['hh10', 'hh10_shr', 'hh40_0', 'hh40_0_shr',
-                   'pctch40_0', 'Shrch40_0', 'hh40_3', 'hh40_3_shr',
-                   'pctch40_3', 'shrch40_3', 'hh40_1', 'hh40_1_shr',
-                   'pctch40_1', 'shrch40_1', 'hh40_2', 'hh40_2_shr',
-                   'pctch40_2', 'shrch40_2', '3_40_0_40_rat',
-                   '1_40_0_40_rat', '2_40_0_40_rat']
-        df.columns = headers
-        df = df[[
-            'hh10', 'hh10_shr', 'hh40_0', 'hh40_0_shr',
-            'pctch40_0', 'Shrch40_0', 'hh40_3', 'hh40_3_shr', 'pctch40_3',
-            'shrch40_3', '3_40_0_40_rat', 'hh40_1', 'hh40_1_shr', 'pctch40_1',
-            'shrch40_1', '1_40_0_40_rat', 'hh40_2', 'hh40_2_shr', 'pctch40_2',
-            'shrch40_2', '2_40_0_40_rat']]
-    elif variable == "totemp" or variable == "TOTEMP":
-        headers = [
-            'emp10', 'emp10_shr', 'emp40_0',
-            'emp40_0_shr', 'pctch40_0', 'Shrch40_0', 'emp40_3',
-            'emp40_3_shr', 'pctch40_3', 'shrch40_3', 'emp40_1',
-            'emp40_1_shr', 'pctch40_1', 'shrch40_1', 'emp40_2',
-            'emp40_2_shr', 'pctch40_2', 'shrch40_2', '3_40_0_40_rat',
-            '1_40_0_40_rat', '2_40_0_40_rat']
-        df.columns = headers
-        df = df[[
-            'emp10', 'emp10_shr', 'emp40_0',
-            'emp40_0_shr', 'pctch40_0', 'Shrch40_0', 'emp40_3',
-            'emp40_3_shr', 'pctch40_3', 'shrch40_3', '3_40_0_40_rat',
-            'emp40_1', 'emp40_1_shr', 'pctch40_1', 'shrch40_1',
-            '1_40_0_40_rat', 'emp40_2', 'emp40_2_shr', 'pctch40_2',
-            'shrch40_2', '2_40_0_40_rat']]
-    cut_variable_name = variable[3:]
-    f = 'compare/' + \
-        '%(geography)s_%(variable)s_%(runs)s.csv'\
-        % {"geography": geography,
-           "variable": cut_variable_name,
-           "runs": '_'.join(str(x) for x in runs)}
-    df.to_csv(f)
-
-
-def write_csvs(df, variable, runs):
-    f = 'compare/' +\
-        '%(variable)s_%(runs)s.csv'\
-        % {"variable": variable,
-           "runs": '-'.join(str(x) for x in runs)}
-    write_bundle_comparison_csv(df, variable, runs)
-
-
 def divide_series(a_tuple, variable):
     s = get_outcome_df(a_tuple[0])[variable]
     s1 = get_outcome_df(a_tuple[1])[variable]
@@ -488,80 +228,7 @@ def divide_series(a_tuple, variable):
 
 def get_combinations(nparray):
     return pd.Series(list(it.combinations(np.unique(nparray), 2)))
-
-
-def compare_outcome_for(variable, runs, set_geography):
-    global geography
-    geography = set_geography
-    # empty list to build up dataframe from other dataframes
-    base_year_df = get_base_year_df()
-    df_lst = []
-    s = base_year_df[variable]
-    s1 = s / s.sum()
-    d = {'Count': s, 'Share': s1}
-
-    df = pd.DataFrame(d, index=base_year_df.index)
-    if geography == 'superdistrict':
-        formatters = {
-            'Count': '{:.0f}',
-            'Share': '{:.2f}'}
-        df = pd.DataFrame(d, index=base_year_df.index)
-        df = format_df(df, formatters)
-        df_lst.append(df)
-        more_formatters = {
-            'Count': '{:.0f}',
-            'Share': '{:.2f}',
-            'Percent_Change': '{:.0f}',
-            'Share_Change': '{:.3f}'}
-        for run in runs:
-            df_lst.append(compare_outcome(run, s, more_formatters))
-    else:
-        formatters = {
-            'Count': '{:.4f}',
-            'Share': '{:.6f}'}
-        df = pd.DataFrame(d, index=base_year_df.index)
-        df = format_df(df, formatters)
-        df_lst.append(df)
-        more_formatters = {
-            'Count': '{:.4f}',
-            'Share': '{:.6f}',
-            'Percent_Change': '{:.6f}',
-            'Share_Change': '{:.6f}'}
-        for run in runs:
-            df_lst.append(compare_outcome(run, s, more_formatters))
-
-    # build up dataframe of ratios of run count variables to one another
-    if len(runs) > 1:
-        ratios = pd.DataFrame()
-        combinations = get_combinations(runs)
-        # just compare no no project right now
-        s2 = divide_series((runs[0], runs[1]), variable)
-        ratios[s2.name] = s2
-        s2 = divide_series((runs[0], runs[2]), variable)
-        ratios[s2.name] = s2
-        s2 = divide_series((runs[0], runs[3]), variable)
-        ratios[s2.name] = s2
-    df_rt = pd.DataFrame(ratios)
-    formatters = {}
-    for column in df_rt.columns:
-        formatters[column] = '{:.2f}'
-    df_rt = format_df(df_rt, formatters)
-    df_lst.append(df_rt)
-
-    # build up summary names to the first level of the column multiindex
-    keys = ['', 'BaseRun2010']
-    run_column_shortnames = ['r' + str(x) + 'y40' for x in runs]
-    keys.extend(run_column_shortnames)
-    keys.extend(['y40Ratios'])
-
-    df2 = pd.concat(df_lst, axis=1, keys=keys)
-
-    write_csvs(df2, variable, runs)
-
-
-
-
-### DEVELOPER UTILS ###    
+ 
 
 def profit_to_prob_func(df):
     # a custom profit to probability function where we test the combination of different metrics like return on cost and raw profit
@@ -615,14 +282,12 @@ def add_extra_columns_func(df):
         df["residential_units"] = 0
 
     if "parcel_size" not in df:
-        df["parcel_size"] = \
-            orca.get_table("parcels").parcel_size.loc[df.parcel_id]
+        df["parcel_size"] = orca.get_table("parcels").parcel_size.loc[df.parcel_id]
 
     if orca.is_injectable("year") and "year_built" not in df:
         df["year_built"] = orca.get_injectable("year")
 
-    if orca.is_injectable("form_to_btype_func") and \
-            "building_type" not in df:
+    if orca.is_injectable("form_to_btype_func") and "building_type" not in df:
         form_to_btype_func = orca.get_injectable("form_to_btype_func")
         df["building_type"] = df.apply(form_to_btype_func, axis=1)
 

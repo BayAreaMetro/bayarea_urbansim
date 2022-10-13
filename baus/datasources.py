@@ -215,7 +215,7 @@ def tracts_earthquake():
     return pd.read_csv(
         os.path.join(misc.data_dir(), "tract_damage_earthquake.csv"))
 
-# census tract-parcela xwalk
+# census tract-parcel xwalk
 @orca.table(cache=True)
 def parcels_tract():
     return pd.read_csv(
@@ -397,7 +397,6 @@ def zone_forecast_inputs():
         dtype={'zone_id': np.int64},
         index_col="zone_id")
 
-
 @orca.table(cache=True)
 def taz_forecast_inputs():
     return pd.read_csv(
@@ -407,58 +406,43 @@ def taz_forecast_inputs():
 
 @orca.table(cache=True)
 def baseyear_taz_controls():
-    return pd.read_csv(os.path.join("data",
-                                    "baseyear_taz_controls.csv"),
-                       dtype={'taz1454': np.int64},
-                       index_col="taz1454")
+    return pd.read_csv(os.path.join("data", "baseyear_taz_controls.csv"), dtype={'taz1454': np.int64}, index_col="taz1454")
+
 
 @orca.table(cache=True)
 def base_year_summary_taz(mapping):
-    df = pd.read_csv(os.path.join('output',
-                                  'baseyear_taz_summaries_2010.csv'),
-                     dtype={'taz1454': np.int64},
-                     index_col="zone_id")
+    df = pd.read_csv(os.path.join('output', 'baseyear_taz_summaries_2010.csv'), dtype={'taz1454': np.int64}, index_col="zone_id")
     cmap = mapping["county_id_tm_map"]
     df['COUNTY_NAME'] = df.COUNTY.map(cmap)
     return df
 
 @orca.table(cache=True)
 def taz2_forecast_inputs(regional_demographic_forecast):
-    t2fi = pd.read_csv(os.path.join(misc.data_dir(),
-                                    "taz2_forecast_inputs.csv"),
-                       dtype={'TAZ': np.int64},
-                       index_col='TAZ').replace('#DIV/0!', np.nan)
+    df = pd.read_csv(os.path.join(misc.data_dir(), "taz2_forecast_inputs.csv"), dtype={'TAZ': np.int64},
+                     index_col='TAZ').replace('#DIV/0!', np.nan)
+    return df
 
-    rdf = regional_demographic_forecast.to_frame()
-    return t2fi
+@orca.table(cache=True)
+def maz_forecast_inputs(regional_demographic_forecast):
+    df = pd.read_csv(os.path.join(misc.data_dir(), "maz_forecast_inputs.csv"), dtype={'MAZ': np.int64},
+                     index_col='MAZ').replace('#DIV/0!', np.nan)
+    return df
 
 @orca.table(cache=True)
 def empsh_to_empsix():
     return pd.read_csv(os.path.join(misc.data_dir(), "empsh_to_empsix.csv"))
 
-@orca.table(cache=True)
-def maz_forecast_inputs(regional_demographic_forecast):
-    rdf = regional_demographic_forecast.to_frame()
-    mfi = pd.read_csv(os.path.join(misc.data_dir(),
-                                   "maz_forecast_inputs.csv"),
-                      dtype={'MAZ': np.int64},
-                      index_col='MAZ').replace('#DIV/0!', np.nan)
-    return mfi
 
 
-
-# REGIONAL CONTROLS
+### REGIONAL CONTROLS ###
 
 @orca.table(cache=True)
 def county_forecast_inputs():
-    return pd.read_csv(os.path.join(misc.data_dir(),
-                                    "county_forecast_inputs.csv"),
-                       index_col="COUNTY")
+    return pd.read_csv(os.path.join(misc.data_dir(), "county_forecast_inputs.csv"), index_col="COUNTY")
 
 @orca.table(cache=True)
 def county_employment_forecast():
-    return pd.read_csv(os.path.join(misc.data_dir(),
-                       "county_employment_forecast.csv"))
+    return pd.read_csv(os.path.join(misc.data_dir(), "county_employment_forecast.csv"))
 
 @orca.table(cache=True)
 def regional_demographic_forecast():
@@ -470,8 +454,7 @@ def regional_demographic_forecast():
 def household_controls_unstacked():
     df = pd.read_csv(os.path.join(misc.data_dir(), year))
     orca.add_injectable("household_control_file", fname)
-    return pd.read_csv(os.path.join(misc.data_dir(), fname),
-                       index_col='year')
+    return pd.read_csv(os.path.join(misc.data_dir(), fname), index_col='year')
 
 # the following overrides household_controls
 # table defined in urbansim_defaults

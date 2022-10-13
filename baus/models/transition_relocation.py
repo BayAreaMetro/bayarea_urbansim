@@ -1,3 +1,19 @@
+from __future__ import print_function
+import os
+import sys
+import yaml
+import numpy as np
+import pandas as pd
+import orca
+import pandana.network as pdna
+from urbansim.developer import sqftproforma
+from urbansim.developer.developer import Developer as dev
+from urbansim.utils import misc, networks
+from urbansim_defaults import models, utils
+from baus import datasources, subsidies, summaries, variables
+from baus.utils import add_buildings, groupby_random_choice, parcel_id_to_geom_id, round_series_match_target
+
+
 @orca.step()
 def households_transition(households, household_controls, year, settings):
     s = orca.get_table('households').base_income_quartile.value_counts()
@@ -5,16 +21,14 @@ def households_transition(households, household_controls, year, settings):
     ret = utils.full_transition(households,
                                 household_controls,
                                 year,
-                                settings['households_transition'],
+                                transition_relocation['households_transition'],
                                 "building_id")
     s = orca.get_table('households').base_income_quartile.value_counts()
     print("Distribution by income after:\n", (s/s.sum()))
     return ret
 
 
-    @orca.step()
-    
-
+@orca.step()
 def jobs_relocation(jobs, employment_relocation_rates, years_per_iter,
                     settings, static_parcels, buildings):
 
@@ -49,14 +63,11 @@ def household_relocation(households, household_relocation_rates,
                          settings, static_parcels, buildings):
 
     # get buildings that are on those parcels
-    static_buildings = buildings.index[
-        buildings.parcel_id.isin(static_parcels)]
+    static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
 
-    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile",
-                                       "tenure"]),
-                  household_relocation_rates.local,
-                  on=["zone_id", "base_income_quartile", "tenure"],
-                  how="left")
+    # UPDATE to map rates by config: rent/own probability
+    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure"]), household_relocation_rates.local,
+                  on=["zone_id", "base_income_quartile", "tenure"], how="left")
 
     df.index = households.index
 

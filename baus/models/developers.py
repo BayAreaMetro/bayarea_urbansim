@@ -15,6 +15,16 @@ from baus.utils import add_buildings, groupby_random_choice, parcel_id_to_geom_i
 
 
 @orca.step()
+def accessory_units(year, buildings, parcels, accessory_units):
+    add_units = accessory_units[str(year)]
+    buildings_juris = misc.reindex(parcels.juris, buildings.parcel_id)
+    res_buildings = buildings_juris[buildings.general_type == "Residential"]
+    add_buildings = groupby_random_choice(res_buildings, add_units)
+    add_buildings = pd.Series(add_buildings.index).value_counts()
+    buildings.local.loc[add_buildings.index, "residential_units"] += add_buildings.values
+
+
+@orca.step()
 def scheduled_development_events(buildings, development_projects, demolish_events, summary, year, parcels,
                                  mapping, years_per_iter, parcels_geography, building_sqft_per_job, vmt_fee_categories,
                                  static_parcels, base_year):
