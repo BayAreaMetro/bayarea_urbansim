@@ -28,6 +28,9 @@ def accessory_units(year, buildings, parcels, accessory_units):
 def scheduled_development_events(buildings, development_projects, demolish_events, summary, year, parcels,
                                  mapping, years_per_iter, parcels_geography, building_sqft_per_job, vmt_fee_categories,
                                  static_parcels, base_year):
+    # this version only demolishes when there is a row set to "demolish" in the the development pipeline inputs  
+    # it also allows building multiple buildings and adding capacity on an existing parcel if a row is set to "add"
+
     # add projects from the simulation year and previous four years, 
     # the base year is treated differently e.g., 2015 adds projects built 2010-2015
     

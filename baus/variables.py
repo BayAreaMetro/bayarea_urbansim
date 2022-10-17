@@ -581,11 +581,11 @@ def is_sanfran(parcels_geography, buildings, parcels):
 # returns a vector where parcels are ALLOWED to be built
 @orca.column('parcels')
 def parcel_rules(parcels):
-    # removes parcels with buildings < 1940,
+    # removes parcels with buildings built < 1940,
     # and single family homes on less then half an acre
     s = (parcels.oldest_building < 1940) | \
         ((parcels.total_residential_units == 1) &
-         (parcels.parcel_acres < .5)) | \
+        (parcels.parcel_acres < .5)) | \
         (parcels.parcel_size < 2000)
     return (~s.reindex(parcels.index).fillna(False)).astype('int')
 
@@ -596,14 +596,17 @@ def total_non_residential_sqft(parcels, buildings):
         reindex(parcels.index).fillna(0)
 
 
+# we may want to move away from this-- no dev is nodev (from a collection of sources)
+# if it has buildings or households/jobs, it follows the same rules as "static parcels" -- 
+# hh and jobs don't move, they're grown proportionally, and handled differently in SDEM
+# actually, this sounds like intitutions
+
+# so maybe we just read this nodev sources from institutions / separate it out a bit
 @orca.column('parcels')
 def nodev(zoning_baseline, parcels, static_parcels):
     # nodev from zoning
-    s1 = zoning_baseline.nodev.reindex(parcels.index).\
-        fillna(0).astype('bool')
-    # nodev from static parcels - this marks nodev those parcels which are
-    # marked as "static" - any parcels which should not be considered by the
-    # developer model may be marked as static
+    s1 = zoning_baseline.nodev.reindex(parcels.index).fillna(0).astype('bool')
+    # nodev from static parcels - any parcels which should not be considered by the developer model
     s2 = parcels.index.isin(static_parcels)
     # nodev from sea level rise- determined by hazards.py model
     if 'slr_nodev' in parcels.columns:

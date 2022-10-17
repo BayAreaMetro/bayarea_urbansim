@@ -22,13 +22,6 @@ def elcm_simulate(jobs, buildings, aggregations, elcm_config):
                               "building_id", "job_spaces",
                               "vacant_job_spaces", cast=True)
 
-@orca.table(cache=True)
-def employment_relocation_rates():
-    df = pd.read_csv(os.path.join("data", "employment_relocation_rates.csv"))
-    df = df.set_index("zone_id").stack().reset_index()
-    df.columns = ["zone_id", "empsix", "rate"]
-    return df
-
 
 def _proportional_jobs_model(
     target_ratio,  # ratio of jobs of this sector to households

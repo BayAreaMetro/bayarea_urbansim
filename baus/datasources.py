@@ -456,8 +456,7 @@ def household_controls_unstacked():
     orca.add_injectable("household_control_file", fname)
     return pd.read_csv(os.path.join(misc.data_dir(), fname), index_col='year')
 
-# the following overrides household_controls
-# table defined in urbansim_defaults
+# the following overrides household_controls table defined in urbansim_defaults
 @orca.table(cache=True)
 def household_controls(household_controls_unstacked):
     df = household_controls_unstacked.to_frame()
@@ -481,8 +480,7 @@ def regional_controls():
     orca.add_injectable("reg_control_file", fname)
     return pd.read_csv(os.path.join('data', fname), index_col="year")
 
-# the following overrides employment_controls
-# table defined in urbansim_defaults
+# the following overrides employment_controls table defined in urbansim_defaults
 @orca.table(cache=True)
 def employment_controls(employment_controls_unstacked):
     df = employment_controls_unstacked.to_frame()
@@ -498,8 +496,7 @@ def employment_controls(employment_controls_unstacked):
 def household_controls_unstacked():
     df = pd.read_csv(os.path.join(misc.data_dir(), year))
     orca.add_injectable("household_control_file", fname)
-    return pd.read_csv(os.path.join(misc.data_dir(), fname),
-                       index_col='year')
+    return pd.read_csv(os.path.join(misc.data_dir(), fname), index_col='year')
 
 
 
@@ -530,8 +527,7 @@ def accessibilities_segmentation(year):
     df = pd.read_csv(os.path.join(misc.data_dir(), year))
     orca.add_injectable("acc_seg_file_2010", df)
     df['AV'] = df['hasAV'].apply(lambda x: 'AV' if x == 1 else 'noAV')
-    df['label'] = (df['incQ_label'] + '_' + df['autoSuff_label'] +
-                   '_' + df['AV'])
+    df['label'] = (df['incQ_label'] + '_' + df['autoSuff_label'] + '_' + df['AV'])
     df = df.groupby('label').sum()
     df['prop'] = df['num_persons'] / df['num_persons'].sum()
     df = df[['prop']].transpose().reset_index(drop=True)
@@ -543,25 +539,28 @@ def accessibilities_segmentation(year):
 
 @orca.table(cache=True)
 def taz2_price_shifters():
-    return pd.read_csv(os.path.join(misc.data_dir(),
-                                    "taz2_price_shifters.csv"),
-                       dtype={'TAZ': np.int64},
-                       index_col="TAZ")
+    return pd.read_csv(os.path.join(misc.data_dir(), "taz2_price_shifters.csv"), dtype={'TAZ': np.int64}, index_col="TAZ")
+
+@orca.table(cache=True)
+def taz_household_relocation_():
+    return pd.read_csv(os.path.join(misc.data_dir(), "taz_household_relocation.csv"), dtype={'TAZ': np.int64}, index_col="TAZ")
+
+@orca.table(cache=True)
+def employment_relocation_rates():
+    df = pd.read_csv(os.path.join("data", "employment_relocation_rates.csv"))
+    df = df.set_index("zone_id").stack().reset_index()
+    df.columns = ["zone_id", "empsix", "rate"]
+    return df
 
 
 
 ### BROADCASTS ###
 
 # this specifies the relationships between tables
-orca.broadcast('buildings', 'residential_units', cast_index=True,
-               onto_on='building_id')
-orca.broadcast('residential_units', 'households', cast_index=True,
-               onto_on='unit_id')
-orca.broadcast('parcels_geography', 'buildings', cast_index=True,
-               onto_on='parcel_id')
-orca.broadcast('parcels', 'buildings', cast_index=True,
-               onto_on='parcel_id')
-# not defined in urbansim_Defaults
+orca.broadcast('buildings', 'residential_units', cast_index=True, onto_on='building_id')
+orca.broadcast('residential_units', 'households', cast_index=True, onto_on='unit_id')
+orca.broadcast('parcels_geography', 'buildings', cast_index=True, onto_on='parcel_id')
+orca.broadcast('parcels', 'buildings', cast_index=True, onto_on='parcel_id')
+# not defined in urbansim_defaults
 orca.broadcast('tmnodes', 'buildings', cast_index=True, onto_on='tmnode_id')
-orca.broadcast('taz_geography', 'parcels', cast_index=True,
-               onto_on='zone_id')
+orca.broadcast('taz_geography', 'parcels', cast_index=True, onto_on='zone_id')

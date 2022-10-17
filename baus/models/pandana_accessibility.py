@@ -14,10 +14,7 @@ from baus import datasources, subsidies, summaries, variables
 from baus.utils import add_buildings, groupby_random_choice, parcel_id_to_geom_id, round_series_match_target
 
 
-### reconcile inputs, configs, etc. with below as well
-
-
-### MOVE TO INPUT PROCESSING
+### MOVE TO INPUT PROCESSING SUCH AS PETRALE?
 @orca.step()
 def regional_pois(settings, landmarks):
     # because of the aforementioned limit of one netowrk at a time for the POIS, as well as the large amount of memory used, 

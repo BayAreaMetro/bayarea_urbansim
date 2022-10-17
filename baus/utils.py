@@ -9,111 +9,47 @@ from urbansim.developer.developer import Developer as dev
 import itertools as it
 
 
-
-# This is really simple and basic (hackish) code to solve a very important
-# problem.  I'm calling an orca step and want to serialize the tables that
-# are passed in so that I can add code to this orca step and test it quickly
-# without running all the models that came before, which takes many minutes.
-#
-# If the passed in outhdf does not exist, all the DataFarmeWrappers which
-# have been passed have their DataFrames saved to the hdf5.  If the file
-# does exist they all get restored, and as a byproduct their types are
-# changed from DataFrameWrappers to DataFrames.  This type change is a
-# major drawback of the current code, as is the fact that other non-
-# DataFrame types are not serialized, but it's a start.  I plan to bring
-# this problem up on the UrbanSim coders call the next time we meet.
-#
-#    Sample code:
-#
-#    d = save_and_restore_state(locals())
-#    for k in d.keys():
-#        locals()[k].local = d[k]
-#
-def save_and_restore_state(in_d, outhdf="save_state.h5"):
-    if os.path.exists(outhdf):
-        # the state exists - load it back into the locals
-        store = pd.HDFStore(outhdf)
-        out_d = {}
-        for table_name in store:
-            print("Restoring", table_name)
-            out_d[table_name[1:]] = store[table_name]
-        return out_d
-
-    # the state doesn't exist and thus needs to be saved
-    store = pd.HDFStore(outhdf, "w")
-    for table_name, table in in_d.items():
-        try:
-            table = table.local
-        except Exception as e:
-            # not a dataframe wrapper
-            continue
-        print("Saving", table_name)
-        store[table_name] = table
-    store.close()
-    sys.exit(0)
-
-
-# similar to the function in urbansim_defaults, except it assumes you want
-# to use your own pick function
 def add_buildings(buildings, new_buildings, remove_developed_buildings=True):
-
+# similar to the function in urbansim_defaults, but it assumes you want use your own pick function
     old_buildings = buildings.to_frame(buildings.local_columns)
     new_buildings = new_buildings[buildings.local_columns]
 
     if remove_developed_buildings:
         unplace_agents = ["households", "jobs"]
-        old_buildings = \
-            _remove_developed_buildings(old_buildings, new_buildings,
-                                        unplace_agents)
+        old_buildings =  _remove_developed_buildings(old_buildings, new_buildings, unplace_agents)
 
     all_buildings = dev.merge(old_buildings, new_buildings)
 
     orca.add_table("buildings", all_buildings)
 
 
-# assume df1 and df2 each have 2 float columns specifying x and y
-# in the same order and coordinate system and no nans.  returns the indexes
-# from df1 that are closest to each row in df2
 def nearest_neighbor(df1, df2):
+# assume df1 and df2 each have 2 float columns specifying x and y in the same order and coordinate system and no nans  
+# return the indexes from df1 that are closest to each row in df2
     from sklearn.neighbors import KDTree
     kdt = KDTree(df1.as_matrix())
     indexes = kdt.query(df2.as_matrix(), k=1, return_distance=False)
     return df1.index.values[indexes]
 
 
-# This is best described by example. Imagine s is a series where the
-# index is parcel ids and the values are cities, while counts is a
-# series where the index is cities and the values are counts.  You
-# want to end up with "counts" many parcel ids from s (like 40 from
-# Oakland, 60 from SF, and 20 from San Jose).  This can be
-# thought of as grouping the dataframe "s" came from and sampling
-# count number of rows from each group.  I mean, you group the
-# dataframe and then counts gives you the count you want to sample
-# from each group.
 def groupby_random_choice(s, counts, replace=True):
+# if s is a series where the index is parcel ids and the values are cities, while counts is a series 
+# where the index is cities and the values are counts, you want to end up with "counts" many parcel ids from s
+# this can can be thought of as grouping the dataframe "s" came from and sampling "count" number of rows from each group
     if counts.sum() == 0:
         return pd.Series()
 
-    return pd.concat([
-        s[s == grp].sample(cnt, replace=replace)
-        for grp, cnt in counts[counts > 0].iteritems()
-    ])
+    return pd.concat([s[s == grp].sample(cnt, replace=replace) for grp, cnt in counts[counts > 0].iteritems()])
 
 
-# pick random indexes from s without replacement
 def random_indexes(s, num, replace=False):
-    return np.random.choice(
-        np.repeat(s.index.values, s.values),
-        num,
-        replace=replace)
+# pick random indexes from s without replacement
+    return np.random.choice(np.repeat(s.index.values, s.values), num, replace=replace)
 
 
-# This method takes a series of floating point numbers, rounds to
-# integers (e.g. to while number households), while making sure to
-# meet the given target for the sum.  We're obviously going to lose
-# some resolution on the distrbution implied by s in order to meet
-# the target exactly
 def round_series_match_target(s, target, fillna=np.nan):
+# take a series of floating point numbers and round to integers (e.g. to a whole number households), while making sure to
+# meet the given target for the sum. Lose a bit of resoltion in order to meet the target exactly
     if target == 0 or s.sum() == 0:
         return s
     r = s.fillna(fillna).round().astype('int')
@@ -135,10 +71,9 @@ def round_series_match_target(s, target, fillna=np.nan):
     return r
 
 
-# scales (floating point ok) so that the sum of s if equal to
-# the specified target - pass check_close to verify that it's
-# within a certain range of the target
 def scale_by_target(s, target, check_close=None):
+# scale (floating point ok) so that the sum of s if equal to the specified target  
+# pass check_close to verify that it's within a certain range of the target
     ratio = float(target) / s.sum()
     if check_close:
         assert 1.0-check_close < ratio < 1.0+check_close
@@ -146,11 +81,9 @@ def scale_by_target(s, target, check_close=None):
 
 
 def constrained_normalization(marginals, constraint, total):
-    # this method increases the marginals to match the total while
-    # also meeting the matching constraint.  marginals should be
-    # scaled up proportionally.  it is possible that this method
-    # will fail if the sum of the constraint is less than the total
-
+# this method increases the marginals to match the total while also meeting the matching constraint.  marginals should be
+# scaled up proportionally.  it is possible that this method will fail if the sum of the constraint is less than the total
+    
     assert constraint.sum() >= total
 
     while 1:
@@ -173,21 +106,18 @@ def constrained_normalization(marginals, constraint, total):
 
         # scale up where unconstrained
         unconstrained_total = total - marginals[constrained].sum()
-        marginals[unconstrained] *= \
-            unconstrained_total / marginals[unconstrained].sum()
+        marginals[unconstrained] *= unconstrained_total / marginals[unconstrained].sum()
 
         # should have scaled up
         assert np.isclose(marginals.sum(), total)
 
 
-# this should be fairly self explanitory if you know ipf
-# seed_matrix is your best bet at the totals, col_marginals are
-# observed column marginals and row_marginals is the same for rows
 def simple_ipf(seed_matrix, col_marginals, row_marginals, tolerance=1, cnt=0):
+# iterative proportional fitting where:
+# seed_matrix is the totals, col_marginals are observed column marginals, and row_marginals is the same for rows
     assert np.absolute(row_marginals.sum() - col_marginals.sum()) < 5.0
 
-    # most numpy/pandas combinations will perform this conversion
-    # automatically, but explicit is safer - see PR #99
+    # most numpy/pandas combinations will perform this conversion automatically, but explicit is safer - see PR #99
     if isinstance(col_marginals, pd.Series):
         col_marginals = col_marginals.values
 
@@ -231,13 +161,12 @@ def get_combinations(nparray):
  
 
 def profit_to_prob_func(df):
-    # a custom profit to probability function where we test the combination of different metrics like return on cost and raw profit
-    # clip since we still might build negative profit buildings (when we're subsidizing them) and choice doesn't allow negative
-    # probability options
+# a custom profit to probability function where we test the combination of different metrics like return on cost and raw profit
+# clip since we still might build negative profit buildings (when we're subsidizing them) and choice doesn't allow negative
+# probability options
     max_profit = df.max_profit.clip(1)
 
-    factor = float(orca.get_injectable("settings")[
-        "profit_vs_return_on_cost_combination_factor"])
+    factor = float(orca.get_injectable("settings")["profit_vs_return_on_cost_combination_factor"])
 
     df['return_on_cost'] = max_profit / df.total_cost
 
