@@ -14,6 +14,10 @@ import orca_test
 import pandana
 
 
+# these are more simple forecasts to grow variables not modeled by UrbanSim's models (households and jobs)
+# these are generally variables needed by MAZ or TAZ for the travel model
+
+
 @orca.table(cache=True)
 def taz2_forecast_inputs(taz2_forecast_inputs, regional_demographic_forecast):
     t2fi = tax2_forecast_inputs.to_frame()
