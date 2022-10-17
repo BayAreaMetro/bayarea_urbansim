@@ -452,9 +452,8 @@ def ave_sqft_per_unit(parcels, zones, settings):
     return s
 
 
-# these are actually functions that take parameters,
-# but are parcel-related so are defined here
 @orca.injectable("parcel_sales_price_sqft_func", autocall=False)
+# these are actually functions that take parameters, but are parcel-related so are defined here
 def parcel_average_price(use, quantile=.5):
     if use == "residential":
         # get node price average and put it on parcels
@@ -576,18 +575,6 @@ def oldest_building_age(parcels, year):
 def is_sanfran(parcels_geography, buildings, parcels):
     return (parcels_geography.juris_name == "San Francisco").\
         reindex(parcels.index).fillna(False).astype('int')
-
-
-# returns a vector where parcels are ALLOWED to be built
-@orca.column('parcels')
-def parcel_rules(parcels):
-    # removes parcels with buildings built < 1940,
-    # and single family homes on less then half an acre
-    s = (parcels.oldest_building < 1940) | \
-        ((parcels.total_residential_units == 1) &
-        (parcels.parcel_acres < .5)) | \
-        (parcels.parcel_size < 2000)
-    return (~s.reindex(parcels.index).fillna(False)).astype('int')
 
 
 @orca.column('parcels', cache=True)
