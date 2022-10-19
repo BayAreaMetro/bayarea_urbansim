@@ -12,10 +12,15 @@ jobs_transition:
   
 
 # household relocation rates split by rent / own
-relocation_rates:
-  tenure:
-    - 1
-    - 2
-  probability_of_relocating:
-    - 0.28
-    - 0.79
+household relocation_rates:
+  own: 0.28
+  rent: 0.79
+
+# employment relocation rates by 6-sector job category
+employment_relocation_rates:
+  AGREMPN: 0.19
+  OTHEMPN: 0.19
+  MWTEMPN: 0.19
+  FPSEMPN: 0.19 
+  RETEMPN: 0.19 
+  HEREMPN: 0.19

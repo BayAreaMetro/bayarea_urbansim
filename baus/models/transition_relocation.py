@@ -33,7 +33,7 @@ def jobs_relocation(jobs, employment_relocation_rates, years_per_iter,
     # get buildings that are on those parcels
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
 
-    df = pd.merge(jobs.to_frame(["zone_id", "empsix"]), employment_relocation_rates.local, on=["zone_id", "empsix"], how="left")
+    df = jobs.empsix.map(transition_relocation["employment_relocation_rates"])
     df.index = jobs.index
 
     # get the move rate for each job
@@ -52,15 +52,11 @@ def jobs_relocation(jobs, employment_relocation_rates, years_per_iter,
 
 @orca.step()
 def household_relocation(households, household_relocation_rates, settings, static_parcels, buildings):
-    # WE'D set this to the cofig settings
-    # only to be modified through the adjusters or the policy file/scripts
 
     # get buildings that are on those parcels
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
 
-    # UPDATE to map rates by config: rent/own probability
-    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure"]), household_relocation_rates.local,
-                  on=["zone_id", "base_income_quartile", "tenure"], how="left")
+    df = households.tenure.map(transition_relocation["household_relocation_rates"])
     df.index = households.index
 
     # get random floats and move households if they're less than the rate

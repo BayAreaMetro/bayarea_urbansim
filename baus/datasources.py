@@ -326,9 +326,17 @@ def vmt_fee_categories():
       return
     return df
 
+
+
 @orca.table(cache=True)
 def accessory_units():
     return pd.read_csv("data/accessory_units.csv", index_col="juris")
+
+
+
+@orca.table(cache=True)
+def renter_protections(policy):
+    return pd.read_csv(os.path.join(misc.data_dir(), renter_protections_relocation_rates.csv))
 
 
 
@@ -371,8 +379,7 @@ def zoning_scenario(parcels_geography, mapping):
 
 @orca.table(cache=True)
 def jobs_housing_fees():
-    return pd.read_csv(
-        os.path.join(misc.data_dir(), "jobs_housing_fees.csv"))
+    return pd.read_csv(os.path.join(misc.data_dir(), "jobs_housing_fees.csv"))
 
 @orca.table(cache=True)
 def slr_parcel_inundation_mitigation():
@@ -546,8 +553,8 @@ def taz_household_relocation_():
     return pd.read_csv(os.path.join(misc.data_dir(), "taz_household_relocation.csv"), dtype={'TAZ': np.int64}, index_col="TAZ")
 
 @orca.table(cache=True)
-def employment_relocation_rates():
-    df = pd.read_csv(os.path.join("data", "employment_relocation_rates.csv"))
+def taz_employment_relocation():
+    df = pd.read_csv(os.path.join(misc.data_dir(), "employment_relocation_rates.csv"))
     df = df.set_index("zone_id").stack().reset_index()
     df.columns = ["zone_id", "empsix", "rate"]
     return df
