@@ -1,1 +1,1 @@
-[{"version": "main", "title": "main", "aliases": ["latest"]}, {"version": "generic_tracing_tools", "title": "generic_tracing_tools", "aliases": []}]
+[{"version": "scenario_agnostic_runsetup", "title": "scenario_agnostic_runsetup", "aliases": ["alias=latest"]}, {"version": "main", "title": "main", "aliases": ["latest"]}, {"version": "generic_tracing_tools", "title": "generic_tracing_tools", "aliases": []}]
