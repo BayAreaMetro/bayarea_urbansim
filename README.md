@@ -12,15 +12,16 @@ A legacy version of the documentation is saved in the [`legacy_gh_pages`](https:
 
 #### Install packages
 
-mkdocs: `pip install mkdocs`
-mike: `pip install mike`, `pip install mkdocs-autorefs`
-docstring support: `pip install mkdocstrings[python]`
+* mkdocs: `pip install mkdocs`
+* mike: `pip install mike`, `pip install mkdocs-autorefs`
+* mkdocs "material" template: `pip install mkdocs-material`
+* docstring support: `pip install mkdocstrings[python]`
 
 #### Create and update documentation for a non-documentation branch
 
 Below uses a hypothetical branch named "baus_v2" as an example:
 * while in branch "baus_v2", edit the `mkdocs.yml` file located in the repo's root dir, and the markdown files located in the "docs" folder
-* in cmd window, cd to the root dir, call `mike deploy [branch_name] [alias=latest]`, which will create a Github commit in branch "gh-pages". Two situations:
+* in Anaconda Prompt window, cd to the root dir ("bayarea_urbansim" dir of the said branch), call `mike deploy [branch_name] [alias=latest]`, which will create a Github commit in branch "gh-pages". Two situations:
 	* if this is the initial documentation publication of branch "baus_v2", it will create a new folder called "baus_v2" in the root dir of the "gh-pages" branch to host documentation contents, and also update the "latest" folder.  
 	* if this is updating the already published documentation of branch "baus_v2", it will push the updates to both folder "baus_v2" and folder "latest" in branch "gh-pages".
 * switch to branch "gh-pages", and push the commit to origin.
