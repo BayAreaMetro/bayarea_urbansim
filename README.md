@@ -27,3 +27,7 @@ Below uses a hypothetical branch named "baus_v2" as an example:
 * switch to branch "gh-pages", and push the commit to origin.
 
 Note that when mkdocs or mike deploys a documentation creation or update, it will create or update a folder called "site" to store documentation builds in the non-documentation branch. No need to check the documentation builds into the repository, therefore, may consider adding `site/` to `.gitignore`.
+
+To then make a branch's documentation the "main" branch's documentation:
+* merge the branch into main (the edit will go into main as well)
+* call mike deploy main [alias=latest] from the main branch
