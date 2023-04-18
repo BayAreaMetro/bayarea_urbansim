@@ -1,4 +1,4 @@
-DRAFT Bay Area UrbanSim (BAUS) Implementation
+Bay Area UrbanSim (BAUS) Implementation - Final Blueprint Release
 =======
 
 [![Build Status](https://travis-ci.org/UDST/bayarea_urbansim.svg?branch=master)](https://travis-ci.org/UDST/bayarea_urbansim)
