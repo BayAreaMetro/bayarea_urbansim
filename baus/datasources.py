@@ -37,81 +37,9 @@ def outputs_dir(run_setup):
     return run_setup['outputs_dir']
 
 
-@orca.injectable('paths', cache=True)
-def paths():
-    with open(os.path.join(misc.configs_dir(), "paths.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('accessibility_settings', cache=True)
-def accessibility_settings():
-    with open(os.path.join(misc.configs_dir(), "accessibility/accessibility_settings.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('transition_relocation_settings', cache=True)
-def transition_relocation_settings():
-    with open(os.path.join(misc.configs_dir(), "transition_relocation/transition_relocation_settings.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('profit_adjustment_strategies', cache=True)
-def profit_adjustment_strategies():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/profit_adjustment_strategies.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('account_strategies', cache=True)
-def account_strategies():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/account_strategies.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('development_caps', cache=True)
-def development_caps():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/development_caps.yaml")) as f:
-        return yaml.load(f)
-    
-    
-@orca.injectable('data_edits', cache=True)
-def data_edits():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/edits/data_edits.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('development_caps_asserted', cache=True)
-def development_caps_asserted():
-    with open(os.path.join(misc.configs_dir(), "adjusters/development_caps_asserted.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('zoning_adjusters', cache=True)
-def zoning_adjusters():
-    with open(os.path.join(misc.configs_dir(), "adjusters/zoning_adjusters.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('development_caps_strategy', cache=True)
-def development_caps_strategy():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/development_caps_strategy.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('inclusionary', cache=True)
-def inclusionary():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/inclusionary.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('inclusionary_strategy', cache=True)
-def inclusionary_strategy():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/inclusionary_strategy.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('preservation', cache=True)
-def preservation():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/preservation.yaml")) as f:
+@orca.injectable('policy', cache=True)
+def policy():
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "policy.yaml")) as f:
         return yaml.load(f)
 
 
@@ -121,35 +49,8 @@ def mapping():
         return yaml.load(f)
 
 
-@orca.injectable('cost_shifters', cache=True)
-def cost_shifters():
-    with open(os.path.join(misc.configs_dir(), "adjusters/cost_shifters.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('developer_settings', cache=True)
-def developer_settings():
-    with open(os.path.join(misc.configs_dir(), "developer/developer_settings.yaml")) as f:
-        return yaml.load(f)
-
-
-@orca.injectable('price_settings', cache=True)
-def price_settings():
-    with open(os.path.join(misc.configs_dir(), "hedonics/price_settings.yaml")) as f:
-        return yaml.load(f)
-
-
 # now that there are new settings files, override the locations of certain
 # settings already defined in urbansim_defaults
-
-# this just adds some of the BAUS settings to a master "settings", since the urbansim code looks for them there
-@orca.injectable("settings")
-def settings(mapping, transition_relocation_settings):
-    settings = mapping.copy()
-    settings.update(transition_relocation_settings)    
-    return settings
-
-
 @orca.injectable("building_type_map")
 def building_type_map(mapping):
     return mapping["building_type_map"]
@@ -176,26 +77,23 @@ def final_year():
 
 
 @orca.injectable(cache=True)
-def store(paths):
-    return pd.HDFStore(os.path.join(orca.get_injectable("inputs_dir"), paths["store"]))
+def store(settings):
+    return pd.HDFStore(os.path.join(orca.get_injectable("inputs_dir"), settings["store"]))
 
 
 @orca.injectable(cache=True)
-def limits_settings(development_caps, run_setup):
+def limits_settings(policy, run_setup):
     # for limits, we inherit from the default settings, and update these with the policy settings, if applicable
     # limits set the annual maximum number of job spaces or residential units that may be built in a geography
 
-    d = development_caps['development_limits']["default"]
-    if run_setup["asserted_development_caps"]:
-        development_caps_asserted = orca.get_injectable("development_caps_asserted")
-        d2 = development_caps_asserted['development_limits']["default"]
-        d.update(d2)
+    d = policy['development_limits']
 
     if run_setup['run_job_cap_strategy']:
         print("Applying job caps")
-        development_caps_strategy = orca.get_injectable("development_caps_strategy")
-        d_jc = development_caps_strategy['development_limits']["job_cap_strategy"]
+        assert "default" in d
 
+        d_jc = d["job_cap_strategy"]
+        d = d["default"]
         for key, value in d_jc.items():
             d.setdefault(key, {})
             d[key].update(value)
@@ -203,19 +101,21 @@ def limits_settings(development_caps, run_setup):
         return d
 
     print("Using default limits")
-    return d
+    return d["default"]
 
 
 @orca.injectable(cache=True)
-def inclusionary_housing_settings(inclusionary, run_setup):
+def inclusionary_housing_settings(policy, run_setup):
     # for inclusionary housing, there is no inheritance from the default inclusionary settings
     # this means existing inclusionary levels in the base year don't apply in the policy application...
 
+    s = policy['inclusionary_housing_settings']
+
     if run_setup["run_inclusionary_strategy"]:
-        inclusionary_strategy = orca.get_injectable("inclusionary_strategy")
-        s = inclusionary_strategy['inclusionary_housing_settings']["inclusionary_strategy"]
-    else:
-        s = inclusionary['inclusionary_housing_settings']["default"]
+        s = s["inclusionary_strategy"]
+    elif "default" in s.keys():
+        print("Using default inclusionary settings")
+        s = s["default"]
 
     d = {}
     for item in s:
@@ -228,15 +128,15 @@ def inclusionary_housing_settings(inclusionary, run_setup):
 
 
 @orca.injectable(cache=True)
-def building_sqft_per_job(developer_settings):
-    return developer_settings['building_sqft_per_job']
+def building_sqft_per_job(settings):
+    return settings['building_sqft_per_job']
 
 
 @orca.step()
-def fetch_from_s3(paths):
+def fetch_from_s3(settings):
     import boto
     # fetch files from s3 based on config in settings.yaml
-    s3_settings = paths["s3_settings"]
+    s3_settings = settings["s3_settings"]
 
     conn = boto.connect_s3()
     bucket = conn.get_bucket(s3_settings["bucket"], validate=False)
@@ -253,14 +153,16 @@ def fetch_from_s3(paths):
 # key locations in the Bay Area for use as attractions in the models
 @orca.table(cache=True)
 def landmarks():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'accessibility/pandana/landmarks.csv'),
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'landmarks.csv'),
                        index_col="name")
 
 
 @orca.table(cache=True)
 def baseyear_taz_controls():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/baseyear_taz_controls.csv"),
-                       dtype={'taz1454': np.int64}, index_col="taz1454")
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"),
+                                    "baseyear_taz_controls.csv"),
+                       dtype={'taz1454': np.int64},
+                       index_col="taz1454")
 
 
 @orca.table(cache=True)
@@ -277,7 +179,7 @@ def base_year_summary_taz(mapping):
 # non-residential rent data
 @orca.table(cache=True)
 def costar(store, parcels):
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'basis_inputs/parcels_buildings_agents/2015_08_29_costar.csv'))
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), '2015_08_29_costar.csv'))
 
     df["PropertyType"] = df.PropertyType.replace("General Retail", "Retail")
     df = df[df.PropertyType.isin(["Office", "Retail", "Industrial"])]
@@ -288,7 +190,10 @@ def costar(store, parcels):
     df = df.dropna(subset=["costar_rent", "Latitude", "Longitude"])
 
     # now assign parcel id
-    df["parcel_id"] = nearest_neighbor(parcels.to_frame(['x', 'y']).dropna(subset=['x', 'y']), df[['Longitude', 'Latitude']])
+    df["parcel_id"] = nearest_neighbor(
+        parcels.to_frame(['x', 'y']).dropna(subset=['x', 'y']),
+        df[['Longitude', 'Latitude']]
+    )
 
     return df
 
@@ -296,16 +201,16 @@ def costar(store, parcels):
 @orca.table(cache=True)
 def zoning_lookup():
     
-    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/2020_11_05_zoning_lookup_hybrid_pba50.csv")
+    file = os.path.join(orca.get_injectable("inputs_dir"), "2020_11_05_zoning_lookup_hybrid_pba50.csv")
     print('Version of zoning_lookup: {}'.format(file))
     
     return pd.read_csv(file, dtype={'id': np.int64}, index_col='id')
 
 
 @orca.table(cache=True)
-def zoning_existing(parcels, zoning_lookup):
+def zoning_existing(parcels, zoning_lookup, settings):
 
-    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/2020_11_05_zoning_parcels_hybrid_pba50.csv")
+    file = os.path.join(orca.get_injectable("inputs_dir"), "2020_11_05_zoning_parcels_hybrid_pba50.csv")
     print('Version of zoning_parcels: {}'.format(file))
 
     df = pd.read_csv(file, dtype={'geom_id':   np.int64, 'PARCEL_ID': np.int64, 'zoning_id': np.int64}, index_col="geom_id")
@@ -317,84 +222,102 @@ def zoning_existing(parcels, zoning_lookup):
 
 
 @orca.table(cache=True)
-def proportional_retail_jobs_forecast():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/proportional_retail_jobs_forecast.csv"), 
-                       index_col="juris")
-
-
-@orca.table(cache=True)
-def proportional_gov_ed_jobs_forecast():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/proportional_gov_ed_jobs_forecast.csv"), 
-                       index_col="Taz")
-
-
-@orca.table(cache=True)
 def new_tpp_id():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/edits/tpp_id_2016.csv"),
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "tpp_id_2016.csv"),
                        index_col="parcel_id")
 
 
 @orca.table(cache=True)
 def maz():
-    maz = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/maz_geography.csv"),
-                      dtype={'MAZ': np.int64, 'TAZ': np.int64})
+    maz = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "maz_geography.csv"),
+                      dtype={'MAZ': np.int64,
+                             'TAZ': np.int64})
     maz = maz.drop_duplicates('MAZ').set_index('MAZ')
-    taz1454 = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/maz22_taz1454.csv"),
-                          dtype={'maz': np.int64, 'TAZ1454': np.int64}, index_col='maz')
+    taz1454 = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "maz22_taz1454.csv"),
+                          dtype={'maz':     np.int64,
+                                 'TAZ1454': np.int64},
+                          index_col='maz')
     maz['taz1454'] = taz1454.TAZ1454
     return maz
 
 
 @orca.table(cache=True)
 def parcel_to_maz():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/2020_08_17_parcel_to_maz22.csv"),
-                       dtype={'PARCEL_ID': np.int64, 'maz': np.int64}, index_col="PARCEL_ID")
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"),
+                                    "2020_08_17_parcel_to_maz22.csv"),
+                       dtype={'PARCEL_ID': np.int64,
+                              'maz':       np.int64},
+                       index_col="PARCEL_ID")
 
 
 @orca.table(cache=True)
-def tm2_occupation_shares():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm2_occupation_shares.csv"))
+def county_forecast_inputs():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"),
+                                    "county_forecast_inputs.csv"),
+                       index_col="COUNTY")
 
 
 @orca.table(cache=True)
-def tm2_taz2_forecast_inputs(tm1_tm2_regional_demographic_forecast):
-    t2fi = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm2_taz2_forecast_inputs.csv"), 
-                       dtype={'TAZ': np.int64}, index_col='TAZ').replace('#DIV/0!', np.nan)
+def county_employment_forecast():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"),
+                       "county_employment_forecast.csv"))
 
-    rdf = tm1_tm2_regional_demographic_forecast.to_frame()
+
+@orca.table(cache=True)
+def taz2_forecast_inputs(regional_demographic_forecast):
+    t2fi = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"),
+                                    "taz2_forecast_inputs.csv"),
+                       dtype={'TAZ': np.int64},
+                       index_col='TAZ').replace('#DIV/0!', np.nan)
+
+    rdf = regional_demographic_forecast.to_frame()
     # apply regional share of hh by size to MAZs with no households in 2010
-    t2fi.loc[t2fi.shrw0_2010.isnull(), 'shrw0_2010'] = rdf.loc[rdf.year == 2010, 'shrw0'].values[0]
-    t2fi.loc[t2fi.shrw1_2010.isnull(), 'shrw1_2010'] = rdf.loc[rdf.year == 2010, 'shrw1'].values[0]
-    t2fi.loc[t2fi.shrw2_2010.isnull(), 'shrw2_2010'] = rdf.loc[rdf.year == 2010, 'shrw2'].values[0]
-    t2fi.loc[t2fi.shrw3_2010.isnull(), 'shrw3_2010'] = rdf.loc[rdf.year == 2010, 'shrw3'].values[0]
+    t2fi.loc[t2fi.shrw0_2010.isnull(),
+             'shrw0_2010'] = rdf.loc[rdf.year == 2010, 'shrw0'].values[0]
+    t2fi.loc[t2fi.shrw1_2010.isnull(),
+             'shrw1_2010'] = rdf.loc[rdf.year == 2010, 'shrw1'].values[0]
+    t2fi.loc[t2fi.shrw2_2010.isnull(),
+             'shrw2_2010'] = rdf.loc[rdf.year == 2010, 'shrw2'].values[0]
+    t2fi.loc[t2fi.shrw3_2010.isnull(),
+             'shrw3_2010'] = rdf.loc[rdf.year == 2010, 'shrw3'].values[0]
 
     # apply regional share of persons by age category
-    t2fi.loc[t2fi.shra1_2010.isnull(), 'shra1_2010'] = rdf.loc[rdf.year == 2010, 'shra1'].values[0]
-    t2fi.loc[t2fi.shra2_2010.isnull(), 'shra2_2010'] = rdf.loc[rdf.year == 2010, 'shra2'].values[0]
-    t2fi.loc[t2fi.shra3_2010.isnull(), 'shra3_2010'] = rdf.loc[rdf.year == 2010, 'shra3'].values[0]
-    t2fi.loc[t2fi.shra4_2010.isnull(), 'shra4_2010'] = rdf.loc[rdf.year == 2010, 'shra4'].values[0]
+    t2fi.loc[t2fi.shra1_2010.isnull(),
+             'shra1_2010'] = rdf.loc[rdf.year == 2010, 'shra1'].values[0]
+    t2fi.loc[t2fi.shra2_2010.isnull(),
+             'shra2_2010'] = rdf.loc[rdf.year == 2010, 'shra2'].values[0]
+    t2fi.loc[t2fi.shra3_2010.isnull(),
+             'shra3_2010'] = rdf.loc[rdf.year == 2010, 'shra3'].values[0]
+    t2fi.loc[t2fi.shra4_2010.isnull(),
+             'shra4_2010'] = rdf.loc[rdf.year == 2010, 'shra4'].values[0]
 
     # apply regional share of hh by presence of children
-    t2fi.loc[t2fi.shrn_2010.isnull(), 'shrn_2010'] = rdf.loc[rdf.year == 2010, 'shrn'].values[0]
-    t2fi.loc[t2fi.shry_2010.isnull(), 'shry_2010'] = rdf.loc[rdf.year == 2010, 'shry'].values[0]
+    t2fi.loc[t2fi.shrn_2010.isnull(),
+             'shrn_2010'] = rdf.loc[rdf.year == 2010, 'shrn'].values[0]
+    t2fi.loc[t2fi.shry_2010.isnull(),
+             'shry_2010'] = rdf.loc[rdf.year == 2010, 'shry'].values[0]
 
-    t2fi[['shrw0_2010', 'shrw1_2010', 'shrw2_2010', 'shrw3_2010', 'shra1_2010', 'shra2_2010', 'shra3_2010', 'shra4_2010', 'shrn_2010',
-          'shry_2010']] = t2fi[['shrw0_2010', 'shrw1_2010', 'shrw2_2010', 'shrw3_2010', 'shra1_2010', 'shra2_2010', 'shra3_2010', 
-                                'shra4_2010', 'shrn_2010', 'shry_2010']].astype('float')
-
+    t2fi[['shrw0_2010', 'shrw1_2010', 'shrw2_2010', 'shrw3_2010',
+          'shra1_2010', 'shra2_2010', 'shra3_2010', 'shra4_2010', 'shrn_2010',
+          'shry_2010']] = t2fi[['shrw0_2010', 'shrw1_2010', 'shrw2_2010',
+                                'shrw3_2010', 'shra1_2010', 'shra2_2010',
+                                'shra3_2010', 'shra4_2010', 'shrn_2010',
+                                'shry_2010']].astype('float')
     return t2fi
 
 
 @orca.table(cache=True)
-def tm2_emp27_employment_shares():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm2_emp27_employment_shares.csv"))
+def empsh_to_empsix():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "empsh_to_empsix.csv"))
 
 
 @orca.table(cache=True)
-def tm1_tm2_maz_forecast_inputs(tm1_tm2_regional_demographic_forecast):
-    rdf = tm1_tm2_regional_demographic_forecast.to_frame()
-    mfi = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm1_tm2_maz_forecast_inputs.csv"),
-                      dtype={'MAZ': np.int64}, index_col='MAZ').replace('#DIV/0!', np.nan)
+def maz_forecast_inputs(regional_demographic_forecast):
+    rdf = regional_demographic_forecast.to_frame()
+    mfi = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"),
+                                   "maz_forecast_inputs.csv"),
+                      dtype={'MAZ': np.int64},
+                      index_col='MAZ').replace('#DIV/0!', np.nan)
 
     # apply regional share of hh by size to MAZs with no households in 2010
     mfi.loc[mfi.shrs1_2010.isnull(),
@@ -415,7 +338,7 @@ def tm1_tm2_maz_forecast_inputs(tm1_tm2_regional_demographic_forecast):
 @orca.table(cache=True)
 def zoning_strategy(parcels_geography, mapping):
 
-    strategy_zoning = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/zoning_mods.csv'))
+    strategy_zoning = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'zoning_mods.csv'))
 
     for k in mapping["building_type_map"].keys():
         strategy_zoning[k] = np.nan
@@ -433,7 +356,10 @@ def zoning_strategy(parcels_geography, mapping):
     join_col = 'zoningmodcat'
     print('join_col of zoningmods is {}'.format(join_col))
 
-    return pd.merge(parcels_geography.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('parcel_id')
+    return pd.merge(parcels_geography.to_frame().reset_index(),
+                    strategy_zoning,
+                    on=join_col,
+                    how='left').set_index('parcel_id')
 
 
 @orca.table(cache=True)
@@ -468,15 +394,15 @@ def parcel_rejections():
 
 
 @orca.table(cache=True)
-def parcels_geography(parcels):
+def parcels_geography(parcels, settings, policy):
 
-    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/2021_02_25_parcels_geography.csv")
+    file = os.path.join(orca.get_injectable("inputs_dir"), "2021_02_25_parcels_geography.csv")
     print('Versin of parcels_geography: {}'.format(file))
     df = pd.read_csv(file, dtype={'PARCEL_ID': np.int64, 'geom_id': np.int64, 'jurisdiction_id': np.int64},index_col="geom_id")
     df = geom_id_to_parcel_id(df, parcels)
 
     # this will be used to map juris id to name
-    juris_name = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/census_id_to_name.csv"),
+    juris_name = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "census_id_to_name.csv"),
                              dtype={'census_id': np.int64}, index_col="census_id").name10
 
     df["juris_name"] = df.jurisdiction_id.map(juris_name)
@@ -506,19 +432,20 @@ def parcels_geography(parcels):
 
 @orca.table(cache=True)
 def parcels_subzone():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'basis_inputs/crosswalks/2020_08_17_parcel_to_taz1454sub.csv'),
-                       usecols=['taz_sub', 'PARCEL_ID', 'county'], dtype={'PARCEL_ID': np.int64}, index_col='PARCEL_ID')
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"),
+                                    '2020_08_17_parcel_to_taz1454sub.csv'),
+                       usecols=['taz_sub', 'PARCEL_ID', 'county'],
+                       dtype={'PARCEL_ID': np.int64},
+                       index_col='PARCEL_ID')
 
 
 @orca.table(cache=False)
 def mandatory_accessibility(year, run_setup):
 
     if year in run_setup['logsum_period1']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/mandatoryAccessibilities_{}.csv").format(run_setup['logsum_year1']))
+        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "mandatoryAccessibilities_{}.csv").format(run_setup['logsum_year1']))
     elif year in run_setup['logsum_period2']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/mandatoryAccessibilities_{}.csv").format(run_setup['logsum_year2']))
+        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "mandatoryAccessibilities_{}.csv").format(run_setup['logsum_year2']))
 
     df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
     df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
@@ -532,11 +459,9 @@ def mandatory_accessibility(year, run_setup):
 def non_mandatory_accessibility(year, run_setup):
 
     if year in run_setup['logsum_period1']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/nonMandatoryAccessibilities_{}.csv").format(run_setup['logsum_year1']))
+        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "nonMandatoryAccessibilities_{}.csv").format(run_setup['logsum_year1']))
     elif year in run_setup['logsum_period2']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/nonmandatoryAccessibilities_{}.csv").format(run_setup['logsum_year2']))
+        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "nonmandatoryAccessibilities_{}.csv").format(run_setup['logsum_year2']))
 
     df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
     df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
@@ -550,11 +475,9 @@ def non_mandatory_accessibility(year, run_setup):
 def accessibilities_segmentation(year, run_setup):
 
     if year in run_setup['logsum_period1']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/AccessibilityMarkets_{}.csv").format(run_setup['logsum_year1']))
+        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "AccessibilityMarkets_{}.csv").format(run_setup['logsum_year1']))
     elif year in run_setup['logsum_period2']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/AccessibilityMarkets_{}.csv").format(run_setup['logsum_year2']))
+        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "AccessibilityMarkets_{}.csv").format(run_setup['logsum_year2']))
 
     df['AV'] = df['hasAV'].apply(lambda x: 'AV' if x == 1 else 'noAV')
     df['label'] = (df['incQ_label'] + '_' + df['autoSuff_label'] + '_' + df['AV'])
@@ -567,7 +490,7 @@ def accessibilities_segmentation(year, run_setup):
 
 @orca.table(cache=True)
 def manual_edits():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/edits/manual_edits.csv"))
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "manual_edits.csv"))
 
 
 def reprocess_dev_projects(df):
@@ -587,8 +510,7 @@ def reprocess_dev_projects(df):
 
 # shared between demolish and build tables below
 def get_dev_projects_table(parcels):
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                     "basis_inputs/parcels_buildings_agents/2021_0309_1939_development_projects.csv"), 
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "2021_0309_1939_development_projects.csv"), 
                      dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
     df = reprocess_dev_projects(df)
     orca.add_injectable("devproj_len", len(df))
@@ -611,7 +533,7 @@ def get_dev_projects_table(parcels):
 
 
 @orca.table(cache=True)
-def demolish_events(parcels):
+def demolish_events(parcels, settings):
     df = get_dev_projects_table(parcels)
 
     # keep demolish and build records
@@ -693,12 +615,15 @@ def residential_units(store):
 
 @orca.table(cache=True)
 def household_controls_unstacked():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls/household_controls.csv"), index_col='year')
+    orca.add_injectable("household_control_file", "household_controls.csv")
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "household_controls.csv"),
+                       index_col='year')
 
 
 @orca.table(cache=True)
-def tm1_tm2_regional_demographic_forecast():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm1_tm2_regional_demographic_forecast.csv"))
+def regional_demographic_forecast():
+    orca.add_injectable("reg_dem_control_file", "regional_demographic_forecast.csv")
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_demographic_forecast.csv"))
 
 
 # the following overrides household_controls
@@ -717,17 +642,14 @@ def household_controls(household_controls_unstacked):
 
 @orca.table(cache=True)
 def employment_controls_unstacked():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls/employment_controls.csv"), index_col='year')
+    orca.add_injectable("employment_control_file", "employment_controls.csv")
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "employment_controls.csv"), index_col='year')
 
 
 @orca.table(cache=True)
-def tm1_tm2_regional_controls():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm1_tm2_regional_controls.csv"), index_col="year")
-
-
-@orca.table(cache=True)
-def residential_vacancy_rate_mods():
-    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters/residential_vacancy_rate_mods.csv"), index_col="year")
+def regional_controls():
+    orca.add_injectable("reg_control_file", "regional_controls.csv")
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls.csv"), index_col="year")
 
 
 # the following overrides employment_controls
@@ -745,48 +667,74 @@ def employment_controls(employment_controls_unstacked):
 
 
 @orca.table(cache=True)
-def tm1_taz1_forecast_inputs():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm1_taz1_forecast_inputs.csv"), 
-                       dtype={'TAZ1454': np.int64, 'zone_id': np.int64})
+def zone_forecast_inputs():
+    return pd.read_csv(
+        os.path.join(orca.get_injectable("inputs_dir"), "zone_forecast_inputs.csv"),
+        dtype={'zone_id': np.int64},
+        index_col="zone_id")
+
+
+@orca.table(cache=True)
+def taz_forecast_inputs():
+    return pd.read_csv(
+        os.path.join(orca.get_injectable("inputs_dir"), "taz_forecast_inputs.csv"),
+        dtype={'TAZ1454': np.int64},
+        index_col="TAZ1454")
 
 
 # this is the set of categories by zone of sending and receiving zones
 # in terms of vmt fees
 @orca.table(cache=True)
 def vmt_fee_categories():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/vmt_fee_zonecats.csv"), dtype={'taz': np.int64},
-                       index_col="taz")
+    return pd.read_csv(
+        os.path.join(orca.get_injectable("inputs_dir"), "vmt_fee_zonecats.csv"),
+        dtype={'taz': np.int64},
+        index_col="taz")
 
 
 @orca.table(cache=True)
-def superdistricts_geography(): 
-	return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/superdistricts_geography.csv"), index_col="number")
+def superdistricts(): 
+	superdistricts = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "superdistricts.csv"), index_col="number")
+	orca.add_injectable("sqft_per_job_settings", "default")
+	return superdistricts
 
 
 @orca.table(cache=True)
-def sqft_per_job_adjusters(): 
-    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters/sqft_per_job_adjusters.csv"), index_col="number")
+def abag_targets():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "abag_targets.csv"))
 
 
 @orca.table(cache=True)
-def telecommute_sqft_per_job_adjusters(): 
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/telecommute_sqft_per_job_adjusters.csv"), index_col="number")
-
-
-@orca.table(cache=True)
-def taz_geography(superdistricts_geography, mapping):
-    tg = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/taz_geography.csv"),
-                     dtype={'zone': np.int64, 'superdistrcit': np.int64, 'county': np.int64}, index_col="zone")
+def taz_geography(superdistricts, mapping):
+    tg = pd.read_csv(
+        os.path.join(orca.get_injectable("inputs_dir"), "taz_geography.csv"),
+        dtype={'zone':          np.int64,
+               'superdistrcit': np.int64,
+               'county':        np.int64},
+        index_col="zone")
     cmap = mapping["county_id_tm_map"]
     tg['county_name'] = tg.county.map(cmap)
 
     # we want "subregion" geography on the taz_geography table
-    # we have to go get it from the superdistricts_geography table and join
+    # we have to go get it from the superdistricts table and join
     # using the superdistrcit id
-    tg["subregion_id"] = superdistricts_geography.subregion.loc[tg.superdistrict].values
-    tg["subregion"] = tg.subregion_id.map({1: "Core", 2: "Urban", 3: "Suburban", 4: "Rural"})
-
+    tg["subregion_id"] = \
+        superdistricts.subregion.loc[tg.superdistrict].values
+    tg["subregion"] = tg.subregion_id.map({
+        1: "Core",
+        2: "Urban",
+        3: "Suburban",
+        4: "Rural"
+    })
     return tg
+
+
+@orca.table(cache=True)
+def taz2_price_shifters():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"),
+                                    "taz2_price_shifters.csv"),
+                       dtype={'TAZ': np.int64},
+                       index_col="TAZ")
 
 
 # these are shapes - "zones" in the bay area
@@ -799,7 +747,7 @@ def zones(store):
 # SLR progression by year
 @orca.table(cache=True)
 def slr_progression():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_progression.csv"))
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "slr_progression.csv"))
 
 
 # SLR inundation levels for parcels
@@ -807,7 +755,7 @@ def slr_progression():
 # or a committed projects + policy projects mitigation applied
 @orca.table(cache=True)
 def slr_parcel_inundation():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_parcel_inundation.csv"),
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "slr_parcel_inundation.csv"),
                        dtype={'parcel_id': np.int64}, index_col='parcel_id')
 
 
@@ -831,46 +779,20 @@ def tracts_earthquake():
 # override urbansim_defaults which looks for this in data/
 @orca.table(cache=True)
 def logsums():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "accessibility/pandana/logsums.csv"), index_col="taz")
-
-
-@orca.table(cache=True)
-def employment_relocation_rates():
-    df = pd.read_csv(os.path.join(misc.configs_dir(), "transition_relocation/employment_relocation_rates.csv"))
-    df = df.set_index("zone_id")
-    return df
-
-
-@orca.table(cache=True)
-def employment_relocation_rates_adjusters():
-    df = pd.read_csv(os.path.join(misc.configs_dir(), "adjusters/employment_relocation_rates_overwrites.csv"))
-    df = df.set_index("zone_id")
-    return df
-
-
-@orca.table(cache=True)
-def household_relocation_rates():
-    df = pd.read_csv(os.path.join(misc.configs_dir(), "transition_relocation/household_relocation_rates.csv"))
-    return df
-
-
-@orca.table(cache=True)
-def renter_protections_relocation_rates():
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/renter_protections_relocation_rates_overwrites.csv"))
-    return df
-
-
-@orca.table(cache=True)
-def accessory_units():
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/accessory_units.csv"), index_col="juris")
-    return df
+    return pd.read_csv(
+        os.path.join(orca.get_injectable("inputs_dir"), "logsums.csv"), index_col="taz")
 
 
 # this specifies the relationships between tables
-orca.broadcast('buildings', 'residential_units', cast_index=True, onto_on='building_id')
-orca.broadcast('residential_units', 'households', cast_index=True, onto_on='unit_id')
-orca.broadcast('parcels_geography', 'buildings', cast_index=True, onto_on='parcel_id')
-orca.broadcast('parcels', 'buildings', cast_index=True, onto_on='parcel_id')
+orca.broadcast('buildings', 'residential_units', cast_index=True,
+               onto_on='building_id')
+orca.broadcast('residential_units', 'households', cast_index=True,
+               onto_on='unit_id')
+orca.broadcast('parcels_geography', 'buildings', cast_index=True,
+               onto_on='parcel_id')
+orca.broadcast('parcels', 'buildings', cast_index=True,
+               onto_on='parcel_id')
 # not defined in urbansim_Defaults
 orca.broadcast('tmnodes', 'buildings', cast_index=True, onto_on='tmnode_id')
-orca.broadcast('taz_geography', 'parcels', cast_index=True, onto_on='zone_id')
+orca.broadcast('taz_geography', 'parcels', cast_index=True,
+               onto_on='zone_id')
