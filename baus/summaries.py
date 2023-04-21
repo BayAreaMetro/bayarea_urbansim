@@ -216,12 +216,6 @@ def topsheet(households, jobs, buildings, parcels, zones, year, run_number, taz_
         write("Current share of units which are greenfield development:\n%s" %
               norm_and_round(df.residential_units.groupby(greenfield).sum()))
 
-    cmap = mapping["county_id_tm_map"]
-    jobs_by_county = jobs.zone_id.map(taz_geography.county).map(cmap).value_counts()
-    households_by_county = households.zone_id.map(taz_geography.county).map(cmap).value_counts()
-    jobs_by_housing = jobs_by_county / households_by_county.replace(0, 1)
-    write("Jobs/housing balance:\n" + str(jobs_by_housing))
-
     f.close()
 
 
@@ -488,18 +482,6 @@ def geographic_summary(parcels, households, jobs, buildings, run_setup, run_numb
             format(run_number, year))
         df.to_csv(uf_summary_csv)
 
-    # Summarize Logsums
-    if year in [2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050]:
-        zones = orca.get_table('zones')
-        df = zones.to_frame(['zone_cml', 'zone_cnml', 'zone_combo_logsum'])
-        df.to_csv(os.path.join(orca.get_injectable("outputs_dir"),
-                               "run%d_taz_logsums_%d.csv"
-                               % (run_number, year)))
-        parcels = orca.get_table('parcels')
-        df = parcels.to_frame(['cml', 'cnml', 'combo_logsum'])
-        df.to_csv(os.path.join(orca.get_injectable("outputs_dir"),
-                               "run%d_parcel_logsums_%d.csv"
-                               % (run_number, year)))
 
 @orca.step()
 def building_summary(parcels, run_number, year,
@@ -550,31 +532,31 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
     join_col = 'zoningmodcat'
     
     if join_col in parcels_geography.to_frame().columns:
-        parcel_gg = parcels_geography.to_frame(["parcel_id", join_col, "juris"])
-        df = df.merge(parcel_gg, on='parcel_id', how='left')
+        parcel_gg = parcels_geography.to_frame(["geo_id", join_col, "juris"])
+        df = df.merge(parcel_gg, on='geo_id', how='left')
 
-    households_df = orca.merge_tables('households', [buildings, households], columns=['parcel_id', 'base_income_quartile'])
+    households_df = orca.merge_tables('households', [buildings, households], columns=['geo_id', 'base_income_quartile'])
 
     # add households by quartile on each parcel
     for i in range(1, 5):
-        df['hhq%d' % i] = households_df[households_df.base_income_quartile == i].parcel_id.value_counts()
-    df["tothh"] = households_df.groupby('parcel_id').size()
+        df['hhq%d' % i] = households_df[households_df.base_income_quartile == i].geo_id.value_counts()
+    df["tothh"] = households_df.groupby('geo_id').size()
 
     building_df = orca.merge_tables('buildings', [parcels, buildings],
-                                    columns=['parcel_id', 'residential_units', 'deed_restricted_units', 
+                                    columns=['geo_id', 'residential_units', 'deed_restricted_units', 
                                              'preserved_units', 'inclusionary_units', 'subsidized_units'])
-    df['residential_units'] = building_df.groupby('parcel_id')['residential_units'].sum()
-    df['deed_restricted_units'] = building_df.groupby('parcel_id')['deed_restricted_units'].sum()
-    df['preserved_units'] = building_df.groupby('parcel_id')['preserved_units'].sum()
-    df['inclusionary_units'] = building_df.groupby('parcel_id')['inclusionary_units'].sum()
-    df['subsidized_units'] = building_df.groupby('parcel_id')['subsidized_units'].sum()
+    df['residential_units'] = building_df.groupby('geo_id')['residential_units'].sum()
+    df['deed_restricted_units'] = building_df.groupby('geo_id')['deed_restricted_units'].sum()
+    df['preserved_units'] = building_df.groupby('geo_id')['preserved_units'].sum()
+    df['inclusionary_units'] = building_df.groupby('geo_id')['inclusionary_units'].sum()
+    df['subsidized_units'] = building_df.groupby('geo_id')['subsidized_units'].sum()
 
-    jobs_df = orca.merge_tables('jobs', [buildings, jobs], columns=['parcel_id', 'empsix'])
+    jobs_df = orca.merge_tables('jobs', [buildings, jobs], columns=['geo_id', 'empsix'])
 
     # add jobs by empsix category on each parcel
     for cat in jobs_df.empsix.unique():
-        df[cat] = jobs_df[jobs_df.empsix == cat].parcel_id.value_counts()
-    df["totemp"] = jobs_df.groupby('parcel_id').size()
+        df[cat] = jobs_df[jobs_df.empsix == cat].geo_id.value_counts()
+    df["totemp"] = jobs_df.groupby('geo_id').size()
 
     df.to_csv(os.path.join(orca.get_injectable("outputs_dir"), "run%d_parcel_data_%d.csv" % (run_number, year)))
 
@@ -585,7 +567,7 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
         # do diff with initial year
 
         df2 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "run%d_parcel_data_%d.csv" %
-                          (run_number, initial_year)), index_col="parcel_id")
+                          (run_number, initial_year)), index_col="geo_id")
 
         for col in df.columns:
 
@@ -637,34 +619,25 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
                                         format(run_number, geo_1 + geo_2)))
 
 @orca.step()
-def travel_model_output(parcels, households, jobs, buildings, zones, maz, year, summary, final_year,
-                        tm1_taz1_forecast_inputs, run_number, base_year_summary_taz, taz_geography,
+def travel_model_output(parcels, households, jobs, buildings, year, summary, final_year,
+                        tm1_taz1_forecast_inputs, run_number, base_year_summary_taz, travel_model_zones,
                         tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls):
 
-    if year not in [2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050]:
-        # only summarize for years which are multiples of 5
-        return
 
-    parcels = parcels.to_frame()
-    parcels["zone_id_x"] = parcels.zone_id
-    orca.add_table('parcels', parcels)
-    parcels = orca.get_table("parcels")
+    parcels = parcels.to_frame().merge(travel_model_zones, on='geo_id', columns=["taz_tm1", "maz_tm2"])
 
-    households_df = orca.merge_tables('households',
+    households_df = orca.merge_tables('households', 
                                       [parcels, buildings, households],
-                                      columns=['zone_id', 'zone_id_x',
+                                      columns=['taz_tm1',
                                                'base_income_quartile',
                                                'income', 'persons',
                                                'maz_id'])
 
-    households_df["zone_id"] = households_df.zone_id_x
+    taz_tm1_df = pd.DataFrame(index=travel_model_zones.taz_tm1.unique().index)
 
-    taz_df = pd.DataFrame(index=zones.index)
-
-    taz_df["sd"] = taz_geography.superdistrict
-    taz_df["zone"] = zones.index
-    taz_df["county"] = taz_geography.county
-    taz_df["county_name"] = taz_geography.county_name
+    taz_tm1_df["zone"] = zones.index
+    taz_tm1_df["sd"] = taz_geography.superdistrict
+    taz_tm1_df["county"] = taz_geography.county
 
     jobs_df = orca.merge_tables(
         'jobs',
@@ -672,72 +645,55 @@ def travel_model_output(parcels, households, jobs, buildings, zones, maz, year, 
         columns=['zone_id', 'zone_id_x', 'empsix']
     )
 
-    # totally baffled by this - after joining the three tables we have three
-    # zone_ids, one from the parcel table, one from buildings, and one from
-    # jobs and the one called zone_id has null values while there others do not
-    # going to change this while I think about this - turns out this has to do
-    # with major caching issue which has been reported upstream
+    jobs_df = orca.merge_tables('jobs',
+                                [parcels, buildings, jobs],
+                                columns=['taz_tm1', 'empsix'])
 
-    # the null values are present in the jobs table, however when you merge the
-    # tables, the zone_id columns from the other tables don't have null values
-    # however on lumodel, these duplicate columns don't get created in the
-    # merge so a copy of zone_id (zone_id_x) is added to parcels to ensure
-    # it doesn't get dropped
-
-    # the same has now been repeated for households (as described with lumodel)
+    # check if needed- only the zone_id_x works, while zone_id contains null
     # no duplicate zone_ids emerged to use, so one was created from parcels
-    # a taz column existed, but was not consistently the same as zone_id
-
-    jobs_df["zone_id"] = jobs_df.zone_id_x
 
     def getsectorcounts(sector):
-        return jobs_df.query("empsix == '%s'" % sector).\
-            groupby('zone_id').size()
+        return jobs_df.query("empsix == '%s'" % sector).groupby('taz_tm1').size()
 
-    taz_df["agrempn"] = getsectorcounts("AGREMPN")
-    taz_df["fpsempn"] = getsectorcounts("FPSEMPN")
-    taz_df["herempn"] = getsectorcounts("HEREMPN")
-    taz_df["retempn"] = getsectorcounts("RETEMPN")
-    taz_df["mwtempn"] = getsectorcounts("MWTEMPN")
-    taz_df["othempn"] = getsectorcounts("OTHEMPN")
-    taz_df["totemp"] = jobs_df.groupby('zone_id').size()
+    taz_tm1_df["agrempn"] = getsectorcounts("AGREMPN")
+    taz_tm1_df["fpsempn"] = getsectorcounts("FPSEMPN")
+    taz_tm1_df["herempn"] = getsectorcounts("HEREMPN")
+    taz_tm1_df["retempn"] = getsectorcounts("RETEMPN")
+    taz_tm1_df["mwtempn"] = getsectorcounts("MWTEMPN")
+    taz_tm1_df["othempn"] = getsectorcounts("OTHEMPN")
+    taz_tm1_df["totemp"] = jobs_df.groupby('taz_tm1').size()
 
     def gethhcounts(filter):
-        return households_df.query(filter).groupby('zone_id').size()
+        return households_df.query(filter).groupby('taz_tm1').size()
 
-    taz_df["hhincq1"] = gethhcounts("base_income_quartile == 1")
-    taz_df["hhincq2"] = gethhcounts("base_income_quartile == 2")
-    taz_df["hhincq3"] = gethhcounts("base_income_quartile == 3")
-    taz_df["hhincq4"] = gethhcounts("base_income_quartile == 4")
-    taz_df["hhpop"] = households_df.groupby('zone_id').persons.sum()
-    taz_df["tothh"] = households_df.groupby('zone_id').size()
+    taz_tm1_df["hhincq1"] = gethhcounts("base_income_quartile == 1")
+    taz_tm1_df["hhincq2"] = gethhcounts("base_income_quartile == 2")
+    taz_tm1_df["hhincq3"] = gethhcounts("base_income_quartile == 3")
+    taz_tm1_df["hhincq4"] = gethhcounts("base_income_quartile == 4")
+    taz_tm1_df["hhpop"] = households_df.groupby('taz_tm1').persons.sum()
+    taz_tm1_df["tothh"] = households_df.groupby('taz_tm1').size()
 
 
     zone_forecast_inputs = tm1_taz1_forecast_inputs.to_frame()
     zone_forecast_inputs.index = zone_forecast_inputs.zone_id
-    taz_df["shpop62p"] = zone_forecast_inputs.sh_62plus
-    taz_df["gqpop"] = zone_forecast_inputs["gqpop" + str(year)[-2:]].fillna(0)
+    taz_tm1_df["shpop62p"] = zone_forecast_inputs.sh_62plus
+    taz_tm1_df["gqpop"] = zone_forecast_inputs["gqpop" + str(year)[-2:]].fillna(0)
 
-    taz_df["totacre"] = zone_forecast_inputs.totacre_abag
+    taz_tm1_df["totacre"] = zone_forecast_inputs.totacre_abag
     # total population = group quarters plus households population
-    taz_df["totpop"] = (taz_df.hhpop + taz_df.gqpop).fillna(0)
+    taz_tm1_df["totpop"] = (taz_df.hhpop + taz_df.gqpop).fillna(0)
 
-    buildings_df = buildings.to_frame(['zone_id',
+    buildings_df = buildings.to_frame(['taz_tm1',
                                        'building_type',
                                        'residential_units',
                                        'building_sqft',
                                        'lot_size_per_unit'])
 
-    taz_df["res_units"] = buildings_df.\
-        groupby('zone_id').residential_units.sum()
-
-    taz_df["mfdu"] = buildings_df.\
-        query("building_type == 'HM' or building_type == 'MR'").\
-        groupby('zone_id').residential_units.sum()
-
-    taz_df["sfdu"] = buildings_df.\
-        query("building_type == 'HS' or building_type == 'HT'").\
-        groupby('zone_id').residential_units.sum()
+    taz_tm1_df["res_units"] = buildings_df.groupby('zone_id').residential_units.sum()
+    taz_tm1_df["mfdu"] = buildings_df.query("building_type == 'HM' or building_type == 'MR'").\
+        groupby('taz_tm1').residential_units.sum()
+    taz_tm1_df["sfdu"] = buildings_df.query("building_type == 'HS' or building_type == 'HT'").\
+        groupby('taz_tm1').residential_units.sum()
 
     f = orca.get_injectable('parcel_first_building_type_is')
 
@@ -745,99 +701,85 @@ def travel_model_output(parcels, households, jobs, buildings, zones, maz, year, 
         mask *= parcels.acres
         return mask.groupby(parcels.zone_id).sum()
 
-    taz_df["resacre_unweighted"] = count_acres_with_mask(
-        f('residential') | f('mixedresidential'))
+    taz_tm1_df["resacre_unweighted"] = count_acres_with_mask(f('residential') | f('mixedresidential'))
+    taz_tm1_df["ciacre_unweighted"] = count_acres_with_mask(f('select_non_residential'))
+    taz_tm1_df["ciacre"] = scaled_ciacre(base_year_summary_taz.CIACRE_UNWEIGHTED, taz_tm1_df.ciacre_unweighted)
+    taz_tm1_df["resacre"] = scaled_resacre(base_year_summary_taz.RESACRE_UNWEIGHTED, taz_tm1_df.resacre_unweighted)
 
-    taz_df["ciacre_unweighted"] = count_acres_with_mask(
-        f('select_non_residential'))
-
-    taz_df["ciacre"] = scaled_ciacre(
-        base_year_summary_taz.CIACRE_UNWEIGHTED, taz_df.ciacre_unweighted)
-    taz_df["resacre"] = scaled_resacre(
-        base_year_summary_taz.RESACRE_UNWEIGHTED, taz_df.resacre_unweighted)
     rc = tm1_tm2_regional_controls.to_frame()
-    taz_df = add_population(taz_df, year, rc)
-    taz_df.totpop = taz_df.hhpop + taz_df.gqpop
-    taz_df = add_employment(taz_df, year, rc)
-    taz_df["density_pop"] = taz_df.totpop / taz_df.totacre
-    taz_df["density_pop"] = taz_df["density_pop"].fillna(0)
-    taz_df["density_emp"] = (2.5 * taz_df.totemp) / taz_df.totacre
-    taz_df["density_emp"] = taz_df["density_emp"].fillna(0)
-    taz_df["density"] = taz_df["density_pop"] + taz_df["density_emp"]
-    taz_df["areatype"] = pd.cut(
-        taz_df.density,
-        bins=[0, 6, 30, 55, 100, 300, np.inf],
-        labels=[5, 4, 3, 2, 1, 0]
-    )
-    taz_df = add_age_categories(taz_df, year, rc)
-    orca.add_table('taz_summary_1', taz_df)
+    taz_tm1_df = add_population(taz_tm1_df, year, rc)
+    taz_tm1_df.totpop = taz_df.hhpop + taz_df.gqpop
+    taz_tm1_df = add_employment(taz_tm1_df, year, rc)
+    taz_tm1_df["density_pop"] = taz_tm1_df.totpop / taz_tm1_df.totacre
+    taz_tm1_df["density_pop"] = taz_tm1_df["density_pop"].fillna(0)
+    taz_tm1_df["density_emp"] = (2.5 * taz_tm1_df.totemp) / taz_tm1_tm1_df.totacre
+    taz_tm1_df["density_emp"] = taz_tm1_df["density_emp"].fillna(0)
+    taz_tm1_df["density"] = taz_tm1_df["density_pop"] + taz_tm1_df["density_emp"]
+    taz_tm1_df["areatype"] = pd.cut(taz_tm1_df.density,
+                                    bins=[0, 6, 30, 55, 100, 300, np.inf],
+                                    labels=[5, 4, 3, 2, 1, 0])
+    taz_tm1_df = add_age_categories(taz_tm1_df, year, rc)
+    orca.add_table('taz_summary_1', taz_tm1_df)
 
-    summary.add_zone_output(taz_df, "travel_model_output", year)
+    summary.add_zone_output(taz_tm1_df, "travel_model_output", year)
     summary.write_zone_output()
-
-    # otherwise it loses precision
-    if summary.parcel_output is not None\
-            and "geom_id" in summary.parcel_output:
-        summary.parcel_output["geom_id"] = \
-            summary.parcel_output.geom_id.astype('str')
 
     summary.write_parcel_output(add_xy={
         "xy_table": "parcels",
-        "foreign_key": "parcel_id",
+        "foreign_key": "geo_id",
         "x_col": "x",
         "y_col": "y"
     })
 
     # uppercase columns to match travel model template
-    taz_df.columns = \
-        [x.upper() for x in taz_df.columns]
+    taz_tm1_df.columns = [x.upper() for x in taz_tm1_df.columns]
 
-    maz = maz.to_frame(['TAZ', 'COUNTY', 'county_name', 'taz1454'])
+    maz_tm2_df = pd.DataFrame(index=travel_model_zones.maz_tm2.unique().index)
+
     mazi = tm1_tm2_maz_forecast_inputs.to_frame()
     mazi_yr = str(year)[2:]
-    households_df.maz_id = households_df.maz_id.fillna(213906)
-    maz["hhpop"] = households_df.groupby('maz_id').persons.sum()
-    maz["tothh"] = households_df.groupby('maz_id').size()
-    tothh = taz_df.TOTHH.sum()
-    maz = add_households(maz, tothh)
-    maz['gq_type_univ'] = mazi['gqpopu' + mazi_yr]
-    maz['gq_type_mil'] = mazi['gqpopm' + mazi_yr]
-    maz['gq_type_othnon'] = mazi['gqpopo' + mazi_yr]
-    maz['gq_tot_pop'] = maz['gq_type_univ'] + maz['gq_type_mil']\
-        + maz['gq_type_othnon']
-    tot_gqpop = maz.gq_tot_pop.sum()
+
+    maz_tm2_df["hhpop"] = households_df.groupby('maz_id').persons.sum()
+    maz_tm2_df["tothh"] = households_df.groupby('maz_id').size()
+
+    tothh = taz_tm1_df.tothh.sum()
+    maz_tm2_df = add_households(maz, tothh)
+
+    maz_tm2_df['gq_type_univ'] = mazi['gqpopu' + mazi_yr]
+    maz_tm2_df['gq_type_mil'] = mazi['gqpopm' + mazi_yr]
+    maz_tm2_df['gq_type_othnon'] = mazi['gqpopo' + mazi_yr]
+    maz_tm2_df['gq_tot_pop'] = maz_tm2_df['gq_type_univ'] + maz_tm2_df['gq_type_mil'] + maz_tm2_df['gq_type_othnon']
+    tot_gqpop = maz_tm2_df.gq_tot_pop.sum()
 
     rdf = tm1_tm2_regional_demographic_forecast.to_frame()
-
     tfi = tm1_taz1_forecast_inputs.to_frame()
     tfi.index = tfi.TAZ1454
-    taz_df['gq_type_univ'] = maz.groupby('taz1454'
-                                         ).gq_type_univ.sum().fillna(0)
-    taz_df['gq_type_mil'] = maz.groupby('taz1454').gq_type_mil.sum().fillna(0)
-    taz_df['gq_type_othnon'] = maz.groupby('taz1454'
-                                           ).gq_type_othnon.sum().fillna(0)
-    taz_df['gq_tot_pop'] = maz.groupby('taz1454').gq_tot_pop.sum().fillna(0)
 
-    taz_df['hh'] = taz_df.TOTHH
-    taz_df['hh_size_1'] = taz_df['TOTHH'] * tfi.shrs1_2010
-    taz_df['hh_size_2'] = taz_df['TOTHH'] * tfi.shrs2_2010
-    taz_df['hh_size_3'] = taz_df['TOTHH'] * tfi.shrs3_2010
-    taz_df['hh_size_4_plus'] = taz_df['TOTHH'] * tfi.shrs4_2010
+    taz_tm1_df['gq_type_univ'] = maz.groupby('taz1454').gq_type_univ.sum().fillna(0)
+    taz_tm1_df['gq_type_mil'] = maz.groupby('taz1454').gq_type_mil.sum().fillna(0)
+    taz_tm1_df['gq_type_othnon'] = maz.groupby('taz1454').gq_type_othnon.sum().fillna(0)
+    taz_tm1_df['gq_tot_pop'] = maz.groupby('taz1454').gq_tot_pop.sum().fillna(0)
 
-    taz_df['county'] = maz.groupby('taz1454').COUNTY.first()
-    taz_df['county_name'] = maz.groupby('taz1454').county_name.first()
+    taz_tm1_df['hh'] = taz_tm1_df.tothh
+    taz_tm1_df['hh_size_1'] = taz_tm1_df['tothh'] * tfi.shrs1_2010
+    taz_tm1_df['hh_size_2'] = taz_tm1_df['tothh'] * tfi.shrs2_2010
+    taz_tm1_df['hh_size_3'] = taz_tm1_df['tothh'] * tfi.shrs3_2010
+    taz_tm1_df['hh_size_4_plus'] = taz_tm1_df['tothh'] * tfi.shrs4_2010
 
-    taz_df['hh_wrks_0'] = taz_df['TOTHH'] * tfi.shrw0_2010
-    taz_df['hh_wrks_1'] = taz_df['TOTHH'] * tfi.shrw1_2010
-    taz_df['hh_wrks_2'] = taz_df['TOTHH'] * tfi.shrw2_2010
-    taz_df['hh_wrks_3_plus'] = taz_df['TOTHH'] * tfi.shrw3_2010
+    taz_tm1_df['county'] = maz.groupby('taz1454').COUNTY.first()
+    taz_tm1_df['county_name'] = maz.groupby('taz1454').county_name.first()
 
-    taz_df['hh_kids_no'] = taz_df['TOTHH'] * tfi.shrn_2010
-    taz_df['hh_kids_yes'] = taz_df['TOTHH'] * tfi.shry_2010
-    taz_df = adjust_hhsize(taz_df, year, rdf, tothh)
-    taz_df = adjust_hhwkrs(taz_df, year, rdf, tothh)
-    taz_df = adjust_hhkids(taz_df, year, rdf, tothh)
-    del taz_df['hh']
+    taz_tm1_df['hh_wrks_0'] = taz_tm1_df['tothh'] * tfi.shrw0_2010
+    taz_tm1_df['hh_wrks_1'] = taz_tm1_df['tothh'] * tfi.shrw1_2010
+    taz_tm1_df['hh_wrks_2'] = taz_tm1_df['tothh'] * tfi.shrw2_2010
+    taz_tm1_df['hh_wrks_3_plus'] = taz_tm1_df['tothh'] * tfi.shrw3_2010
+
+    taz_tm1_df['hh_kids_no'] = taz_df['tothh'] * tfi.shrn_2010
+    taz_tm1_df['hh_kids_yes'] = taz_df['tothh'] * tfi.shry_2010
+    taz_tm1_df = adjust_hhsize(taz_df, year, rdf, tothh)
+    taz_tm1_df = adjust_hhwkrs(taz_df, year, rdf, tothh)
+    taz_tm1_df = adjust_hhkids(taz_df, year, rdf, tothh)
+    del taz_tm1_df['hh']
 
     taz_df.index.name = 'TAZ'
 
@@ -846,16 +788,8 @@ def travel_model_output(parcels, households, jobs, buildings, zones, maz, year, 
 
     # aggregate TAZ summaries to create county summaries
 
-    county_df = pd.DataFrame(index=['San Francisco',
-                                    'San Mateo',
-                                    'Santa Clara',
-                                    'Alameda',
-                                    'Contra Costa',
-                                    'Solano',
-                                    'Napa',
-                                    'Sonoma',
-                                    'Marin'])
-
+    county_df = pd.DataFrame(index=['San Francisco', 'San Mateo', 'Santa Clara', 'Alameda',
+                                    'Contra Costa', 'Solano', 'Napa', 'Sonoma','Marin'])
     county_df["COUNTY_NAME"] = county_df.index
 
     taz_cols = ["AGREMPN", "FPSEMPN", "HEREMPN", "RETEMPN", "MWTEMPN",
@@ -869,28 +803,20 @@ def travel_model_output(parcels, households, jobs, buildings, zones, maz, year, 
         taz_df_grouped = taz_df.groupby('county_name').sum()
         county_df[col] = taz_df_grouped[col]
 
-    county_df["DENSITY"] = \
-        (county_df.TOTPOP + (2.5 * county_df.TOTEMP)) / county_df.TOTACRE
+    county_df["DENSITY"] = (county_df.TOTPOP + (2.5 * county_df.TOTEMP)) / county_df.TOTACRE
 
     county_df["AREATYPE"] = pd.cut(
         county_df.DENSITY,
         bins=[0, 6, 30, 55, 100, 300, np.inf],
-        labels=[5, 4, 3, 2, 1, 0]
-    )
+        labels=[5, 4, 3, 2, 1, 0])
 
-    base_year_summary_taz = \
-        base_year_summary_taz.to_frame()
-    base_year_summary_county = \
-        base_year_summary_taz.groupby('COUNTY_NAME').sum()
-    base_year_summary_county_ciacre = \
-        base_year_summary_county['CIACRE_UNWEIGHTED']
-    base_year_summary_county_resacre = \
-        base_year_summary_county['RESACRE_UNWEIGHTED']
+    base_year_summary_taz = base_year_summary_taz.to_frame()
+    base_year_summary_county = base_year_summary_taz.groupby('COUNTY_NAME').sum()
+    base_year_summary_county_ciacre = base_year_summary_county['CIACRE_UNWEIGHTED']
+    base_year_summary_county_resacre = base_year_summary_county['RESACRE_UNWEIGHTED']
 
-    county_df["CIACRE"] = scaled_ciacre(
-        base_year_summary_county_ciacre, county_df.CIACRE_UNWEIGHTED)
-    county_df["RESACRE"] = scaled_resacre(
-        base_year_summary_county_resacre, county_df.RESACRE_UNWEIGHTED)
+    county_df["CIACRE"] = scaled_ciacre(base_year_summary_county_ciacre, county_df.CIACRE_UNWEIGHTED)
+    county_df["RESACRE"] = scaled_resacre(base_year_summary_county_resacre, county_df.RESACRE_UNWEIGHTED)
 
     county_df = county_df[["COUNTY_NAME", "AGREMPN", "FPSEMPN", "HEREMPN",
                            "RETEMPN", "MWTEMPN", "OTHEMPN", "TOTEMP",
@@ -1599,10 +1525,10 @@ def hazards_eq_summary(run_setup, run_number, year, households, jobs, parcels, b
             # print out demolished buildings
             eq_demolish = eq_demolish.to_frame()
             eq_demolish_taz = misc.reindex(parcels.zone_id,
-                                           eq_demolish.parcel_id)
+                                           eq_demolish.geo_id)
             eq_demolish['taz'] = eq_demolish_taz
             eq_demolish['count'] = 1
-            eq_demolish = eq_demolish.drop(['parcel_id', 'year_built',
+            eq_demolish = eq_demolish.drop(['geo_id', 'year_built',
                                            'redfin_sale_year'], axis=1)
             eq_demolish = eq_demolish.groupby(['taz']).sum()
             eq_demolish.to_csv(os.path.join(orca.get_injectable("outputs_dir"),
@@ -1614,7 +1540,7 @@ def hazards_eq_summary(run_setup, run_number, year, households, jobs, parcels, b
                 retrofit_bldgs_tot = orca.get_table("retrofit_bldgs_tot")
                 retrofit_bldgs_tot = retrofit_bldgs_tot.to_frame()
                 retrofit_bldgs_tot_taz = misc.reindex(parcels.zone_id,
-                                                      retrofit_bldgs_tot.parcel_id)
+                                                      retrofit_bldgs_tot.geoid)
                 retrofit_bldgs_tot['taz'] = retrofit_bldgs_tot_taz
                 retrofit_bldgs_tot['count'] = 1
                 retrofit_bldgs_tot = retrofit_bldgs_tot[[
@@ -1633,7 +1559,7 @@ def hazards_eq_summary(run_setup, run_number, year, households, jobs, parcels, b
         if year in [2030, 2035, 2050] and eq:
             buildings = buildings.to_frame()
             buildings_taz = misc.reindex(parcels.zone_id,
-                                         buildings.parcel_id)
+                                         buildings.geo_id)
             buildings['taz'] = buildings_taz
             buildings['count'] = 1
             buildings = buildings[['taz', 'count', 'residential_units',

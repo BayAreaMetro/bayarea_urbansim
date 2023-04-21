@@ -279,83 +279,15 @@ def correct_baseyear_vacancies(buildings, parcels, jobs, store):
 
 @orca.step()
 def preproc_buildings(store, parcels, manual_edits):
-    # start with buildings from urbansim_defaults
-    df = store['buildings']
-
-    # add source of buildings data (vs pipeline, developer model)
-    df['source'] = 'h5_inputs'
-
-    # this is code from urbansim_defaults
-    df["residential_units"] = pd.concat(
-        [df.residential_units,
-         store.households_preproc.building_id.value_counts()],
-        axis=1).max(axis=1)
-
-    df["preserved_units"] = 0.0
-    df["inclusionary_units"] = 0.0
-    df["subsidized_units"] = 0.0
-
-    # XXX need to make sure jobs don't exceed capacity
-
     # drop columns we don't needed
     df = df.drop(['development_type_id', 'improvement_value',
                   'sqft_per_unit', 'nonres_rent_per_sqft',
                   'res_price_per_sqft',
-                  'redfin_home_type', 'costar_property_type',
+                  'redfin_home_type', 'costar_property_type'
                   'costar_rent'], axis=1)
-
-    # apply manual edits
-    edits = manual_edits.local
-    edits = edits[edits.table == 'buildings']
-    for index, row, col, val in \
-            edits[["id", "attribute", "new_value"]].itertuples():
-        df.set_value(row, col, val)
-
-    df["residential_units"] = df.residential_units.fillna(0)
-
-    # for some reason nonres can be more than total sqft
-    df["building_sqft"] = pd.DataFrame({
-        "one": df.building_sqft,
-        "two": df.residential_sqft + df.non_residential_sqft}).max(axis=1)
-
-    df["building_type"] = df.building_type_id.map({
-      0: "O",
-      1: "HS",
-      2: "HT",
-      3: "HM",
-      4: "OF",
-      5: "HO",
-      6: "SC",
-      7: "IL",
-      8: "IW",
-      9: "IH",
-      10: "RS",
-      11: "RB",
-      12: "MR",
-      13: "MT",
-      14: "ME",
-      15: "PA",
-      16: "PA2"
-    })
-
-    del df["building_type_id"]  # we won't use building type ids anymore
-
-    # keeps parking lots from getting redeveloped
-    df["building_sqft"][df.building_type.isin(["PA", "PA2"])] = 0
-    df["non_residential_sqft"][df.building_type.isin(["PA", "PA2"])] = 0
-
-    # don't know what an other building type id, set to office
-    df["building_type"] = df.building_type.replace("O", "OF")
 
     # set default redfin sale year to 2012
     df["redfin_sale_year"] = df.redfin_sale_year.fillna(2012)
-
-    df["residential_price"] = 0.0
-    df["non_residential_rent"] = 0.0
-
-    df = assign_deed_restricted_units(df, parcels)
-
-    store['buildings_preproc'] = df
 
     # this runs after the others because it needs access to orca-assigned
     # columns - in particular is needs access to the non-residential sqft and

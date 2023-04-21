@@ -83,8 +83,8 @@ def naics(jobs):
 
 
 @orca.column('jobs', cache=True)
-def empsix_id(jobs, mapping):
-    return jobs.empsix.map(mapping['empsix_name_to_id'])
+def empsix_id(jobs):
+    return jobs.empsix
 
 
 #############################
@@ -182,7 +182,7 @@ def price_per_sqft(buildings):
 
 @orca.column('buildings', cache=True)
 def transit_type(buildings, parcels_geography):
-    return misc.reindex(parcels_geography.tpp_id, buildings.parcel_id).\
+    return misc.reindex(parcels_geography.tpp_id, buildings.geo_id).\
         reindex(buildings.index).fillna('none')
 
 
@@ -193,17 +193,17 @@ def unit_price(buildings):
 
 @orca.column('buildings', cache=True)
 def tmnode_id(buildings, parcels):
-    return misc.reindex(parcels.tmnode_id, buildings.parcel_id)
+    return misc.reindex(parcels.tmnode_id, buildings.geo_id)
 
 
 @orca.column('buildings')
 def juris_ave_income(parcels, buildings):
-    return misc.reindex(parcels.juris_ave_income, buildings.parcel_id)
+    return misc.reindex(parcels.juris_ave_income, buildings.geo_id)
 
 
 @orca.column('buildings', cache=True)
 def is_sanfran(parcels, buildings):
-    return misc.reindex(parcels.is_sanfran, buildings.parcel_id)
+    return misc.reindex(parcels.is_sanfran, buildings.geo_id)
 
 
 @orca.column('buildings', cache=True)
@@ -300,17 +300,17 @@ def residential_price(buildings, residential_units, developer_settings):
 
 @orca.column('buildings', cache=True, cache_scope='iteration')
 def cml(buildings, parcels):
-    return misc.reindex(parcels.cml, buildings.parcel_id)
+    return misc.reindex(parcels.cml, buildings.geo_id)
 
 
 @orca.column('buildings', cache=True, cache_scope='iteration')
 def cnml(buildings, parcels):
-    return misc.reindex(parcels.cnml, buildings.parcel_id)
+    return misc.reindex(parcels.cnml, buildings.geo_id)
 
 
 @orca.column('buildings', cache=True, cache_scope='iteration')
 def combo_logsum(buildings, parcels):
-    return misc.reindex(parcels.combo_logsum, buildings.parcel_id)
+    return misc.reindex(parcels.combo_logsum, buildings.geo_id)
 
 
 #####################
@@ -331,8 +331,8 @@ def retail_ratio(nodes):
 #####################
 
 @orca.column('parcels')
-def maz_id(parcels, parcel_to_maz):
-    return parcel_to_maz.maz.reindex(parcels.index)
+def maz_id(parcels, travel_model_zones):
+    return travel_model_zones.maz_tm2.reindex(parcels.index)
 
 
 @orca.column("parcels")
@@ -354,7 +354,7 @@ def retail_ratio(parcels, nodes):
 # attribute on the buildings
 @orca.column('parcels', cache=True)
 def stories(buildings):
-    return buildings.stories.groupby(buildings.parcel_id).max()
+    return buildings.stories.groupby(buildings.geo_id).max()
 
 
 @orca.column('parcels', cache=True)
@@ -593,9 +593,9 @@ def parcel_is_allowed(form):
 
 
 @orca.column('parcels')
-def first_building_type(buildings, parcels):
-    df = buildings.to_frame(columns=['building_type', 'parcel_id'])
-    return df.groupby('parcel_id').building_type.first()
+def first_building_type(buildings):
+    df = buildings.to_frame(columns=['building_type', 'geo_id'])
+    return df.groupby('geo_id').building_type.first()
 
 
 @orca.injectable(autocall=False)
@@ -623,23 +623,8 @@ def juris_ave_income(households, buildings, parcels_geography, parcels):
 # missing values with 1800 - for use with development limits
 @orca.column('parcels')
 def newest_building(parcels, buildings):
-    return buildings.year_built.groupby(buildings.parcel_id).max().\
+    return buildings.year_built.groupby(buildings.geo_id).max().\
         reindex(parcels.index).fillna(1800)
-
-
-# this returns the set of parcels which have been marked as
-# disapproved by "the button" - only equals true when disallowed
-@orca.column('parcels', cache=True)
-def manual_nodev(parcel_rejections, parcels):
-    df1 = parcels.to_frame(['x', 'y']).dropna(subset=['x', 'y'])
-    df2 = parcel_rejections.to_frame(['lng', 'lat'])
-    df2 = df2[parcel_rejections.state == "denied"]
-    df2 = df2[["lng", "lat"]]  # need to change the order
-    ind = nearest_neighbor(df1, df2)
-
-    s = pd.Series(False, parcels.index)
-    s.loc[ind.flatten()] = True
-    return s.astype('int')
 
 
 @orca.column('parcels')
@@ -655,25 +640,26 @@ def is_sanfran(parcels_geography, buildings, parcels):
 
 @orca.column('parcels', cache=True)
 def total_non_residential_sqft(parcels, buildings):
-    return buildings.non_residential_sqft.groupby(buildings.parcel_id).sum().\
+    return buildings.non_residential_sqft.groupby(buildings.geo_id).sum().\
         reindex(parcels.index).fillna(0)
 
 
+# these are parcels where development is off-limits
 @orca.column('parcels')
-def nodev(zoning_existing, parcels, static_parcels):
-    # nodev from zoning
-    s1 = zoning_existing.nodev.reindex(parcels.index).\
-        fillna(0).astype('bool')
-    # nodev from static parcels - this marks nodev those parcels which are
-    # marked as "static" - any parcels which should not be considered by the
-    # developer model may be marked as static
-    s2 = parcels.index.isin(static_parcels)
-    # nodev from sea level rise- determined by hazards.py model
-    if 'slr_nodev' in parcels.columns:
-        s3 = np.array(parcels['slr_nodev'])
-        return s1 | s2 | s3
-    else:
-        return s1 | s2
+def nodev(parcels, nodev_sites):
+    # the table tells us what category of nodev the various entries are:
+    # manual, sea level rise, preservation area, etc.
+    nd = nodev_sites[nodev_sites["no_dev"] == 1].index
+    nd.append(static_parcels.index)
+    return nd.reindex(parcels.index)
+
+
+# these are parcels where households and jobs don't move
+@orca.injectable()
+def static_parcels(institutions):
+    static_parcels = institutions.index.values
+    # development projects sites then get added to this in the year they are added
+    return static_parcels
 
 
 # get built far but set to nan for small parcels
@@ -741,7 +727,7 @@ def max_dua(parcels_zoning_calculations, parcels, zoning_adjusters):
 
 @orca.column('parcels')
 def general_type(parcels, buildings):
-    s = buildings.general_type.groupby(buildings.parcel_id).first()
+    s = buildings.general_type.groupby(buildings.geo_id).first()
     return s.reindex(parcels.index).fillna("Vacant")
 
 
@@ -798,8 +784,8 @@ def land_cost(parcels):
 
 
 @orca.column('parcels', cache=True)
-def county(parcels, mapping):
-    return parcels.county_id.map(mapping["county_id_map"])
+def county(parcels):
+    return parcels.county
 
 
 @orca.column('parcels', cache=True)
@@ -841,7 +827,7 @@ def vmt_code(parcels, run_setup):
 
 
 @orca.column('parcels', cache=True)
-def subzone(parcels, parcels_subzone):
+def subzone(parcels_subzone):
     return parcels_subzone.taz_sub
 
 

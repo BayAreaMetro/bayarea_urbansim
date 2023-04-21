@@ -532,13 +532,13 @@ def GEO_SUMMARY_LOADER(run_num, geo, parcel_baseyear, parcel_endyear):
 
     zoningtag = 'zoningmodcat'
 
-    parcel_baseyear = parcel_baseyear[['parcel_id','tothh','totemp', 'hhq1','hhq2','hhq3','hhq4',
+    parcel_baseyear = parcel_baseyear[['geo_id','tothh','totemp', 'hhq1','hhq2','hhq3','hhq4',
                                        'residential_units','deed_restricted_units',
                                        'inclusionary_units', 'subsidized_units','preserved_units']]
-    parcel_endyear = parcel_endyear[['parcel_id','tothh','totemp', 'hhq1','hhq2','hhq3','hhq4',
+    parcel_endyear = parcel_endyear[['geo_id','tothh','totemp', 'hhq1','hhq2','hhq3','hhq4',
                                      'residential_units','deed_restricted_units','inclusionary_units',
                                      'subsidized_units','preserved_units','juris',zoningtag]]
-    parcel_data = parcel_baseyear.merge(parcel_endyear, on = 'parcel_id', how = 'left').fillna(0)
+    parcel_data = parcel_baseyear.merge(parcel_endyear, on = 'geo_id', how = 'left').fillna(0)
     if 0 in parcel_data.juris.values:
         dropindex = parcel_data[parcel_data['juris'] == 0].index
         parcel_data.drop(dropindex,inplace = True)
@@ -563,13 +563,13 @@ def TWO_GEO_SUMMARY_LOADER(run_num, geo1, geo2, parcel_baseyear, parcel_endyear)
 
     zoningtag = 'zoningmodcat'
 
-    parcel_baseyear = parcel_baseyear[['parcel_id','tothh','totemp', 'hhq1','hhq2','hhq3','hhq4',
+    parcel_baseyear = parcel_baseyear[['geo_id','tothh','totemp', 'hhq1','hhq2','hhq3','hhq4',
                                        'residential_units','deed_restricted_units',
                                        'inclusionary_units', 'subsidized_units', 'preserved_units']]
-    parcel_endyear = parcel_endyear[['parcel_id','tothh','totemp', 'hhq1','hhq2','hhq3','hhq4',
+    parcel_endyear = parcel_endyear[['geo_id','tothh','totemp', 'hhq1','hhq2','hhq3','hhq4',
                                      'residential_units','deed_restricted_units','inclusionary_units',
                                      'subsidized_units','preserved_units','juris',zoningtag]]
-    parcel_data = parcel_baseyear.merge(parcel_endyear, on = 'parcel_id', how = 'left').fillna(0)
+    parcel_data = parcel_baseyear.merge(parcel_endyear, on = 'geo_id', how = 'left').fillna(0)
     if 0 in parcel_data.juris.values:
         dropindex = parcel_data[parcel_data['juris'] == 0].index
         parcel_data.drop(dropindex,inplace = True)    

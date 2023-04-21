@@ -14,9 +14,7 @@ from urbansim.utils import misc, networks
 from urbansim_defaults import models, utils
 
 from baus import datasources, subsidies, summaries, variables
-from baus.utils import \
-    add_buildings, geom_id_to_parcel_id, groupby_random_choice, \
-    parcel_id_to_geom_id, round_series_match_target
+from baus.utils import add_buildings, groupby_random_choice, round_series_match_target
 
 
 @orca.step()
@@ -43,16 +41,6 @@ def households_transition(households, household_controls, year, transition_reloc
     s = orca.get_table('households').base_income_quartile.value_counts()
     print("Distribution by income after:\n", (s/s.sum()))
     return ret
-
-
-# this is a list of parcel_ids which are to be treated as static
-@orca.injectable()
-def static_parcels(developer_settings, parcels):
-    # list of geom_ids to not relocate
-    static_parcels = developer_settings["static_parcels"]
-    # geom_ids -> parcel_ids
-    return geom_id_to_parcel_id(
-        pd.DataFrame(index=static_parcels), parcels).index.values
 
 
 def _proportional_jobs_model(
@@ -127,11 +115,11 @@ def _proportional_jobs_model(
 
 
 @orca.step()
-def accessory_units_strategy(run_setup, year, buildings, parcels, accessory_units):
+def accessory_units_strategy(year, buildings, parcels, accessory_units):
 
     add_units = accessory_units[str(year)]
 
-    buildings_juris = misc.reindex(parcels.juris, buildings.parcel_id)
+    buildings_juris = misc.reindex(parcels.jurisdiction, buildings.geo_id)
     res_buildings = buildings_juris[buildings.general_type == "Residential"]
 
     add_buildings = groupby_random_choice(res_buildings, add_units)
@@ -228,7 +216,7 @@ def jobs_relocation(jobs, employment_relocation_rates, run_setup, employment_rel
 	                static_parcels, buildings):
 
     # get buildings that are on those parcels
-    static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
+    static_buildings = buildings.index[buildings.geo_id.isin(static_parcels)]
 
     rates = employment_relocation_rates.local    
     # update the relocation rates with the adjusters if adjusters are being used
@@ -258,7 +246,7 @@ def jobs_relocation(jobs, employment_relocation_rates, run_setup, employment_rel
 def household_relocation(households, household_relocation_rates, run_setup, static_parcels, buildings):
 
     # get buildings that are on those parcels
-    static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
+    static_buildings = buildings.index[buildings.geo_id.isin(static_parcels)]
 
     rates = household_relocation_rates.local
     # update the relocation rates with the renter protections strategy if applicable
@@ -283,19 +271,13 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
     households.update_col_from_series("building_id", pd.Series(-1, index=index), cast=True)
 
 
-# this deviates from the step in urbansim_defaults only in how it deals with
-# demolished buildings - this version only demolishes when there is a row to
-# demolish in the csv file - this also allows building multiple buildings and
-# just adding capacity on an existing parcel, by adding one building at a time
+# this deviates from the step in urbansim_defaults when there are multiple projects on a parcel:
+# instead of redeveloping the parcel each time, it adds each building to the parcel
 @orca.step()
 def scheduled_development_events(buildings, development_projects, demolish_events, summary, year, parcels, mapping, years_per_iter, 
-                                 parcels_geography, building_sqft_per_job, static_parcels, base_year, run_setup):
+                                 growth_geographies, building_sqft_per_job, static_parcels, base_year, run_setup):
     # first demolish
-    # 6/3/20: current approach is to grab projects from the simulation year
-    # and previous four years, however the base year is treated differently,
-    # eg 2015 pulls 2015-2010
-    # this should be improved in the future so that the base year
-    # also runs SDEM, eg 2015 pulls 2015-2014, while 2010 pulls 2010 projects
+    # grab projects from the simulation year and previous four years, except for 2015 which pulls 2015-2010 projects
     if year == (base_year + years_per_iter):
         demolish = demolish_events.to_frame().query("%d <= year_built <= %d" % (year - years_per_iter, year))
     else:
@@ -303,20 +285,16 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     print("Demolishing/building %d buildings" % len(demolish))
 
     l1 = len(buildings)
-    buildings = utils._remove_developed_buildings(buildings.to_frame(buildings.local_columns), demolish,
+    buildings = utils._remove_developed_buildings(buildings.to_frame(buildings.local_columns), demolish, 
                                                   unplace_agents=["households", "jobs"])
-    orca.add_injectable('static_parcels', np.append(static_parcels, demolish.loc[demolish.action == 'build', 'parcel_id']))
+    
+    orca.add_injectable('static_parcels', np.append(static_parcels, demolish.loc[demolish.action == 'build', 'geo_id']))
     orca.add_table("buildings", buildings)
     buildings = orca.get_table("buildings")
-    print("Demolished %d buildings" % (l1 - len(buildings)))
-    print("    (this number is smaller when parcel has no existing buildings)")
+    print("Demolished %d buildings on parcels with pipeline projects being built" % (l1 - len(buildings)))
 
     # then build
-    # 6/3/20: current approach is to grab projects from the simulation year
-    # and previous four years, however the base year is treated differently,
-    # eg 2015 pulls 2015-2010
-    # this should be improved in the future so that the base year
-    # also runs SDEM, eg 2015 pulls 2015-2014, while 2010 pulls 2010 projects
+    # grab projects from the simulation year and previous four years, except for 2015 which pulls 2015-2010 projects
     if year == (base_year + years_per_iter):
         dps = development_projects.to_frame().query("%d <= year_built <= %d" % (year - years_per_iter, year))
     else:
@@ -327,14 +305,14 @@ def scheduled_development_events(buildings, development_projects, demolish_event
 
     new_buildings = utils.scheduled_development_events(buildings, dps, remove_developed_buildings=False,
                                                        unplace_agents=['households', 'jobs'])
+
     new_buildings["form"] = new_buildings.building_type.map(mapping['building_type_map']).str.lower()
     new_buildings["job_spaces"] = new_buildings.non_residential_sqft / new_buildings.building_type.fillna("OF").map(building_sqft_per_job)
     new_buildings["job_spaces"] = new_buildings.job_spaces.fillna(0).astype('int')
-    new_buildings["geom_id"] = parcel_id_to_geom_id(new_buildings.parcel_id)
     new_buildings["SDEM"] = True
     new_buildings["subsidized"] = False
 
-    new_buildings["zone_id"] = misc.reindex(parcels.zone_id, new_buildings.parcel_id)
+    new_buildings["zone_id"] = misc.reindex(parcels.zone_id, new_buildings.geo_id)
     if run_setup['run_vmt_fee_res_for_res_strategy'] or ["run_sb743_strategy"]:
         vmt_fee_categories = orca.get_table("vmt_fee_categories")
         new_buildings["vmt_res_cat"] = misc.reindex(vmt_fee_categories.res_cat, new_buildings.zone_id)
@@ -343,15 +321,15 @@ def scheduled_development_events(buildings, development_projects, demolish_event
         new_buildings["vmt_nonres_cat"] = misc.reindex(vmt_fee_categories.nonres_cat, new_buildings.zone_id)
     del new_buildings["zone_id"]
 
-    new_buildings["pda_id"] = parcels_geography.pda_id.loc[new_buildings.parcel_id].values
-    new_buildings["tra_id"] = parcels_geography.tra_id.loc[new_buildings.parcel_id].values
-    new_buildings["ppa_id"] = parcels_geography.ppa_id.loc[new_buildings.parcel_id].values
-    new_buildings["sesit_id"] = parcels_geography.sesit_id.loc[new_buildings.parcel_id].values
-    new_buildings["coc_id"] = parcels_geography.coc_id.loc[new_buildings.parcel_id].values
-    new_buildings["juris_tra"] = parcels_geography.juris_tra.loc[new_buildings.parcel_id].values
-    new_buildings["juris_ppa"] = parcels_geography.juris_ppa.loc[new_buildings.parcel_id].values
-    new_buildings["juris_sesit"] = parcels_geography.juris_sesit.loc[new_buildings.parcel_id].values
-    new_buildings["juris_coc"] = parcels_geography.juris_coc.loc[new_buildings.parcel_id].values
+    new_buildings["pda_id"] = growth_geographies.pda_id.loc[new_buildings.geo_id].values
+    new_buildings["tra_id"] = growth_geographies.tra_id.loc[new_buildings.geo_id].values
+    new_buildings["ppa_id"] = growth_geographies.ppa_id.loc[new_buildings.geo_id].values
+    new_buildings["sesit_id"] = growth_geographies.sesit_id.loc[new_buildings.geo_id].values
+    new_buildings["coc_id"] = growth_geographies.coc_id.loc[new_buildings.geo_id].values
+    new_buildings["juris_tra"] = growth_geographies.juris_tra.loc[new_buildings.geo_id].values
+    new_buildings["juris_ppa"] = growth_geographies.juris_ppa.loc[new_buildings.geo_id].values
+    new_buildings["juris_sesit"] = growth_geographies.juris_sesit.loc[new_buildings.geo_id].values
+    new_buildings["juris_coc"] = growth_geographies.juris_coc.loc[new_buildings.geo_id].values
 
     summary.add_parcel_output(new_buildings)
 
@@ -423,7 +401,7 @@ def add_extra_columns_func(df):
 
     if "parcel_size" not in df:
         df["parcel_size"] = \
-            orca.get_table("parcels").parcel_size.loc[df.parcel_id]
+            orca.get_table("parcels").parcel_size.loc[df.geo_id]
 
     if orca.is_injectable("year") and "year_built" not in df:
         df["year_built"] = orca.get_injectable("year")
@@ -647,8 +625,7 @@ def retail_developer(jobs, buildings, parcels, nodes, feasibility,
         target -= d.non_residential_sqft
 
         # add redeveloped sqft to target
-        filt = "general_type == 'Retail' and parcel_id == %d" % \
-            d["parcel_id"]
+        filt = "general_type == 'Retail' and geo_id == %d" % d["geo_id"]
         target += bldgs.query(filt).non_residential_sqft.sum()
 
         devs.append(d)
@@ -822,7 +799,7 @@ def developer_reprocess(buildings, year, years_per_iter, jobs,
     print("Attempting to add ground floor retail to %d devs" %
           len(new_buildings))
     retail = parcel_is_allowed_func("retail")
-    new_buildings = new_buildings[retail.loc[new_buildings.parcel_id].values]
+    new_buildings = new_buildings[retail.loc[new_buildings.geo_id].values]
     print("Disallowing dev on these parcels:")
     print("    %d devs left after retail disallowed" % len(new_buildings))
 
@@ -844,7 +821,7 @@ def developer_reprocess(buildings, year, years_per_iter, jobs,
     # retail in areas that are underserved right now - this is defined as
     # the location where the retail ratio (ratio of income to retail sqft)
     # is greater than the median
-    ratio = parcels.retail_ratio.loc[new_buildings.parcel_id]
+    ratio = parcels.retail_ratio.loc[new_buildings.geo_id]
     new_buildings = new_buildings[ratio.values > ratio.median()]
 
     print("Adding %d sqft of ground floor retail in %d locations" %
@@ -871,7 +848,7 @@ def developer_reprocess(buildings, year, years_per_iter, jobs,
           sqft_by_gtype / 1000000.0)
 
 
-def proportional_job_allocation(parcel_id):
+def proportional_job_allocation():
     # this method takes a parcel and increases the number of jobs on the
     # parcel in proportion to the ratio of sectors that existed in the base yr
     # this is because elcms can't get the distribution right in some cases, eg
@@ -879,9 +856,8 @@ def proportional_job_allocation(parcel_id):
     # institutions and not subject to the market
 
     # get buildings on this parcel
-    buildings = orca.get_table("buildings").to_frame(
-        ["parcel_id", "job_spaces", "zone_id", "year_built"]).\
-        query("parcel_id == %d" % parcel_id)
+    buildings = orca.get_table("buildings").to_frame(["geo_id", "job_spaces", "zone_id", "year_built"]).\
+        query("geo_id == %d" % geo_id)
 
     # get jobs in those buildings
     all_jobs = orca.get_table("jobs").local
@@ -906,8 +882,7 @@ def proportional_job_allocation(parcel_id):
         # make sure index is incrementing
         new_jobs.index = new_jobs.index + 1 + np.max(all_jobs.index.values)
 
-        print("Adding {} new jobs to parcel {} with proportional model".format(
-            num_new_jobs, parcel_id))
+        print("Adding {} new jobs to parcel {} with proportional model".format(num_new_jobs, geo_id))
         print(new_jobs.head())
         all_jobs = all_jobs.append(new_jobs)
         orca.add_table("jobs", all_jobs)
@@ -915,8 +890,8 @@ def proportional_job_allocation(parcel_id):
 
 @orca.step()
 def static_parcel_proportional_job_allocation(static_parcels):
-    for parcel_id in static_parcels:
-        proportional_job_allocation(parcel_id)
+    for geo_id in static_parcels:
+        proportional_job_allocation(geo_id)
 
 
 def make_network(name, weight_col, max_distance):

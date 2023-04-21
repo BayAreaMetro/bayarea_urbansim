@@ -55,17 +55,17 @@ def coffer(account_strategies):
 
 
 @orca.step()
-def preserve_affordable(year, base_year, preservation, residential_units, taz_geography, buildings, parcels_geography):
+def preserve_affordable(preservation, residential_units, travel_model_zones, buildings, growth_geographies):
 
     # join several geography columns to units table so that we can apply units
     res_units = residential_units.to_frame()
     bldgs = buildings.to_frame()
-    parcels_geog = parcels_geography.to_frame()
-    taz_geog = taz_geography.to_frame()
+    growth_geogs = growth_geographies.to_frame()
+    tm_geogs = travel_model_zones.to_frame()
 
-    res_units = res_units.merge(bldgs[['parcel_id']], left_on='building_id', right_index=True, how='left').\
-        merge(parcels_geog[['gg_id', 'sesit_id', 'tra_id', 'juris']], left_on='parcel_id', right_index=True, how='left').\
-        merge(taz_geog, left_on='zone_id', right_index=True, how='left')
+    res_units = res_units.merge(bldgs[['geo_id']], left_on='building_id', right_index=True, how='left').\
+        merge(growth_geogs[['gg_id', 'sesit_id', 'tra_id', 'juris']], left_on='geo_id', right_index=True, how='left').\
+        merge(tm_geogs, left_on='taz_tm1', right_index=True, how='left')
 
     s = preservation["housing_preservation"]["settings"]
 
@@ -356,13 +356,12 @@ def policy_modifications_of_profit(feasibility, parcels):
 
 
 @orca.step()
-def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, summary, years_per_iter):
+def calculate_vmt_fees(run_setup, account_strategies, year, coffer, summary, years_per_iter):
 
     vmt_settings = account_strategies["acct_settings"]["vmt_settings"]
 
     # this is the frame that knows which devs are subsidized
     df = summary.parcel_output
-
     # grabs projects in the simulation period that are not subsidized
     df = df.query("%d <= year_built < %d and subsidized != True" % (year, year + years_per_iter))
 
@@ -372,18 +371,13 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
     print("%d projects pass the vmt filter" % len(df))
 
     total_fees = 0
-
     if run_setup["run_vmt_fee_res_for_res_strategy"]:
-
-        # maps the vmt fee amounts designated in the policy settings to
-        # the projects based on their categorized vmt levels
+        # maps the vmt fee amounts designated in the policy settings to the projects based on their categorized vmt levels
         df["res_for_res_fees"] = df.vmt_res_cat.map(vmt_settings["res_for_res_fee_amounts"])
         total_fees += (df.res_for_res_fees * df.residential_units).sum()
         print("Applying vmt fees to %d units" % df.residential_units.sum())
-
     if run_setup["run_vmt_fee_com_for_res_strategy"]:
-
-        df["com_for_res_fees"] = df.vmt_nonres_cat.map( vmt_settings["com_for_res_fee_amounts"])
+        df["com_for_res_fees"] = df.vmt_nonres_cat.map(vmt_settings["com_for_res_fee_amounts"])
         total_fees += (df.com_for_res_fees * df.non_residential_sqft).sum()
         print("Applying vmt fees to %d commerical sqft" % df.non_residential_sqft.sum())
 
@@ -397,21 +391,11 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
 
     total_fees = 0
     if run_setup["run_vmt_fee_com_for_com_strategy"]:
-
-        # assign fees by county
-        # assign county to parcels
-        county_lookup = orca.get_table("parcels_subzone").to_frame()
-        county_lookup = county_lookup[["county"]].rename(columns={'county': 'county3'})
-        county_lookup.reset_index(inplace=True)
-        county_lookup = county_lookup.rename(columns={'PARCEL_ID': 'PARCELID'})
-        df = df.merge(county_lookup, left_on='parcel_id', right_on='PARCELID', how='left')
-
+        # this step is only needed if summary_output doesn't get a county column
+        df = df.merge(orca.get_table("parcels").to_frame(), on='geo_id', columns=['county'])
         # assign fee to parcels based on county
-        counties3 = ['ala', 'cnc', 'mar', 'nap', 'scl', 'sfr', 'smt', 'sol', 'son']
-        counties = ['alameda', 'contra_costa', 'marin', 'napa', 'santa_clara', 'san_francisco', 'san_mateo', 'solano', 'sonoma']
-        for county3, county in zip(counties3, counties):
-            df.loc[df["county3"] == county3, "com_for_com_fees"] = df.vmt_nonres_cat.map(vmt_settings["com_for_com_fee_amounts"][county])
-
+        for county in df.county.unique():
+            df.loc[df["county"] == county, "com_for_com_fees"] = df.vmt_nonres_cat.map(vmt_settings["com_for_com_fee_amounts"][county])
         total_fees += (df.com_for_com_fees * df.non_residential_sqft).sum()
         print("Applying vmt fees to %d commerical sqft" % df.non_residential_sqft.sum())
 
@@ -437,17 +421,11 @@ def calculate_jobs_housing_fees(account_strategies, year, coffer, summary, years
 
     for key, acct in jobs_housing_settings.items():
  
-        # assign jurisdiction to parcels
-        juris_lookup = orca.get_table("parcels_geography").to_frame()
-        juris_lookup = juris_lookup[['PARCEL_ID', 'juris_name']].rename(columns={'PARCEL_ID': 'PARCELID', 'juris_name': 'jurisname'})
-
-        county_lookup = orca.get_table("parcels_subzone").to_frame().reset_index()
-        county_lookup = county_lookup[['PARCEL_ID', 'county']].rename(columns={'PARCEL_ID': 'PARCELID', 'county': 'county3'})
-
-        df = df.merge(juris_lookup, left_on='parcel_id', right_on='PARCELID', how='left').merge(county_lookup, on='PARCELID', how='left')
+        # this step is only needed if summary_output doesn't get a juris county column
+        df = df.merge(orca.get_table("parcels").to_frame(), on='geo_id', columns=['jurisdiction', 'county'])
 
         # calculate jobs-housing fees for each county's acct
-        df_sub = df.loc[df.county3 == acct["county_name"]]
+        df_sub = df.loc[df.county == acct["county_name"]]
 
         print("Applying jobs-housing fees to %d commerical sqft" % df_sub.non_residential_sqft.sum())
 
@@ -486,7 +464,7 @@ def subsidized_office_developer(feasibility, coffer, formula, year, add_extra_co
     # in order off the top
     feasibility = feasibility.sort_values(['max_profit_per_sqft'])
 
-    # make parcel_id available
+    # make geo_id available
     feasibility = feasibility.reset_index()
 
     print("%.0f subsidy with %d developments to choose from" % (total_subsidy, len(feasibility)))
@@ -520,7 +498,7 @@ def subsidized_office_developer(feasibility, coffer, formula, year, add_extra_co
             "non_residential_sqft": d["non_residential_sqft"],
             "juris": d["juris"],
             "tra_id": d["tra_id"],
-            "parcel_id": d["parcel_id"],
+            "geo_id": d["geo_id"],
             "index": dev_id
         }
 

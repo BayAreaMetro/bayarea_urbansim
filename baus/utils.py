@@ -93,24 +93,6 @@ def nearest_neighbor(df1, df2):
     return df1.index.values[indexes]
 
 
-# need to reindex from geom id to the id used on parcels
-def geom_id_to_parcel_id(df, parcels):
-    s = parcels.geom_id  # get geom_id
-    s = pd.Series(s.index, index=s.values)  # invert series
-    df["new_index"] = s.loc[df.index]  # get right parcel_id for each geom_id
-    df = df.dropna(subset=["new_index"])
-    df["new_index"] = df.new_index.astype('int')
-    df = df.set_index("new_index", drop=True)
-    df.index.name = "parcel_id"
-    return df
-
-
-def parcel_id_to_geom_id(s):
-    parcels = orca.get_table("parcels")
-    g = parcels.geom_id  # get geom_id
-    return pd.Series(g.loc[s.values].values, index=s.index)
-
-
 # This is best described by example. Imagine s is a series where the
 # index is parcel ids and the values are cities, while counts is a
 # series where the index is cities and the values are counts.  You

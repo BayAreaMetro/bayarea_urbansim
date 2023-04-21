@@ -5,17 +5,14 @@ cap_rate: 0.04
 # equal weights.  0.5 means profit is half as much as ROC
 profit_vs_return_on_cost_combination_factor: 0.5
 
-
-# settings for the feasibility model - parcel_filter is very important and is a rule of
-# which parcels to consider - we don't consider nodev properties, historic properties, and
-# optionally we don't look at small lot single family
-# pass_through are columns not used by the developer but which go in the debug output
+# settings for the feasibility model - 
 feasibility:
-  parcel_filter: (nodev != 1 and manual_nodev != 1 and sdem != 1 and oldest_building > 1906
+  parcel_filter: (nodev != 1 and sdem != 1 and oldest_building > 1906
     and oldest_building_age > 20 and (total_residential_units != 1 or parcel_acres > 1.0)
     and first_building_type != 'HO' and first_building_type != 'SC')
   residential_to_yearly: True
   simple_zoning: True
+  # pass_through are columns not used by the developer but which go in the debug output
   pass_through:
     - oldest_building
     - total_sqft
@@ -41,31 +38,6 @@ feasibility:
     - geom_id
     - vmt_res_cat
     - vmt_nonres_cat
-
-# a list of parcel geom ids which urbansim doesn't touch - this are viewed as exceptions
-# and are often dealt with using specific models (SDEM and possibly proportional jobs model)
-# which ignore this list
-static_parcels:
-  - 11280465768398 # city hall
-  - 2240580234395 # sf state
-  - 7299494955245 # sj state
-  - 13202883289710 # sj state
-  - 6193503633797 # sj state
-  - 8603860488630 # sj state
-  - 8173572322083 # ucb
-  - 14259504015679 # labs
-  - 3473860030354 # sfo
-  - 11976417381057 # sf general
-  - 5600199824880 # more sf gen
-  - 9143399820283
-  - 2161358104676
-  - 15636310238820
-  - 14512305680993 # sonoma state
-  - 15424804982410 # cal state east bay
-  - 7414256675266 # cal state east bay
-  - 8817315949318 # san quentin
-  - 12668875358422 # san quentin
-
 
 # settings that get passed to the residential developer as kwargs
 residential_developer:
@@ -100,3 +72,73 @@ building_sqft_per_job:
   MR: 383
   MT: 383
   ME: 383
+
+
+# this maps building type ids to general building types
+# basically just reduces dimensionality
+building_type_map:
+  HS: Residential
+  HT: Residential
+  HM: Residential
+  OF: Office
+  HO: Hotel
+  SC: School
+  IL: Industrial
+  IW: Industrial
+  IH: Industrial
+  RS: Retail
+  RB: Retail
+  MR: Residential
+  MT: Retail
+  ME: Office
+  PA: Parking
+  PA2: Parking
+
+
+# this maps building "forms" from the developer model
+# to building types so that when the developer builds a
+# "form" this can be converted for storing as a type
+# in the building table - in the long run, the developer
+# forms and the building types should be the same and the
+# developer model should account for the differences.
+# travel_model_ variables are for the travel_model_summary step.
+form_to_btype:
+  residential:
+    - HS
+    - HT
+    - HM
+  industrial:
+    - IL
+    - IW
+    - IH
+  retail:
+    - RS
+    - RB
+  office:
+    - OF
+  mixedresidential:
+    - MR
+  mixedoffice:
+    - ME
+  select_non_residential:
+    - OF
+    - HO
+    - SC
+    - IL
+    - IW
+    - IH
+    - RS
+    - RB
+    - MR
+
+
+# convert square meters to square feet
+parcel_size_factor: 10.764
+
+
+# these are the tables the get auto-merged to buildings/parcels in the hedonic and lcms
+aggregation_tables:
+  - nodes
+  - tmnodes
+  - logsums
+  - buildings
