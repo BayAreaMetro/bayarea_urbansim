@@ -486,6 +486,20 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#baus.models.neighborhood_vars" class="md-nav__link">
+    neighborhood_vars()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baus.models.price_vars" class="md-nav__link">
+    price_vars()
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -557,6 +571,20 @@
           <li class="md-nav__item">
   <a href="#baus.models.elcm_simulate" class="md-nav__link">
     elcm_simulate()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baus.models.neighborhood_vars" class="md-nav__link">
+    neighborhood_vars()
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baus.models.price_vars" class="md-nav__link">
+    price_vars()
   </a>
   
 </li>
@@ -648,6 +676,141 @@
     <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">lcm_simulate</span><span class="p">(</span><span class="s2">&quot;location_choice/elcm.yaml&quot;</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">buildings</span><span class="p">,</span> <span class="n">aggregations</span><span class="p">,</span>
                               <span class="s2">&quot;building_id&quot;</span><span class="p">,</span> <span class="s2">&quot;job_spaces&quot;</span><span class="p">,</span>
                               <span class="s2">&quot;vacant_job_spaces&quot;</span><span class="p">,</span> <span class="n">cast</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+      </details>
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="baus.models.neighborhood_vars" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">neighborhood_vars</span><span class="p">(</span><span class="n">net</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Applies pandana to create 226060 network nodes (focusing on pedestrian level), deviding the region into 226060 neighborhoods; 
+key variables that reflect neighborhood characteristics (existing units, hh, income, jobs, etc.) are gathered from various tables
+(households, buildings, jobs) following certain rules defined in "neighborhood_vars.yaml", e.g. referencing radii (e.g. 1500, 3000),
+aggregation method (75%, average, median, etc.), filter (e.g. residential vs non-residential buildings).</p>
+<p>The pandana network is based on the base year OSM network from the H5 file. 
+How pandana works: quickly moves along the network, uses the H5 file has openstreet esiting year network to run a mini-travel model
+(focusing on pedestrian level), get job conuts, etc. along the network.</p>
+
+      <details class="quote">
+        <summary>Source code in <code>baus\models.py</code></summary>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1007</span>
+<span class="normal">1008</span>
+<span class="normal">1009</span>
+<span class="normal">1010</span>
+<span class="normal">1011</span>
+<span class="normal">1012</span>
+<span class="normal">1013</span>
+<span class="normal">1014</span>
+<span class="normal">1015</span>
+<span class="normal">1016</span>
+<span class="normal">1017</span>
+<span class="normal">1018</span>
+<span class="normal">1019</span>
+<span class="normal">1020</span>
+<span class="normal">1021</span>
+<span class="normal">1022</span>
+<span class="normal">1023</span>
+<span class="normal">1024</span>
+<span class="normal">1025</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@orca</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">neighborhood_vars</span><span class="p">(</span><span class="n">net</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies pandana to create 226060 network nodes (focusing on pedestrian level), deviding the region into 226060 neighborhoods; </span>
+<span class="sd">    key variables that reflect neighborhood characteristics (existing units, hh, income, jobs, etc.) are gathered from various tables</span>
+<span class="sd">    (households, buildings, jobs) following certain rules defined in &quot;neighborhood_vars.yaml&quot;, e.g. referencing radii (e.g. 1500, 3000),</span>
+<span class="sd">    aggregation method (75%, average, median, etc.), filter (e.g. residential vs non-residential buildings).</span>
+
+<span class="sd">    The pandana network is based on the base year OSM network from the H5 file. </span>
+<span class="sd">    How pandana works: quickly moves along the network, uses the H5 file has openstreet esiting year network to run a mini-travel model</span>
+<span class="sd">    (focusing on pedestrian level), get job conuts, etc. along the network.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">networks</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="n">net</span><span class="p">[</span><span class="s2">&quot;walk&quot;</span><span class="p">],</span> <span class="s2">&quot;accessibility/neighborhood_vars.yaml&quot;</span><span class="p">)</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">describe</span><span class="p">())</span>
+    <span class="n">orca</span><span class="o">.</span><span class="n">add_table</span><span class="p">(</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+      </details>
+  </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+
+<h3 id="baus.models.price_vars" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">price_vars</span><span class="p">(</span><span class="n">net</span><span class="p">)</span></code>
+
+</h3>
+
+
+  <div class="doc doc-contents ">
+  
+      <p>Adds price variables to neighborhood_nodes, 4 new columns: 'residential', 'retail', 'office', 'industrial'.</p>
+<p>The 'residential' field feeds into "parcel_sales_price_sqft_func" to get an adjusted (the shifters)
+parcel-level residential price (average among all units on the same parcel):
+https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/variables.py#L538
+https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/variables.py#L333.</p>
+<p>The adjusted residential price ("parcel_sales_price_sqft_func") then is applied in the feasibility model:
+https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/models.py#L452,
+corresponding to the "residential_sales_price_sqft" column.</p>
+
+      <details class="quote">
+        <summary>Source code in <code>baus\models.py</code></summary>
+        <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1067</span>
+<span class="normal">1068</span>
+<span class="normal">1069</span>
+<span class="normal">1070</span>
+<span class="normal">1071</span>
+<span class="normal">1072</span>
+<span class="normal">1073</span>
+<span class="normal">1074</span>
+<span class="normal">1075</span>
+<span class="normal">1076</span>
+<span class="normal">1077</span>
+<span class="normal">1078</span>
+<span class="normal">1079</span>
+<span class="normal">1080</span>
+<span class="normal">1081</span>
+<span class="normal">1082</span>
+<span class="normal">1083</span>
+<span class="normal">1084</span>
+<span class="normal">1085</span>
+<span class="normal">1086</span>
+<span class="normal">1087</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@orca</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">price_vars</span><span class="p">(</span><span class="n">net</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds price variables to neighborhood_nodes, 4 new columns: &#39;residential&#39;, &#39;retail&#39;, &#39;office&#39;, &#39;industrial&#39;.</span>
+
+<span class="sd">    The &#39;residential&#39; field feeds into &quot;parcel_sales_price_sqft_func&quot; to get an adjusted (the shifters)</span>
+<span class="sd">    parcel-level residential price (average among all units on the same parcel):</span>
+<span class="sd">    https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/variables.py#L538</span>
+<span class="sd">    https://github.com/BayAreaMetro/bayarea_urbansim/blob/820554cbabee51725c445b9fd211542db8876c9f/baus/variables.py#L333.</span>
+
+<span class="sd">    The adjusted residential price (&quot;parcel_sales_price_sqft_func&quot;) then is applied in the feasibility model:</span>
+<span class="sd">    https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/models.py#L452,</span>
+<span class="sd">    corresponding to the &quot;residential_sales_price_sqft&quot; column.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nodes2</span> <span class="o">=</span> <span class="n">networks</span><span class="o">.</span><span class="n">from_yaml</span><span class="p">(</span><span class="n">net</span><span class="p">[</span><span class="s2">&quot;walk&quot;</span><span class="p">],</span> <span class="s2">&quot;accessibility/price_vars.yaml&quot;</span><span class="p">)</span>
+    <span class="n">nodes2</span> <span class="o">=</span> <span class="n">nodes2</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">nodes2</span><span class="o">.</span><span class="n">describe</span><span class="p">())</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">orca</span><span class="o">.</span><span class="n">get_table</span><span class="p">(</span><span class="s1">&#39;nodes&#39;</span><span class="p">)</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">nodes2</span><span class="p">)</span>
+    <span class="n">orca</span><span class="o">.</span><span class="n">add_table</span><span class="p">(</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="n">nodes</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
       </details>
   </div>

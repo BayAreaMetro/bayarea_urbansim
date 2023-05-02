@@ -462,6 +462,26 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#interim-table" class="md-nav__link">
+    Interim table
+  </a>
+  
+    <nav class="md-nav" aria-label="Interim table">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fesibility-attributes" class="md-nav__link">
+    fesibility attributes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -634,6 +654,26 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#interim-table" class="md-nav__link">
+    Interim table
+  </a>
+  
+    <nav class="md-nav" aria-label="Interim table">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fesibility-attributes" class="md-nav__link">
+    fesibility attributes
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -662,7 +702,7 @@
 <h2 id="for-travel-model">For Travel Model</h2>
 <p>TBD</p>
 <h2 id="diagnostic-outputs">Diagnostic Outputs</h2>
-<p>The table below contains brief descriptions of the disgnostic output tables of BAUS.</p>
+<p>The tables below contains brief descriptions of the disgnostic output tables of BAUS.</p>
 <table>
 <thead>
 <tr>
@@ -933,7 +973,105 @@
 </thead>
 <tbody>
 <tr>
+<td>development_id</td>
 <td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>SDEM</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>building_type</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>residential</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>building_sqft</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>non_residential_sqft</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>job_spaces</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>residential_sqft</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>residential_units</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>total_residential_units</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>total_sqft</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>source</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>x</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>y</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>year_built</td>
 <td>XXX</td>
 <td>XXX</td>
 <td>XXX</td>
@@ -959,6 +1097,304 @@
 <td>XXX</td>
 <td>XXX</td>
 <td>XXX</td>
+</tr>
+</tbody>
+</table>
+<h2 id="interim-table">Interim table</h2>
+<p>The tables below are interim data as input/output for sub-models.</p>
+<table>
+<thead>
+<tr>
+<th><strong>File name</strong></th>
+<th><strong>Purpose</strong></th>
+<th><strong>Output of Sub-model(s)</strong></th>
+<th><strong>Input of Sub-model(s)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#feasibility-attributes"><code>feasibility</code></a></td>
+<td>Parcel-level data on the development feasibilities of various development types given the zoning, development costs, and expected return. Only parcels where at least one development type is feasible is included.</td>
+<td>created by alt_feasibility(); modified by subsidized_residential_feasibility() and policy_modifications_of_profit()</td>
+<td>residential_developer(), office_developer(), retail_developer(), run_subsidized_developer(), subsidized_office_developer()</td>
+</tr>
+<tr>
+<td><code>parcel_output.csv</code></td>
+<td>Parcel-level attributes of parcels with development activities during the simulation time period.</td>
+<td>CSV</td>
+<td></td>
+</tr>
+<tr>
+<td><code>dropping_buildings.csv</code></td>
+<td>XXX</td>
+<td>CSV</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="fesibility-attributes"><code>fesibility</code> attributes</h3>
+<p><code>feasibility</code> contains two sets of development variables grouped by six development types (coded as <code>form</code>): <code>retail</code>, <code>industrial</code>, <code>office</code>, <code>residential</code>, <code>mixedresidential</code>, <code>mixedoffice</code>. For every development type, one set of variables are passed through from the parcels table as input for the feasibility evaluation; the other set of variables are the result of the feasibility evaluation.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Attribute</strong></th>
+<th><strong>Description</strong></th>
+<th><strong>Data Type</strong></th>
+<th><strong>Source</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>parcel_id</td>
+<td>Parcel index</td>
+<td>int</td>
+<td></td>
+</tr>
+<tr>
+<td>oldest_building</td>
+<td>?</td>
+<td>?</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>total_sqft</td>
+<td>?</td>
+<td>?</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>total_residential_units</td>
+<td>?</td>
+<td>?</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>max_far</td>
+<td></td>
+<td>int</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>max_dua</td>
+<td></td>
+<td>int</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>land_cost</td>
+<td></td>
+<td>int</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>residential</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>min_max_fars</td>
+<td></td>
+<td>int</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>max_height</td>
+<td></td>
+<td>int</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>building_purchase_price</td>
+<td></td>
+<td>int</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>building_purchase_price_sqft</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>residential_sales_price_sqft</td>
+<td>https://app.asana.com/0/0/1201856230375726/f</td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>pda_pba40</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>pda_pba50</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>trich_id</td>
+<td></td>
+<td>str</td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>cat_id</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>tra_id</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>ppa_id</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>sesit_id</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>coc_id</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>juris</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>county</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>superdistrict</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>geom_id</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>vmt_res_cat</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>vmt_nonres_cat</td>
+<td></td>
+<td></td>
+<td>pass_through from input parcel frame</td>
+</tr>
+<tr>
+<td>parking_config</td>
+<td>parking type, e.g. deck, surface</td>
+<td>string</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>building_sqft</td>
+<td>The number of square feet for the building to build. Keep in mind this includes parking and common space. Will need a helpful function to convert from gross square feet to actual usable square feet in residential units.</td>
+<td>float</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>building_cost</td>
+<td>The cost of constructing the building as given by the ave_cost_per_sqft from the cost model (for this FAR) and the number of square feet.</td>
+<td>float</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>parking_ratio</td>
+<td>?</td>
+<td>?</td>
+<td>?</td>
+</tr>
+<tr>
+<td>stories</td>
+<td>?</td>
+<td>?</td>
+<td>?</td>
+</tr>
+<tr>
+<td>total_cost</td>
+<td>The cost of constructing the building plus the cost of acquisition of the current parcel/building.</td>
+<td>float</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>building_revenue</td>
+<td>The NPV of the revenue for the building to be built, which is the number of square feet times the yearly rent divided by the cap rate (with a few adjustment factors including building efficiency).</td>
+<td>float</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>max_profit_far</td>
+<td>The FAR of the maximum profit building (constrained by the max_far and max_height from the input dataframe).</td>
+<td>float</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>max_profit</td>
+<td>The profit for the maximum profit building (constrained by the max_far and max_height from the input dataframe).</td>
+<td>float</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>residential_sqft</td>
+<td></td>
+<td>float</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>non_residential_sqft</td>
+<td></td>
+<td>float</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>fees</td>
+<td></td>
+<td></td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>policy_based_revenue_reduction</td>
+<td></td>
+<td>int</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>deed_restricted_units</td>
+<td></td>
+<td>int</td>
+<td>created by run_feasibility()</td>
+</tr>
+<tr>
+<td>inclusionary_units</td>
+<td></td>
+<td>int</td>
+<td>created by run_feasibility()</td>
 </tr>
 </tbody>
 </table>
