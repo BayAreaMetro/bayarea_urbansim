@@ -485,7 +485,7 @@ def manual_edits():
 # shared between demolish and build tables below
 def get_dev_projects_table():
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                                  "basis_inputs/parcels_buildings_agents/dev_pipeline_v0.csv"))
+                                  "basis_inputs/parcels_buildings_agents/dev_pipeline_v0b.csv"))
     df = df.set_index("geo_id")
     return df
 
@@ -512,6 +512,21 @@ def development_projects():
     print(df[orca.get_table('buildings').local_columns].describe())
 
     return df
+
+@orca.table(cache=True)
+def dev_pipeline_strategy_projects(run_setup, development_projects):
+
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/dev_pipeline_strategy_projects_v0b.csv"))
+    df = df.set_index("geo_id")
+
+    if run_setup["dev_pipeline_strategy_projects"]:
+        dp = development_projects.to_frame()
+        # should error if the columns don't match the dev pipeline columns
+        dp.append(df)
+        # should all be add/build
+        dp = dp[df.action.isin(["add", "build"])]
+
+    return dp
 
 
 @orca.table(cache=True)
