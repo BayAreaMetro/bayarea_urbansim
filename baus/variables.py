@@ -181,8 +181,8 @@ def price_per_sqft(buildings):
 
 
 @orca.column('buildings', cache=True)
-def transit_type(buildings, parcels_geography):
-    return misc.reindex(parcels_geography.tpp_id, buildings.geo_id).\
+def transit_type(buildings, growth_geographies):
+    return misc.reindex(growth_geographies.tpp_id, buildings.geo_id).\
         reindex(buildings.index).fillna('none')
 
 
