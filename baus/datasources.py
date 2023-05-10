@@ -541,7 +541,7 @@ def households():
 
 @orca.table(cache=True)
 def buildings():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/buildings.csv")
+    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/buildings_v0b.csv")
 
 
 @orca.table(cache=True)
