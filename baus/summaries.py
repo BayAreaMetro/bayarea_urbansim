@@ -42,10 +42,10 @@ def environment_config(run_number, parcels, year):
 
 
 @orca.step()
-def topsheet(households, jobs, buildings, parcels, zones, year, run_number, taz_geography, parcels_zoning_calculations,
-             summary, parcels_geography, new_tpp_id, residential_units, mapping):
+def topsheet(households, jobs, buildings, parcels, zones, year, run_number, parcels_zoning_calculations,
+             summary, parcels_geography, new_tpp_id, residential_units, mapping, travel_model_zones):
 
-    hh_by_subregion = misc.reindex(taz_geography.subregion, households.zone_id).value_counts()
+    hh_by_subregion = misc.reindex(travel_model_zones.subregion, households.geo_id).value_counts()
 
     # Cols for Draft/Final Blueprint and EIR geographies       
     households_df = orca.merge_tables('households', [parcels_geography, buildings, households],
@@ -66,7 +66,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year, run_number, taz_
     # round to nearest 100s
     hhincome_by_insesit = (hhincome_by_insesit/100).round()*100
 
-    jobs_by_subregion = misc.reindex(taz_geography.subregion, jobs.zone_id).value_counts()
+    jobs_by_subregion = misc.reindex(travel_model_zones.subregion, jobs.geo_id).value_counts()
 
     jobs_df = orca.merge_tables('jobs', [parcels, buildings, jobs], columns=['pda_id', 'tra_id'])
 
@@ -633,11 +633,11 @@ def travel_model_output(parcels, households, jobs, buildings, year, summary, fin
                                                'income', 'persons',
                                                'maz_id'])
 
-    taz_tm1_df = pd.DataFrame(index=travel_model_zones.taz_tm1.unique().index)
+    taz_tm1_df = pd.DataFrame(index=travel_model_zones.sort_values(['taz_tm1'])['taz_tm1'].unique())
 
-    taz_tm1_df["zone"] = zones.index
-    taz_tm1_df["sd"] = taz_geography.superdistrict
-    taz_tm1_df["county"] = taz_geography.county
+    taz_tm1_df["zone"] = taz_tm1_df.index
+    taz_tm1_df["sd"] = parcels.sort_values(['taz_tm1']).groupby(['taz_tm1'])['superdistrict'].first()
+    taz_tm1_df["county"] = parcels.sort_values(['taz_tm1']).groupby(['taz_tm1'])['county'].first()
 
     jobs_df = orca.merge_tables(
         'jobs',

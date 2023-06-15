@@ -312,7 +312,7 @@ def new_tpp_id():
 
 @orca.table(cache=True)
 def travel_model_zones():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones_v0.csv"))
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones_v0b.csv"))
 
 
 @orca.table(cache=True)
@@ -617,11 +617,6 @@ def vmt_fee_categories():
 
 
 @orca.table(cache=True)
-def superdistricts_geography(): 
-	return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/superdistricts_geography.csv"), index_col="number")
-
-
-@orca.table(cache=True)
 def sqft_per_job_adjusters(): 
     return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters/sqft_per_job_adjusters.csv"), index_col="number")
 
@@ -629,19 +624,6 @@ def sqft_per_job_adjusters():
 @orca.table(cache=True)
 def telecommute_sqft_per_job_adjusters(): 
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/telecommute_sqft_per_job_adjusters.csv"), index_col="number")
-
-
-@orca.table(cache=True)
-def taz_geography(superdistricts_geography, mapping):
-    tg = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/taz_geography.csv"),
-                     dtype={'zone': np.int64, 'superdistrcit': np.int64, 'county': np.int64}, index_col="zone")
-    # we want "subregion" geography on the taz_geography table
-    # we have to go get it from the superdistricts_geography table and join
-    # using the superdistrcit id
-    tg["subregion_id"] = superdistricts_geography.subregion.loc[tg.superdistrict].values
-    tg["subregion"] = tg.subregion_id.map({1: "Core", 2: "Urban", 3: "Suburban", 4: "Rural"})
-
-    return tg
 
 
 # SLR progression by year

@@ -147,11 +147,12 @@ def vacant_res_units(buildings, households):
 
 
 @orca.column('buildings', cache=True)
-def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telecommute_sqft_per_job_adjusters, taz_geography, base_year, year, run_setup):
+def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telecommute_sqft_per_job_adjusters, travel_model_zones 
+                 base_year, year, run_setup):
     
     sqft_per_job = buildings.building_type.fillna("O").map(building_sqft_per_job)
 
-    superdistrict = misc.reindex(taz_geography.superdistrict, buildings.zone_id)
+    superdistrict = misc.reindex(travel_model_zones.superdistrict, buildings.geo_id)
 
     # this factor changes all sqft per job according to which superdistrict the building is in - this is so denser areas can have lower sqft per job
     # this is a simple multiply so a number 1.1 increases the sqft per job by 10% and .9 decreases it by 10%
@@ -470,8 +471,8 @@ def juris_coc(parcels, parcels_geography):
 
 
 @orca.column('parcels', cache=True)
-def superdistrict(parcels, taz_geography):
-    return misc.reindex(taz_geography.superdistrict, parcels.zone_id)
+def superdistrict(parcels, travel_model_zones):
+    return misc.reindex(travel_model_zones.superdistrict, parcels.geo_id)
 
 
 # perffoot is a dummy indicating the FOOTprint for the PERFormance targets
@@ -815,8 +816,8 @@ def tmnode_id(parcels, net):
 
 
 @orca.column('parcels', cache=True)
-def subregion(taz_geography, parcels):
-    return misc.reindex(taz_geography.subregion, parcels.zone_id)
+def subregion(travel_model_zones, parcels):
+    return misc.reindex(travel_model_zones.subregion, parcels.geo_id)
 
 
 @orca.column('parcels', cache=True)
