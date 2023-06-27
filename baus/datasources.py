@@ -397,13 +397,13 @@ def zoning_strategy(growth_geographies, mapping):
     join_col = 'zoningmodcat'
     print('join_col of zoningmods is {}'.format(join_col))
 
-    return pd.merge(growth_geographies.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('geo_id')
+    return pd.merge(growth_geographies.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('parcel_id')
 
 
 @orca.table(cache=True)
 def parcels():
     df = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/parcels_v0.csv")
-    return df.set_index("geo_id")
+    return df.set_index("parcel_id")
 
 
 @orca.table(cache=True)
@@ -486,7 +486,7 @@ def manual_edits():
 def get_dev_projects_table():
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
                                   "basis_inputs/parcels_buildings_agents/dev_pipeline_v0c.csv"))
-    df = df.set_index("geo_id")
+    df = df.set_index("parcel_id")
     return df
 
 
@@ -517,7 +517,7 @@ def development_projects():
 def dev_pipeline_strategy_projects(run_setup, development_projects):
 
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/dev_pipeline_strategy_projects_v0c.csv"))
-    df = df.set_index("geo_id")
+    df = df.set_index("parcel_id")
 
     if run_setup["dev_pipeline_strategy_projects"]:
         dp = development_projects.to_frame()
@@ -698,13 +698,13 @@ def accessory_units():
 
 @orca.table(cache=True)
 def nodev_sites():
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/nodev_sites_v0.csv"), index_col="geo_id")
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/nodev_sites_v0.csv"), index_col="parcel_id")
     return df
 
 
 @orca.table(cache=True)
 def institutions():
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/institutions.csv"), index_col="geo_id")
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/institutions.csv"), index_col="parcel_id")
     return df
 
 
@@ -713,7 +713,7 @@ def institutions():
 # this specifies the relationships between tables
 orca.broadcast('buildings', 'residential_units', cast_index=True, onto_on='building_id')
 orca.broadcast('residential_units', 'households', cast_index=True, onto_on='unit_id')
-orca.broadcast('growth_geographies', 'buildings', cast_index=True, onto_on='geo_id')
-orca.broadcast('parcels', 'buildings', cast_index=True, onto_on='geo_id')
+orca.broadcast('growth_geographies', 'buildings', cast_index=True, onto_on='parcel_id')
+orca.broadcast('parcels', 'buildings', cast_index=True, onto_on='parcel_id')
 # not defined in urbansim_defaults
 orca.broadcast('tmnodes', 'buildings', cast_index=True, onto_on='tmnode_id')

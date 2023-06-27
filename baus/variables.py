@@ -152,7 +152,7 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
     
     sqft_per_job = buildings.building_type.fillna("O").map(building_sqft_per_job)
 
-    superdistrict = misc.reindex(travel_model_zones.superdistrict, buildings.geo_id)
+    superdistrict = misc.reindex(travel_model_zones.superdistrict, buildings.parcel_id)
 
     # this factor changes all sqft per job according to which superdistrict the building is in - this is so denser areas can have lower sqft per job
     # this is a simple multiply so a number 1.1 increases the sqft per job by 10% and .9 decreases it by 10%
@@ -183,7 +183,7 @@ def price_per_sqft(buildings):
 
 @orca.column('buildings', cache=True)
 def transit_type(buildings, growth_geographies):
-    return misc.reindex(growth_geographies.tpp_id, buildings.geo_id).\
+    return misc.reindex(growth_geographies.tpp_id, buildings.parcel_id).\
         reindex(buildings.index).fillna('none')
 
 
@@ -194,17 +194,17 @@ def unit_price(buildings):
 
 @orca.column('buildings', cache=True)
 def tmnode_id(buildings, parcels):
-    return misc.reindex(parcels.tmnode_id, buildings.geo_id)
+    return misc.reindex(parcels.tmnode_id, buildings.parcel_id)
 
 
 @orca.column('buildings')
 def juris_ave_income(parcels, buildings):
-    return misc.reindex(parcels.juris_ave_income, buildings.geo_id)
+    return misc.reindex(parcels.juris_ave_income, buildings.parcel_id)
 
 
 @orca.column('buildings', cache=True)
 def is_sanfran(parcels, buildings):
-    return misc.reindex(parcels.is_sanfran, buildings.geo_id)
+    return misc.reindex(parcels.is_sanfran, buildings.parcel_id)
 
 
 @orca.column('buildings', cache=True)
@@ -301,17 +301,17 @@ def residential_price(buildings, residential_units, developer_settings):
 
 @orca.column('buildings', cache=True, cache_scope='iteration')
 def cml(buildings, parcels):
-    return misc.reindex(parcels.cml, buildings.geo_id)
+    return misc.reindex(parcels.cml, buildings.parcel_id)
 
 
 @orca.column('buildings', cache=True, cache_scope='iteration')
 def cnml(buildings, parcels):
-    return misc.reindex(parcels.cnml, buildings.geo_id)
+    return misc.reindex(parcels.cnml, buildings.parcel_id)
 
 
 @orca.column('buildings', cache=True, cache_scope='iteration')
 def combo_logsum(buildings, parcels):
-    return misc.reindex(parcels.combo_logsum, buildings.geo_id)
+    return misc.reindex(parcels.combo_logsum, buildings.parcel_id)
 
 
 #####################
@@ -355,7 +355,7 @@ def retail_ratio(parcels, nodes):
 # attribute on the buildings
 @orca.column('parcels', cache=True)
 def stories(buildings):
-    return buildings.stories.groupby(buildings.geo_id).max()
+    return buildings.stories.groupby(buildings.parcel_id).max()
 
 
 @orca.column('parcels', cache=True)
@@ -472,7 +472,7 @@ def juris_coc(parcels, parcels_geography):
 
 @orca.column('parcels', cache=True)
 def superdistrict(parcels, travel_model_zones):
-    return misc.reindex(travel_model_zones.superdistrict, parcels.geo_id)
+    return misc.reindex(travel_model_zones.superdistrict, parcels.parcel_id)
 
 
 # perffoot is a dummy indicating the FOOTprint for the PERFormance targets
@@ -595,8 +595,8 @@ def parcel_is_allowed(form):
 
 @orca.column('parcels')
 def first_building_type(buildings):
-    df = buildings.to_frame(columns=['building_type', 'geo_id'])
-    return df.groupby('geo_id').building_type.first()
+    df = buildings.to_frame(columns=['building_type', 'parcel_id'])
+    return df.groupby('parcel_id').building_type.first()
 
 
 @orca.injectable(autocall=False)
@@ -624,7 +624,7 @@ def juris_ave_income(households, buildings, parcels_geography, parcels):
 # missing values with 1800 - for use with development limits
 @orca.column('parcels')
 def newest_building(parcels, buildings):
-    return buildings.year_built.groupby(buildings.geo_id).max().\
+    return buildings.year_built.groupby(buildings.parcel_id).max().\
         reindex(parcels.index).fillna(1800)
 
 
@@ -641,7 +641,7 @@ def is_sanfran(parcels_geography, buildings, parcels):
 
 @orca.column('parcels', cache=True)
 def total_non_residential_sqft(parcels, buildings):
-    return buildings.non_residential_sqft.groupby(buildings.geo_id).sum().\
+    return buildings.non_residential_sqft.groupby(buildings.parcel_id).sum().\
         reindex(parcels.index).fillna(0)
 
 
@@ -728,7 +728,7 @@ def max_dua(parcels_zoning_calculations, parcels, zoning_adjusters):
 
 @orca.column('parcels')
 def general_type(parcels, buildings):
-    s = buildings.general_type.groupby(buildings.geo_id).first()
+    s = buildings.general_type.groupby(buildings.parcel_id).first()
     return s.reindex(parcels.index).fillna("Vacant")
 
 
@@ -817,7 +817,7 @@ def tmnode_id(parcels, net):
 
 @orca.column('parcels', cache=True)
 def subregion(travel_model_zones, parcels):
-    return misc.reindex(travel_model_zones.subregion, parcels.geo_id)
+    return misc.reindex(travel_model_zones.subregion, parcels.parcel_id)
 
 
 @orca.column('parcels', cache=True)

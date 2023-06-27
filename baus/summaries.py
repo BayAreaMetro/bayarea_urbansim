@@ -45,7 +45,7 @@ def environment_config(run_number, parcels, year):
 def topsheet(households, jobs, buildings, parcels, zones, year, run_number, parcels_zoning_calculations,
              summary, parcels_geography, new_tpp_id, residential_units, mapping, travel_model_zones):
 
-    hh_by_subregion = misc.reindex(travel_model_zones.subregion, households.geo_id).value_counts()
+    hh_by_subregion = misc.reindex(travel_model_zones.subregion, households.parcel_id).value_counts()
 
     # Cols for Draft/Final Blueprint and EIR geographies       
     households_df = orca.merge_tables('households', [parcels_geography, buildings, households],
@@ -66,7 +66,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year, run_number, parc
     # round to nearest 100s
     hhincome_by_insesit = (hhincome_by_insesit/100).round()*100
 
-    jobs_by_subregion = misc.reindex(travel_model_zones.subregion, jobs.geo_id).value_counts()
+    jobs_by_subregion = misc.reindex(travel_model_zones.subregion, jobs.parcel_id).value_counts()
 
     jobs_df = orca.merge_tables('jobs', [parcels, buildings, jobs], columns=['pda_id', 'tra_id'])
 
@@ -532,31 +532,31 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
     join_col = 'zoningmodcat'
     
     if join_col in parcels_geography.to_frame().columns:
-        parcel_gg = parcels_geography.to_frame(["geo_id", join_col, "juris"])
-        df = df.merge(parcel_gg, on='geo_id', how='left')
+        parcel_gg = parcels_geography.to_frame(["parcel_id", join_col, "juris"])
+        df = df.merge(parcel_gg, on='parcel_id', how='left')
 
-    households_df = orca.merge_tables('households', [buildings, households], columns=['geo_id', 'base_income_quartile'])
+    households_df = orca.merge_tables('households', [buildings, households], columns=['parcel_id', 'base_income_quartile'])
 
     # add households by quartile on each parcel
     for i in range(1, 5):
-        df['hhq%d' % i] = households_df[households_df.base_income_quartile == i].geo_id.value_counts()
-    df["tothh"] = households_df.groupby('geo_id').size()
+        df['hhq%d' % i] = households_df[households_df.base_income_quartile == i].parcel_id.value_counts()
+    df["tothh"] = households_df.groupby('parcel_id').size()
 
     building_df = orca.merge_tables('buildings', [parcels, buildings],
-                                    columns=['geo_id', 'residential_units', 'deed_restricted_units', 
+                                    columns=['parcel_id', 'residential_units', 'deed_restricted_units', 
                                              'preserved_units', 'inclusionary_units', 'subsidized_units'])
-    df['residential_units'] = building_df.groupby('geo_id')['residential_units'].sum()
-    df['deed_restricted_units'] = building_df.groupby('geo_id')['deed_restricted_units'].sum()
-    df['preserved_units'] = building_df.groupby('geo_id')['preserved_units'].sum()
-    df['inclusionary_units'] = building_df.groupby('geo_id')['inclusionary_units'].sum()
-    df['subsidized_units'] = building_df.groupby('geo_id')['subsidized_units'].sum()
+    df['residential_units'] = building_df.groupby('parcel_id')['residential_units'].sum()
+    df['deed_restricted_units'] = building_df.groupby('parcel_id')['deed_restricted_units'].sum()
+    df['preserved_units'] = building_df.groupby('parcel_id')['preserved_units'].sum()
+    df['inclusionary_units'] = building_df.groupby('parcel_id')['inclusionary_units'].sum()
+    df['subsidized_units'] = building_df.groupby('parcel_id')['subsidized_units'].sum()
 
-    jobs_df = orca.merge_tables('jobs', [buildings, jobs], columns=['geo_id', 'empsix'])
+    jobs_df = orca.merge_tables('jobs', [buildings, jobs], columns=['parcel_id', 'empsix'])
 
     # add jobs by empsix category on each parcel
     for cat in jobs_df.empsix.unique():
-        df[cat] = jobs_df[jobs_df.empsix == cat].geo_id.value_counts()
-    df["totemp"] = jobs_df.groupby('geo_id').size()
+        df[cat] = jobs_df[jobs_df.empsix == cat].parcel_id.value_counts()
+    df["totemp"] = jobs_df.groupby('parcel_id').size()
 
     df.to_csv(os.path.join(orca.get_injectable("outputs_dir"), "run%d_parcel_data_%d.csv" % (run_number, year)))
 
@@ -567,7 +567,7 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
         # do diff with initial year
 
         df2 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "run%d_parcel_data_%d.csv" %
-                          (run_number, initial_year)), index_col="geo_id")
+                          (run_number, initial_year)), index_col="parcel_id")
 
         for col in df.columns:
 
@@ -624,7 +624,7 @@ def travel_model_output(parcels, households, jobs, buildings, year, summary, fin
                         tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls):
 
 
-    parcels = parcels.to_frame().merge(travel_model_zones, on='geo_id', columns=["taz_tm1", "maz_tm2"])
+    parcels = parcels.to_frame().merge(travel_model_zones, on='parcel_id', columns=["taz_tm1", "maz_tm2"])
 
     households_df = orca.merge_tables('households', 
                                       [parcels, buildings, households],
@@ -726,7 +726,7 @@ def travel_model_output(parcels, households, jobs, buildings, year, summary, fin
 
     summary.write_parcel_output(add_xy={
         "xy_table": "parcels",
-        "foreign_key": "geo_id",
+        "foreign_key": "parcel_id",
         "x_col": "x",
         "y_col": "y"
     })
@@ -1525,10 +1525,10 @@ def hazards_eq_summary(run_setup, run_number, year, households, jobs, parcels, b
             # print out demolished buildings
             eq_demolish = eq_demolish.to_frame()
             eq_demolish_taz = misc.reindex(parcels.zone_id,
-                                           eq_demolish.geo_id)
+                                           eq_demolish.parcel_id)
             eq_demolish['taz'] = eq_demolish_taz
             eq_demolish['count'] = 1
-            eq_demolish = eq_demolish.drop(['geo_id', 'year_built',
+            eq_demolish = eq_demolish.drop(['parcel_id', 'year_built',
                                            'redfin_sale_year'], axis=1)
             eq_demolish = eq_demolish.groupby(['taz']).sum()
             eq_demolish.to_csv(os.path.join(orca.get_injectable("outputs_dir"),
@@ -1559,7 +1559,7 @@ def hazards_eq_summary(run_setup, run_number, year, households, jobs, parcels, b
         if year in [2030, 2035, 2050] and eq:
             buildings = buildings.to_frame()
             buildings_taz = misc.reindex(parcels.zone_id,
-                                         buildings.geo_id)
+                                         buildings.parcel_id)
             buildings['taz'] = buildings_taz
             buildings['count'] = 1
             buildings = buildings[['taz', 'count', 'residential_units',
