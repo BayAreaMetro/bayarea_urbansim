@@ -413,7 +413,7 @@ def parcels_zoning_calculations(parcels):
 
 @orca.table(cache=True)
 def growth_geographies():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/growth_geographies_v0b.csv")
+    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/growth_geographies_v0c.csv")
 
 
 @orca.table(cache=True)
