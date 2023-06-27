@@ -289,7 +289,7 @@ def costar(parcels):
 
 @orca.table(cache=True)
 def zoning_existing(zoning_lookup):
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/boc_v0.csv")
+    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/boc_v0c.csv")
 
 
 @orca.table(cache=True)
