@@ -402,7 +402,7 @@ def zoning_strategy(growth_geographies, mapping):
 
 @orca.table(cache=True)
 def parcels():
-    df = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/parcels_v0.csv")
+    df = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/parcels_v0c.csv")
     return df.set_index("parcel_id")
 
 
