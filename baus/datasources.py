@@ -698,15 +698,8 @@ def accessory_units():
 
 @orca.table(cache=True)
 def nodev_sites():
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/nodev_sites_v0.csv"), index_col="parcel_id")
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/nodev_sites_v0c.csv"), index_col="parcel_id")
     return df
-
-
-@orca.table(cache=True)
-def institutions():
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/institutions.csv"), index_col="parcel_id")
-    return df
-
 
 
 
