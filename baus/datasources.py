@@ -312,7 +312,7 @@ def new_tpp_id():
 
 @orca.table(cache=True)
 def travel_model_zones():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones_v0b.csv"))
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones_v0c.csv"))
 
 
 @orca.table(cache=True)
@@ -414,12 +414,6 @@ def parcels_zoning_calculations(parcels):
 @orca.table(cache=True)
 def growth_geographies():
     return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/growth_geographies_v0c.csv")
-
-
-@orca.table(cache=True)
-def parcels_subzone():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'basis_inputs/crosswalks/2020_08_17_parcel_to_taz1454sub.csv'),
-                       usecols=['taz_sub', 'PARCEL_ID', 'county'], dtype={'PARCEL_ID': np.int64}, index_col='PARCEL_ID')
 
 
 @orca.table(cache=False)
