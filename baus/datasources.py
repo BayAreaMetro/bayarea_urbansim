@@ -471,11 +471,6 @@ def accessibilities_segmentation(year, run_setup):
     return df
 
 
-@orca.table(cache=True)
-def manual_edits():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/edits/manual_edits.csv"))
-
-
 # shared between demolish and build tables below
 def get_dev_projects_table():
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
@@ -539,8 +534,8 @@ def buildings():
 
 
 @orca.table(cache=True)
-def residential_units(store):
-    return print_error_if_not_available(store, 'residential_units_preproc')
+def residential_units():
+    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/residential_units_v0c.csv")
 
 
 @orca.table(cache=True)

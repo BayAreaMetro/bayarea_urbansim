@@ -141,49 +141,6 @@ def preproc_households(store):
     store['households_preproc'] = df
 
 
-def assign_deed_restricted_units(df, parcels):
-
-    df["deed_restricted_units"] = 0
-
-    zone_ids = misc.reindex(parcels.zone_id, df.parcel_id).\
-        reindex(df.index).fillna(-1)
-    # sample deed restricted units to match current deed restricted unit
-    # zone totals
-    for taz, row in pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                                             "basis_inputs/parcels_buildings_agents/deed_restricted_zone_totals.csv"), 
-                                             index_col='taz_key').iterrows():
-
-        cnt = row["units"]
-
-        if cnt <= 0:
-            continue
-
-        potential_add_locations = df.residential_units[
-            (zone_ids == taz) &
-            (df.residential_units > 0)]
-
-        assert len(potential_add_locations) > 0
-
-        weights = potential_add_locations / potential_add_locations.sum()
-
-        buildings_ids = potential_add_locations.sample(
-            cnt, replace=True, weights=weights)
-
-        units = pd.Series(buildings_ids.index.values).value_counts()
-        df.loc[units.index, "deed_restricted_units"] += units.values
-
-    print("Total deed restricted units after random selection: %d" %
-          df.deed_restricted_units.sum())
-
-    df["deed_restricted_units"] = \
-        df[["deed_restricted_units", "residential_units"]].min(axis=1)
-
-    print("Total deed restricted units after truncating to res units: %d" %
-          df.deed_restricted_units.sum())
-
-    return df
-
-
 @orca.step()
 def correct_baseyear_vacancies(buildings, parcels, jobs, store):
     # sonoma county has too much vacancy in the buildings so we're

@@ -20,64 +20,6 @@ from urbansim_defaults import utils
 #
 ###############################################################################
 
-
-def _create_empty_units(buildings):
-    """
-    Create a table of empty units corresponding to an input table of buildings.
-    This function is used (a) in initialization and (b) after the developer
-    model steps run.
-
-    Parameters
-    ----------
-    buildings : DataFrameWrapper or DataFrame
-        Must contain an index to be used as the building identifier, and a
-        count of 'residential_units' which will determine the number of
-        units to create
-
-    Returns
-    -------
-    df : DataFrame
-        Table of units, to be processed within an orca step
-    """
-    # The '.astype(int)' deals with a bug (?) where the developer model creates
-    # floating-point unit counts
-
-    s = buildings.residential_units.fillna(0) >=\
-        buildings.deed_restricted_units.fillna(0)
-
-    assert np.all(buildings.residential_units.fillna(0) >=
-                  buildings.deed_restricted_units.fillna(0))
-
-    df = pd.DataFrame({
-        'unit_residential_price': 0.0,
-        'unit_residential_rent': 0.0,
-        'num_units': 1,
-        'building_id': np.repeat(
-            buildings.index.values,
-            buildings.residential_units.values.astype(int)
-        ),
-        # counter of the units in a building
-        'unit_num': np.concatenate([
-            np.arange(num_units)
-            for num_units in buildings.residential_units.values.astype(int)
-        ]),
-        # also identify deed restricted units
-        'deed_restricted': np.concatenate([
-            np.concatenate([
-                np.ones(restricted_units),
-                np.zeros(num_units - restricted_units)
-            ])
-            # iterate over number of units and deed restricted units too
-            for (num_units, restricted_units) in list(zip(
-                buildings.residential_units.values.astype(int),
-                buildings.deed_restricted_units.values.astype(int)
-            ))
-        ])
-    }).sort_values(by=['building_id', 'unit_num']).reset_index(drop=True)
-    df.index.name = 'unit_id'
-    return df
-
-
 def match_households_to_units(households, residential_units):
     """
     This initialization step adds a 'unit_id' to the households table and
@@ -175,19 +117,9 @@ def assign_tenure_to_units(residential_units, households):
 
 
 @orca.step()
-def initialize_residential_units(store):
-    # this is assumed to run as preprocessing step, after the other
-    # preprocessing steps - thus we need to get the data from the hdf rather
-    # than from the orca tables - I contemplated putting this code in the
-    # preprocessing.py module, but in the end I wanted to keep the residential
-    # units code together, and also I wanted the github diff to show how few
-    # lines actually changed here I'm not editing code - just changing where
-    # this code runs
-    households = store['households_preproc']
-    buildings = store['buildings_preproc']
+def initialize_residential_units(residential_units):
 
-    # fan out buildings into units
-    units = _create_empty_units(buildings)
+    units = residential_units
 
     # put households into units based on the building id
     households = match_households_to_units(households, units)
@@ -197,7 +129,8 @@ def initialize_residential_units(store):
 
     # write to the hdfstore
     store['households_preproc'] = households
-    store['residential_units_preproc'] = units
+
+    
 
 
 @orca.step()
