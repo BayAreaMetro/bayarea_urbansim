@@ -276,7 +276,7 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, developer_setti
 
 
 @orca.step()
-def geographic_summary(parcels, households, jobs, buildings, run_setup, run_number, year, summary, final_year):
+def geographic_summary(parcels, households, jobs, buildings, run_setup, run_number, year, summary, final_year, travel_model_zones):
     # using the following conditional b/c `year` is used to pull a column
     # from a csv based on a string of the year in add_population()
     # and in add_employment() and 2009 is the
@@ -388,6 +388,9 @@ def geographic_summary(parcels, households, jobs, buildings, run_setup, run_numb
                 summary_table['subsidy_per_unit'] = summary_table.total_subsidy / summary_table.subsidized_units
 
             summary_table = summary_table.sort_index()
+
+            if geography == 'superdistrict':
+                summary_table["superdistrict_name"] = travel_model_zones.sort_values(['superdistrict'])['superdistrict_name'].unique()
 
             if base is False:
                 summary_csv = os.path.join(orca.get_injectable("outputs_dir"), "run{}_{}_summaries_{}.csv").\

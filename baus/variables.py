@@ -472,7 +472,7 @@ def juris_coc(parcels, parcels_geography):
 
 @orca.column('parcels', cache=True)
 def superdistrict(parcels, travel_model_zones):
-    return misc.reindex(travel_model_zones.superdistrict_name, parcels.parcel_id)
+    return misc.reindex(travel_model_zones.superdistrict, parcels.parcel_id)
 
 
 # perffoot is a dummy indicating the FOOTprint for the PERFormance targets
