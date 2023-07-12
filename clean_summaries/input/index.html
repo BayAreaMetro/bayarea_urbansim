@@ -422,6 +422,47 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#basis_inputs-under-construction" class="md-nav__link">
+    basis_inputs (under construction)
+  </a>
+  
+    <nav class="md-nav" aria-label="basis_inputs (under construction)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#crosswalks" class="md-nav__link">
+    crosswalks
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plan_strategies-optional" class="md-nav__link">
+    plan_strategies (optional)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regional_controls" class="md-nav__link">
+    regional_controls
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zone_forecasts" class="md-nav__link">
+    zone_forecasts
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -593,6 +634,47 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#basis_inputs-under-construction" class="md-nav__link">
+    basis_inputs (under construction)
+  </a>
+  
+    <nav class="md-nav" aria-label="basis_inputs (under construction)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#crosswalks" class="md-nav__link">
+    crosswalks
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plan_strategies-optional" class="md-nav__link">
+    plan_strategies (optional)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regional_controls" class="md-nav__link">
+    regional_controls
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zone_forecasts" class="md-nav__link">
+    zone_forecasts
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -617,7 +699,6 @@
 
 
 <h3 id="the-inputs-structure-for-bay-area-urbansim-baus-and-a-description-of-each-input-model-input-files-are-stored-in-an-inputs-folder-to-be-called-by-the-model-they-are-often-run-specific-and-contain-the-data-used-to-run-the-model-such-as-base-year-datasets-and-policy-inputs">The inputs structure for Bay Area UrbanSim (BAUS) and a description of each input. Model input files are stored in an <code>inputs</code> folder to be called by the model. They are often run-specific and contain the data used to run the model, such as base year datasets and policy inputs.</h3>
-<p>&nbsp;  </p>
 <h1 id="inputs">inputs</h1>
 <h2 id="accessibility">accessibility</h2>
 <h3 id="pandana">pandana</h3>
@@ -677,26 +758,18 @@
 <td>nonMandatoryAccessibilities_[year].csv</td>
 <td>A travel model output file that incorportates travel model run logsums into the forecast, by year.</td>
 </tr>
+</tbody>
+</table>
+<h2 id="basis_inputs-under-construction">basis_inputs (under construction)</h2>
+<h3 id="crosswalks">crosswalks</h3>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>desription</strong></th>
 </tr>
-<tr>
-<td>## basis_inputs (under construction)</td>
-<td></td>
-</tr>
-<tr>
-<td>### crosswalks</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>desription</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>parcel_to_maz22.csv</td>
 <td>A lookup table from parcels to Travel Model Two MAZs.</td>
@@ -853,22 +926,17 @@
 <td>zoning_lookup.csv</td>
 <td>The existing zoning for each jurisdiction, assigned to parcels with the "id" field. Fields include the city name, city id, and the name of the zoning. The active attributes are max_dua, max_far, and max_height, all of which must be respected by each development.</td>
 </tr>
+</tbody>
+</table>
+<h2 id="plan_strategies-optional">plan_strategies (optional)</h2>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
 </tr>
-<tr>
-<td>## plan_strategies (optional)</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>description</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>accessory_units.csv</td>
 <td>A file to add accessory dwelling units to jurisdictions by year, simulating policy to allow or reduce barriers to ADU construction in jurisdictions (TODO: Make this a default policy).</td>
@@ -909,22 +977,17 @@
 <td>zoning_mods.csv</td>
 <td>A file which allows you to upzone or downzone. If you enter a value in "dua_up" or "far_up", the model will apply that as the new zoning or maintain the existing zoning if it is higher. If you enter a value in "dua_down" or "far_down", the model will apply that as the zoning or maintain the existing zoning if it is lower. UGBs are also controlled using this file, using zoning changes to enforce them. This file is mapped to parcels using the field "zoningmodcat", which is the concatenated field of growth designations in parcels_geography.csv.</td>
 </tr>
+</tbody>
+</table>
+<h2 id="regional_controls">regional_controls</h2>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
 </tr>
-<tr>
-<td>## regional_controls</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>description</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>employment_controls.csv</td>
 <td>The total number of jobs in the region for the model to allocate, by year. The controls are provided by 6-sector job category.</td>
@@ -933,22 +996,17 @@
 <td>household_controls.csv</td>
 <td>The total number of households in the region for the model to allocate, by year. The controls are provided by household income quartile.</td>
 </tr>
+</tbody>
+</table>
+<h2 id="zone_forecasts">zone_forecasts</h2>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
 </tr>
-<tr>
-<td>## zone_forecasts</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>description</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>taz_growth_rates_gov_ed.csv</td>
 <td>This file has ratios of governement and education employment per population by County and TAZ. The files has two header rows</td>

@@ -512,6 +512,55 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#accessibility" class="md-nav__link">
+    accessibility
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#developer" class="md-nav__link">
+    developer
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hedonics" class="md-nav__link">
+    hedonics
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#location_choice" class="md-nav__link">
+    location_choice
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transition_relocation" class="md-nav__link">
+    transition_relocation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mappingyaml" class="md-nav__link">
+    mapping.yaml
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pathsyaml" class="md-nav__link">
+    paths.yaml
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -541,7 +590,6 @@
 
 
 <h3 id="the-configuration-file-structure-for-bay-area-urbansim-baus-and-a-description-of-each-file-model-configurations-files-are-stored-in-a-configs-folder-in-the-model-repository-they-specify-model-settings-such-as-model-estimation-constants-and-assumptions">The configuration file structure for Bay Area UrbanSim (BAUS) and a description of each file. Model configurations files are stored in a <code>configs</code> folder in the model repository. They specify model settings such as model estimation constants and assumptions.</h3>
-<p>&nbsp; </p>
 <h1 id="bayarea_urbansim">bayarea_urbansim</h1>
 <h2 id="configs">configs</h2>
 <h3 id="adjusters">adjusters</h3>
@@ -573,22 +621,17 @@
 <td>zoning_adjusters.yaml</td>
 <td>Adjusters used to modify the model's zoning data.</td>
 </tr>
+</tbody>
+</table>
+<h3 id="accessibility">accessibility</h3>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
 </tr>
-<tr>
-<td>### accessibility</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>description</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>accessibility_settings.yaml</td>
 <td>Settings for Pandana, the model's endogenous accessibility calculations.</td>
@@ -605,22 +648,17 @@
 <td>price_vars.yaml</td>
 <td>Settings for calculating local accessibility variables on price during the model run.</td>
 </tr>
+</tbody>
+</table>
+<h3 id="developer">developer</h3>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
 </tr>
-<tr>
-<td>### developer</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>description</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>developer_settings.yaml</td>
 <td>Settings for the model's developer and feasibility models.</td>
@@ -629,22 +667,17 @@
 <td>residential_vacancy_rates.csv</td>
 <td>Residential vacancy rates for the residential developer model, separated from the main developer settings into this file to allow them to vary by year.</td>
 </tr>
+</tbody>
+</table>
+<h3 id="hedonics">hedonics</h3>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
 </tr>
-<tr>
-<td>### hedonics</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>description</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>price_settings.yaml</td>
 <td>Settings for the model's price simulation and supplydemand equilibration of price.</td>
@@ -661,22 +694,17 @@
 <td>rsh.yaml</td>
 <td>Residential sales hedonic price model specification.</td>
 </tr>
+</tbody>
+</table>
+<h3 id="location_choice">location_choice</h3>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
 </tr>
-<tr>
-<td>### location_choice</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>description</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>elcm.yaml</td>
 <td>Employment location choice model specification, segemented by six employment sectors.</td>
@@ -757,22 +785,17 @@
 <td>renter_no_unplaced</td>
 <td>Renters</td>
 </tr>
+</tbody>
+</table>
+<h3 id="transition_relocation">transition_relocation</h3>
+<table>
+<thead>
 <tr>
-<td>&nbsp;</td>
-<td></td>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
 </tr>
-<tr>
-<td>### transition_relocation</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>name</strong></td>
-<td><strong>description</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>employment_relocation_rates.csv</td>
 <td>A file with the probability of a job relocating during a time step in the forecast, by TAZ and by employment sector. Pairs with employment_relocation_rates.csv which overwrites the model probabilities with calibration factors.</td>
@@ -785,32 +808,12 @@
 <td>transition_relocation_settings.yaml</td>
 <td>Settings for the transition and relocation models.</td>
 </tr>
-<tr>
-<td>&nbsp;</td>
-<td></td>
-</tr>
-<tr>
-<td>### mapping.yaml</td>
-<td></td>
-</tr>
-<tr>
-<td>Mapping used in the model to relate variables to one another.</td>
-<td></td>
-</tr>
-<tr>
-<td>&nbsp;</td>
-<td></td>
-</tr>
-<tr>
-<td>### paths.yaml</td>
-<td></td>
-</tr>
-<tr>
-<td>Variables that store file names for use in the model code.</td>
-<td></td>
-</tr>
 </tbody>
 </table>
+<h3 id="mappingyaml">mapping.yaml</h3>
+<p>Mapping used in the model to relate variables to one another.</p>
+<h3 id="pathsyaml">paths.yaml</h3>
+<p>Variables that store file names for use in the model code.</p>
 
 
 
