@@ -416,27 +416,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#geographic-summaries" class="md-nav__link">
-    geographic summaries
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#travel-model-summaries" class="md-nav__link">
-    travel model summaries
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#affordable-housing-summaries" class="md-nav__link">
-    affordable housing summaries
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -567,27 +546,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#geographic-summaries" class="md-nav__link">
-    geographic summaries
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#travel-model-summaries" class="md-nav__link">
-    travel model summaries
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#affordable-housing-summaries" class="md-nav__link">
-    affordable housing summaries
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -611,40 +569,6 @@
 <h3 id="the-outputs-of-bay-area-urbansim-baus-and-a-description-of-each-file-model-output-files-are-written-to-an-outputs-folder-during-a-baus-model-run">The outputs of Bay Area UrbanSim (BAUS) and a description of each file. Model output files are written to an <code>outputs</code> folder during a BAUS model run.</h3>
 <p>&nbsp;  </p>
 <h3 id="core-summaries">core summaries</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-parcel_summary_[year].csv | Development, households, and jobs on each parcel in a given year.
-parcel_growth_summary.csv | Change in development, households, and jobs on each parcel between the model's base year and forecast year.
-building_summary_[year].csv | Inventory of buildings in a given year, linked to the parcel they sit on.
-diagnostic_output.csv | Interim model data.
-&nbsp; </p>
-<h3 id="geographic-summaries">geographic summaries</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-jurisdiction_summary_[year].csv | Jurisdiction-level summary of development, households, and jobs in a given year.
-jurisdiction_summary_growth.csv | Jurisdiction-level change in development, households, and jobs between the model's base year and forecast year.
-superdistrict_summary_[year].csv | Superdistrict-level summary of development, households, and jobs in a given year.
-superdistrict_summary_growth.csv | Superdistrict-level change in development, households, and jobs between the model's base year and forecast year.
-county_summary_[year].csv | County-level summary of development, households, and jobs in a given year.
-county_summary_growth.csv | County-level change in development, households, and jobs between the model's base year and forecast year.
-subregion_summary_[year].csv | Subregion-level change in development, households, and jobs in a given year.
-subregion_summary_growth.csv | Subregion-level change in development, households, and jobs between the model's base year and forecast year.
-region_summary_[year].csv | Regional summary of development, households, and jobs in a given year.
-region_summary_growth.csv | Regional change in development, households, and jobs between the model's base year and forecast year.
-&nbsp; </p>
-<h3 id="travel-model-summaries">travel model summaries</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-taz1_summary_[year].csv | TAZ1/TAZ1454-level summaries of development, households, jobs, demographics, and density attributes used for travel modeling.
-taz1_summary_growth.csv | TAZ1/TAZ1454-level change in development, households, jobs, demographics, and density attributes used for travel modeling.
-maz_marginals_[year].csv | MAZ-level summaries of households and demographics used to create the synthesized population for travel modeling.
-maz_summary_[year].csv | MAZ-level summaries of development, households, jobs, and density attributes used for travel modeling.
-maz_summary_growth.csv | MAZ-level change in development, households, jobs, and density attributes used for travel modeling.
-taz2_marginals_[year].csv | TAZ2-level summaries of households and demographics used to create the synthesized population for travel modeling.
-county_marginals_[year].csv | County-level summaries of demographics and jobs used to create the synthesized population for travel modeling.
-region_marginals_[year].csv | Region-level summaries of demographics used to create the synthesized population for travel modeling.
-&nbsp; </p>
-<h3 id="affordable-housing-summaries">affordable housing summaries</h3>
 <table>
 <thead>
 <tr>
@@ -653,6 +577,142 @@ region_marginals_[year].csv | Region-level summaries of demographics used to cre
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>parcel_summary_[year].csv</td>
+<td>Development, households, and jobs on each parcel in a given year.</td>
+</tr>
+<tr>
+<td>parcel_growth_summary.csv</td>
+<td>Change in development, households, and jobs on each parcel between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>building_summary_[year].csv</td>
+<td>Inventory of buildings in a given year, linked to the parcel they sit on.</td>
+</tr>
+<tr>
+<td>diagnostic_output.csv</td>
+<td>Interim model data.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### geographic summaries</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>jurisdiction_summary_[year].csv</td>
+<td>Jurisdiction-level summary of development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>jurisdiction_summary_growth.csv</td>
+<td>Jurisdiction-level change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>superdistrict_summary_[year].csv</td>
+<td>Superdistrict-level summary of development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>superdistrict_summary_growth.csv</td>
+<td>Superdistrict-level change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>county_summary_[year].csv</td>
+<td>County-level summary of development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>county_summary_growth.csv</td>
+<td>County-level change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>subregion_summary_[year].csv</td>
+<td>Subregion-level change in development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>subregion_summary_growth.csv</td>
+<td>Subregion-level change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>region_summary_[year].csv</td>
+<td>Regional summary of development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>region_summary_growth.csv</td>
+<td>Regional change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### travel model summaries</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>taz1_summary_[year].csv</td>
+<td>TAZ1/TAZ1454-level summaries of development, households, jobs, demographics, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>taz1_summary_growth.csv</td>
+<td>TAZ1/TAZ1454-level change in development, households, jobs, demographics, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>maz_marginals_[year].csv</td>
+<td>MAZ-level summaries of households and demographics used to create the synthesized population for travel modeling.</td>
+</tr>
+<tr>
+<td>maz_summary_[year].csv</td>
+<td>MAZ-level summaries of development, households, jobs, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>maz_summary_growth.csv</td>
+<td>MAZ-level change in development, households, jobs, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>taz2_marginals_[year].csv</td>
+<td>TAZ2-level summaries of households and demographics used to create the synthesized population for travel modeling.</td>
+</tr>
+<tr>
+<td>county_marginals_[year].csv</td>
+<td>County-level summaries of demographics and jobs used to create the synthesized population for travel modeling.</td>
+</tr>
+<tr>
+<td>region_marginals_[year].csv</td>
+<td>Region-level summaries of demographics used to create the synthesized population for travel modeling.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### affordable housing summaries</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
 <tr>
 <td>juris_dr_summary_[year].csv</td>
 <td>Jurisdiction-level summary of deed-restricted units by type in a given year.</td>

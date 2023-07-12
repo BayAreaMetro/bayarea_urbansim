@@ -512,62 +512,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#accessibility" class="md-nav__link">
-    accessibility
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#developer" class="md-nav__link">
-    developer
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#hedonics" class="md-nav__link">
-    hedonics
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#location_choice" class="md-nav__link">
-    location_choice
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#location-choice-cont" class="md-nav__link">
-    location choice cont.
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#transition_relocation" class="md-nav__link">
-    transition_relocation
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#mappingyaml" class="md-nav__link">
-    mapping.yaml
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#pathsyaml" class="md-nav__link">
-    paths.yaml
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -601,72 +545,272 @@
 <h1 id="bayarea_urbansim">bayarea_urbansim</h1>
 <h2 id="configs">configs</h2>
 <h3 id="adjusters">adjusters</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-cost_shifters.yaml| Multipliers to cost, currently specified by county, used to calibrate the model.
-development_caps_asserted.yaml| Caps on development, either residential or office, used to calibrate the model. (TODO: remove any base year existing policy caps entangled here).
-employment_relocation_rates_overwrites.csv| These overwrite the relocation rates in employment_relocation_rates.csv to calibrate the model, e.g. leave government sector jobs in San Francisco City Hall's TAZ.
-sqft_per_job_adjusters| Multipliers to the number of sqft used by each job, defined in the model's developer settings, which modify the number of jobs that can occupy a building. This is used to calibrate the model, e.g. reflect CBD job densities or adjust vacancy rates by superdistrict. The inputs file telecommute_sqft_per_job_adjusters.csv uses alternative multipliers for for the forecast years in place of these, if the strategy is enabled. (TODO: Disentangle the k-factors and the policy application in these two files. In the meantime, use both files as is done in the PBA50 No Project).
-zoning_adjusters.yaml| Adjusters used to modify the model's zoning data.
-&nbsp;   </p>
-<h3 id="accessibility">accessibility</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-accessibility_settings.yaml| Settings for Pandana, the model's endogenous accessibility calculations.
-neighborhood_vars.yaml| Settings for calculating local accessibility variables during the model run.
-regional_vars.yaml| Settings for calculating regional accessibility variables during the model run.
-price_vars.yaml| Settings for calculating local accessibility variables on price during the model run.
-&nbsp;</p>
-<h3 id="developer">developer</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-developer_settings.yaml| Settings for the model's developer and feasibility models.
-residential_vacancy_rates.csv| Residential vacancy rates for the residential developer model, separated from the main developer settings into this file to allow them to vary by year.
-&nbsp;</p>
-<h3 id="hedonics">hedonics</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-price_settings.yaml| Settings for the model's price simulation and supplydemand equilibration of price.
-nrh.yaml| Non-residential hedonic price model specification.
-rrh.yaml| Residential rent hedonic price model specification.
-rsh.yaml| Residential sales hedonic price model specification.
-&nbsp;</p>
-<h3 id="location_choice">location_choice</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-elcm.yaml| Employment location choice model specification, segemented by six employment sectors.
-hlcm_owner.yaml| Household location choice model specification segmented by income quartiles. The models are estimated for owner households.
-hlcm_owner_lowincome.yaml| This uses the same specification and estimated coefficients as hlcm_owner. The only difference is that it is used to only low income households to choose deed-restricted owner units.
-hlcm_owner_lowincome_no_unplaced.yaml| This uses the same specification and estimated coefficients as hlcm_owner, but allows owners of all incomes into deed-restricted owner units to cover any gaps in assignment.
-hlcm_owner_no_unplaced.yaml| This uses the same specification and estimated coefficients as hlcm_owner, but does another round of placements of owners, this time into non-deed-restricted owner units, to cover any gaps in assignment.
-hlcm_renter.yaml| Household location choice model specification segmented by income quartiles. The models are estimated for rental households.
-hlcm_renter_lowincome.yaml| This uses the same specification and estimated coefficients as hlcm_renter. The only difference is that it is used to only low income households to choose deed-restricted rental units.
-hlcm_renter_lowincome_no_unplaced.yaml| This uses the same specification and estimated coefficients as hlcm_renter, but allows renters of all incomes into deed-restricted rental units to cover any gaps in assignment.
-hlcm_renter_no_unplaced.yaml| This uses the same specification and estimated coefficients as hlcm_renter, but does another round of placement of renters, this time into non-deed-restricted rental units, to cover any gaps in assignment.</p>
-<h3 id="location-choice-cont">location choice cont.</h3>
-<p><strong>HLCM Model</strong>|<strong>Estimation Choosers: Filters</strong>|<strong>Estimation Alternatives: Filters</strong>|<strong>Simulation Choosers: Filters</strong>|<strong>Simulation Alternatives: Filters</strong>
------|-----|-----|-----|-----|
-owner|Owners|-|Owners|Owner Units|
-owner_lowincome|Owners|-|Low-Income Owners| Affordable Owner Units|
-owner_lowincome_no_unplaced|-|-|Owners|Affordable Owner Units|
-owner_no_unplaced|Owners|-|Owners| Market-Rate Owner Units|
-renter|Renters|-|Renters|Renters Units|
-renter_lowincome|Renters|-|Low-Income Renters|Affordable Rental Units|
-renter_lowincome_no_unplaced|-|-|Renters|Affordable Rentual Units|
-renter_no_unplaced|Renters|-|Renters|Market Rate Rental Units|
-&nbsp;</p>
-<h3 id="transition_relocation">transition_relocation</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-employment_relocation_rates.csv| A file with the probability of a job relocating during a time step in the forecast, by TAZ and by employment sector. Pairs with employment_relocation_rates.csv which overwrites the model probabilities with calibration factors.
-household_relocation_rates.csv| A file with the probability of a household relocating during a time step in the forecast, by TAZ, income, and tenure. Pairs with renter_protections_relocation_rates_overwrites.csv which overwrites model probabilities with different relocation rates when the renter protections strategy is enabled. 
-transition_relocation_settings.yaml| Settings for the transition and relocation models. 
-&nbsp;</p>
-<h3 id="mappingyaml">mapping.yaml</h3>
-<p>Mapping used in the model to relate variables to one another.
-&nbsp;</p>
-<h3 id="pathsyaml">paths.yaml</h3>
-<p>Variables that store file names for use in the model code.</p>
+<table>
+<thead>
+<tr>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cost_shifters.yaml</td>
+<td>Multipliers to cost, currently specified by county, used to calibrate the model.</td>
+</tr>
+<tr>
+<td>development_caps_asserted.yaml</td>
+<td>Caps on development, either residential or office, used to calibrate the model. (TODO: remove any base year existing policy caps entangled here).</td>
+</tr>
+<tr>
+<td>employment_relocation_rates_overwrites.csv</td>
+<td>These overwrite the relocation rates in employment_relocation_rates.csv to calibrate the model, e.g. leave government sector jobs in San Francisco City Hall's TAZ.</td>
+</tr>
+<tr>
+<td>sqft_per_job_adjusters</td>
+<td>Multipliers to the number of sqft used by each job, defined in the model's developer settings, which modify the number of jobs that can occupy a building. This is used to calibrate the model, e.g. reflect CBD job densities or adjust vacancy rates by superdistrict. The inputs file telecommute_sqft_per_job_adjusters.csv uses alternative multipliers for for the forecast years in place of these, if the strategy is enabled. (TODO: Disentangle the k-factors and the policy application in these two files. In the meantime, use both files as is done in the PBA50 No Project).</td>
+</tr>
+<tr>
+<td>zoning_adjusters.yaml</td>
+<td>Adjusters used to modify the model's zoning data.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### accessibility</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>accessibility_settings.yaml</td>
+<td>Settings for Pandana, the model's endogenous accessibility calculations.</td>
+</tr>
+<tr>
+<td>neighborhood_vars.yaml</td>
+<td>Settings for calculating local accessibility variables during the model run.</td>
+</tr>
+<tr>
+<td>regional_vars.yaml</td>
+<td>Settings for calculating regional accessibility variables during the model run.</td>
+</tr>
+<tr>
+<td>price_vars.yaml</td>
+<td>Settings for calculating local accessibility variables on price during the model run.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### developer</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>developer_settings.yaml</td>
+<td>Settings for the model's developer and feasibility models.</td>
+</tr>
+<tr>
+<td>residential_vacancy_rates.csv</td>
+<td>Residential vacancy rates for the residential developer model, separated from the main developer settings into this file to allow them to vary by year.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### hedonics</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>price_settings.yaml</td>
+<td>Settings for the model's price simulation and supplydemand equilibration of price.</td>
+</tr>
+<tr>
+<td>nrh.yaml</td>
+<td>Non-residential hedonic price model specification.</td>
+</tr>
+<tr>
+<td>rrh.yaml</td>
+<td>Residential rent hedonic price model specification.</td>
+</tr>
+<tr>
+<td>rsh.yaml</td>
+<td>Residential sales hedonic price model specification.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### location_choice</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>elcm.yaml</td>
+<td>Employment location choice model specification, segemented by six employment sectors.</td>
+</tr>
+<tr>
+<td>hlcm_owner.yaml</td>
+<td>Household location choice model specification segmented by income quartiles. The models are estimated for owner households.</td>
+</tr>
+<tr>
+<td>hlcm_owner_lowincome.yaml</td>
+<td>This uses the same specification and estimated coefficients as hlcm_owner. The only difference is that it is used to only low income households to choose deed-restricted owner units.</td>
+</tr>
+<tr>
+<td>hlcm_owner_lowincome_no_unplaced.yaml</td>
+<td>This uses the same specification and estimated coefficients as hlcm_owner, but allows owners of all incomes into deed-restricted owner units to cover any gaps in assignment.</td>
+</tr>
+<tr>
+<td>hlcm_owner_no_unplaced.yaml</td>
+<td>This uses the same specification and estimated coefficients as hlcm_owner, but does another round of placements of owners, this time into non-deed-restricted owner units, to cover any gaps in assignment.</td>
+</tr>
+<tr>
+<td>hlcm_renter.yaml</td>
+<td>Household location choice model specification segmented by income quartiles. The models are estimated for rental households.</td>
+</tr>
+<tr>
+<td>hlcm_renter_lowincome.yaml</td>
+<td>This uses the same specification and estimated coefficients as hlcm_renter. The only difference is that it is used to only low income households to choose deed-restricted rental units.</td>
+</tr>
+<tr>
+<td>hlcm_renter_lowincome_no_unplaced.yaml</td>
+<td>This uses the same specification and estimated coefficients as hlcm_renter, but allows renters of all incomes into deed-restricted rental units to cover any gaps in assignment.</td>
+</tr>
+<tr>
+<td>hlcm_renter_no_unplaced.yaml</td>
+<td>This uses the same specification and estimated coefficients as hlcm_renter, but does another round of placement of renters, this time into non-deed-restricted rental units, to cover any gaps in assignment.</td>
+</tr>
+<tr>
+<td>### location choice cont.</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>HLCM Model</strong></td>
+<td><strong>Estimation Choosers: Filters</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>owner</td>
+<td>Owners</td>
+</tr>
+<tr>
+<td>owner_lowincome</td>
+<td>Owners</td>
+</tr>
+<tr>
+<td>owner_lowincome_no_unplaced</td>
+<td>-</td>
+</tr>
+<tr>
+<td>owner_no_unplaced</td>
+<td>Owners</td>
+</tr>
+<tr>
+<td>renter</td>
+<td>Renters</td>
+</tr>
+<tr>
+<td>renter_lowincome</td>
+<td>Renters</td>
+</tr>
+<tr>
+<td>renter_lowincome_no_unplaced</td>
+<td>-</td>
+</tr>
+<tr>
+<td>renter_no_unplaced</td>
+<td>Renters</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### transition_relocation</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>employment_relocation_rates.csv</td>
+<td>A file with the probability of a job relocating during a time step in the forecast, by TAZ and by employment sector. Pairs with employment_relocation_rates.csv which overwrites the model probabilities with calibration factors.</td>
+</tr>
+<tr>
+<td>household_relocation_rates.csv</td>
+<td>A file with the probability of a household relocating during a time step in the forecast, by TAZ, income, and tenure. Pairs with renter_protections_relocation_rates_overwrites.csv which overwrites model probabilities with different relocation rates when the renter protections strategy is enabled.</td>
+</tr>
+<tr>
+<td>transition_relocation_settings.yaml</td>
+<td>Settings for the transition and relocation models.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### mapping.yaml</td>
+<td></td>
+</tr>
+<tr>
+<td>Mapping used in the model to relate variables to one another.</td>
+<td></td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### paths.yaml</td>
+<td></td>
+</tr>
+<tr>
+<td>Variables that store file names for use in the model code.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
 
 
 
