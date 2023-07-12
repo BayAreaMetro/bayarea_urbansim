@@ -437,20 +437,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#hazards-summaries" class="md-nav__link">
-    hazards summaries
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#metrics" class="md-nav__link">
-    metrics
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -602,20 +588,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#hazards-summaries" class="md-nav__link">
-    hazards summaries
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#metrics" class="md-nav__link">
-    metrics
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -673,42 +645,152 @@ county_marginals_[year].csv | County-level summaries of demographics and jobs us
 region_marginals_[year].csv | Region-level summaries of demographics used to create the synthesized population for travel modeling.
 &nbsp; </p>
 <h3 id="affordable-housing-summaries">affordable housing summaries</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-juris_dr_summary_[year].csv | Jurisdiction-level summary of deed-restricted units by type in a given year.
-juris_dr_growth.csv | Jurisdiction-level change in deed-restricted units by type between the model's base year and forecast year.
-superdistrict_dr_summary_[year].csv | Superdistrict-level summary of deed-restricted units by type in a given year.
-superdistrict_dr_growth.csv | Superdistrict-level change in deed-restricted units by type between the model's base year and forecast year.
-county_dr_summary_[growth].csv | County-level summary of deed-restricted units by type in a given year.
-county_dr_growth | County-level change in deed-restricted units by type between the model's base year and forecast year.
-region_dr_summary_[year].csv | Region-level summary of deed-restricted units by type in a given year.
-region_dr_growth.csv | Region-level change in deed-restricted units by type between the model's base year and forecast year.
-&nbsp; </p>
-<h3 id="hazards-summaries">hazards summaries</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-slr_summary_[year].csv | Sea level rise impacted parcels, buildings, households, and jobs in a given year.
-eq_codes_summary_[year].csv | Summary of earthquake codes assigned to buildings, in the earthquake year.
-eq_fragilities_summary_[year].csv |  SUmmary of fragilities assigned to buildings, in the earthquake year.
-slr_summary_[year].csv | Earthquake impacted parcels, buildings, households, and jobs in the earthquake year.
-eq_demolish_buildings_[year].csv | Inventory of buildings impacted by earthquake, by TAZ for the resilience team.
-eq_demolish_buildings_[year].csv | Inventory of buildings retrofit for earthquake, by TAZ for the resilience team.
-eq_buildings_list_[year].csv | Inventory of buildings in key earthquake years, by TAZ for the resilience team.
-&nbsp;</p>
-<h3 id="metrics">metrics</h3>
-<p><strong>name</strong>|<strong>description</strong>
------|-----|
-growth_geog_summary_[year].csv | Households and jobs in growth geographies and combinations of growth geographies, by year.
-growth_geog_growth_summary_[year].csv | Change in households and jobs in growth geographies and combinations of growth geographies between the model's base year and forecast year.
-dr_units_metrics.csv | Change in deed-restricted units by HRA and COC.
-household_income_metrics_[year].csv | Low income households by growth geography, by year.
-equity_metrics.csv | Change in low income households in Displacement tracts and COC tracts.
-jobs_housing_metrics.csv | Jobs-Housing ratios by county, by year.
-jobs_metrics.csv | Change in PPA and manufacturing jobs.
-slr_metrics.csv | Sea level rise affected and protected total households, low-income households and COC households.
-earthquake_metrics.csv | Total housing units retrofit and total retrofit cost, for all units and for COC units. Earthquake affected and protected total households, low-income households, and COC households.
-greenfield_metric.csv | Change in annual greenfield development acres.
-&nbsp;</p>
+<table>
+<thead>
+<tr>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>juris_dr_summary_[year].csv</td>
+<td>Jurisdiction-level summary of deed-restricted units by type in a given year.</td>
+</tr>
+<tr>
+<td>juris_dr_growth.csv</td>
+<td>Jurisdiction-level change in deed-restricted units by type between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>superdistrict_dr_summary_[year].csv</td>
+<td>Superdistrict-level summary of deed-restricted units by type in a given year.</td>
+</tr>
+<tr>
+<td>superdistrict_dr_growth.csv</td>
+<td>Superdistrict-level change in deed-restricted units by type between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>county_dr_summary_[growth].csv</td>
+<td>County-level summary of deed-restricted units by type in a given year.</td>
+</tr>
+<tr>
+<td>county_dr_growth</td>
+<td>County-level change in deed-restricted units by type between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>region_dr_summary_[year].csv</td>
+<td>Region-level summary of deed-restricted units by type in a given year.</td>
+</tr>
+<tr>
+<td>region_dr_growth.csv</td>
+<td>Region-level change in deed-restricted units by type between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### hazards summaries</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>slr_summary_[year].csv</td>
+<td>Sea level rise impacted parcels, buildings, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>eq_codes_summary_[year].csv</td>
+<td>Summary of earthquake codes assigned to buildings, in the earthquake year.</td>
+</tr>
+<tr>
+<td>eq_fragilities_summary_[year].csv</td>
+<td>SUmmary of fragilities assigned to buildings, in the earthquake year.</td>
+</tr>
+<tr>
+<td>slr_summary_[year].csv</td>
+<td>Earthquake impacted parcels, buildings, households, and jobs in the earthquake year.</td>
+</tr>
+<tr>
+<td>eq_demolish_buildings_[year].csv</td>
+<td>Inventory of buildings impacted by earthquake, by TAZ for the resilience team.</td>
+</tr>
+<tr>
+<td>eq_demolish_buildings_[year].csv</td>
+<td>Inventory of buildings retrofit for earthquake, by TAZ for the resilience team.</td>
+</tr>
+<tr>
+<td>eq_buildings_list_[year].csv</td>
+<td>Inventory of buildings in key earthquake years, by TAZ for the resilience team.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+<tr>
+<td>### metrics</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>name</strong></td>
+<td><strong>description</strong></td>
+</tr>
+<tr>
+<td>-----</td>
+<td>-----</td>
+</tr>
+<tr>
+<td>growth_geog_summary_[year].csv</td>
+<td>Households and jobs in growth geographies and combinations of growth geographies, by year.</td>
+</tr>
+<tr>
+<td>growth_geog_growth_summary_[year].csv</td>
+<td>Change in households and jobs in growth geographies and combinations of growth geographies between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>dr_units_metrics.csv</td>
+<td>Change in deed-restricted units by HRA and COC.</td>
+</tr>
+<tr>
+<td>household_income_metrics_[year].csv</td>
+<td>Low income households by growth geography, by year.</td>
+</tr>
+<tr>
+<td>equity_metrics.csv</td>
+<td>Change in low income households in Displacement tracts and COC tracts.</td>
+</tr>
+<tr>
+<td>jobs_housing_metrics.csv</td>
+<td>Jobs-Housing ratios by county, by year.</td>
+</tr>
+<tr>
+<td>jobs_metrics.csv</td>
+<td>Change in PPA and manufacturing jobs.</td>
+</tr>
+<tr>
+<td>slr_metrics.csv</td>
+<td>Sea level rise affected and protected total households, low-income households and COC households.</td>
+</tr>
+<tr>
+<td>earthquake_metrics.csv</td>
+<td>Total housing units retrofit and total retrofit cost, for all units and for COC units. Earthquake affected and protected total households, low-income households, and COC households.</td>
+</tr>
+<tr>
+<td>greenfield_metric.csv</td>
+<td>Change in annual greenfield development acres.</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td></td>
+</tr>
+</tbody>
+</table>
 
 
 
