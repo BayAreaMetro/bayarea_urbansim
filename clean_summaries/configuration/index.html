@@ -490,59 +490,51 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bayarea_urbansim" class="md-nav__link">
-    bayarea_urbansim
+  <a href="#bayarea_urbnasimconfigs" class="md-nav__link">
+    bayarea_urbnasim/configs
   </a>
   
-    <nav class="md-nav" aria-label="bayarea_urbansim">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#configs" class="md-nav__link">
-    configs
-  </a>
-  
-    <nav class="md-nav" aria-label="configs">
+    <nav class="md-nav" aria-label="bayarea_urbnasim/configs">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#adjusters" class="md-nav__link">
-    adjusters
+    adjusters/
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#accessibility" class="md-nav__link">
-    accessibility
+    accessibility/
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#developer" class="md-nav__link">
-    developer
+    developer/
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#hedonics" class="md-nav__link">
-    hedonics
+    hedonics/
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#location_choice" class="md-nav__link">
-    location_choice
+    location_choice/
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#transition_relocation" class="md-nav__link">
-    transition_relocation
+    transition_relocation/
   </a>
   
 </li>
@@ -558,11 +550,6 @@
   <a href="#pathsyaml" class="md-nav__link">
     paths.yaml
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -589,10 +576,11 @@
   
 
 
-<h3 id="the-configuration-file-structure-for-bay-area-urbansim-baus-and-a-description-of-each-file-model-configurations-files-are-stored-in-a-configs-folder-in-the-model-repository-they-specify-model-settings-such-as-model-estimation-constants-and-assumptions">The configuration file structure for Bay Area UrbanSim (BAUS) and a description of each file. Model configurations files are stored in a <code>configs</code> folder in the model repository. They specify model settings such as model estimation constants and assumptions.</h3>
-<h1 id="bayarea_urbansim">bayarea_urbansim</h1>
-<h2 id="configs">configs</h2>
-<h3 id="adjusters">adjusters</h3>
+  <h1>Configuration</h1>
+
+<h2 id="the-configuration-file-structure-for-bay-area-urbansim-baus-and-a-description-of-each-file-model-configurations-files-are-stored-in-a-configs-folder-in-the-model-repository-they-specify-model-settings-such-as-model-estimation-constants-and-assumptions">The configuration file structure for Bay Area UrbanSim (BAUS) and a description of each file. Model configurations files are stored in a <code>configs</code> folder in the model repository. They specify model settings such as model estimation constants and assumptions.</h2>
+<h2 id="bayarea_urbnasimconfigs">bayarea_urbnasim/configs</h2>
+<h3 id="adjusters">adjusters/</h3>
 <table>
 <thead>
 <tr>
@@ -623,7 +611,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="accessibility">accessibility</h3>
+<h3 id="accessibility">accessibility/</h3>
 <table>
 <thead>
 <tr>
@@ -650,7 +638,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="developer">developer</h3>
+<h3 id="developer">developer/</h3>
 <table>
 <thead>
 <tr>
@@ -669,7 +657,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="hedonics">hedonics</h3>
+<h3 id="hedonics">hedonics/</h3>
 <table>
 <thead>
 <tr>
@@ -696,7 +684,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="location_choice">location_choice</h3>
+<h3 id="location_choice">location_choice/</h3>
 <table>
 <thead>
 <tr>
@@ -741,53 +729,78 @@
 <td>hlcm_renter_no_unplaced.yaml</td>
 <td>This uses the same specification and estimated coefficients as hlcm_renter, but does another round of placement of renters, this time into non-deed-restricted rental units, to cover any gaps in assignment.</td>
 </tr>
+</tbody>
+</table>
+<table>
+<thead>
 <tr>
-<td>### location choice cont.</td>
-<td></td>
+<th><strong>HLCM Model</strong></th>
+<th><strong>Estimation Choosers: Filters</strong></th>
+<th><strong>Estimation Alternatives: Filters</strong></th>
+<th><strong>Simulation Choosers: Filters</strong></th>
+<th><strong>Simulation Alternatives: Filters</strong></th>
 </tr>
-<tr>
-<td><strong>HLCM Model</strong></td>
-<td><strong>Estimation Choosers: Filters</strong></td>
-</tr>
-<tr>
-<td>-----</td>
-<td>-----</td>
-</tr>
+</thead>
+<tbody>
 <tr>
 <td>owner</td>
 <td>Owners</td>
+<td>-</td>
+<td>Owners</td>
+<td>Owner Units</td>
 </tr>
 <tr>
 <td>owner_lowincome</td>
 <td>Owners</td>
+<td>-</td>
+<td>Low-Income Owners</td>
+<td>Affordable Owner Units</td>
 </tr>
 <tr>
 <td>owner_lowincome_no_unplaced</td>
 <td>-</td>
+<td>-</td>
+<td>Owners</td>
+<td>Affordable Owner Units</td>
 </tr>
 <tr>
 <td>owner_no_unplaced</td>
 <td>Owners</td>
+<td>-</td>
+<td>Owners</td>
+<td>Market-Rate Owner Units</td>
 </tr>
 <tr>
 <td>renter</td>
 <td>Renters</td>
+<td>-</td>
+<td>Renters</td>
+<td>Renters Units</td>
 </tr>
 <tr>
 <td>renter_lowincome</td>
 <td>Renters</td>
+<td>-</td>
+<td>Low-Income Renters</td>
+<td>Affordable Rental Units</td>
 </tr>
 <tr>
 <td>renter_lowincome_no_unplaced</td>
 <td>-</td>
+<td>-</td>
+<td>Renters</td>
+<td>Affordable Rentual Units</td>
 </tr>
 <tr>
 <td>renter_no_unplaced</td>
 <td>Renters</td>
+<td>-</td>
+<td>Renters</td>
+<td>Market Rate Rental Units</td>
 </tr>
 </tbody>
 </table>
-<h3 id="transition_relocation">transition_relocation</h3>
+<h3 id="transition_relocation">transition_relocation/</h3>
 <table>
 <thead>
 <tr>
