@@ -376,15 +376,6 @@ def get_baseyear_models():
 
 def run_models(MODE):
 
-    if MODE == "preprocessing":
-
-        orca.run([
-            "preproc_jobs",
-            "preproc_households",
-            "preproc_buildings",
-            "initialize_residential_units"
-        ])
-
     elif MODE == "fetch_data":
 
         orca.run(["fetch_from_s3"])
