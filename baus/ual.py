@@ -20,54 +20,6 @@ from urbansim_defaults import utils
 #
 ###############################################################################
 
-def match_households_to_units(households, residential_units):
-    """
-    This initialization step adds a 'unit_id' to the households table and
-    populates it based on existing assignments of households to buildings.
-    This also allows us to add a 'vacant_units' count to the residential_units
-    table.  FSF note: this won't work if there are more households in a
-    building than there are units in that building - make sure not to have
-    overfull buildings.
-
-    Data expectations
-    -----------------
-    - 'households' table has NO column 'unit_id'
-    - 'households' table has column 'building_id' (int, '-1'-filled,
-      corresponds to index of 'buildings' table)
-    - 'residential_units' table has an index that serves as its id,
-      and following columns:
-        - 'building_id' (int, non-missing, corresponds to index of
-          'buildings' table)
-        - 'unit_num' (int, non-missing, unique within building)
-
-    Results
-    -------
-    - adds following column to 'households' table:
-        - 'unit_id' (int, '-1'-filled, corresponds to index of
-          'residential_units' table)
-    """
-    units = residential_units
-    hh = households
-
-    # This code block is from Fletcher
-    unit_lookup = units.reset_index().set_index(['building_id', 'unit_num'])
-    hh = hh.sort_values(by=['building_id'], ascending=True)
-
-    building_counts = hh.building_id.value_counts().sort_index()
-    hh['unit_num'] = np.concatenate(
-        [np.arange(i) for i in building_counts.values])
-
-    unplaced = hh[hh.building_id == -1].index
-    placed = hh[hh.building_id != -1].index
-
-    indexes = [tuple(t) for t in
-               hh.loc[placed, ['building_id', 'unit_num']].values]
-
-    hh.loc[placed, 'unit_id'] = unit_lookup.loc[indexes].unit_id.values
-    hh.loc[unplaced, 'unit_id'] = -1
-
-    return hh
-
 
 def assign_tenure_to_units(residential_units, households):
     """
@@ -119,17 +71,11 @@ def assign_tenure_to_units(residential_units, households):
 @orca.step()
 def initialize_residential_units(residential_units):
 
-    units = residential_units
-
-    # put households into units based on the building id
-    households = match_households_to_units(households, units)
-
-    # then assign tenure to units based on the households in them
+    # assign tenure to units based on the households in them
     units = assign_tenure_to_units(units, households)
 
     # write to the hdfstore
-    store['households_preproc'] = households
-
+    store['residential_units'] = units
     
 
 
