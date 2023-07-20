@@ -35,12 +35,6 @@ def outputs_dir(run_setup):
     return run_setup['outputs_dir']
 
 
-@orca.injectable('paths', cache=True)
-def paths():
-    with open(os.path.join(misc.configs_dir(), "paths.yaml")) as f:
-        return yaml.load(f)
-
-
 @orca.injectable('accessibility_settings', cache=True)
 def accessibility_settings():
     with open(os.path.join(misc.configs_dir(), "accessibility/accessibility_settings.yaml")) as f:
@@ -113,12 +107,6 @@ def preservation():
         return yaml.load(f)
 
 
-@orca.injectable('mapping', cache=True)
-def mapping():
-    with open(os.path.join(misc.configs_dir(), "mapping.yaml")) as f:
-        return yaml.load(f)
-
-
 @orca.injectable('cost_shifters', cache=True)
 def cost_shifters():
     with open(os.path.join(misc.configs_dir(), "adjusters/cost_shifters.yaml")) as f:
@@ -142,15 +130,15 @@ def price_settings():
 
 # this just adds some of the BAUS settings to a master "settings", since the urbansim code looks for them there
 @orca.injectable("settings")
-def settings(mapping, transition_relocation_settings):
-    settings = mapping.copy()
+def settings(developer_settings, transition_relocation_settings):
+    settings = developer_settings.copy()
     settings.update(transition_relocation_settings)    
     return settings
 
 
 @orca.injectable("building_type_map")
-def building_type_map(mapping):
-    return mapping["building_type_map"]
+def building_type_map(developer_settings):
+    return developer_settings["building_type_map"]
 
 
 @orca.injectable('year')
@@ -174,8 +162,8 @@ def final_year():
 
 
 @orca.injectable(cache=True)
-def store(paths):
-    return pd.HDFStore(os.path.join(orca.get_injectable("inputs_dir"), paths["store"]))
+def store():
+    return pd.HDFStore(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/data_store.h5"))
 
 
 @orca.injectable(cache=True)
@@ -230,24 +218,6 @@ def building_sqft_per_job(developer_settings):
     return developer_settings['building_sqft_per_job']
 
 
-@orca.step()
-def fetch_from_s3(paths):
-    import boto
-    # fetch files from s3 based on config in settings.yaml
-    s3_settings = paths["s3_settings"]
-
-    conn = boto.connect_s3()
-    bucket = conn.get_bucket(s3_settings["bucket"], validate=False)
-
-    for file in s3_settings["files"]:
-        file = os.path.join("data", file)
-        if os.path.exists(file):
-            continue
-        print("Downloading " + file)
-        key = bucket.get_key(file, validate=False)
-        key.get_contents_to_filename(file)
-
-
 # key locations in the Bay Area for use as attractions in the models
 @orca.table(cache=True)
 def landmarks():
@@ -256,13 +226,7 @@ def landmarks():
 
 
 @orca.table(cache=True)
-def baseyear_taz_controls():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/baseyear_taz_controls.csv"),
-                       dtype={'taz1454': np.int64}, index_col="taz1454")
-
-
-@orca.table(cache=True)
-def base_year_summary_taz(mapping):
+def base_year_summary_taz():
     df = pd.read_csv(os.path.join('output', 'baseyear_taz_summaries_2010.csv'), dtype={'taz1454': np.int64}, index_col="taz_tm1")
     return df
 
@@ -376,11 +340,11 @@ def tm1_tm2_maz_forecast_inputs(tm1_tm2_regional_demographic_forecast):
 
 
 @orca.table(cache=True)
-def zoning_strategy(growth_geographies, mapping):
+def zoning_strategy(growth_geographies, developer_settings):
 
     strategy_zoning = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/zoning_mods.csv'))
 
-    for k in mapping["building_type_map"].keys():
+    for k in developer_settings["building_type_map"].keys():
         strategy_zoning[k] = np.nan
 
     def add_drop_helper(col, val):
@@ -401,7 +365,7 @@ def zoning_strategy(growth_geographies, mapping):
 
 @orca.table(cache=True)
 def parcels():
-    df = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/parcels_v0c.csv")
+    df = store['parcels']
     return df.set_index("parcel_id")
 
 
@@ -519,22 +483,22 @@ def dev_pipeline_strategy_projects(run_setup, development_projects):
 
 @orca.table(cache=True)
 def jobs():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/jobs.csv")
+    return store['jobs']
 
 
 @orca.table(cache=True)
 def households():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/households.csv")
+    return store['households']
 
 
 @orca.table(cache=True)
 def buildings():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/buildings_v0c.csv")
+    return store['buildings']
 
 
 @orca.table(cache=True)
 def residential_units():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/residential_units_v0c.csv")
+    return store['residential_units']
 
 
 @orca.table(cache=True)

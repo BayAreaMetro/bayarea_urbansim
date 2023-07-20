@@ -43,7 +43,7 @@ def environment_config(run_number, parcels, year):
 
 @orca.step()
 def topsheet(households, jobs, buildings, parcels, zones, year, run_number, parcels_zoning_calculations,
-             summary, parcels_geography, new_tpp_id, residential_units, mapping, travel_model_zones):
+             summary, parcels_geography, new_tpp_id, residential_units, travel_model_zones):
 
     hh_by_subregion = misc.reindex(travel_model_zones.subregion, households.parcel_id).value_counts()
 

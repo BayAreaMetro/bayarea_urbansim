@@ -274,8 +274,8 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
 # this deviates from the step in urbansim_defaults when there are multiple projects on a parcel:
 # instead of redeveloping the parcel each time, it adds each building to the parcel
 @orca.step()
-def scheduled_development_events(buildings, development_projects, demolish_events, summary, year, parcels, mapping, years_per_iter, 
-                                 growth_geographies, building_sqft_per_job, static_parcels, base_year, run_setup):
+def scheduled_development_events(buildings, development_projects, demolish_events, summary, year, parcels, developer_settings, 
+                                 years_per_iter, growth_geographies, building_sqft_per_job, static_parcels, base_year, run_setup):
     # first demolish
     # grab projects from the simulation year and previous four years, except for 2015 which pulls 2015-2010 projects
     if year == (base_year + years_per_iter):
@@ -306,7 +306,7 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     new_buildings = utils.scheduled_development_events(buildings, dps, remove_developed_buildings=False,
                                                        unplace_agents=['households', 'jobs'])
 
-    new_buildings["form"] = new_buildings.building_type.map(mapping['building_type_map']).str.lower()
+    new_buildings["form"] = new_buildings.building_type.map(developer_settings['building_type_map']).str.lower()
     new_buildings["job_spaces"] = new_buildings.non_residential_sqft / new_buildings.building_type.fillna("OF").map(building_sqft_per_job)
     new_buildings["job_spaces"] = new_buildings.job_spaces.fillna(0).astype('int')
     new_buildings["SDEM"] = True
@@ -354,7 +354,7 @@ def supply_and_demand_multiplier_func(demand, supply):
 # specific building type
 @orca.injectable(autocall=False)
 def form_to_btype_func(building):
-    mapping = orca.get_injectable('mapping')
+    developer_settings = orca.get_injectable('developer_settings')
     form = building.form
     dua = building.residential_units / (building.parcel_size / 43560.0)
     # precise mapping of form to building type for residential
@@ -364,7 +364,7 @@ def form_to_btype_func(building):
         elif dua < 32:
             return "HT"
         return "HM"
-    return mapping["form_to_btype"][form][0]
+    return developer_settings["form_to_btype"][form][0]
 
 
 @orca.injectable(autocall=False)

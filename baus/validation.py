@@ -34,13 +34,13 @@ def check_household_controls(households, household_controls, year):
 
 
 # make sure the employment controls are currently being matched
-def check_job_controls(jobs, employment_controls, year, mapping):
+def check_job_controls(jobs, employment_controls, year, developer_settings):
     print("Check job controls")
     current_employment_controls = employment_controls.local.loc[year]
     current_employment_controls = current_employment_controls.\
         set_index("empsix_id").number_of_jobs
 
-    empsix_map = mapping["empsix_name_to_id"]
+    empsix_map = developer_settings["empsix_name_to_id"]
     current_counts = jobs.empsix.map(empsix_map).value_counts()
 
     assert_series_equal(
@@ -109,14 +109,14 @@ def check_unit_ids_match_building_ids(households, residential_units):
 @orca.step()
 def simulation_validation(
         parcels, buildings, households, jobs, residential_units, year,
-        household_controls, employment_controls, mapping):
+        household_controls, employment_controls, developer_settings):
 
     # this does a save and restore state for debugging
     # d = save_and_restore_state(locals())
     # for k in d.keys():
     #     locals()[k].local = d[k]
 
-    check_job_controls(jobs, employment_controls, year, mapping)
+    check_job_controls(jobs, employment_controls, year, developer_settings)
 
     check_household_controls(households, household_controls, year)
 

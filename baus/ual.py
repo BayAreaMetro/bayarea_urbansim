@@ -69,10 +69,10 @@ def assign_tenure_to_units(residential_units, households):
 
 
 @orca.step()
-def initialize_residential_units(residential_units):
+def initialize_residential_units(residential_units, households):
 
     # assign tenure to units based on the households in them
-    units = assign_tenure_to_units(units, households)
+    units = assign_tenure_to_units(residential_units, households)
 
     # write to the hdfstore
     store['residential_units'] = units
