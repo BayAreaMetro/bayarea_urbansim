@@ -43,7 +43,7 @@ def environment_config(run_number, parcels, year):
 
 @orca.step()
 def topsheet(households, jobs, buildings, parcels, zones, year, run_number, parcels_zoning_calculations,
-             summary, parcels_geography, new_tpp_id, residential_units, travel_model_zones):
+             summary, parcels_geography, new_tpp_id, residential_units, travel_model_zones, base_year):
 
     hh_by_subregion = misc.reindex(travel_model_zones.subregion, households.parcel_id).value_counts()
 
@@ -73,7 +73,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year, run_number, parc
     jobs_by_inpda = jobs_df.pda_id.notnull().value_counts()
     jobs_by_intra = jobs_df.tra_id.notnull().value_counts()
 
-    if year == 2020:
+    if year == base_year:
         # save some info for computing growth measures
         orca.add_injectable("base_year_measures", {
             "hh_by_subregion": hh_by_subregion,
@@ -276,13 +276,14 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, developer_setti
 
 
 @orca.step()
-def geographic_summary(parcels, households, jobs, buildings, run_setup, run_number, year, summary, final_year, travel_model_zones):
+def geographic_summary(parcels, households, jobs, buildings, run_setup, run_number, year, summary, final_year, travel_model_zones,
+                       base_year, final_year):
     # using the following conditional b/c `year` is used to pull a column
     # from a csv based on a string of the year in add_population()
     # and in add_employment() and 2019 is the
     # 'base'/pre-simulation year, as is the 2020 value in the csv.
     if year == 2019:
-        year = 2020
+        year = base_year
         base = True
     else:
         base = False   
@@ -315,7 +316,7 @@ def geographic_summary(parcels, households, jobs, buildings, run_setup, run_numb
 #    # append Draft/Final Blueprint strategy geographis
 #    geographies.extend(['pda_id', 'juris_tra', 'juris_sesit', 'juris_ppa'])
 
-    if year in [2020, 2025, 2030, 2035, 2040, 2045, 2050]:
+    if year in [base_year, 2025, 2030, 2035, 2040, 2045, final_year]:
 
         for geography in geographies:
 
@@ -411,7 +412,7 @@ def geographic_summary(parcels, households, jobs, buildings, run_setup, run_numb
             acct.to_frame().to_csv(fname)
 
     if year == final_year:
-        baseyear = 2015
+        baseyear = base_year
         for geography in geographies:
             df_base = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "run{}_{}_summaries_{}.csv".\
                                             format(run_number, geography, baseyear)))
@@ -422,7 +423,7 @@ def geographic_summary(parcels, households, jobs, buildings, run_setup, run_numb
                                         format(run_number, geography)), index = False)
 
     # Write Urban Footprint Summary
-    if year in [2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050]:
+    if year in [base_year, 2025, 2030, 2035, 2040, 2045, final_year]:
         # 02 15 2019 ET: Using perffoot there was no greenfield change
         # between 2010 and 2050. Joined the parcels to Urbanized_Footprint
         # instead, which improved the diff. The large majority of greenfield
@@ -512,9 +513,9 @@ def building_summary(parcels, run_number, year,
 
 @orca.step()
 def parcel_summary(parcels, buildings, households, jobs, run_number, year, parcels_zoning_calculations,
-                   initial_year, final_year, parcels_geography):
+                   initial_year, final_year, parcels_geography, base_year, final_year):
 
-    # if year not in [2020, 2035, 2050]:
+    # if year not in [base_year, 2035, final_year]:
     #     return
 
     df = parcels.to_frame([
@@ -565,7 +566,7 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
 
     # if year == final_year:
     print('year printed for debug: {}'.format(year))
-    if not year == 2020:
+    if not year == base_year:
         print('calculate diff for year {}'.format(year))
         # do diff with initial year
 
@@ -587,10 +588,10 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
 
     # if year == final_year:
     print('year printed for debug: {}'.format(year))
-    if not year == 2020:
+    if not year == base_year:
 
         print('calculate diff for year {}'.format(year)) 
-        baseyear = 2015
+        baseyear = base_year
         df_base = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "run%d_parcel_data_%d.csv" % (run_number, baseyear)))
         df_final = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "run%d_parcel_data_%d.csv" # % (run_number, final_year)))
                                                                                                            % (run_number, year)))
@@ -836,7 +837,7 @@ def travel_model_output(parcels, households, jobs, buildings, year, summary, fin
                                "run{}_county_summaries_{}.csv").format(run_number, year))
 
     if year == final_year: 
-        baseyear = 2015
+        baseyear = base_year
         df_base = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"),
                               "run%d_taz_summaries_%d.csv" % (run_number, baseyear)))
         df_final = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"),
@@ -860,8 +861,9 @@ def travel_model_output(parcels, households, jobs, buildings, year, summary, fin
 @orca.step()
 def travel_model_2_output(parcels, households, jobs, buildings, maz, year, tm2_emp27_employment_shares, run_number,
                           tm1_tm2_maz_forecast_inputs, tm2_taz2_forecast_inputs, tm2_occupation_shares, 
-                          tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls):
-    if year not in [2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050]:
+                          tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls, base_year, final_year):
+    
+    if year not in [base_year, 2025, 2030, 2035, 2040, 2045, final_year]:
         # only summarize for years which are multiples of 5
         return
 
@@ -1438,7 +1440,7 @@ def hazards_slr_summary(run_setup, run_number, year, households, jobs, parcels):
 
 
 @orca.step()
-def hazards_eq_summary(run_setup, run_number, year, households, jobs, parcels, buildings):
+def hazards_eq_summary(run_setup, run_number, year, households, jobs, parcels, buildings, final_year):
 
     if run_setup['run_eq']:
         if year == 2035:
@@ -1559,7 +1561,7 @@ def hazards_eq_summary(run_setup, run_number, year, households, jobs, parcels, b
 
         # print out buildings in 2030, 2035, and 2050 so Horizon team can compare
         # building inventory by TAZ
-        if year in [2030, 2035, 2050] and eq:
+        if year in [2030, 2035, final_year] and eq:
             buildings = buildings.to_frame()
             buildings_taz = misc.reindex(parcels.zone_id,
                                          buildings.parcel_id)

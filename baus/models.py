@@ -277,7 +277,8 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
 def scheduled_development_events(buildings, development_projects, demolish_events, summary, year, parcels, developer_settings, 
                                  years_per_iter, growth_geographies, building_sqft_per_job, static_parcels, base_year, run_setup):
     # first demolish
-    # grab projects from the simulation year and previous four years, except for 2025 which pulls 2025-2020 projects
+    # grab projects from the simulation year and previous four years, except in the first forecast year
+    # which also pulls in the base year projects
     if year == (base_year + years_per_iter):
         demolish = demolish_events.to_frame().query("%d <= year_built <= %d" % (year - years_per_iter, year))
     else:
@@ -293,8 +294,8 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     buildings = orca.get_table("buildings")
     print("Demolished %d buildings on parcels with pipeline projects being built" % (l1 - len(buildings)))
 
-    # then build
-    # grab projects from the simulation year and previous four years, except for 2025 which pulls 2025-2020 projects
+    # grab projects from the simulation year and previous four years, except in the first forecast year
+    # which also pulls in the base year projects
     if year == (base_year + years_per_iter):
         dps = development_projects.to_frame().query("%d <= year_built <= %d" % (year - years_per_iter, year))
     else:
@@ -444,7 +445,7 @@ def alt_feasibility(parcels, developer_settings,
 def residential_developer(feasibility, households, buildings, parcels, year,
                           developer_settings, summary, form_to_btype_func,
                           add_extra_columns_func, parcels_geography,
-                          limits_settings, final_year, run_setup):
+                          limits_settings, final_year, run_setup, base_year):
 
     kwargs = developer_settings['residential_developer']
 
@@ -477,15 +478,15 @@ def residential_developer(feasibility, households, buildings, parcels, year,
             # and development is lumpy
 
             current_total = parcels.total_residential_units[
-                (juris_name == juris) & (parcels.newest_building >= 2020)]\
+                (juris_name == juris) & (parcels.newest_building >= base_year)]\
                 .sum()
 
-            target = (year - 2020 + 1) * limit - current_total
+            target = (year - base_year + 1) * limit - current_total
             # make sure we don't overshoot the total development of the limit
             # for the horizon year - for instance, in Half Moon Bay we have
             # a very low limit and a single development in a far out year can
             # easily build over the limit for the total simulation
-            max_target = (final_year - 2020 + 1) * limit - current_total
+            max_target = (final_year - base_year + 1) * limit - current_total
 
             if target <= 0:
                 continue
@@ -685,7 +686,7 @@ def office_developer(feasibility, jobs, buildings, parcels, year,
         # now apply limits - limits are assumed to be yearly, apply to an
         # entire jurisdiction and be in terms of residential_units or
         # job_spaces
-        if year > 2015 and typ in limits_settings:
+        if year > 2025 and typ in limits_settings:
 
             juris_name = parcels_geography.juris_name.\
                 reindex(parcels.index).fillna('Other')
@@ -700,9 +701,9 @@ def office_developer(feasibility, jobs, buildings, parcels, year,
 
                 current_total = parcels.total_job_spaces[
                     (juris_name == juris) &
-                    (parcels.newest_building > 2015)].sum()
+                    (parcels.newest_building > 2025)].sum()
 
-                target = (year - 2015 + 1) * limit - current_total
+                target = (year - 2025 + 1) * limit - current_total
 
                 if target <= 0:
                     print("Already met target for juris = %s" % juris)
@@ -862,13 +863,13 @@ def proportional_job_allocation():
     # get jobs in those buildings
     all_jobs = orca.get_table("jobs").local
     jobs = all_jobs[
-        all_jobs.building_id.isin(buildings.query("year_built <= 2015").index)]
+        all_jobs.building_id.isin(buildings.query("year_built <= 2025").index)]
 
     # get job distribution by sector for this parcel
     job_dist = jobs.empsix.value_counts()
 
     # only add jobs to new buildings records
-    for index, building in buildings.query("year_built > 2015").iterrows():
+    for index, building in buildings.query("year_built > 2025").iterrows():
 
         num_new_jobs = building.job_spaces - len(
             all_jobs.query("building_id == %d" % index))
