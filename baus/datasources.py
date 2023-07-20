@@ -205,12 +205,6 @@ def landmarks():
                        index_col="name")
 
 
-@orca.table(cache=True)
-def base_year_summary_taz():
-    df = pd.read_csv(os.path.join('output', 'baseyear_taz_summaries_2010.csv'), dtype={'taz1454': np.int64}, index_col="taz_tm1")
-    return df
-
-
 # non-residential rent data
 @orca.table(cache=True)
 def costar(parcels):

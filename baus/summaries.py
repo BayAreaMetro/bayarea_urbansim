@@ -73,7 +73,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year, run_number, parc
     jobs_by_inpda = jobs_df.pda_id.notnull().value_counts()
     jobs_by_intra = jobs_df.tra_id.notnull().value_counts()
 
-    if year == 2010:
+    if year == 2020:
         # save some info for computing growth measures
         orca.add_injectable("base_year_measures", {
             "hh_by_subregion": hh_by_subregion,
@@ -89,7 +89,7 @@ def topsheet(households, jobs, buildings, parcels, zones, year, run_number, parc
     try:
         base_year_measures = orca.get_injectable("base_year_measures")
     except Exception as e:
-        # the base year measures don't exist - we didn't run year 2010
+        # the base year measures don't exist - we didn't run year 2020
         # this can happen when we skip the first year, usually because
         # we don't want to waste time doing so
         return
@@ -279,10 +279,10 @@ def diagnostic_output(households, buildings, parcels, taz, jobs, developer_setti
 def geographic_summary(parcels, households, jobs, buildings, run_setup, run_number, year, summary, final_year, travel_model_zones):
     # using the following conditional b/c `year` is used to pull a column
     # from a csv based on a string of the year in add_population()
-    # and in add_employment() and 2009 is the
-    # 'base'/pre-simulation year, as is the 2010 value in the csv.
-    if year == 2009:
-        year = 2010
+    # and in add_employment() and 2019 is the
+    # 'base'/pre-simulation year, as is the 2020 value in the csv.
+    if year == 2019:
+        year = 2020
         base = True
     else:
         base = False   
@@ -315,7 +315,7 @@ def geographic_summary(parcels, households, jobs, buildings, run_setup, run_numb
 #    # append Draft/Final Blueprint strategy geographis
 #    geographies.extend(['pda_id', 'juris_tra', 'juris_sesit', 'juris_ppa'])
 
-    if year in [2010, 2015, 2020, 2025, 2030, 2035, 2040, 2045, 2050]:
+    if year in [2020, 2025, 2030, 2035, 2040, 2045, 2050]:
 
         for geography in geographies:
 
@@ -514,7 +514,7 @@ def building_summary(parcels, run_number, year,
 def parcel_summary(parcels, buildings, households, jobs, run_number, year, parcels_zoning_calculations,
                    initial_year, final_year, parcels_geography):
 
-    # if year not in [2010, 2015, 2035, 2050]:
+    # if year not in [2020, 2035, 2050]:
     #     return
 
     df = parcels.to_frame([
@@ -565,7 +565,7 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
 
     # if year == final_year:
     print('year printed for debug: {}'.format(year))
-    if year not in [2010, 2015]:
+    if not year == 2020:
         print('calculate diff for year {}'.format(year))
         # do diff with initial year
 
@@ -587,7 +587,7 @@ def parcel_summary(parcels, buildings, households, jobs, run_number, year, parce
 
     # if year == final_year:
     print('year printed for debug: {}'.format(year))
-    if year not in [2010, 2015]:
+    if not year == 2020:
 
         print('calculate diff for year {}'.format(year)) 
         baseyear = 2015
