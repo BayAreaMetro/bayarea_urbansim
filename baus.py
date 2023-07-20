@@ -34,7 +34,7 @@ CURRENT_COMMIT = os.popen('git rev-parse HEAD').read()
 COMPARE_TO_NO_PROJECT = True
 NO_PROJECT = 611
 
-IN_YEAR, OUT_YEAR = 2010, 2050
+IN_YEAR, OUT_YEAR = 2020, 2050
 COMPARE_AGAINST_LAST_KNOWN_GOOD = False
 
 LAST_KNOWN_GOOD_RUN = 182 
@@ -44,7 +44,12 @@ orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
 
 orca.add_injectable("base_year", IN_YEAR)
 
+orca.add_injectable("final_year", OUT_YEAR)
+
+orca.add_injectable("year", orca.get_injectable("iter_var"))
+
 orca.add_injectable("slack_enabled", SLACK)
+
 
 parser = argparse.ArgumentParser(description='Run UrbanSim models.')
 
@@ -376,13 +381,9 @@ def get_baseyear_models():
 
 def run_models(MODE):
 
-    elif MODE == "fetch_data":
+    if MODE == "debug":
 
-        orca.run(["fetch_from_s3"])
-
-    elif MODE == "debug":
-
-        orca.run(["simulation_validation"], [2010])
+        orca.run(["simulation_validation"], [2020])
 
     elif MODE == "simulation":
 
@@ -411,7 +412,7 @@ def run_models(MODE):
             "hlcm_estimate",             # household lcm
             "elcm_estimate",             # employment lcm
 
-        ], iter_vars=[2010])
+        ], iter_vars=[2020])
 
         # Estimation steps
         '''
@@ -440,7 +441,7 @@ def run_models(MODE):
             "price_vars",
             "subsidized_residential_feasibility"
 
-        ], iter_vars=[2010])
+        ], iter_vars=[2020])
 
         # the whole point of this is to get the feasibility dataframe
         # for debugging

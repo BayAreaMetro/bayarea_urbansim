@@ -141,26 +141,6 @@ def building_type_map(developer_settings):
     return developer_settings["building_type_map"]
 
 
-@orca.injectable('year')
-def year():
-    try:
-        return orca.get_injectable("iter_var")
-    except Exception as e:
-        pass
-    # if we're not running simulation, return base year
-    return 2014
-
-
-@orca.injectable()
-def initial_year():
-    return 2010
-
-
-@orca.injectable()
-def final_year():
-    return 2050
-
-
 @orca.injectable(cache=True)
 def store():
     return pd.HDFStore(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/data_store.h5"))
