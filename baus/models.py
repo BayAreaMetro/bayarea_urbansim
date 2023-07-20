@@ -277,7 +277,7 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
 def scheduled_development_events(buildings, development_projects, demolish_events, summary, year, parcels, developer_settings, 
                                  years_per_iter, growth_geographies, building_sqft_per_job, static_parcels, base_year, run_setup):
     # first demolish
-    # grab projects from the simulation year and previous four years, except for 2015 which pulls 2015-2010 projects
+    # grab projects from the simulation year and previous four years, except for 2025 which pulls 2025-2020 projects
     if year == (base_year + years_per_iter):
         demolish = demolish_events.to_frame().query("%d <= year_built <= %d" % (year - years_per_iter, year))
     else:
@@ -294,7 +294,7 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     print("Demolished %d buildings on parcels with pipeline projects being built" % (l1 - len(buildings)))
 
     # then build
-    # grab projects from the simulation year and previous four years, except for 2015 which pulls 2015-2010 projects
+    # grab projects from the simulation year and previous four years, except for 2025 which pulls 2025-2020 projects
     if year == (base_year + years_per_iter):
         dps = development_projects.to_frame().query("%d <= year_built <= %d" % (year - years_per_iter, year))
     else:
@@ -477,15 +477,15 @@ def residential_developer(feasibility, households, buildings, parcels, year,
             # and development is lumpy
 
             current_total = parcels.total_residential_units[
-                (juris_name == juris) & (parcels.newest_building >= 2010)]\
+                (juris_name == juris) & (parcels.newest_building >= 2020)]\
                 .sum()
 
-            target = (year - 2010 + 1) * limit - current_total
+            target = (year - 2020 + 1) * limit - current_total
             # make sure we don't overshoot the total development of the limit
             # for the horizon year - for instance, in Half Moon Bay we have
             # a very low limit and a single development in a far out year can
             # easily build over the limit for the total simulation
-            max_target = (final_year - 2010 + 1) * limit - current_total
+            max_target = (final_year - 2020 + 1) * limit - current_total
 
             if target <= 0:
                 continue
