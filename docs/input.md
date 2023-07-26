@@ -1,10 +1,10 @@
-### The inputs structure for Bay Area UrbanSim (BAUS) and a decription of each input. Model input files are run specific: data inputs and model levers. These are stored in an `inputs` folder to be called by the model. Model configs are longer-term| model estimation constants, assumptions we do not expect to change. These live in the model's repository under the `configs` folder. 
-&nbsp;  
-# inputs
-## accessibility
-### pandana
-**name**|**use**
------|-----|
+## The inputs structure for Bay Area UrbanSim (BAUS) and a description of each input. Model input files are stored in an `inputs` folder to be called by the model. They are often run-specific and contain the data used to run the model, such as base year datasets and policy inputs.
+
+## inputs/
+## accessibility/
+### pandana/
+**name**|**description**
+-----|-----
 tmnet.h5| Travel model network information for calculating accessibility within the model using Pandana
 osm_bayarea4326.h5| Street network information for calculating accessibility within the model using Pandana
 landmarks.csv| Locations of a few major landmarks in the region for accessibility calculations.
@@ -84,10 +84,10 @@ slr_strategy_mitigation.csv | The sea level rise level at which each inundation 
 -----|-----|
 employment_controls.csv| The total number of jobs in the region for the model to allocate, by year. The controls are provided by 6-sector job category.
 household_controls.csv| The total number of households in the region for the model to allocate, by year. The controls are provided by household income quartile.
-&nbsp;
-## zone_forecasts
-**name**|**use**
------|-----|
+
+## zone_forecasts/
+**name**|**description**
+-----|-----
 taz_growth_rates_gov_ed.csv| This file has ratios of governement and education employment per population by County and TAZ. The files has two header rows| the first row is what the outcome attribute is and the second is the geography at which the ratio acts (either TAZ, County, or Regional).
 prportional_retail_jobs_forecast.csv| This contains the field "minimum_forecast_retail_jobs_per_household" by jurisdiction, which is used to keep local numbers of retail jobs reasonable through the forecast.
 tm1_taz1_forecast_inputs.csv| This is closely related to regional_controls.csv. These are zone level inputs used for the process of generating variables for the travel model, while the other file contains regional-level controls. These inputs provide TAZ1454 information, used for Travel Model One summaries. 
@@ -97,73 +97,3 @@ tm2_emp27_employment_shares| The forecasted share of jobs by 26 sectors, used to
 tm2_occupation_shares| The forecasted share of jobs by occupation, used for Travel Model Two. The shares are provided by county and by year.
 tm1_tm2_regional_controls.csv| Controls from the regional forecast which give us employed residents and the age distribution by year, used to forecast variables used by the travel model.
 tm1_tm2_regional_demographic_forecast| Similar to regional_controls.csv, this file provides regional-level information to produce travel model variables, in this case using forecasts of shares by year.
-&nbsp;  
-# bayarea_urbansim
-## configs
-### adjusters
-**name**|**use**
------|-----|
-cost_shifters.yaml| Multipliers to cost, currently specified by county, used to calibrate the model.
-development_caps_asserted.yaml| Caps on development, either residential or office, used to calibrate the model. (TODO: remove any base year existing policy caps entangled here).
-employment_relocation_rates_overwrites.csv| These overwrite the relocation rates in employment_relocation_rates.csv to calibrate the model, e.g. leave government sector jobs in San Francisco City Hall's TAZ.
-sqft_per_job_adjusters| Multipliers to the number of sqft used by each job, defined in the model's developer settings, which modify the number of jobs that can occupy a building. This is used to calibrate the model, e.g. reflect CBD job densities or adjust vacancy rates by superdistrict. The inputs file telecommute_sqft_per_job_adjusters.csv uses alternative multipliers for for the forecast years in place of these, if the strategy is enabled. (TODO: Disentangle the k-factors and the policy application in these two files. In the meantime, use both files as is done in the PBA50 No Project).
-zoning_adjusters.yaml| Adjusters used to modify the model's zoning data.
-&nbsp;   
-### accessibility
-**name**|**use**
------|-----|
-accessibility_settings.yaml| Settings for Pandana, the model's endogenous accessibility calculations.
-neighborhood_vars.yaml| Settings for calculating local accessibility variables during the model run.
-regional_vars.yaml| Settings for calculating regional accessibility variables during the model run.
-price_vars.yaml| Settings for calculating local accessibility variables on price during the model run.
-&nbsp;
-### developer
-**name**|**use**
------|-----|
-developer_settings.yaml| Settings for the model's developer and feasibility models.
-residential_vacancy_rates.csv| Residential vacancy rates for the residential developer model, separated from the main developer settings into this file to allow them to vary by year.
-&nbsp;
-### hedonics
-**name**|**use**
------|-----|
-price_settings.yaml| Settings for the model's price simulation and supplydemand equilibration of price.
-nrh.yaml| Non-residential hedonic price model specification.
-rrh.yaml| Residential rent hedonic price model specification.
-rsh.yaml| Residential sales hedonic price model specification.
-&nbsp;
-### location_choice
-**name**|**use**
------|-----|
-elcm.yaml| Employment location choice model specification, segemented by six employment sectors.
-hlcm_owner.yaml| Household location choice model specification segmented by income quartiles. The models are estimated for owner households.
-hlcm_owner_lowincome.yaml| This uses the same specification and estimated coefficients as hlcm_owner. The only difference is that it is used to only low income households to choose deed-restricted owner units.
-hlcm_owner_lowincome_no_unplaced.yaml| This uses the same specification and estimated coefficients as hlcm_owner, but allows owners of all incomes into deed-restricted owner units to cover any gaps in assignment.
-hlcm_owner_no_unplaced.yaml| This uses the same specification and estimated coefficients as hlcm_owner, but does another round of placements of owners, this time into non-deed-restricted owner units, to cover any gaps in assignment.
-hlcm_renter.yaml| Household location choice model specification segmented by income quartiles. The models are estimated for rental households.
-hlcm_renter_lowincome.yaml| This uses the same specification and estimated coefficients as hlcm_renter. The only difference is that it is used to only low income households to choose deed-restricted rental units.
-hlcm_renter_lowincome_no_unplaced.yaml| This uses the same specification and estimated coefficients as hlcm_renter, but allows renters of all incomes into deed-restricted rental units to cover any gaps in assignment.
-hlcm_renter_no_unplaced.yaml| This uses the same specification and estimated coefficients as hlcm_renter, but does another round of placement of renters, this time into non-deed-restricted rental units, to cover any gaps in assignment.
-### location choice cont.
-**HLCM Model**|**Estimation Choosers: Filters**|**Estimation Alternatives: Filters**|**Simulation Choosers: Filters**|**Simulation Alternatives: Filters**
------|-----|-----|-----|-----|
-owner|Owners|-|Owners|Owner Units|
-owner_lowincome|Owners|-|Low-Income Owners| Affordable Owner Units|
-owner_lowincome_no_unplaced|-|-|Owners|Affordable Owner Units|
-owner_no_unplaced|Owners|-|Owners| Market-Rate Owner Units|
-renter|Renters|-|Renters|Renters Units|
-renter_lowincome|Renters|-|Low-Income Renters|Affordable Rental Units|
-renter_lowincome_no_unplaced|-|-|Renters|Affordable Rentual Units|
-renter_no_unplaced|Renters|-|Renters|Market Rate Rental Units|
-&nbsp;
-### transition_relocation
-**name**|**use**
------|-----|
-employment_relocation_rates.csv| A file with the probability of a job relocating during a time step in the forecast, by TAZ and by employment sector. Pairs with employment_relocation_rates.csv which overwrites the model probabilities with calibration factors.
-household_relocation_rates.csv| A file with the probability of a household relocating during a time step in the forecast, by TAZ, income, and tenure. Pairs with renter_protections_relocation_rates_overwrites.csv which overwrites model probabilities with different relocation rates when the renter protections strategy is enabled. 
-transition_relocation_settings.yaml| Settings for the transition and relocation models. 
-&nbsp;
-### mapping.yaml
-Mapping used in the model to relate variables to one another.
-&nbsp;
-### paths.yaml
-Variables that store file names for use in the model code.
