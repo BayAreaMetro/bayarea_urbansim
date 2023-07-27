@@ -190,7 +190,8 @@ def price_settings():
 # now that there are new settings files, override the locations of certain
 # settings already defined in urbansim_defaults
 
-# this just adds some of the BAUS settings to a master "settings", since the urbansim code looks for them there
+# this just adds some of the BAUS settings to a master "settings", since the 
+# urbansim code looks for them there
 @orca.injectable("settings")
 def settings(mapping, transition_relocation_settings):
     settings = mapping.copy()
@@ -230,8 +231,9 @@ def store(paths):
 
 @orca.injectable(cache=True)
 def limits_settings(development_caps, run_setup):
-    # for limits, we inherit from the default settings, and update these with the policy settings, if applicable
-    # limits set the annual maximum number of job spaces or residential units that may be built in a geography
+    # for limits, we inherit from the default settings, and update these with the policy 
+    # settings, if applicable limits set the annual maximum number of job spaces or 
+    # residential units that may be built in a geography
 
     d = development_caps["development_limits"]["default"]
     if run_setup["asserted_development_caps"]:
@@ -256,8 +258,9 @@ def limits_settings(development_caps, run_setup):
 
 @orca.injectable(cache=True)
 def inclusionary_housing_settings(inclusionary, run_setup):
-    # for inclusionary housing, there is no inheritance from the default inclusionary settings
-    # this means existing inclusionary levels in the base year don't apply in the policy application...
+    # for inclusionary housing, there is no inheritance from the default inclusionary 
+    # settings this means existing inclusionary levels in the base year don't apply 
+    # in the policy application...
 
     if run_setup["run_inclusionary_strategy"]:
         inclusionary_strategy = orca.get_injectable("inclusionary_strategy")
@@ -269,7 +272,8 @@ def inclusionary_housing_settings(inclusionary, run_setup):
 
     d = {}
     for item in s:
-        # turn list of inclusionary rates and the geographies they apply to to a map of geography names to inclusionary rates
+        # turn list of inclusionary rates and the geographies they apply to to a map 
+        # of geography names to inclusionary rates
         print(
             "Setting inclusionary rates for %d %s to %.2f"
             % (len(item["values"]), item["type"], item["amount"])
