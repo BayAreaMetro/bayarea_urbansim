@@ -293,7 +293,7 @@ def new_tpp_id():
 
 @orca.table(cache=True)
 def travel_model_zones():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones_v0c.csv"))
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones_v0d.csv"))
 
 
 @orca.table(cache=True)
@@ -455,7 +455,7 @@ def accessibilities_segmentation(year, run_setup):
 # shared between demolish and build tables below
 def get_dev_projects_table():
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                                  "basis_inputs/parcels_buildings_agents/dev_pipeline_v0c.csv"))
+                                  "basis_inputs/parcels_buildings_agents/dev_pipeline_v0d.csv"))
     df = df.set_index("parcel_id")
     return df
 
@@ -486,7 +486,7 @@ def development_projects():
 @orca.table(cache=True)
 def dev_pipeline_strategy_projects(run_setup, development_projects):
 
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/dev_pipeline_strategy_projects_v0c.csv"))
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/dev_pipeline_strategy_projects_v0d.csv"))
     df = df.set_index("parcel_id")
 
     if run_setup["dev_pipeline_strategy_projects"]:
