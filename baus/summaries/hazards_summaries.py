@@ -12,7 +12,12 @@ def hazards_slr_summary(run_setup, year):
     if not run_setup['run_slr']:
         return
     
-    if len(orca.get_table("slr_demolish")) < 1:
+    try:
+        slr_demolish = orca.get_table("slr_demolish")
+    except:
+        return
+    
+    if len(slr_demolish) < 1:
         return
     
     slr_summary = pd.DataFrame(index=[0])
