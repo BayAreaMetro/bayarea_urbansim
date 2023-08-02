@@ -350,6 +350,9 @@ def get_baseyear_summary_models():
         "simulation_validation",
         "diagnostic_output",
 
+        "hazards_slr_summary",
+        "hazards_eq_summary",
+
         "parcel_summary",
         "building_summary",
 
