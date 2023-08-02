@@ -67,9 +67,6 @@ parser.add_argument(
 parser.add_argument('-i', action='store_true', dest='interactive',
                     help='enter interactive mode after imports')
 
-parser.add_argument('-k', action='store_true', dest='skip_base_year',
-                    help='skip base year - used for debugging')
-
 parser.add_argument('-y', action='store', dest='out_year', type=int,
                     help='The year to which to run the simulation.')
 
@@ -93,8 +90,6 @@ if options.interactive:
 
 if options.out_year:
     OUT_YEAR = options.out_year
-
-SKIP_BASE_YEAR = options.skip_base_year
 
 if options.mode:
     MODE = options.mode
@@ -347,83 +342,6 @@ def get_summary_models():
 
     return summary_models
 
-def get_baseyear_models():
-
-    baseyear_models = [
-        
-        "slr_inundate",
-        "slr_remove_dev",
-        "eq_code_buildings",
-        "earthquake_demolish",
-
-        "neighborhood_vars",   # local accessibility vars
-        "regional_vars",       # regional accessibility vars
-
-        "rsh_simulate",    # residential sales hedonic for units
-        "rrh_simulate",    # residential rental hedonic for units
-        "nrh_simulate",
-
-        # (based on higher of predicted price or rent)
-        "assign_tenure_to_new_units",
-
-        # uses conditional probabilities
-        "household_relocation",
-        "households_transition",
-        # update building/unit/hh correspondence
-        "reconcile_unplaced_households",
-        "jobs_transition",
-
-        # we first put Q1 households only into deed-restricted units, 
-        # then any additional unplaced Q1 households, Q2, Q3, and Q4 
-        # households are placed in either deed-restricted units or 
-        # market-rate units
-        "hlcm_owner_lowincome_simulate",
-        "hlcm_renter_lowincome_simulate",
-
-        # allocate owners to vacant owner-occupied units
-        "hlcm_owner_simulate",
-        # allocate renters to vacant rental units
-        "hlcm_renter_simulate",
-
-        # we have to run the hlcm above before this one - we first want
-        # to try and put unplaced households into their appropraite
-        # tenured units and then when that fails, force them to place
-        # using the code below.
-
-        # force placement of any unplaced households, in terms of
-        # rent/own, is a noop except in the final simulation year
-        # 09 11 2020 ET: enabled for all simulation years
-        "hlcm_owner_simulate_no_unplaced",
-        "hlcm_owner_lowincome_simulate_no_unplaced",
-        # this one crashes right no because there are no unplaced, so
-        # need to fix the crash in urbansim
-        # 09 11 2020 ET: appears to be working
-        "hlcm_renter_simulate_no_unplaced",
-        "hlcm_renter_lowincome_simulate_no_unplaced",
-
-        # update building/unit/hh correspondence
-        "reconcile_placed_households",
-
-        "elcm_simulate",
-
-        "price_vars"
-        # "scheduled_development_events"
-
-    ]
-
-    run_setup = orca.get_injectable("run_setup")
-
-    # sea level rise and sea level rise mitigation
-    if not run_setup["run_slr"]:
-        baseyear_models.remove("slr_inundate")
-        baseyear_models.remove("slr_remove_dev")
-
-    # earthquake and earthquake mitigation
-    if not run_setup["run_eq"]:
-        baseyear_models.remove("eq_code_buildings")
-        baseyear_models.remove("earthquake_demolish")
-
-    return baseyear_models
 
 def get_baseyear_summary_models():
 
@@ -431,9 +349,6 @@ def get_baseyear_summary_models():
 
         "simulation_validation",
         "diagnostic_output",
-
-        "hazards_slr_summary",
-        "hazards_eq_summary",
 
         "parcel_summary",
         "building_summary",
@@ -476,19 +391,18 @@ def run_models(MODE):
         run_setup = orca.get_injectable("run_setup")
 
         # see above for docs on this
-        if not SKIP_BASE_YEAR:
-            baseyear_models = get_baseyear_models()
-            if run_setup["run_summaries"]:
-                baseyear_models.extend(get_baseyear_summary_models())
-            orca.run(baseyear_models, iter_vars=[IN_YEAR])
+        if run_setup["run_summaries"]:
+            orca.run(get_baseyear_summary_models(), iter_vars=[IN_YEAR])
 
         # start the simulation in the next round - only the models above run
         # for the IN_YEAR
         years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1,
                              EVERY_NTH_YEAR)
+        
         models = get_simulation_models()
         if run_setup["run_summaries"]:
             models.extend(get_summary_models())
+
         orca.run(models, iter_vars=years_to_run)
         
 
