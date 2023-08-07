@@ -2,47 +2,27 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/</loc>
-         <lastmod>2023-07-12</lastmod>
+         <lastmod>2023-08-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/configuration/</loc>
-         <lastmod>2023-07-12</lastmod>
+         <lastmod>2023-08-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/input/</loc>
-         <lastmod>2023-07-12</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/model_overview/</loc>
-         <lastmod>2023-07-12</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/models-reference/</loc>
-         <lastmod>2023-07-12</lastmod>
+         <lastmod>2023-08-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/output/</loc>
-         <lastmod>2023-07-12</lastmod>
+         <lastmod>2023-08-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/pba50/</loc>
-         <lastmod>2023-07-12</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/subsidies-reference/</loc>
-         <lastmod>2023-07-12</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/user_guide/</loc>
-         <lastmod>2023-07-12</lastmod>
+         <lastmod>2023-08-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
