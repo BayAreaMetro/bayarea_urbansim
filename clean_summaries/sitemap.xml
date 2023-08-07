@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/</loc>
-         <lastmod>2023-08-07</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/configuration/</loc>
          <lastmod>2023-08-07</lastmod>
          <changefreq>daily</changefreq>
@@ -16,12 +11,17 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/model_overview/</loc>
+         <lastmod>2023-08-07</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/output/</loc>
          <lastmod>2023-08-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/pba50/</loc>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/clean_summaries/policy_coding/</loc>
          <lastmod>2023-08-07</lastmod>
          <changefreq>daily</changefreq>
     </url>
