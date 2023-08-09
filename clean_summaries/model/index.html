@@ -331,6 +331,76 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#accessibility-calculations" class="md-nav__link">
+    Accessibility Calculations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#price-rent-prediction" class="md-nav__link">
+    Price &amp; Rent Prediction
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#household-firm-relocation" class="md-nav__link">
+    Household &amp; Firm Relocation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#household-firm-transition" class="md-nav__link">
+    Household &amp; Firm Transition
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeline-project-development" class="md-nav__link">
+    Pipeline Project Development
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#market-rate-developer-model" class="md-nav__link">
+    Market-Rate Developer Model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#affordable-housing-developer-model" class="md-nav__link">
+    Affordable Housing Developer Model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#household-firm-location-choice-models" class="md-nav__link">
+    Household &amp; Firm Location Choice Models
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#institutional-jobs-model" class="md-nav__link">
+    Institutional Jobs Model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retail-model" class="md-nav__link">
+    Retail Model
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -445,6 +515,76 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#accessibility-calculations" class="md-nav__link">
+    Accessibility Calculations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#price-rent-prediction" class="md-nav__link">
+    Price &amp; Rent Prediction
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#household-firm-relocation" class="md-nav__link">
+    Household &amp; Firm Relocation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#household-firm-transition" class="md-nav__link">
+    Household &amp; Firm Transition
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeline-project-development" class="md-nav__link">
+    Pipeline Project Development
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#market-rate-developer-model" class="md-nav__link">
+    Market-Rate Developer Model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#affordable-housing-developer-model" class="md-nav__link">
+    Affordable Housing Developer Model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#household-firm-location-choice-models" class="md-nav__link">
+    Household &amp; Firm Location Choice Models
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#institutional-jobs-model" class="md-nav__link">
+    Institutional Jobs Model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retail-model" class="md-nav__link">
+    Retail Model
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -470,49 +610,32 @@
 
 <h1 id="bay-area-urbansim-baus">Bay Area UrbanSim (BAUS)</h1>
 <h2 id="model-overview">Model Overview</h2>
-<p>Bay Area UrbanSim (BAUS) is a microsimulation land use model used to forecast intraregional growth, study urban policies, and evaluate transportation projects at the Metropolitan Transportation Commission (MTC). UrbanSim simulates the movement of households and firms within the region and the construction of new buildings to hold those households and firms. In this manner, it is used to incrementally forecast potential future urban growth trajectories. </p>
+<p>Bay Area UrbanSim (BAUS) is a microeconomic land use model used to forecast intraregional growth and study urban policies in the San Francisco Bay Area using the UrbanSim framework. BAUS simulates the movement of households and firms within the region and the construction of built space. The total number of households and jobs in the region in future years is forecast using the REMI regional economic model and additional demographic processing scripts. BAUS is used to incrementally forecast potential future urban growth trajectories, with forecasted land use patterns then entered into the regional travel demand model to evaluate future travel patterns.</p>
+<p>Households, firms, and developers in BAUS act on the parcel as the model's base unit of analysis. Developers determine feasible parcels in the region to build housing units and jobs space. Households and firms choose where to locate based on behavioral model preferences for particular locations. The price of buildings in BAUS in each model time step to reflect the influence of demand and accessibility changes in particular areas, in turn changing the feasibility landscape for developers. The core BAUS models run iteratively to produce a dynamic land use forecast.</p>
 <p><img alt="Core Models" src="../Core-Models.png" /></p>
 <h3 id="baus-sub-model-flow">BAUS Sub-Model Flow</h3>
-<p>A series of sub-models generat</p>
+<p>A series of sub-models are used to simulate the decisions of households and firms in a land use forecast. The BAUS sub-models and their modeling methods are described below. Some BAUS models have been segmented to capture key elements of real estate markets, such as housing tenure, or to capture varying preferences among households and firms, such as the varying location preferences of different employment sectors. Additional models have been added that help model urban policies, such as the option to locate in affordable housing units.</p>
 <p><img alt="Alt text" src="../BAUS-Models.png" /></p>
-<ul>
-<li>
-<p>Accessibility: Pandana is used in the model to calculate endogenous accessibility variables. These generally describe how close a parcel is to something (e.g., BART) or how many things are nearby a parcel (e.g., jobs), in turn influencing price models and location choice models. Both local (local street network from Open Street Map) and regional (travel model network) networks are used to compute these variables.</p>
-</li>
-<li>
-<p>Housing Prices &amp; Rents: Hedonic regression models are applied to current model year conditions to estimate prices and rents in that year. Accessibillity informationfrom the Travel Model and is entered into these models, allowing future year travel conditions to influence real estate prices. This is central to MTC's integrated land use and travel modeling.</p>
-</li>
-<li>
-<p>Household &amp; Firm Relocation: Households and employeees are selected to move based on relocation probabilities. Household move-out choice is conditional on tenure status. Households and firms that are selected to relocate are added to the set of relocation agents looking for homes and job space. </p>
-</li>
-<li>
-<p>Household &amp; Firm Transition: Regional economic and demographic information is supplied to BAUS from the REMI CGE model and related demographic processing scripts. BAUS outputs on housing production are used to adjust regional housing prices (and thus other variables) in REMI. Additional households and employees are added or subtracted from BAUS in each model time step to reflect the exogenous control totals. Any net additional households and firms are added to the set of relocation agents looking for homes and job space. </p>
-</li>
-<li>
-<p>Development Pipeline Projects: Buildings in the region's development pipeline are constructed by entering the projects into the development poipeline list. These are often large approved development projects and development that has occurred after the model's base year. </p>
-</li>
-<li>
-<p>Market-rate Developer: The for-profit real estate development model in BAUS samples locations in the region in order to assess to evaluate potential development sites using a simplified pro forma model.</p>
-</li>
-<li>
-<p>ADU Model: A zone-level model asserts ADU development to reflect ADU policy.</p>
-</li>
-<li>
-<p>Ground floor retail model: A ground floor retail model adds retail to multi-story buildings to reflect typical policy.</p>
-</li>
-<li>
-<p>Affordable Housing Developer: In many simulations, a similar not-for-profit real estate development process produces affordable housing units based on money available within BAUS affordable housing funding accounts.</p>
-</li>
-<li>
-<p>Household &amp; Firm Location Choice: Households and firms are assigned to new locations based on logistic regresssion models that capture the preferences of particular segments of households and jobs (e.g., lower income households, retail jobs). Household location choice models are also run that allow low-income households to have priority for selecting affordable housing units. </p>
-</li>
-<li>
-<p>Proportional Jobs Model: Particular industry sectors which don't follow traditional market economics are forecast separately from. For government and education jobs, the number of jobs grow over the simulation period in proportion to their zonal shares. The buildings that house these jobs are off-limits from redevelopment.</p>
-</li>
-<li>
-<p>Retail Model: An additional retail model takes into account where demand for retail is high and supply is low to ensure there are retail services in each jurisdiction. Retail demand is a function of the number of households and household incomes.</p>
-</li>
-</ul>
+<h3 id="accessibility-calculations">Accessibility Calculations</h3>
+<p>Pandana is open-source software package used to calculate endogenous accessibility variables. These generally describe how close a parcel is to something (e.g., BART) or how many things are nearby a parcel (e.g., number of jobs), informing both price prediction models and location choice models. Both local (local street network from Open Street Map) and regional (travel model network) networks are used to compute these variables.</p>
+<h3 id="price-rent-prediction">Price &amp; Rent Prediction</h3>
+<p>Hedonic regression models are applied to current model year conditions to estimate both <strong>prices and rents</strong> in that year. <em>Accessibillity information from the regional travel model is entered into these models, allowing future year travel conditions to influence real estate prices. This feature is central to MTC's integrated land use and travel modeling.</em></p>
+<h3 id="household-firm-relocation">Household &amp; Firm Relocation</h3>
+<p>Households and firm are selected to move based on historic relocation probabilities. <strong>Household move-out choice is conditional on tenure status</strong>. Households and firms that are selected to relocate are added to the set of relocation agents looking for homes and job space, to be placed with the model's location choice models.</p>
+<h3 id="household-firm-transition">Household &amp; Firm Transition</h3>
+<p><em>REMI is used to generate the model's control totals for region's total number of households and jobs, while BAUS outputs on housing production are used to adjust regional housing prices in REMI.</em> Additional households and employees are added or subtracted from BAUS in each model time step to reflect the exogenous control totals. Any net additional households and firms are added to the set of relocation agents looking for homes and job space, to be placed with the model's location choice models. </p>
+<h3 id="pipeline-project-development">Pipeline Project Development</h3>
+<p>Buildings in the region's development pipeline are constructed by entering the projects into the development poipeline list. These are often large approved development projects and development that has occurred after the model's base year. </p>
+<h3 id="market-rate-developer-model">Market-Rate Developer Model</h3>
+<p>The for-profit real estate development model in BAUS samples locations in the region in order to evaluate potential development sites using a simplified pro forma model. Sub-features of the developer model include a zone-level model that asserts ADU development to reflect ADU policy and a ground floor retail model adds retail to multi-story buildings to reflect typical policy.</p>
+<h3 id="affordable-housing-developer-model">Affordable Housing Developer Model</h3>
+<p>In many simulations, a similar <strong>not-for-profit real estate development process</strong> produces affordable housing units based on money available within BAUS affordable housing funding accounts.</p>
+<h3 id="household-firm-location-choice-models">Household &amp; Firm Location Choice Models</h3>
+<p>Households and firms are assigned to new locations based on logistic regresssion models that capture the preferences of particular segments of households and jobs (e.g., lower income households, retail jobs). <strong>Additional household location choice models are also run that allow low-income households to have priority for selecting affordable housing units, allowing affordable housing to be explicity modeled in BAUS.</strong></p>
+<h3 id="institutional-jobs-model">Institutional Jobs Model</h3>
+<p>Particular industry sectors which don't follow traditional market economics are forecast separately from. For government and education jobs, the number of jobs grow over the simulation period in proportion to their zonal shares. The buildings that house these jobs are off-limits from redevelopment.</p>
+<h3 id="retail-model">Retail Model</h3>
+<p>An additional retail model takes into account where demand for retail is high and supply is low to ensure there are retail services in each jurisdiction. Retail demand is a function of the number of households and household incomes.</p>
 
 
 
