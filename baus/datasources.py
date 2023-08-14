@@ -632,12 +632,6 @@ def tracts_earthquake():
         os.path.join(orca.get_injectable("inputs_dir"), "tract_damage_earthquake.csv"))
 
 
-# override urbansim_defaults which looks for this in data/
-@orca.table(cache=True)
-def logsums():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "accessibility/pandana/logsums.csv"), index_col="taz")
-
-
 @orca.table(cache=True)
 def employment_relocation_rates():
     df = pd.read_csv(os.path.join(misc.configs_dir(), "transition_relocation/employment_relocation_rates.csv"))

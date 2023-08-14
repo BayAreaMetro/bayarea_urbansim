@@ -207,11 +207,3 @@ naics_to_empsix:
 
 # convert square meters to square feet
 parcel_size_factor: 10.764
-
-
-# these are the tables the get auto-merged to buildings/parcels in the hedonic and lcms
-aggregation_tables:
-  - nodes
-  - tmnodes
-  - logsums
-  - buildings
