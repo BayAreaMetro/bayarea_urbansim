@@ -103,7 +103,7 @@ def load_rental_listings():
         - 'node_id' (int, may be missing, corresponds to index of 'nodes')
         - 'tmnode_id' (int, may be missing, corresponds to index of 'tmnodes')
         - 'zone_id' (int, may be missing, corresponds to index of 'zones')
-    - adds broadcasts linking 'craigslist' to 'nodes', 'tmnodes', 'logsums'
+    - adds broadcasts linking 'craigslist' to 'nodes', 'tmnodes'
     """
     @orca.table('craigslist', cache=True)
     def craigslist():
@@ -126,7 +126,6 @@ def load_rental_listings():
     orca.broadcast('tmnodes', 'craigslist', cast_index=True,
                    onto_on='tmnode_id')
     orca.broadcast('zones', 'craigslist', cast_index=True, onto_on='zone_id')
-    orca.broadcast('logsums', 'craigslist', cast_index=True, onto_on='zone_id')
     return
 
 
