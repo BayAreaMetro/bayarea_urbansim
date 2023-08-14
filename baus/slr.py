@@ -10,7 +10,7 @@ from baus import variables
 
 
 @orca.step()
-def slr_inundate(slr_progression, slr_parcel_inundation, year, parcels):
+def slr_inundate(slr_progression, parcels, run_setup):
 
     # inundated parcels are all parcels at or below the SLR progression level in that year
     slr_progression = slr_progression.to_frame()
@@ -19,8 +19,12 @@ def slr_inundate(slr_progression, slr_parcel_inundation, year, parcels):
     print("Inundation in model year is %d inches" % inundation_yr)
 
     # tag parcels that are indundated in the current year
-    # slr mitigation is applied by modifying the set of inundated parcels in the list
-    slr_parcel_inundation = slr_parcel_inundation.to_frame()
+    # slr mitigation is applied by modifying the set of inundated parcels
+    if run_setup["run_strategy_mitigation"]:
+        slr_parcel_inundation = orca.get_table("slr_strategy_mitigation").to_frame()
+    else:
+        slr_parcel_inundation = orca.get_table("slr_committed_mitigation").to_frame()
+    slr_parcel_inundation = slr_parcel_inundation[slr_parcel_inundation.mitigation != True]                                               
     orca.add_injectable("slr_mitigation",'applied')
 
     destroy_parcels = slr_parcel_inundation.query('inundation<=@inundation_yr').astype('bool')

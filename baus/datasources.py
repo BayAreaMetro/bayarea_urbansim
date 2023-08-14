@@ -602,13 +602,17 @@ def slr_progression():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_progression.csv"))
 
 
-# SLR inundation levels for parcels
-# if slr is activated, there is either a committed projects mitigation applied
-# or a committed projects + policy projects mitigation applied
 @orca.table(cache=True)
-def slr_parcel_inundation():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_parcel_inundation.csv"),
-                       dtype={'parcel_id': np.int64}, index_col='parcel_id')
+def slr_committed_migitation():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_committed_mitigation.csv"),
+                       index_col='parcel_id')
+
+
+# SLR inundation levels for parcels
+@orca.table(cache=True)
+def slr_strategy_mitigation():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_strategy_mitigation.csv"),
+                       index_col='parcel_id')
 
 
 # census tracts for parcels, to assign earthquake probabilities
