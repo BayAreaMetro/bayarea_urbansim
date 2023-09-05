@@ -505,31 +505,8 @@ def juris(parcels, parcels_geography):
 
 
 @orca.column('parcels', cache=True)
-def ave_sqft_per_unit(parcels, zones, data_edits):
+def ave_sqft_per_unit(parcels, zones):
     s = misc.reindex(zones.ave_unit_sqft, parcels.zone_id)
-
-    clip = data_edits.get("ave_sqft_per_unit_clip", None)
-    if clip is not None:
-        s = s.clip(lower=clip['lower'], upper=clip['upper'])
-
-    '''
-    This is a fun feature that lets you set max dua for new contruction based
-    on the dua (as an indicator of density and what part of the city we are).
-    Example use in the YAML:
-
-    clip_sqft_per_unit_based_on_dua:
-      - threshold: 50
-        max: 1000
-      - threshold: 100
-        max: 900
-      - threshold: 150
-        max: 800
-    '''
-    cfg = data_edits.get("clip_sqft_per_unit_based_on_dua", None)
-    if cfg is not None:
-        for clip in cfg:
-            s[parcels.max_dua >= clip["threshold"]] = clip["max"]
-
     return s
 
 

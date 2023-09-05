@@ -530,7 +530,7 @@ if MODE == "simulation" and COMPARE_AGAINST_LAST_KNOWN_GOOD:
     df2 = pd.read_csv((orca.get_injectable("outputs_dir")+"/run%d_superdistrict_summaries_2050.csv") % run_name)
     df2 = df2.set_index(df2.columns[0]).sort_index()
 
-    supnames_df = pd.read_csv((orca.get_injectable("inputs_dir") + "/basis_inputs/crosswalks/travel_model_zones_v0c.csv"))
+    supnames_df = pd.read_csv((orca.get_injectable("inputs_dir") + "/basis_inputs/crosswalks/travel_model_zones.csv"))
     supnames = supnames_df.sort_values(['superdistrict'])['superdistrict_name'].unique()
 
     summary = compare_summary(df1, df2, supnames)

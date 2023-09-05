@@ -77,12 +77,6 @@ def account_strategies():
 def development_caps():
     with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/development_caps.yaml")) as f:
         return yaml.load(f)
-    
-    
-@orca.injectable('data_edits', cache=True)
-def data_edits():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/edits/data_edits.yaml")) as f:
-        return yaml.load(f)
 
 
 @orca.injectable('development_caps_asserted', cache=True)
@@ -270,7 +264,7 @@ def costar(parcels):
 
 @orca.table(cache=True)
 def zoning_existing(zoning_lookup):
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/boc_v0e.csv")
+    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/boc.csv")
 
 
 @orca.table(cache=True)
@@ -286,14 +280,8 @@ def proportional_gov_ed_jobs_forecast():
 
 
 @orca.table(cache=True)
-def new_tpp_id():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/edits/tpp_id_2016.csv"),
-                       index_col="parcel_id")
-
-
-@orca.table(cache=True)
 def travel_model_zones():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones_v0e.csv"))
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones.csv"))
 
 
 @orca.table(cache=True)
@@ -394,7 +382,7 @@ def parcels_zoning_calculations(parcels):
 
 @orca.table(cache=True)
 def growth_geographies():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/growth_geographies_v0d.csv")
+    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/growth_geographies.csv")
 
 
 @orca.table(cache=False)
@@ -455,7 +443,7 @@ def accessibilities_segmentation(year, run_setup):
 # shared between demolish and build tables below
 def get_dev_projects_table():
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                                  "basis_inputs/parcels_buildings_agents/dev_pipeline_v0e.csv"))
+                                  "basis_inputs/parcels_buildings_agents/dev_pipeline.csv"))
     df = df.set_index("parcel_id")
     return df
 
@@ -483,10 +471,11 @@ def development_projects():
 
     return df
 
+
 @orca.table(cache=True)
 def dev_pipeline_strategy_projects(run_setup, development_projects):
 
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/dev_pipeline_strategy_projects_v0e.csv"))
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/dev_pipeline_strategy_projects.csv"))
     df = df.set_index("parcel_id")
 
     if run_setup["dev_pipeline_strategy_projects"]:
@@ -666,7 +655,7 @@ def accessory_units():
 
 @orca.table(cache=True)
 def nodev_sites():
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/nodev_sites_v0e.csv"), index_col="parcel_id")
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/nodev_sites.csv"), index_col="parcel_id")
     return df
 
 
