@@ -53,8 +53,6 @@ orca.add_injectable("base_year", IN_YEAR)
 
 orca.add_injectable("final_year", OUT_YEAR)
 
-orca.add_injectable("year", orca.get_injectable("iter_var"))
-
 orca.add_injectable("slack_enabled", SLACK)
 
 

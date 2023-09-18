@@ -27,7 +27,7 @@ def run_setup():
 
 @orca.injectable('run_name', cache=True)
 def run_name(run_setup):
-    return os.path.join(run_setup["run_name"])
+    return run_setup["run_name"]
 
 
 @orca.injectable('inputs_dir', cache=True)
@@ -153,7 +153,7 @@ def year():
     except Exception as e:
         pass
     # if we're not running simulation, return base year
-    return 2014
+    return 2020
 
 
 @orca.injectable()
@@ -374,9 +374,8 @@ def zoning_strategy(growth_geographies, developer_settings):
 
 
 @orca.table(cache=True)
-def parcels():
-    df = store['parcels']
-    return df.set_index("parcel_id")
+def parcels(store):
+    return store['parcels']
 
 
 @orca.table(cache=True)

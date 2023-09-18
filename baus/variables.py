@@ -147,7 +147,7 @@ def vacant_res_units(buildings, households):
 
 
 @orca.column('buildings', cache=True)
-def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telecommute_sqft_per_job_adjusters, travel_model_zones 
+def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telecommute_sqft_per_job_adjusters, travel_model_zones, 
                  base_year, year, run_setup):
     
     sqft_per_job = buildings.building_type.fillna("O").map(building_sqft_per_job)
