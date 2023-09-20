@@ -96,56 +96,6 @@ def run_models(MODE):
 
 
     elif MODE == "simulation":
-
-        def get_baseyear_models():
-
-            baseyear_models = [
-            
-                "slr_inundate",
-                "slr_remove_dev",
-                "eq_code_buildings",
-                "earthquake_demolish",
-
-                "neighborhood_vars",  
-                "regional_vars",  
-
-                "rsh_simulate",   
-                "rrh_simulate", 
-                "nrh_simulate",
-                "assign_tenure_to_new_units",
-
-                "household_relocation",
-                "households_transition",
-
-                "reconcile_unplaced_households",
-                "jobs_transition",
-
-                "hlcm_owner_lowincome_simulate",
-                "hlcm_renter_lowincome_simulate",
-
-                "hlcm_owner_simulate",
-                "hlcm_renter_simulate",
-
-                "hlcm_owner_simulate_no_unplaced",
-                "hlcm_owner_lowincome_simulate_no_unplaced",
-                "hlcm_renter_simulate_no_unplaced",
-                "hlcm_renter_lowincome_simulate_no_unplaced",
-
-                "reconcile_placed_households",
-
-                "elcm_simulate",
-
-                "price_vars"]
-
-            if not run_setup["run_slr"]:
-                baseyear_models.remove("slr_inundate")
-                baseyear_models.remove("slr_remove_dev")
-
-            if not run_setup["run_eq"]:
-                baseyear_models.remove("eq_code_buildings")
-                baseyear_models.remove("earthquake_demolish")
-
-            return baseyear_models
     
         def get_baseyear_summary_models():
 
@@ -358,10 +308,9 @@ def run_models(MODE):
 
             return simulation_visualization_models
 
-        baseyear_models = get_baseyear_models()
         if run_setup["run_summaries"]:
-            baseyear_models.extend(get_baseyear_summary_models())
-        orca.run(baseyear_models, iter_vars=[IN_YEAR])
+            baseyear_summary_models = get_baseyear_summary_models()
+            orca.run(baseyear_summary_models, iter_vars=[IN_YEAR])
 
         years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
         simulation_models = get_simulation_models()
