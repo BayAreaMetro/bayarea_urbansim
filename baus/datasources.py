@@ -492,22 +492,22 @@ def dev_pipeline_strategy_projects(run_setup, development_projects):
 
 
 @orca.table(cache=True)
-def jobs():
+def jobs(store):
     return store['jobs']
 
 
 @orca.table(cache=True)
-def households():
+def households(store):
     return store['households']
 
 
 @orca.table(cache=True)
-def buildings():
+def buildings(store):
     return store['buildings']
 
 
 @orca.table(cache=True)
-def residential_units():
+def residential_units(store):
     return store['residential_units']
 
 
