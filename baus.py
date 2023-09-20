@@ -25,7 +25,7 @@ import pandana
 
 MODE = "simulation"
 EVERY_NTH_YEAR = 5
-IN_YEAR, OUT_YEAR = 2010, 2050
+IN_YEAR, OUT_YEAR = 2020, 2050
 
 
 SLACK = "URBANSIM_SLACK" in os.environ
