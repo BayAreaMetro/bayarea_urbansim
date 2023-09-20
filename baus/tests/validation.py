@@ -34,13 +34,13 @@ def check_household_controls(households, household_controls, year):
 
 
 # make sure the employment controls are currently being matched
-def check_job_controls(jobs, employment_controls, year, developer_settings):
+def check_job_controls(jobs, employment_controls, year, mapping):
     print("Check job controls")
     current_employment_controls = employment_controls.local.loc[year]
     current_employment_controls = current_employment_controls.\
         set_index("empsix_id").number_of_jobs
 
-    empsix_map = developer_settings["empsix_name_to_id"]
+    empsix_map = mapping["empsix_name_to_id"]
     current_counts = jobs.empsix.map(empsix_map).value_counts()
 
     assert_series_equal(
@@ -75,12 +75,6 @@ def check_residential_units(residential_units, buildings):
 # but due to the nature of control totals it exists here
 def check_no_unplaced_households(households, year):
     print("Check no unplaced households")
-    # for some reason, since we added renter/owner models, we do have
-    # unplaced households in the first couple of years, which eventually
-    # evens out
-    # 02 26 2019 ET: all years can be activated now that tenure is off
-    # if year <= 2030:
-    #    return
     assert -1 not in households.building_id.value_counts()
 
 
@@ -90,11 +84,10 @@ def check_no_unplaced_jobs(jobs, year):
 
 
 # check not more households than units or jobs than job spaces
-def check_no_overfull_buildings(households, buildings):
+def check_no_overfull_buildings(buildings):
     print("Check no overfull buildings")
     assert True not in (buildings.vacant_res_units < 0).value_counts()
-    # there are overfull job spaces based on the assignment and also
-    # proportional job model
+    # there are overfull job spaces based on the assignment and also proportional job model
     # assert True not in (buildings.vacant_job_spaces < 0).value_counts()
 
 
@@ -107,23 +100,16 @@ def check_unit_ids_match_building_ids(households, residential_units):
 
 
 @orca.step()
-def simulation_validation(
-        parcels, buildings, households, jobs, residential_units, year,
-        household_controls, employment_controls, developer_settings):
+def simulation_validation(buildings, households, jobs, residential_units, year,
+                          household_controls, employment_controls, mapping):
 
-    # this does a save and restore state for debugging
-    # d = save_and_restore_state(locals())
-    # for k in d.keys():
-    #     locals()[k].local = d[k]
-
-    check_job_controls(jobs, employment_controls, year, developer_settings)
+    check_job_controls(jobs, employment_controls, year, mapping)
 
     check_household_controls(households, household_controls, year)
 
     check_residential_units(residential_units, buildings)
 
-    # change this to a Slack warning, while model will still complete
-#    check_no_unplaced_households(households, year)
+    check_no_unplaced_households(households, year)
 
     check_no_unplaced_jobs(jobs, year)
 
