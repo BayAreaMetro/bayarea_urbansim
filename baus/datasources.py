@@ -45,12 +45,6 @@ def viz_dir(run_setup):
     return os.path.join(run_setup['viz_dir'])
 
 
-@orca.injectable('paths', cache=True)
-def paths():
-    with open(os.path.join(misc.configs_dir(), "paths.yaml")) as f:
-        return yaml.load(f)
-
-
 @orca.injectable('accessibility_settings', cache=True)
 def accessibility_settings():
     with open(os.path.join(misc.configs_dir(), "accessibility/accessibility_settings.yaml")) as f:
@@ -250,15 +244,6 @@ def building_sqft_per_job(developer_settings):
 def landmarks():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'accessibility/pandana/landmarks.csv'),
                        index_col="name")
-
-
-@orca.table(cache=True)
-def base_year_summary_taz(mapping):
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/baseyear_taz_summaries.csv"), 
-                     dtype={'taz1454': np.int64}, index_col="zone_id")
-    cmap = mapping["county_id_tm_map"]
-    df['COUNTY_NAME'] = df.COUNTY.map(cmap)
-    return df
 
 
 # non-residential rent data
@@ -520,7 +505,7 @@ def buildings(store):
 
 
 @orca.table(cache=True)
-def residential_units(store)
+def residential_units(store):
     return store['residential_units']
 
 

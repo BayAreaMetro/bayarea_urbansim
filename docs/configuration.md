@@ -62,10 +62,4 @@ renter_no_unplaced|Renters|-|Renters|Market Rate Rental Units|
 -----|-----
 employment_relocation_rates.csv| A file with the probability of a job relocating during a time step in the forecast, by TAZ and by employment sector. Pairs with employment_relocation_rates.csv which overwrites the model probabilities with calibration factors.
 household_relocation_rates.csv| A file with the probability of a household relocating during a time step in the forecast, by TAZ, income, and tenure. Pairs with renter_protections_relocation_rates_overwrites.csv which overwrites model probabilities with different relocation rates when the renter protections strategy is enabled. 
-transition_relocation_settings.yaml| Settings for the transition and relocation models. 
-
-### mapping.yaml
-Mapping used in the model to relate variables to one another.
-
-### paths.yaml
-Variables that store file names for use in the model code.
+transition_relocation_settings.yaml| Settings for the transition and relocation models.

@@ -5,7 +5,7 @@ import time
 import traceback
 from baus import \
     datasources, variables, models, subsidies, ual, slr, earthquake, \
-    utils, preprocessing
+    utils
 from baus.tests import validation
 from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
