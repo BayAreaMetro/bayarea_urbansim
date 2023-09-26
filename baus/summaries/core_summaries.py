@@ -6,16 +6,18 @@ import pandas as pd
 
 
 @orca.step()
-def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial_summary_year, interim_summary_year, final_year):
+def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial_year, interim_summary_year, final_year):
 
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
          return
+    
+    df = parcels.to_frame(["parcel_id"])
 
-    df = parcels.to_frame(["geom_id", "x", "y"])
     # add building data for parcels
     building_df = orca.merge_tables('buildings', [parcels, buildings], columns=['parcel_id', 'residential_units', 'deed_restricted_units',
                                                                                 'preserved_units', 'inclusionary_units', 'subsidized_units',
                                                                                 'non_residential_sqft'])
+    
     for col in building_df.columns:
         if col == 'parcel_id':
             continue
@@ -38,19 +40,17 @@ def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial
 
 
 @orca.step()
-def parcel_growth_summary(year, run_name, initial_summary_year, final_year):
+def parcel_growth_summary(year, run_name, initial_year, final_year):
     
     if year != final_year:
         return
 
     df1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "core_summaries/%s_parcel_summary_%d.csv" %
-                        (run_name, initial_summary_year)), index_col="parcel_id")
+                        (run_name, initial_year)), index_col="parcel_id")
     df2 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "core_summaries/%s_parcel_summary_%d.csv" %
                         (run_name, final_year)), index_col="parcel_id")
 
     for col in df1.columns:
-        if col in ["geom_id", "x", "y"]:
-            continue
 
         # fill na with 0 otherwise it drops the parcel data during subtraction
         df1[col].fillna(0, inplace=True)
@@ -62,9 +62,9 @@ def parcel_growth_summary(year, run_name, initial_summary_year, final_year):
 
 
 @orca.step()
-def building_summary(run_name, parcels, buildings, year, initial_summary_year, final_year, interim_summary_year):
+def building_summary(run_name, parcels, buildings, year, initial_year, final_year, interim_summary_year):
 
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
         return
 
     df = orca.merge_tables('buildings',

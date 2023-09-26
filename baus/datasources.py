@@ -157,12 +157,7 @@ def year():
 
 @orca.injectable()
 def initial_year():
-    return 2010
-
-
-@orca.injectable()
-def initial_summary_year():
-    return 2015
+    return 2020
 
 
 @orca.injectable()
@@ -267,7 +262,7 @@ def costar(parcels):
 
 @orca.table(cache=True)
 def zoning_existing():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/boc.csv")
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/boc.csv"))
 
 
 @orca.table(cache=True)
@@ -284,7 +279,8 @@ def proportional_gov_ed_jobs_forecast():
 
 @orca.table(cache=True)
 def travel_model_zones():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones.csv"))
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/travel_model_zones.csv"))
+    return df.set_index("parcel_id")
 
 
 @orca.table(cache=True)
@@ -375,6 +371,7 @@ def zoning_strategy(growth_geographies, developer_settings):
 @orca.table(cache=True)
 def parcels(store):
     df = store['parcels']
+    return df.set_index('parcel_id')
 
 
 @orca.table(cache=True)
@@ -384,7 +381,8 @@ def parcels_zoning_calculations(parcels):
 
 @orca.table(cache=True)
 def growth_geographies():
-    return os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/growth_geographies.csv")
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/growth_geographies.csv"))
+    return df.set_index("parcel_id")
     
 
 @orca.table(cache=False)
@@ -586,13 +584,6 @@ def telecommute_sqft_per_job_adjusters():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/telecommute_sqft_per_job_adjusters.csv"), index_col="number")
 
 
-# these are shapes - "zones" in the bay area
-@orca.table(cache=True)
-def zones(store):
-    # sort index so it prints out nicely when we want it to
-    return store['zones'].sort_index()
-
-
 # SLR progression by year
 @orca.table(cache=True)
 def slr_progression():
@@ -601,9 +592,9 @@ def slr_progression():
 
 # SLR inundation levels for parcels
 @orca.table(cache=True)
-def slr_parcel_inundation():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_parcel_inundation.csv"),
-                       dtype={'parcel_id': np.int64}, index_col='parcel_id')
+def slr_inundation():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_inundation.csv"),
+                       index_col='parcel_id')
 
 
 @orca.table(cache=True)
@@ -669,7 +660,7 @@ def accessory_units():
 @orca.table(cache=True)
 def nodev_sites():
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/nodev_sites.csv"), index_col="parcel_id")
-    return df
+    return df.set_index("parcel_id")
 
 
 # parcels-tract crosswalk that match the Urban Displacement Project census tract vintage
@@ -684,32 +675,33 @@ def displacement_risk_tracts():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/equity/udp_2017results.csv"))
 
 
-# Urban Displacement Project census tracts
+# Communities of Concern census tracts
 @orca.table(cache=True)
 def coc_tracts():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/equity/COCs_ACS2018_tbl_TEMP.csv"))
 
 
-# Urban Displacement Project census tracts
 @orca.table(cache=True)
 def buildings_w_eq_codes():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/buildings_w_earthquake_codes.csv"))
 
 
-# Urban Displacement Project census tracts
 @orca.table(cache=True)
 def eq_retrofit_lookup():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/building_eq_categories.csv"))
 
 
+@orca.table(cache=True)
+def base_year_summary_taz():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/baseyear_taz_summaries.csv"))
+
+
 # this specifies the relationships between tables
 orca.broadcast('buildings', 'residential_units', cast_index=True, onto_on='building_id')
 orca.broadcast('residential_units', 'households', cast_index=True, onto_on='unit_id')
-orca.broadcast('growth_geographies', 'buildings', cast_index=True, onto_on='parcel_id')
 orca.broadcast('parcels', 'buildings', cast_index=True, onto_on='parcel_id')
-# adding
 orca.broadcast('buildings', 'households', cast_index=True, onto_on='building_id')
 orca.broadcast('buildings', 'jobs', cast_index=True, onto_on='building_id')
-# not defined in urbansim_Defaults
+orca.broadcast('growth_geographies', 'buildings', cast_index=True, onto_on='parcel_id')
+orca.broadcast('travel_model_zones', 'buildings', cast_index=True, onto_on='parcel_id')
 orca.broadcast('tmnodes', 'buildings', cast_index=True, onto_on='tmnode_id')
-orca.broadcast('taz_geography', 'parcels', cast_index=True, onto_on='zone_id')

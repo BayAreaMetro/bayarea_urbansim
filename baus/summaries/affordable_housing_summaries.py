@@ -6,14 +6,14 @@ import pandas as pd
 from baus import datasources
 
 @orca.step()
-def deed_restricted_units_summary(run_name, parcels, buildings, year, initial_summary_year, final_year, superdistricts_geography):
+def deed_restricted_units_summary(run_name, parcels, buildings, year, initial_year, final_year, travel_model_zones):
 
-    if year != initial_summary_year and year != final_year:
+    if year != initial_year and year != final_year:
         return
 
-    # get buldings table and geography columns to tally deed restricted (dr) units
-    buildings = orca.merge_tables('buildings', [parcels, buildings],
-                columns=['juris', 'superdistrict', 'county', 'residential_units',
+    # get buildings table and geography columns to tally deed restricted (dr) units
+    buildings = orca.merge_tables('buildings', [parcels, buildings, travel_model_zones],
+                columns=['jurisdiction', 'superdistrict', 'county','residential_units',
                         'deed_restricted_units', 'preserved_units', 'inclusionary_units', 'subsidized_units', 'source'])
     
     # use the buildings "source" column to get dr units by source
@@ -53,7 +53,7 @@ def deed_restricted_units_summary(run_name, parcels, buildings, year, initial_su
                                   "affordable_housing_summaries/{}_region_dr_summary_{}.csv").format(run_name, year))
 
     #### geographic deed restricted units summary ####
-    geographies = ['juris', 'superdistrict', 'county']
+    geographies = ['jurisdiction', 'superdistrict', 'county']
     
     for geography in geographies:
 
@@ -65,8 +65,8 @@ def deed_restricted_units_summary(run_name, parcels, buildings, year, initial_su
 
         # add superdistrict name 
         if geography == 'superdistrict':
-            superdistricts_geography = superdistricts_geography.to_frame()
-            summary_table = summary_table.merge(superdistricts_geography[['name']], left_index=True, right_index=True)
+            tm_zones = travel_model_zones.to_frame()
+            summary_table = summary_table.merge(tm_zones[['superdistrict_name']], left_index=True, right_index=True)
 
         # add total dr units
         summary_table['total_dr_units'] = buildings.groupby(geography)["deed_restricted_units"].sum()
@@ -90,7 +90,7 @@ def deed_restricted_units_summary(run_name, parcels, buildings, year, initial_su
         
 
 @orca.step()
-def deed_restricted_units_growth_summary(year, initial_summary_year, final_year, run_name):
+def deed_restricted_units_growth_summary(year, initial_year, final_year, run_name):
     
     if year != final_year: 
         return
@@ -100,10 +100,10 @@ def deed_restricted_units_growth_summary(year, initial_summary_year, final_year,
     for geography in geographies:
 
         # use 2015 as the base year
-        year1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "affordable_housing_summaries/%s_%s_dr_summary_%d.csv" % (run_name, geography, initial_summary_year)))
+        year1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "affordable_housing_summaries/%s_%s_dr_summary_%d.csv" % (run_name, geography, initial_year)))
         year2 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "affordable_housing_summaries/%s_%s_dr_summary_%d.csv" % (run_name, geography, final_year)))
 
-        dr_growth = year1.merge(year2, on=geography, suffixes=("_"+str(initial_summary_year), "_"+str(final_year)))
+        dr_growth = year1.merge(year2, on=geography, suffixes=("_"+str(initial_year), "_"+str(final_year)))
         
         dr_growth["run_name"] = run_name
 
@@ -112,15 +112,15 @@ def deed_restricted_units_growth_summary(year, initial_summary_year, final_year,
     
         for col in columns:
             # growth in units
-            dr_growth[col+'_growth'] = dr_growth[col+"_"+str(final_year)] - dr_growth[col+"_"+str(initial_summary_year)]
+            dr_growth[col+'_growth'] = dr_growth[col+"_"+str(final_year)] - dr_growth[col+"_"+str(initial_year)]
 
             # change in the regional share of units in the geography 
-            dr_growth[col+"_"+str(initial_summary_year)+"_share"] = (round(dr_growth[col+"_"+str(initial_summary_year)] / 
-                                                                           dr_growth[col+"_"+str(initial_summary_year)].sum(), 2))
+            dr_growth[col+"_"+str(initial_year)+"_share"] = (round(dr_growth[col+"_"+str(initial_year)] / 
+                                                                           dr_growth[col+"_"+str(initial_year)].sum(), 2))
             dr_growth[col+"_"+str(final_year)+"_share"] = (round(dr_growth[col+"_"+str(final_year)] / 
                                                                  dr_growth[col+"_"+str(final_year)].sum(), 2)   )         
             dr_growth[col+'_share_change'] =  (dr_growth[col+"_"+str(final_year)+"_share"] - 
-                                               dr_growth[col+"_"+str(initial_summary_year)+"_share"])
+                                               dr_growth[col+"_"+str(initial_year)+"_share"])
         
         dr_growth = dr_growth.fillna(0)
         dr_growth.to_csv(os.path.join(orca.get_injectable("outputs_dir"), "affordable_housing_summaries/{}_{}_dr_growth.csv").format(run_name, geography))

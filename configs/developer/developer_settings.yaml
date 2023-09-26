@@ -99,7 +99,6 @@ building_type_map:
 # in the building table - in the long run, the developer
 # forms and the building types should be the same and the
 # developer model should account for the differences.
-# travel_model_ variables are for the travel_model_summary step.
 form_to_btype:
   residential:
     - HS
@@ -179,5 +178,5 @@ empsix_name_to_id:
  OTHEMPN: 6
 
 
-# convert square meters to square feet
-parcel_size_factor: 10.764
+# convert acres to square feet
+parcel_size_factor: 43560

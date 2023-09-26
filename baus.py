@@ -101,7 +101,7 @@ def run_models(MODE):
 
             baseyear_summary_models = [
 
-                "simulation_validation",
+#               "simulation_validation",
 
                 "parcel_summary",
                 "building_summary",
@@ -113,17 +113,17 @@ def run_models(MODE):
 
                 "geographic_summary",
 
-                "growth_geography_metrics",
-                "deed_restricted_units_metrics",
-                "household_income_metrics",
-                "equity_metrics",
-                "jobs_housing_metrics",
+#                "growth_geography_metrics",
+#                "deed_restricted_units_metrics",
+#                "household_income_metrics",
+#                "equity_metrics",
+#                "jobs_housing_metrics",
                 "jobs_metrics",
                 "slr_metrics",
-                "earthquake_metrics",
-                "greenfield_metrics",
+#                "earthquake_metrics",
+#                "greenfield_metrics",
 
-                "taz1_summary",
+#                "taz1_summary",
                 "maz_marginals",
                 "maz_summary",
                 "taz2_marginals",
