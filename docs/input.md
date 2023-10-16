@@ -11,8 +11,7 @@ tmnet.h5| Travel model network information for calculating accessibility within 
 osm_bayarea4326.h5| Street network information for calculating accessibility within the model using Pandana
 landmarks.csv| Locations of a few major landmarks in the region for accessibility calculations.
 regional_poi_distances.csv| The pre-computed distances from each travel model node to each landmark. 
-bart_stations.csv| A list of BART stations and their locations so that distance to BART can calculated.
-logsums.csv| A set of base year logsums from the travel model. 
+bart_stations_2020.csv| A list of BART stations and their locations so that distance to BART can calculated. 
 #### travel_model/
 **name**|**description**
 -----|-----
@@ -20,54 +19,44 @@ AccessibilityMarkets_[year].csv| A travel model output file that incorportates t
 mandatoryAccessibilities_[year].csv| A travel model output file that incorportates travel model run logsums into the forecast, by year.
 nonMandatoryAccessibilities_[year].csv| A travel model output file that incorportates travel model run logsums into the forecast, by year.  
 
-### basis_inputs (in progress)/
+### basis_inputs/
 #### crosswalks/
 **name**|**desription**
 -----|-----
-parcel_to_maz22.csv| A lookup table from parcels to Travel Model Two MAZs.
-parcel_to_taz1454sub.csv| A lookup table from parcels to Travel Model One TAZs.
-parcels_geography.csv| A lookup table from parcels to jurisdiction, growth geographies, UGB areas, greenfield areas, and a concatenation of these used to join these geographies zoning_mods.csv, to apply zoning rules within them. 
-census_id_to_name.csv| Maps census id from parcels_geography to name so it can be used.
-maz_geography| A lookup between MAZ, TAZ2, and county.
-maz22_taz1454| A lookup between MAZ and TAZ1.
-superdistricts_geography.csv| A map of superdistrict numbers, names, and their subregion.
-taz_geography.csv| A lookup between TAZ1, supedisctrict, and county.
+growth_geographies.csv| A lookup table from parcels to growth geographies, zoning mod categories (see: plan_strategies/), and UGB zoning mod categories.
+travel_model_geographies.csv| A lookup between TAZ, supedisctrict, and subgregion.
 
-#### edits/
+#### equity/
 **name**|**description**
 -----|-----
-data_edits.yaml| Settings for editing the input data in the model code, e.g. clipping values. 
-manual_edits.csv| Overrides the current h5 data using the table name, attribute name, and new value, so we don't have to generate a new one each time.
-household_building_id_overrides.csv| Moves households to match new city household totals during the data preprocessing.
-tpp_id_2016.csv| Updates tpp_ids after changes were made to the ids. 
 
 #### existing_policy/
 **name**|**description**
 -----|-----
-development_caps.yaml| Base year job cap policies in place in jurisdictions (TODO: remove the asserted development capsk-factors entangled here.)
+development_caps.yaml| Base year job cap policies in place in jurisdictions (TODO: remove the asserted development caps k-factors entangled here.)
 inclusionary.yaml| Base year inclusionary zoning policies in place in jurisdictions (TODO: have all model runs inherit these, even if an inclusionary stratey is applied).
+boc.csv | Base year build out capacity (zoning) information for each parcel, including max_dua, max_far, and max_height, all of which must be respected by each development. 
 
 #### hazards/
 **name**|**desctiption**
 -----|-----
-slr_progression.csv| The sea level rise level, for each forecast year.
-slr_inundation.csv| The sea level rise level at which each inundation parcel becomes inundated, for each forecast year. Rows marked with "100" are parcels where sea level rise has been mitigated, either through planned projects or a plan strategy.
+slr_progression.csv| The sea level rise level for each forecast year.
+slr_inundation.csv| The sea level rise level at which each inundation parcel becomes inundated.
 
 #### parcels_buildings-agents/
 **name**|**description**
 -----|-----
-bayarea_v3.h5| Base year database of households, jobs, buildings, and parcels. The data is pre-processed in pre-processing.py.
-costar.csv| Commercial data from CoStar, including non-residential price to inform the price model.
-development_projects.csv| The list of projects that have happened since the base data, or buildings in the development pipeline.  This file tends to have more attributes than we use in the model.
-deed_restricted_zone_totals.csv| An approximate number of deed restricted units per TAZ to assign randomly within the TAZ.  
-baseyear_taz_controls.csv| Base year control totals by TAZ, to use for checking and refining inputs. The file includes number of units, vacancy rates, and employment by sector (TODO: add households).
-sfbay_craisglist.csv| Craigslist data to inform rental unit information and model tenure.
-
-#### zoning/
-**name**|**description**
------|-----
-zoning_parcels.csv| A lookup table from parcels to zoning_id, zoning area information, and a "nodev" flag (currently all set to 0).
-zoning_lookup.csv| The existing zoning for each jurisdiction, assigned to parcels with the "id" field. Fields include the city name, city id, and the name of the zoning. The active attributes are max_dua, max_far, and max_height, all of which must be respected by each development.  
+parcels.csv| A list of parcels in the region, their jurisdction and county.
+buildings.csv| A list of buildings in the region, which link to their parcel, and select building attributes.
+residential_units.csv| This reflects the same information as the buildings table, but creates a row for each unit in a building for the model to use.
+jobs.csv| A list of all jobs in the region and their industry category. Each job has an associated building ID.
+households.csv| A list of all households in the region and their income category. Each household has an associated residential unit ID.
+core_datasets.h5| This file simply packages the above datasets for use during model runtime.
+development_projects.csv| The list of projects that have happened since the base data, or buildings in the development pipeline.
+institutions.csv| These are job locations in the region that operate outside of the commerical real estate market, therefore are set off-limits for development and for jobs to relocate from.
+nodev_sites.csv| This is a list of all sites set off-limits for development with their "nodev" category, including uses such as open space and historic buildings.
+craisglist.csv| Craigslist rental data use for model estimation.  
+costar.csv| Commercial building data usd for model estimation.
 
 ### plan_strategies (optional)/
 **name**|**description**

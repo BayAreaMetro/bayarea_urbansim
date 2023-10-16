@@ -83,8 +83,23 @@ def naics(jobs):
 
 
 @orca.column('jobs', cache=True)
-def empsix_id(jobs, mapping):
-    return jobs.empsix.map(mapping['empsix_name_to_id'])
+def empsix_id(jobs):
+    return jobs.emp6_cat
+
+
+@orca.column('jobs', cache=True)
+def empsix(jobs):
+    return jobs.emp6_cat
+
+
+#####################
+# HOUSEHOLDS VARIABLES
+#####################
+
+
+@orca.column('households', cache=True)
+def base_income_quartile(households):
+    return households.hh_inc_cat1
 
 
 #############################
@@ -147,11 +162,12 @@ def vacant_res_units(buildings, households):
 
 
 @orca.column('buildings', cache=True)
-def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telecommute_sqft_per_job_adjusters, taz_geography, base_year, year, run_setup):
+def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telecommute_sqft_per_job_adjusters, travel_model_zones, 
+                 base_year, year, run_setup):
     
     sqft_per_job = buildings.building_type.fillna("O").map(building_sqft_per_job)
 
-    superdistrict = misc.reindex(taz_geography.superdistrict, buildings.zone_id)
+    superdistrict = misc.reindex(travel_model_zones.superdistrict, buildings.parcel_id)
 
     # this factor changes all sqft per job according to which superdistrict the building is in - this is so denser areas can have lower sqft per job
     # this is a simple multiply so a number 1.1 increases the sqft per job by 10% and .9 decreases it by 10%
@@ -181,8 +197,8 @@ def price_per_sqft(buildings):
 
 
 @orca.column('buildings', cache=True)
-def transit_type(buildings, parcels_geography):
-    return misc.reindex(parcels_geography.tpp_id, buildings.parcel_id).\
+def transit_type(buildings, growth_geographies):
+    return misc.reindex(growth_geographies.tpp_id, buildings.parcel_id).\
         reindex(buildings.index).fillna('none')
 
 
@@ -330,10 +346,6 @@ def retail_ratio(nodes):
 # PARCELS VARIABLES
 #####################
 
-@orca.column('parcels')
-def maz_id(parcels, parcel_to_maz):
-    return parcel_to_maz.maz.reindex(parcels.index)
-
 
 @orca.column("parcels")
 def residential_sales_price_sqft(parcel_sales_price_sqft_func):
@@ -420,115 +432,70 @@ def fees_per_sqft(parcels, run_setup):
 
 
 @orca.column('parcels', cache=True)
-def pda_id(parcels, parcels_geography):
-    return parcels_geography.pda_id.reindex(parcels.index)
+def pda_id(growth_geographies):
+    return growth_geographies.pda_id
 
 
 @orca.column('parcels', cache=True)
-def cat_id(parcels, parcels_geography):
-    return parcels_geography.cat_id.reindex(parcels.index)
+def cat_id(growth_geographies):
+    return growth_geographies.cat_id
 
 
 @orca.column('parcels', cache=True)
-def tra_id(parcels, parcels_geography):
-    return parcels_geography.tra_id.reindex(parcels.index)
+def tra_id(growth_geographies):
+    return growth_geographies.tra_id
 
 
 @orca.column('parcels', cache=True)
-def juris_tra(parcels, parcels_geography):
-    return parcels_geography.juris_tra.reindex(parcels.index)
+def juris_tra(growth_geographies):
+    return growth_geographies.juris_tra
 
 
 @orca.column('parcels', cache=True)
-def sesit_id(parcels, parcels_geography):
-    return parcels_geography.sesit_id.reindex(parcels.index)
+def sesit_id(growth_geographies):
+    return growth_geographies.sesit_id
 
 
 @orca.column('parcels', cache=True)
-def juris_sesit(parcels, parcels_geography):
-    return parcels_geography.juris_sesit.reindex(parcels.index)
+def juris_sesit(growth_geographies):
+    return growth_geographies.juris_sesit
 
 
 @orca.column('parcels', cache=True)
-def ppa_id(parcels, parcels_geography):
-    return parcels_geography.ppa_id.reindex(parcels.index)
+def ppa_id(growth_geographies):
+    return growth_geographies.ppa_id
 
 
 @orca.column('parcels', cache=True)
-def juris_ppa(parcels, parcels_geography):
-    return parcels_geography.juris_ppa.reindex(parcels.index)
+def juris_ppa(growth_geographies):
+    return growth_geographies.juris_ppa
 
 
 @orca.column('parcels', cache=True)
-def coc_id(parcels, parcels_geography):
-    return parcels_geography.coc_id.reindex(parcels.index)
+def coc_id(growth_geographies):
+    return growth_geographies.coc_id
 
 
 @orca.column('parcels', cache=True)
-def juris_coc(parcels, parcels_geography):
-    return parcels_geography.juris_coc.reindex(parcels.index)
+def juris_coc(growth_geographies):
+    return growth_geographies.juris_coc
 
 
 @orca.column('parcels', cache=True)
-def superdistrict(parcels, taz_geography):
-    return misc.reindex(taz_geography.superdistrict, parcels.zone_id)
-
-
-@orca.column('parcels', cache=True)
-def subregion(parcels, taz_geography):
-    return misc.reindex(taz_geography.subregion, parcels.zone_id)
-
-
-# perffoot is a dummy indicating the FOOTprint for the PERFormance targets
-@orca.column('parcels', cache=True)
-def urban_footprint(parcels, parcels_geography):
-    return parcels_geography.perffoot.reindex(parcels.index)
-
-
-# perfzone is a dummy for geography for a performance target
-@orca.column('parcels', cache=True)
-def performance_zone(parcels, parcels_geography):
-    return parcels_geography.perfarea.reindex(parcels.index)
+def superdistrict(travel_model_zones):
+    return travel_model_zones.superdistrict
 
 
 # urbanized is a dummy for urbanized area, sourced from shapefile at:
 # M:\urban_modeling\data\LandUse\landuse_raw\urban_footprint_2009
 @orca.column('parcels', cache=True)
-def urbanized(parcels, parcels_geography):
-    return parcels_geography.urbanized.reindex(parcels.index)
+def urbanized(parcels, growth_geographies):
+    return growth_geographies.urbanized.reindex(parcels.index)
 
 
 @orca.column('parcels', cache=True)
-def juris(parcels, parcels_geography):
-    return parcels_geography.juris_name
-
-
-@orca.column('parcels', cache=True)
-def ave_sqft_per_unit(parcels, zones, data_edits):
+def ave_sqft_per_unit(parcels, zones):
     s = misc.reindex(zones.ave_unit_sqft, parcels.zone_id)
-
-    clip = data_edits.get("ave_sqft_per_unit_clip", None)
-    if clip is not None:
-        s = s.clip(lower=clip['lower'], upper=clip['upper'])
-
-    '''
-    This is a fun feature that lets you set max dua for new contruction based
-    on the dua (as an indicator of density and what part of the city we are).
-    Example use in the YAML:
-
-    clip_sqft_per_unit_based_on_dua:
-      - threshold: 50
-        max: 1000
-      - threshold: 100
-        max: 900
-      - threshold: 150
-        max: 800
-    '''
-    cfg = data_edits.get("clip_sqft_per_unit_based_on_dua", None)
-    if cfg is not None:
-        for clip in cfg:
-            s[parcels.max_dua >= clip["threshold"]] = clip["max"]
-
     return s
 
 
@@ -564,8 +531,8 @@ def parcel_average_price(use, quantile=.5):
 @orca.injectable("parcel_is_allowed_func", autocall=False)
 def parcel_is_allowed(form):
     zoning_adjusters = orca.get_injectable("zoning_adjusters")
-    mapping = orca.get_injectable("mapping")
-    form_to_btype = mapping["form_to_btype"]
+    developer_settings = orca.get_injectable("developer_settings")
+    form_to_btype = developer_settings["form_to_btype"]
 
     # we have zoning by building type but want
     # to know if specific forms are allowed
@@ -598,14 +565,14 @@ def parcel_is_allowed(form):
 
 
 @orca.column('parcels')
-def first_building_type(buildings, parcels):
+def first_building_type(buildings):
     df = buildings.to_frame(columns=['building_type', 'parcel_id'])
     return df.groupby('parcel_id').building_type.first()
 
 
 @orca.injectable(autocall=False)
 def parcel_first_building_type_is(form):
-    form_to_btype = orca.get_injectable('mapping')["form_to_btype"]
+    form_to_btype = orca.get_injectable('developer_settings')["form_to_btype"]
     parcels = orca.get_table('parcels')
     return parcels.first_building_type.isin(form_to_btype[form])
 
@@ -635,21 +602,6 @@ def newest_building(parcels, buildings):
         reindex(parcels.index).fillna(1800)
 
 
-# this returns the set of parcels which have been marked as
-# disapproved by "the button" - only equals true when disallowed
-@orca.column('parcels', cache=True)
-def manual_nodev(parcel_rejections, parcels):
-    df1 = parcels.to_frame(['x', 'y']).dropna(subset=['x', 'y'])
-    df2 = parcel_rejections.to_frame(['lng', 'lat'])
-    df2 = df2[parcel_rejections.state == "denied"]
-    df2 = df2[["lng", "lat"]]  # need to change the order
-    ind = nearest_neighbor(df1, df2)
-
-    s = pd.Series(False, parcels.index)
-    s.loc[ind.flatten()] = True
-    return s.astype('int')
-
-
 @orca.column('parcels')
 def oldest_building_age(parcels, year):
     return year - parcels.oldest_building.replace(9999, 0)
@@ -668,20 +620,29 @@ def total_non_residential_sqft(parcels, buildings):
 
 
 @orca.column('parcels')
-def nodev(zoning_existing, parcels, static_parcels):
-    # nodev from zoning
-    s1 = zoning_existing.nodev.reindex(parcels.index).\
-        fillna(0).astype('bool')
-    # nodev from static parcels - this marks nodev those parcels which are
-    # marked as "static" - any parcels which should not be considered by the
-    # developer model may be marked as static
-    s2 = parcels.index.isin(static_parcels)
-    # nodev from sea level rise- determined by hazards.py model
-    if 'slr_nodev' in parcels.columns:
-        s3 = np.array(parcels['slr_nodev'])
-        return s1 | s2 | s3
-    else:
-        return s1 | s2
+def nodev(parcels, nodev_sites, static_parcels):
+    # start with nodev parcels: parcels where development is off-limits
+    # the input table tells us what category of nodev the various entries are:
+    # protected open space, small single-family lots, etc.  
+    nd = nodev_sites[nodev_sites["no_dev"] == 1].index
+    # then add all static parcels: a subset of nodev parcels where 
+    # jobs and households don't relocate, including:
+    # institutions (where job growth is handled separately) and sea level rise parcels
+    nd.append(static_parcels.index)
+    # development projects and buildings less than 20 years old also become off limits in developer_settings.yaml
+    return nd.reindex(parcels.index)
+
+
+@orca.injectable()
+def static_parcels(parcels, nodev_sites):
+    # start with insitutions
+    # these are parcels where households and jobs don't move
+    static_parcels = nodev_sites[nodev_sites.institutions_flag == 1].index.values
+    # add sea level rise parcels
+    parcels = parcels.to_frame()
+    static_parcels.append(parcels[parcels.slr_nodev ==1].index.values)
+    # development projects also get added to static_parcels in their model step
+    return static_parcels
 
 
 # get built far but set to nan for small parcels
@@ -806,11 +767,6 @@ def land_cost(parcels):
 
 
 @orca.column('parcels', cache=True)
-def county(parcels, mapping):
-    return parcels.county_id.map(mapping["county_id_map"])
-
-
-@orca.column('parcels', cache=True)
 def cost_shifters(parcels, cost_shifters):
     return parcels.county.map(cost_shifters["cost_shifters"])
 
@@ -837,8 +793,8 @@ def tmnode_id(parcels, net):
 
 
 @orca.column('parcels', cache=True)
-def subregion(taz_geography, parcels):
-    return misc.reindex(taz_geography.subregion, parcels.zone_id)
+def subregion(travel_model_zones):
+    return travel_model_zones.subregion
 
 
 @orca.column('parcels', cache=True)
@@ -849,8 +805,8 @@ def vmt_code(parcels, run_setup):
 
 
 @orca.column('parcels', cache=True)
-def subzone(parcels, parcels_subzone):
-    return parcels_subzone.taz_sub
+def subzone(travel_model_zones, parcels):
+    return misc.reindex(travel_model_zones.taz_subzone, parcels.parcel_id)
 
 
 @orca.column('parcels', cache=True, cache_scope='iteration')
@@ -952,9 +908,10 @@ def ave_unit_sqft(buildings):
     return buildings.sqft_per_unit.groupby(buildings.zone_id).quantile(.6)
 
 
-GROSS_AVE_UNIT_SIZE = 1000.0
-PARCEL_USE_EFFICIENCY = .8
-HEIGHT_PER_STORY = 12.0
+@orca.column('parcels')
+def shape_area(parcels):
+    return parcels.acres
+
 
 ###################################
 #   Zoning Capacity Variables
@@ -975,13 +932,7 @@ def zoned_du_vacant(parcels, parcels_zoning_calculations):
 @orca.column('parcels_zoning_calculations', cache=True)
 def effective_max_dua(zoning_existing, parcels):
 
-    max_dua_from_far = zoning_existing.max_far * 43560 / GROSS_AVE_UNIT_SIZE
-
-    max_far_from_height = (zoning_existing.max_height / HEIGHT_PER_STORY) * PARCEL_USE_EFFICIENCY
-
-    max_dua_from_height = max_far_from_height * 43560 / GROSS_AVE_UNIT_SIZE
-
-    s = pd.concat([zoning_existing.max_dua, max_dua_from_far, max_dua_from_height], axis=1).min(axis=1)
+    s = zoning_existing.max_dua
 
     # take the max dua IFF the upzone value is greater than the current value
     # i.e. don't let the upzoning operation accidentally downzone
@@ -995,10 +946,7 @@ def effective_max_dua(zoning_existing, parcels):
 
     strategy_min_dua = orca.get_table("zoning_strategy").dua_down
 
-    s = pd.concat([
-        s,
-        strategy_min_dua
-    ], axis=1).min(axis=1)
+    s = pd.concat([s, strategy_min_dua], axis=1).min(axis=1)
 
     s3 = parcel_is_allowed('residential')
 
@@ -1008,9 +956,7 @@ def effective_max_dua(zoning_existing, parcels):
 @orca.column('parcels_zoning_calculations', cache=True)
 def effective_max_far(zoning_existing, parcels):
 
-    max_far_from_height = (zoning_existing.max_height / HEIGHT_PER_STORY) * PARCEL_USE_EFFICIENCY
-
-    s = pd.concat([zoning_existing.max_far, max_far_from_height], axis=1).min(axis=1)
+    s = zoning_existing.max_far
 
     # take the max far IFF the upzone value is greater than the current value
     # i.e. don't let the upzoning operation accidentally downzone
@@ -1048,7 +994,7 @@ def zoned_du_underbuild(parcels, parcels_zoning_calculations):
     s = (parcels_zoning_calculations.zoned_du -
          parcels.total_residential_units -
          parcels.total_non_residential_sqft /
-         GROSS_AVE_UNIT_SIZE).clip(lower=0)
+         1000).clip(lower=0) # gross ave unit size hardcoded as 1000
     ratio = (s / parcels.total_residential_units).replace(np.inf, 1)
     # if the ratio of additional units to existing units is not at least .5
     # we don't build it - I mean we're not turning a 10 story building into an

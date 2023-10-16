@@ -7,20 +7,20 @@ from baus import datasources
 
 
 @orca.step()
-def geographic_summary(parcels, households, jobs, buildings, year, superdistricts_geography,
-                       initial_summary_year, interim_summary_year, final_year, run_name):  
+def geographic_summary(parcels, households, jobs, buildings, year, travel_model_zones,
+                       initial_year, interim_summary_year, final_year, run_name):  
 
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
          return
 
     households_df = orca.merge_tables('households', [parcels, buildings, households],
-        columns=['juris', 'superdistrict', 'county', 'subregion', 'base_income_quartile',])
+        columns=['jurisdiction', 'superdistrict', 'county', 'subregion', 'base_income_quartile',])
 
     jobs_df = orca.merge_tables('jobs', [parcels, buildings, jobs],
-        columns=['juris', 'superdistrict', 'county', 'subregion', 'empsix'])
+        columns=['jurisdiction', 'superdistrict', 'county', 'subregion', 'empsix'])
 
     buildings_df = orca.merge_tables('buildings', [parcels, buildings],
-        columns=['juris', 'superdistrict', 'county', 'subregion', 'building_type', 
+        columns=['jurisdiction', 'superdistrict', 'county', 'subregion', 'building_type', 
                  'residential_units', 'deed_restricted_units', 'non_residential_sqft'])
 
     #### summarize regional results ####
@@ -48,21 +48,15 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
     region.to_csv(os.path.join(orca.get_injectable("outputs_dir"), "geographic_summaries/{}_region_summary_{}.csv").format(run_name, year))
 
     #### summarize by sub-regional geography ####
-    geographies = ['juris', 'superdistrict', 'county', 'subregion']
+    geographies = ['jurisdiction', 'superdistrict', 'county', 'subregion']
 
     for geography in geographies:
-
-        # remove rows with null geography- seen with "county"
-        buildings_df = buildings_df[~pd.isna(buildings_df[geography])]
-        households_df = households_df[~pd.isna(households_df[geography])]
-        jobs_df = jobs_df[~pd.isna(jobs_df[geography])]
 
         summary_table = pd.DataFrame(index=buildings_df[geography].unique())
         
         # add superdistrict name 
         if geography == 'superdistrict':
-            superdistricts_geography = superdistricts_geography.to_frame()
-            summary_table = summary_table.merge(superdistricts_geography[['name']], left_index=True, right_index=True)
+            summary_table["superdistrict_name"] = travel_model_zones.to_frame().groupby("superdistrict").superdistrict_name.first()
 
         # households
         summary_table['tothh'] = households_df.groupby(geography).size()
@@ -93,25 +87,25 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
 
 
 @orca.step()
-def geographic_growth_summary(year, final_year, initial_summary_year, run_name):
+def geographic_growth_summary(year, final_year, initial_year, run_name):
     
     if year != final_year: 
         return
 
-    geographies = ['region', 'juris', 'superdistrict', 'county', 'subregion']
+    geographies = ['region', 'jurisdiction', 'superdistrict', 'county', 'subregion']
 
     for geography in geographies:
 
         # use 2015 as the base year
-        year1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "geographic_summaries/%s_%s_summary_%d.csv" % (run_name, geography, initial_summary_year)))
+        year1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "geographic_summaries/%s_%s_summary_%d.csv" % (run_name, geography, initial_year)))
         year2 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "geographic_summaries/%s_%s_summary_%d.csv" % (run_name, geography, final_year)))
 
-        geog_growth = year1.merge(year2, on=geography, suffixes=("_"+str(initial_summary_year), "_"+str(final_year)))
+        geog_growth = year1.merge(year2, on=geography, suffixes=("_"+str(initial_year), "_"+str(final_year)))
 
         geog_growth["run_name"] = run_name
 
         if geography == 'superdistrict':
-            geog_growth = geog_growth.rename(columns={"name_"+(str(initial_summary_year)): "name"})
+            geog_growth = geog_growth.rename(columns={"name_"+(str(initial_year)): "name"})
             geog_growth = geog_growth.drop(columns=["name_"+(str(final_year))])
         
         columns = ['tothh', 'totemp', 'residential_units', 'deed_restricted_units', 'non_residential_sqft']
@@ -119,24 +113,24 @@ def geographic_growth_summary(year, final_year, initial_summary_year, run_name):
         for col in columns:
             # growth in households/jobs/etc.
             geog_growth[col+"_growth"] = (geog_growth[col+"_"+str(final_year)] - 
-                                          geog_growth[col+"_"+str(initial_summary_year)])
+                                          geog_growth[col+"_"+str(initial_year)])
 
             # percent change in geography's households/jobs/etc.
             geog_growth[col+'_pct_change'] = (round((geog_growth[col+"_"+str(final_year)] / 
-                                                     geog_growth[col+"_"+str(initial_summary_year)] - 1) * 100, 2))
+                                                     geog_growth[col+"_"+str(initial_year)] - 1) * 100, 2))
 
             # percent geography's growth of households/jobs/etc. of all regional growth in households/jobs/etc.
             geog_growth[col+'_pct_of_regional_growth'] = (round(((geog_growth[col+"_growth"]) / 
                                                                  (geog_growth[col+"_"+str(final_year)].sum() - 
-                                                                  geog_growth[col+"_"+str(initial_summary_year)].sum())) * 100, 2))
+                                                                  geog_growth[col+"_"+str(initial_year)].sum())) * 100, 2))
 
             # change in the regional share of households/jobs/etc. in the geography      
-            geog_growth[col+"_"+str(initial_summary_year)+"_regional_share"] = (round(geog_growth[col+"_"+str(initial_summary_year)] / 
-                                                                                     geog_growth[col+"_"+str(initial_summary_year)].sum(), 2))
+            geog_growth[col+"_"+str(initial_year)+"_regional_share"] = (round(geog_growth[col+"_"+str(initial_year)] / 
+                                                                                     geog_growth[col+"_"+str(initial_year)].sum(), 2))
             geog_growth[col+"_"+str(final_year)+"_regional_share"] = (round(geog_growth[col+"_"+str(final_year)] / 
                                                                            geog_growth[col+"_"+str(final_year)].sum(), 2))            
             geog_growth[col+'_regional_share_change'] = (geog_growth[col+"_"+str(final_year)+"_regional_share"] - 
-                                                         geog_growth[col+"_"+str(initial_summary_year)+"_regional_share"])
+                                                         geog_growth[col+"_"+str(initial_year)+"_regional_share"])
     
         geog_growth = geog_growth.fillna(0)
         geog_growth.to_csv(os.path.join(orca.get_injectable("outputs_dir"), 

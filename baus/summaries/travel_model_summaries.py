@@ -220,64 +220,51 @@ def adjust_hhkids(df, year, rdf, total_hh):
 ######################################################
 
 @orca.step()
-def taz1_summary(parcels, households, jobs, buildings, zones, maz, year, base_year_summary_taz, taz_geography, 
+def taz1_summary(parcels, households, jobs, buildings, travel_model_zones, year, base_year_summary_taz, 
                  tm1_taz1_forecast_inputs, tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, 
-                 tm1_tm2_regional_controls, initial_summary_year, interim_summary_year, final_year, run_name):
+                 tm1_tm2_regional_controls, initial_year, interim_summary_year, final_year, run_name):
     
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
          return
 
-    # (1) add relevant geographies to TAZ summaries
-    taz_df = pd.DataFrame(index=zones.index)
-    taz_df["sd"] = taz_geography.superdistrict
-    taz_df["zone"] = zones.index
-    taz_df["county"] = taz_geography.county_name
-    
-    # create a zone_id  for parcels to make sure it can get used in the merge bug mentioned below
-    parcels = parcels.to_frame()
-    parcels["zone_id_x"] = parcels.zone_id
-    orca.add_table('parcels', parcels)
-    parcels = orca.get_table("parcels")
+    # (1) add relevant geographies to TAZ1 summaries
+    taz_df = pd.DataFrame(index=travel_model_zones.to_frame().groupby("taz_tm1").taz_tm1.first())
+    taz_df["sd"] = travel_model_zones.to_frame().groupby("taz_tm1").superdistrict.first()
+    taz_county = travel_model_zones.to_frame().merge(parcels.to_frame(columns=['parcel_id', 'county']), on='parcel_id')
+    taz_df["county"] = taz_county.groupby("taz_tm1").county.first()
 
     # (2) summarize households by TAZ1
-    households_df = orca.merge_tables('households', [parcels, buildings, households],
-                                      columns=['zone_id', 'zone_id_x', 'base_income_quartile',
-                                               'income', 'persons', 'maz_id'])
-    # merge_tables returns multiple zone_id_'s, but not the one we need
-    households_df["zone_id"] = households_df.zone_id_x
+    households_df = orca.merge_tables('households', [parcels, buildings, households, travel_model_zones],
+                                      columns=['base_income_quartile', 'persons', 'taz_tm1', 'maz_tm2'])
 
     def gethhcounts(filter):
-        return households_df.query(filter).groupby('zone_id').size()
+        return households_df.query(filter).groupby('taz_tm1').size()
     taz_df["hhincq1"] = gethhcounts("base_income_quartile == 1")
     taz_df["hhincq2"] = gethhcounts("base_income_quartile == 2")
     taz_df["hhincq3"] = gethhcounts("base_income_quartile == 3")
     taz_df["hhincq4"] = gethhcounts("base_income_quartile == 4")
-    taz_df["hhpop"] = households_df.groupby('zone_id').persons.sum()
-    taz_df["tothh"] = households_df.groupby('zone_id').size()
+    taz_df["hhpop"] = households_df.groupby('taz_tm1').persons.sum()
+    taz_df["tothh"] = households_df.groupby('taz_tm1').size()
 
     # (3) summarize jobs by TAZ1
-    jobs_df = orca.merge_tables(
-        'jobs',
-        [parcels, buildings, jobs],
-        columns=['zone_id', 'zone_id_x', 'empsix'])
-    # merge_tables returns multiple zone_id_'s, but not the one we need
-    jobs_df["zone_id"] = jobs_df.zone_id_x
+    jobs_df = orca.merge_tables('jobs', [parcels, buildings, jobs, travel_model_zones], columns=['empsix', 'taz_tm1'])
 
     def getsectorcounts(sector):
-        return jobs_df.query("empsix == '%s'" % sector).groupby('zone_id').size()
+        return jobs_df.query("empsix == '%s'" % sector).groupby('taz_tm1').size()
     taz_df["agrempn"] = getsectorcounts("AGREMPN")
     taz_df["fpsempn"] = getsectorcounts("FPSEMPN")
     taz_df["herempn"] = getsectorcounts("HEREMPN")
     taz_df["retempn"] = getsectorcounts("RETEMPN")
     taz_df["mwtempn"] = getsectorcounts("MWTEMPN")
     taz_df["othempn"] = getsectorcounts("OTHEMPN")
-    taz_df["totemp"] = jobs_df.groupby('zone_id').size()
+    taz_df["totemp"] = jobs_df.groupby('taz_tm1').size()
 
     # (4) add residenital units by TAZ1
-    buildings_df = buildings.to_frame(['zone_id', 'building_type', 'residential_units'])
-    taz_df["res_units"] = buildings_df.groupby('zone_id').residential_units.sum()
-    taz_df["mfdu"] = buildings_df.query("building_type == 'HM' or building_type == 'MR'").groupby('zone_id').residential_units.sum()
-    taz_df["sfdu"] = buildings_df.query("building_type == 'HS' or building_type == 'HT'").groupby('zone_id').residential_units.sum()
+    buildings_df = orca.merge_tables('buildings', [parcels, buildings, travel_model_zones], 
+                                     columns=['residential_units', 'building_type', 'taz_tm1'])
+    taz_df["res_units"] = buildings_df.groupby('taz_tm1').residential_units.sum()
+    taz_df["mfdu"] = buildings_df.query("building_type == 'HM' or building_type == 'MR'").groupby('taz_tm1').residential_units.sum()
+    taz_df["sfdu"] = buildings_df.query("building_type == 'HS' or building_type == 'HT'").groupby('taz_tm1').residential_units.sum()
 
     # (5) add variables from the taz forecast inputs 
     zfi = tm1_taz1_forecast_inputs.to_frame()
@@ -322,11 +309,9 @@ def taz1_summary(parcels, households, jobs, buildings, zones, maz, year, base_ye
     # (9) use maz forecast inputs to forecast group quarters
     mazi = tm1_tm2_maz_forecast_inputs.to_frame()
     mazi_yr = str(year)[2:]
-    maz = maz.to_frame(['taz1454']) 
-    # fix for maz_id issue
-    households_df.maz_id = households_df.maz_id.fillna(213906) 
-    maz["hhpop"] = households_df.groupby('maz_id').persons.sum()
-    maz["tothh"] = households_df.groupby('maz_id').size()
+    maz = maz.to_frame(['taz1454'])  
+    maz["hhpop"] = households_df.groupby('tm2_maz').persons.sum()
+    maz["tothh"] = households_df.groupby('tm2_maz').size()
     maz = add_households(maz, taz_df.tothh.sum())
     maz['gq_type_univ'] = mazi['gqpopu' + mazi_yr]
     maz['gq_type_mil'] = mazi['gqpopm' + mazi_yr]
@@ -354,18 +339,18 @@ def taz1_summary(parcels, households, jobs, buildings, zones, maz, year, base_ye
 
 
 @orca.step()
-def taz1_growth_summary(year, initial_summary_year, final_year, run_name):
+def taz1_growth_summary(year, initial_year, final_year, run_name):
 
     if year != final_year: 
         return
 
     # use 2015 as the base year
-    year1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "travel_model_summaries/%s_taz1_summary_%d.csv" % (run_name, initial_summary_year)))
+    year1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "travel_model_summaries/%s_taz1_summary_%d.csv" % (run_name, initial_year)))
     year2 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "travel_model_summaries/%s_taz1_summary_%d.csv" % (run_name, final_year)))
 
-    taz_summary = year1.merge(year2, on='TAZ', suffixes=("_"+str(initial_summary_year), "_"+str(final_year)))
-    taz_summary = taz_summary.rename(columns={"SD_"+(str(initial_summary_year)): "SD", "COUNTY_"+(str(initial_summary_year)): "COUNTY",
-                                     "ZONE_"+(str(initial_summary_year)): "ZONE"})
+    taz_summary = year1.merge(year2, on='TAZ', suffixes=("_"+str(initial_year), "_"+str(final_year)))
+    taz_summary = taz_summary.rename(columns={"SD_"+(str(initial_year)): "SD", "COUNTY_"+(str(initial_year)): "COUNTY",
+                                     "ZONE_"+(str(initial_year)): "ZONE"})
     taz_summary = taz_summary.drop(columns=["SD_"+(str(final_year)), "COUNTY_"+(str(final_year)), "ZONE_"+(str(final_year))])
 
     taz_summary["run_name"] = run_name
@@ -375,43 +360,44 @@ def taz1_growth_summary(year, initial_summary_year, final_year, run_name):
     for col in columns:
 
         taz_summary[col+"_growth"] = (taz_summary[col+"_"+str(final_year)] - 
-                                      taz_summary[col+"_"+str(initial_summary_year)])
+                                      taz_summary[col+"_"+str(initial_year)])
 
         # percent change in geography's households/jobs/etc.
         taz_summary[col+'_pct_change'] = (round((taz_summary[col+"_"+str(final_year)] / 
-                                                  taz_summary[col+"_"+str(initial_summary_year)] - 1) * 100, 2))
+                                                  taz_summary[col+"_"+str(initial_year)] - 1) * 100, 2))
 
         # percent geography's growth of households/jobs/etc. of all regional growth in households/jobs/etc.
         taz_summary[col+'_pct_of_regional_growth'] = (round(((taz_summary[col+"_growth"]) / 
                                                               (taz_summary[col+"_"+str(final_year)].sum() - 
-                                                              taz_summary[col+"_"+str(initial_summary_year)].sum())) * 100, 2))
+                                                              taz_summary[col+"_"+str(initial_year)].sum())) * 100, 2))
         
-        taz_summary[col+"_"+str(initial_summary_year)+"_share"] = (round(taz_summary[col+"_"+str(initial_summary_year)] / 
-                                                                         taz_summary[col+"_"+str(initial_summary_year)].sum(), 2))
+        taz_summary[col+"_"+str(initial_year)+"_share"] = (round(taz_summary[col+"_"+str(initial_year)] / 
+                                                                         taz_summary[col+"_"+str(initial_year)].sum(), 2))
         taz_summary[col+"_"+str(final_year)+"_share"] = (round(taz_summary[col+"_"+str(final_year)] / 
                                                                taz_summary[col+"_"+str(final_year)].sum(), 2)   )         
         taz_summary[col+'_share_change'] = (taz_summary[col+"_"+str(final_year)+"_share"] -  
-                                            taz_summary[col+"_"+str(initial_summary_year)+"_share"])
+                                            taz_summary[col+"_"+str(initial_year)+"_share"])
     
     taz_summary.fillna(0).to_csv(os.path.join(orca.get_injectable("outputs_dir"), "travel_model_summaries/{}_taz1_summary_growth.csv").format(run_name))
 
 
 @orca.step()
-def maz_marginals(parcels, households, buildings, maz, year,
-                  tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, initial_summary_year, 
+def maz_marginals(parcels, households, buildings, travel_model_zones, year,
+                  tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, initial_year, 
                   interim_summary_year, final_year, run_name):
     
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
          return
     
     # (1) intiialize maz dataframe
-    maz_m = maz.to_frame(['TAZ', 'county_name'])
+    maz_m = pd.DataFrame(index=travel_model_zones.to_frame().groupby("maz_tm2").maz_tm2.first())
+    maz_m['taz_tm2'] = travel_model_zones.to_frame().groupby("maz_tm2").taz_tm2.first()
+    maz_county = travel_model_zones.to_frame().merge(parcels.to_frame(columns=['parcel_id', 'county']), on='parcel_id')
+    maz_m["county"] = maz_county.groupby("maz_tm2").county.first()
 
     # (2) add households by MAZ
-    hh_df = orca.merge_tables('households', [parcels, buildings, households], columns=['maz_id'])
-    # apply fix to maz_id
-    hh_df.maz_id = hh_df.maz_id.fillna(213906)
-    maz_m["tothh"] = hh_df.groupby('maz_id').size()
+    hh_df = orca.merge_tables('households', [parcels, buildings, travel_model_zones, households], columns=['maz_tm2'])
+    maz_m["tothh"] = hh_df.groupby('maz_tm2').size()
     maz_m['tothh'] = maz_m.tothh.fillna(0)
     maz_m = add_households(maz_m, maz_m.tothh.sum())
 
@@ -438,38 +424,43 @@ def maz_marginals(parcels, households, buildings, maz, year,
 
 
 @orca.step()
-def maz_summary(parcels, jobs, households, buildings, maz, year, tm2_emp27_employment_shares, 
-                tm1_tm2_regional_controls, initial_summary_year, interim_summary_year, final_year, run_name):
+def maz_summary(parcels, jobs, households, buildings, year, travel_model_zones, tm2_emp27_employment_shares, 
+                tm1_tm2_regional_controls, initial_year, interim_summary_year, final_year, run_name):
     
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
          return
 
     # (1) intiialize maz dataframe
-    maz_df = maz.to_frame(['TAZ', 'county_name'])
+    maz_df = pd.DataFrame(index=travel_model_zones.to_frame().groupby("maz_tm2").maz_tm2.first())
+    maz_df['taz_tm2'] = travel_model_zones.to_frame().groupby("maz_tm2").taz_tm2.first()
+    parcel_df = travel_model_zones.to_frame().merge(parcels.to_frame(columns=['parcel_id', 'county', 'acres']), 
+                                                    on='parcel_id')
+    maz_df["county"] = parcel_df.groupby("taz_tm1").county.first()
+    buildings_df = travel_model_zones.to_frame().merge(buildings.to_frame(columns=['parcel_id', 'residential_units']), 
+                                                       on='parcel_id')
 
     # (2) get tothh from maz marginals dataframe
     maz_marginals_df = orca.get_table("maz_marginals_df").to_frame()
     maz_df['tothh'] = maz_marginals_df['tothh']
 
     # (3) summarize household data by MAZ
-    hh_df = orca.merge_tables('households', [parcels, buildings, households],
-                                            columns=['persons', 'base_income_quartile', 'maz_id'])
+    hh_df = orca.merge_tables('households', [parcels, buildings, travel_model_zones, households],
+                                            columns=['persons', 'base_income_quartile', 'maz_tm2'])
     def gethhcounts(filter):
-        return hh_df.query(filter).groupby('maz_id').size()
+        return hh_df.query(filter).groupby('maz_tm2').size()
     maz_df["hhincq1"] = gethhcounts("base_income_quartile == 1")
     maz_df["hhincq2"] = gethhcounts("base_income_quartile == 2")
     maz_df["hhincq3"] = gethhcounts("base_income_quartile == 3")
     maz_df["hhincq4"] = gethhcounts("base_income_quartile == 4")
 
     # (4) summarize jobs by MAZ
-    jobs_df = orca.merge_tables('jobs',
-                                [parcels, buildings, jobs],
-                                columns=['maz_id', 'empsix'])
+    jobs_df = orca.merge_tables('jobs', [parcels, buildings, travel_model_zones, jobs], 
+                                columns=['maz_tm2', 'empsix'])
 
     # use the EMPSIX to EMP27 shares to disaggregate jobs
     tm2_emp27_employment_shares = tm2_emp27_employment_shares.to_frame()
     def getsectorcounts(empsix, empsh):
-        emp = jobs_df.query("empsix == '%s'" % empsix).groupby('maz_id').size()
+        emp = jobs_df.query("empsix == '%s'" % empsix).groupby('maz_tm2').size()
         return emp * tm2_emp27_employment_shares.loc[tm2_emp27_employment_shares.empsh == empsh, str(year)].values[0]
     maz_df["ag"] = getsectorcounts("AGREMPN", "ag")
     maz_df["natres"] = getsectorcounts("AGREMPN", "natres")
@@ -498,7 +489,7 @@ def maz_summary(parcels, jobs, households, buildings, maz, year, tm2_emp27_emplo
     maz_df["ret_loc"] = getsectorcounts("RETEMPN", "ret_loc")
     maz_df["ret_reg"] = getsectorcounts("RETEMPN", "ret_reg")
     maz_df["eat"] = getsectorcounts("RETEMPN", "eat")
-    maz_df["emp_total"] = jobs_df.groupby('maz_id').size()
+    maz_df["emp_total"] = jobs_df.groupby('maz_tm2').size()
     maz_df = maz_df.fillna(0)
     emp_cols = ['ag', 'natres', 'logis', 'man_bio', 'man_hvy', 'man_lgt',
                 'man_tech', 'transp', 'util', 'eat', 'hotel', 'ret_loc',
@@ -509,17 +500,15 @@ def maz_summary(parcels, jobs, households, buildings, maz, year, tm2_emp27_emplo
         maz_df.loc[i, emp_cols] = round_series_match_target(r[emp_cols], r.emp_total, 0)
 
     # (5) add population 
-    maz_df["hhpop"] = hh_df.groupby('maz_id').persons.sum()
+    maz_df["hhpop"] = hh_df.groupby('maz_tm2').persons.sum()
     # use marginals dataframe to get gqpop
     maz_df['gqpop'] = maz_marginals_df['gq_tot_pop']
     maz_df = add_population_tm2(maz_df, year, tm1_tm2_regional_controls.to_frame())
     maz_df['pop'] = maz_df.gqpop + maz_df.hhpop
 
     # (6) add density variables
-    pcl_df = parcels.to_frame(['maz_id', 'acres'])
-    bldg_df = orca.merge_tables('buildings', [buildings, parcels], columns=['maz_id', 'residential_units'])
-    maz_df['ACRES'] = pcl_df.groupby('maz_id').acres.sum()
-    maz_df['residential_units'] = bldg_df.groupby('maz_id').residential_units.sum()
+    maz_df['ACRES'] = parcel_df.groupby('maz_tm2').acres.sum()
+    maz_df['residential_units'] = buildings_df.groupby('maz_tm2').residential_units.sum()
     maz_df['DUDen'] = maz_df.residential_units / maz_df.ACRES
     maz_df['EmpDen'] = maz_df.emp_total / maz_df.ACRES
     maz_df['RetEmp'] = maz_df.hotel + maz_df.ret_loc + maz_df.ret_reg + maz_df.eat
@@ -532,18 +521,18 @@ def maz_summary(parcels, jobs, households, buildings, maz, year, tm2_emp27_emplo
 
 
 @orca.step()
-def maz_growth_summary(year, initial_summary_year, final_year, run_name):
+def maz_growth_summary(year, initial_year, final_year, run_name):
 
     if year != final_year: 
         return
 
     # use 2015 as the base year
-    year1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "travel_model_summaries/%s_maz_summary_%d.csv" % (run_name, initial_summary_year)))
+    year1 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "travel_model_summaries/%s_maz_summary_%d.csv" % (run_name, initial_year)))
     year2 = pd.read_csv(os.path.join(orca.get_injectable("outputs_dir"), "travel_model_summaries/%s_maz_summary_%d.csv" % (run_name, final_year)))
 
-    maz_summary = year1.merge(year2, on='MAZ', suffixes=("_"+str(initial_summary_year), "_"+str(final_year)))
-    maz_summary = maz_summary.rename(columns={"TAZ_"+(str(initial_summary_year)): "TAZ", "county_name_"+(str(initial_summary_year)): "county_name"})
-    maz_summary = maz_summary.drop(columns=["TAZ_"+(str(final_year)), "county_name_"+(str(final_year))])
+    maz_summary = year1.merge(year2, on='MAZ', suffixes=("_"+str(initial_year), "_"+str(final_year)))
+    maz_summary = maz_summary.rename(columns={"TAZ_"+(str(initial_year)): "TAZ", "county_"+(str(initial_year)): "county"})
+    maz_summary = maz_summary.drop(columns=["TAZ_"+(str(final_year)), "county_"+(str(final_year))])
 
     maz_summary["run_name"] = run_name
 
@@ -551,23 +540,23 @@ def maz_growth_summary(year, initial_summary_year, final_year, run_name):
 
     for col in columns:
 
-        maz_summary[col+'_growth'] = maz_summary[col+"_"+str(final_year)] - maz_summary[col+"_"+str(initial_summary_year)]
+        maz_summary[col+'_growth'] = maz_summary[col+"_"+str(final_year)] - maz_summary[col+"_"+str(initial_year)]
 
-        maz_summary[col+"_"+str(initial_summary_year)+"_share"] = (round(maz_summary[col+"_"+str(initial_summary_year)] / 
-                                                                        maz_summary[col+"_"+str(initial_summary_year)].sum(), 2))
+        maz_summary[col+"_"+str(initial_year)+"_share"] = (round(maz_summary[col+"_"+str(initial_year)] / 
+                                                                        maz_summary[col+"_"+str(initial_year)].sum(), 2))
         maz_summary[col+"_"+str(final_year)+"_share"] = (round(maz_summary[col+"_"+str(final_year)] / 
                                                               maz_summary[col+"_"+str(final_year)].sum(), 2))            
         maz_summary[col+'_share_change'] = (maz_summary[col+"_"+str(final_year)+"_share"] -  
-                                            maz_summary[col+"_"+str(initial_summary_year)+"_share"])
+                                            maz_summary[col+"_"+str(initial_year)+"_share"])
     
     maz_summary.fillna(0).to_csv(os.path.join(orca.get_injectable("outputs_dir"), "travel_model_summaries/{}_maz_summary_growth.csv").format(run_name))
 
 
 @orca.step()
 def taz2_marginals(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls, 
-                   year, initial_summary_year, interim_summary_year, final_year, run_name):
+                   year, initial_year, interim_summary_year, final_year, run_name):
     
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
          return
 
     # (1) bring in taz2 dataframe
@@ -576,18 +565,18 @@ def taz2_marginals(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_foreca
 
     # (2) summarize maz vars for household income and population
     maz_summary_df = orca.get_table("maz_summary_df").to_frame()
-    taz2['county_name'] = maz_summary_df.groupby('TAZ').county_name.first()
-    taz2['tothh'] = maz_summary_df.groupby('TAZ').tothh.sum()
-    taz2['hh_inc_30'] = maz_summary_df.groupby('TAZ').hhincq1.sum().fillna(0)
-    taz2['hh_inc_30_60'] = maz_summary_df.groupby('TAZ').hhincq2.sum().fillna(0)
-    taz2['hh_inc_60_100'] = maz_summary_df.groupby('TAZ').hhincq3.sum().fillna(0)
-    taz2['hh_inc_100_plus'] = maz_summary_df.groupby('TAZ').hhincq4.sum().fillna(0)
-    taz2['hhpop'] = maz_summary_df.groupby('TAZ').hhpop.sum()
+    taz2['county'] = maz_summary_df.groupby('taz_tm2').county.first()
+    taz2['tothh'] = maz_summary_df.groupby('taz_tm2').tothh.sum()
+    taz2['hh_inc_30'] = maz_summary_df.groupby('taz_tm2').hhincq1.sum().fillna(0)
+    taz2['hh_inc_30_60'] = maz_summary_df.groupby('taz_tm2').hhincq2.sum().fillna(0)
+    taz2['hh_inc_60_100'] = maz_summary_df.groupby('taz_tm2').hhincq3.sum().fillna(0)
+    taz2['hh_inc_100_plus'] = maz_summary_df.groupby('taz_tm2').hhincq4.sum().fillna(0)
+    taz2['hhpop'] = maz_summary_df.groupby('taz_tm2').hhpop.sum()
     maz_marginals_df = orca.get_table("maz_marginals_df").to_frame()
-    taz2['pop_hhsize1'] = maz_marginals_df.groupby('TAZ').hh_size_1.sum()
-    taz2['pop_hhsize2'] = maz_marginals_df.groupby('TAZ').hh_size_2.sum() * 2
-    taz2['pop_hhsize3'] = maz_marginals_df.groupby('TAZ').hh_size_3.sum() * 3
-    taz2['pop_hhsize4'] = (maz_marginals_df.groupby('TAZ').hh_size_4_plus.sum() * 4.781329).round(0)
+    taz2['pop_hhsize1'] = maz_marginals_df.groupby('taz_tm2').hh_size_1.sum()
+    taz2['pop_hhsize2'] = maz_marginals_df.groupby('taz_tm2').hh_size_2.sum() * 2
+    taz2['pop_hhsize3'] = maz_marginals_df.groupby('taz_tm2').hh_size_3.sum() * 3
+    taz2['pop_hhsize4'] = (maz_marginals_df.groupby('taz_tm2').hh_size_4_plus.sum() * 4.781329).round(0)
     taz2['pop'] = taz2.pop_hhsize1 + taz2.pop_hhsize2 + taz2.pop_hhsize3 + taz2.pop_hhsize4
 
     # (3a) add person age, household workers, and presence of children using taz2 forecast inputs
@@ -615,29 +604,29 @@ def taz2_marginals(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_foreca
 
 
 @orca.step()
-def county_marginals(tm2_occupation_shares, year, initial_summary_year, 
+def county_marginals(tm2_occupation_shares, year, initial_year, 
                      interim_summary_year, final_year, run_name):
 
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
          return
 
     maz = orca.get_table("maz_summary_df").to_frame()
     taz2 = orca.get_table("taz2_summary_df").to_frame()
     
     # (1) initialize county dataframe
-    county = pd.DataFrame(index=maz.county_name.unique())
+    county = pd.DataFrame(index=maz.county.unique())
 
     # (2) add population
-    county['gqpop'] = maz.groupby('county_name').gqpop.sum()
-    county['pop'] = maz.groupby('county_name').pop.sum()
+    county['gqpop'] = maz.groupby('county').gqpop.sum()
+    county['pop'] = maz.groupby('county').pop.sum()
 
     # (3) add occupations
-    county[['hh_wrks_1', 'hh_wrks_2', 'hh_wrks_3_plus']] = taz2.groupby('county_name').agg({'hh_wrks_1': 'sum',
-                                                                                            'hh_wrks_2': 'sum',
-                                                                                            'hh_wrks_3_plus': 'sum'})
+    county[['hh_wrks_1', 'hh_wrks_2', 'hh_wrks_3_plus']] = taz2.groupby('county').agg({'hh_wrks_1': 'sum',
+                                                                                       'hh_wrks_2': 'sum',
+                                                                                       'hh_wrks_3_plus': 'sum'})
     county['workers'] = (county.hh_wrks_1 + county.hh_wrks_2 * 2 + county.hh_wrks_3_plus * 3.474036).round(0)
     cef = tm2_occupation_shares.to_frame()
-    cef = cef.loc[cef.year == year].set_index('county_name')
+    cef = cef.loc[cef.year == year].set_index('county')
     county['pers_occ_management'] = county.workers * cef.shr_occ_management
     county['pers_occ_management'] = round_series_match_target(county['pers_occ_management'], np.round(county['pers_occ_management'].sum()), 0)
     county['pers_occ_professional'] = county.workers * cef.shr_occ_professional
@@ -655,9 +644,9 @@ def county_marginals(tm2_occupation_shares, year, initial_summary_year,
     
 
 @orca.step()
-def region_marginals(year, initial_summary_year, interim_summary_year, final_year, run_name):
+def region_marginals(year, initial_year, interim_summary_year, final_year, run_name):
 
-    if year not in [initial_summary_year, interim_summary_year, final_year]:
+    if year not in [initial_year, interim_summary_year, final_year]:
          return
     
     # (1) get group quarters from MAZ summaries

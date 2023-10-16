@@ -21,112 +21,6 @@ from urbansim_defaults import utils
 ###############################################################################
 
 
-def _create_empty_units(buildings):
-    """
-    Create a table of empty units corresponding to an input table of buildings.
-    This function is used (a) in initialization and (b) after the developer
-    model steps run.
-
-    Parameters
-    ----------
-    buildings : DataFrameWrapper or DataFrame
-        Must contain an index to be used as the building identifier, and a
-        count of 'residential_units' which will determine the number of
-        units to create
-
-    Returns
-    -------
-    df : DataFrame
-        Table of units, to be processed within an orca step
-    """
-    # The '.astype(int)' deals with a bug (?) where the developer model creates
-    # floating-point unit counts
-
-    s = buildings.residential_units.fillna(0) >=\
-        buildings.deed_restricted_units.fillna(0)
-
-    assert np.all(buildings.residential_units.fillna(0) >=
-                  buildings.deed_restricted_units.fillna(0))
-
-    df = pd.DataFrame({
-        'unit_residential_price': 0.0,
-        'unit_residential_rent': 0.0,
-        'num_units': 1,
-        'building_id': np.repeat(
-            buildings.index.values,
-            buildings.residential_units.values.astype(int)
-        ),
-        # counter of the units in a building
-        'unit_num': np.concatenate([
-            np.arange(num_units)
-            for num_units in buildings.residential_units.values.astype(int)
-        ]),
-        # also identify deed restricted units
-        'deed_restricted': np.concatenate([
-            np.concatenate([
-                np.ones(restricted_units),
-                np.zeros(num_units - restricted_units)
-            ])
-            # iterate over number of units and deed restricted units too
-            for (num_units, restricted_units) in list(zip(
-                buildings.residential_units.values.astype(int),
-                buildings.deed_restricted_units.values.astype(int)
-            ))
-        ])
-    }).sort_values(by=['building_id', 'unit_num']).reset_index(drop=True)
-    df.index.name = 'unit_id'
-    return df
-
-
-def match_households_to_units(households, residential_units):
-    """
-    This initialization step adds a 'unit_id' to the households table and
-    populates it based on existing assignments of households to buildings.
-    This also allows us to add a 'vacant_units' count to the residential_units
-    table.  FSF note: this won't work if there are more households in a
-    building than there are units in that building - make sure not to have
-    overfull buildings.
-
-    Data expectations
-    -----------------
-    - 'households' table has NO column 'unit_id'
-    - 'households' table has column 'building_id' (int, '-1'-filled,
-      corresponds to index of 'buildings' table)
-    - 'residential_units' table has an index that serves as its id,
-      and following columns:
-        - 'building_id' (int, non-missing, corresponds to index of
-          'buildings' table)
-        - 'unit_num' (int, non-missing, unique within building)
-
-    Results
-    -------
-    - adds following column to 'households' table:
-        - 'unit_id' (int, '-1'-filled, corresponds to index of
-          'residential_units' table)
-    """
-    units = residential_units
-    hh = households
-
-    # This code block is from Fletcher
-    unit_lookup = units.reset_index().set_index(['building_id', 'unit_num'])
-    hh = hh.sort_values(by=['building_id'], ascending=True)
-
-    building_counts = hh.building_id.value_counts().sort_index()
-    hh['unit_num'] = np.concatenate(
-        [np.arange(i) for i in building_counts.values])
-
-    unplaced = hh[hh.building_id == -1].index
-    placed = hh[hh.building_id != -1].index
-
-    indexes = [tuple(t) for t in
-               hh.loc[placed, ['building_id', 'unit_num']].values]
-
-    hh.loc[placed, 'unit_id'] = unit_lookup.loc[indexes].unit_id.values
-    hh.loc[unplaced, 'unit_id'] = -1
-
-    return hh
-
-
 def assign_tenure_to_units(residential_units, households):
     """
     This initialization step assigns tenure to residential units, based on the
@@ -175,29 +69,14 @@ def assign_tenure_to_units(residential_units, households):
 
 
 @orca.step()
-def initialize_residential_units(store):
-    # this is assumed to run as preprocessing step, after the other
-    # preprocessing steps - thus we need to get the data from the hdf rather
-    # than from the orca tables - I contemplated putting this code in the
-    # preprocessing.py module, but in the end I wanted to keep the residential
-    # units code together, and also I wanted the github diff to show how few
-    # lines actually changed here I'm not editing code - just changing where
-    # this code runs
-    households = store['households_preproc']
-    buildings = store['buildings_preproc']
+def initialize_residential_units(residential_units, households):
 
-    # fan out buildings into units
-    units = _create_empty_units(buildings)
-
-    # put households into units based on the building id
-    households = match_households_to_units(households, units)
-
-    # then assign tenure to units based on the households in them
-    units = assign_tenure_to_units(units, households)
+    # assign tenure to units based on the households in them
+    units = assign_tenure_to_units(residential_units, households)
 
     # write to the hdfstore
-    store['households_preproc'] = households
-    store['residential_units_preproc'] = units
+    store['residential_units'] = units
+    
 
 
 @orca.step()
@@ -224,7 +103,7 @@ def load_rental_listings():
         - 'node_id' (int, may be missing, corresponds to index of 'nodes')
         - 'tmnode_id' (int, may be missing, corresponds to index of 'tmnodes')
         - 'zone_id' (int, may be missing, corresponds to index of 'zones')
-    - adds broadcasts linking 'craigslist' to 'nodes', 'tmnodes', 'logsums'
+    - adds broadcasts linking 'craigslist' to 'nodes', 'tmnodes'
     """
     @orca.table('craigslist', cache=True)
     def craigslist():
@@ -247,7 +126,6 @@ def load_rental_listings():
     orca.broadcast('tmnodes', 'craigslist', cast_index=True,
                    onto_on='tmnode_id')
     orca.broadcast('zones', 'craigslist', cast_index=True, onto_on='zone_id')
-    orca.broadcast('logsums', 'craigslist', cast_index=True, onto_on='zone_id')
     return
 
 

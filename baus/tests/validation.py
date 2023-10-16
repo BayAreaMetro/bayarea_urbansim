@@ -29,45 +29,23 @@ def check_household_controls(households, household_controls, year):
 
     assert_series_equal(
         current_household_controls,
-        households.base_income_quartile.value_counts()
+        households.hh_inc_cat1.value_counts()
     )
 
 
 # make sure the employment controls are currently being matched
-def check_job_controls(jobs, employment_controls, year, mapping):
+def check_job_controls(jobs, employment_controls, year, developer_settings):
     print("Check job controls")
     current_employment_controls = employment_controls.local.loc[year]
     current_employment_controls = current_employment_controls.\
         set_index("empsix_id").number_of_jobs
 
-    empsix_map = mapping["empsix_name_to_id"]
-    current_counts = jobs.empsix.map(empsix_map).value_counts()
+    empsix_map = developer_settings["empsix_name_to_id"]
+    current_counts = jobs.emp6_cat.map(empsix_map).value_counts()
 
     assert_series_equal(
         current_employment_controls,
         current_counts
-    )
-
-
-def check_residential_units(residential_units, buildings):
-    print("Check residential units")
-
-    # assert we fanned out the residential units correctly
-    assert len(residential_units) == buildings.residential_units.sum()
-
-    # make sure the unit counts per building add up
-    assert_series_equal(
-        buildings.residential_units[
-            buildings.residential_units > 0].sort_index(),
-        residential_units.building_id.value_counts().sort_index()
-    )
-
-    # make sure we moved deed restricted units to the res units table correctly
-    assert_series_equal(
-        buildings.deed_restricted_units[
-            buildings.residential_units > 0].sort_index(),
-        residential_units.deed_restricted.groupby(
-            residential_units.building_id).sum().sort_index()
     )
 
 
@@ -91,28 +69,18 @@ def check_no_overfull_buildings(buildings):
     # assert True not in (buildings.vacant_job_spaces < 0).value_counts()
 
 
-# households have both unit ids and building ids - make sure they're in sync
-def check_unit_ids_match_building_ids(households, residential_units):
-    print("Check unit ids and building ids match")
-    building_ids = misc.reindex(
-        residential_units.building_id, households.unit_id)
-    assert_series_equal(building_ids, households.building_id, 25000)
-
-
 @orca.step()
 def simulation_validation(buildings, households, jobs, residential_units, year,
-                          household_controls, employment_controls, mapping):
+                          household_controls, employment_controls, developer_settings):
 
-    check_job_controls(jobs, employment_controls, year, mapping)
+    check_job_controls(jobs, employment_controls, year, developer_settings)
 
     check_household_controls(households, household_controls, year)
-
-    check_residential_units(residential_units, buildings)
 
     check_no_unplaced_households(households, year)
 
     check_no_unplaced_jobs(jobs, year)
 
-#    check_no_overfull_buildings(households, buildings)
+    check_no_overfull_buildings(households, buildings)
 
-    check_unit_ids_match_building_ids(households, residential_units)
+    return
