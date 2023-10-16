@@ -8,10 +8,8 @@
       
       
       
-        <link rel="canonical" href="https://bayareametro_urbansim.com/main/pba50/">
+        <link rel="canonical" href="https://bayareametro_urbansim.com/main/scenarios/">
       
-      
-        <link rel="prev" href="../output/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -19,7 +17,7 @@
     
     
       
-        <title>PBA50 - Bay Area UrbanSim</title>
+        <title>Scenarios - Bay Area UrbanSim</title>
       
     
     
@@ -61,7 +59,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#bay-area-urbansim-baus-implementation" class="md-skip">
+        <a href="#baus-scenarios" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +96,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              PBA50
+              Scenarios
             
           </span>
         </div>
@@ -197,12 +195,10 @@
         
   
   
-    
-  
 
 
   <li class="md-tabs__item">
-    <a href="./" class="md-tabs__link md-tabs__link--active">
+    <a href="../pba50.md" class="md-tabs__link">
       PBA50
     </a>
   </li>
@@ -333,52 +329,11 @@
 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          PBA50
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../pba50.md" class="md-nav__link">
         PBA50
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -400,8 +355,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -410,8 +363,78 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
+  <a href="#baus-scenarios" class="md-nav__link">
+    BAUS Scenarios
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#earthquake-model" class="md-nav__link">
+    Earthquake Model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sea-level-rise-model" class="md-nav__link">
+    Sea Level Rise Model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#housing-preservation" class="md-nav__link">
+    Housing Preservation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inclusionary-zoning" class="md-nav__link">
+    Inclusionary Zoning
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#housing-cost-reduction" class="md-nav__link">
+    Housing Cost Reduction
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transportation-impact-fees" class="md-nav__link">
+    Transportation Impact Fees
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#housing-and-office-subsidies" class="md-nav__link">
+    Housing and Office Subsidies
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vmt-linkage-fees" class="md-nav__link">
+    VMT Linkage Fees
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jobs-housing-linkage-fee" class="md-nav__link">
+    Jobs-Housing Linkage Fee
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#office-and-residential-construction-caps" class="md-nav__link">
+    Office and Residential Construction Caps
   </a>
   
 </li>
@@ -434,20 +457,31 @@
   
 
 
-<h1 id="bay-area-urbansim-baus-implementation">Bay Area UrbanSim (BAUS) Implementation</h1>
-<p>This is the UrbanSim implementation for the Bay Area. Documentation for the UrbanSim framework is available <a href="https://udst.github.io/urbansim/">here</a>. All documentation for Bay Area Urbansim is at: http://bayareametro.github.io/bayarea_urbansim/main/</p>
-<h2 id="installation">Installation</h2>
-<p>Bay Area UrbanSim is written in Python and runs in a command line environment. It's compatible with Mac, Windows, and Linux, and with Python 2.7 and 3.5+. Python 3 is recommended. </p>
-<ol>
-<li>Install the Anaconda Python distribution (not strictly required, but makes things easier and more reliable)</li>
-<li>Clone this repository </li>
-<li>Create a Python environment with the current dependencies: <code>conda env create -f baus-env-2023.yml</code></li>
-<li>Activate the environment: <code>conda activate baus-env-2023</code></li>
-<li>Store <code>run_setup.yaml</code> next to the repository (ask an MTC contact for access) and use it to specify the <code>inputs</code> and <code>outputs</code> folder locations and <code>run_name</code></li>
-<li>Pull inputs into the model <code>inputs</code> folder (ask an MTC contact for access)</li>
-<li>Establish an outputs folder in the <code>outputs</code> folder using the <code>run_name</code> as the folder name, and copy the outputs folder structure into it (ask an MTC contact for access)</li>
-<li>Run <code>python baus.py</code> from the main model directory (more info about the command line arguments: <code>python baus.py --help</code>)</li>
-</ol>
+  <h1>Scenarios</h1>
+
+<h3 id="baus-scenarios">BAUS Scenarios</h3>
+<p>BAUS model runs have serveral optional levers that can be used to create a forecast scenario. These levers are used to observe potential outcomes of urban planning policies and natural hazards. Packages of changes can be applied to create modeling scenarios and forecast impacts on urban growth, equity, and the environment. Optional model features used to build BAUS scenarios are described below.</p>
+<p><img alt="Alt text" src="../BAUS-Scenario-Models.png" /></p>
+<h3 id="earthquake-model">Earthquake Model</h3>
+<p>This model simulates the impact of an earthquake occuring by destroying buildings based on a their locational likelihood of damage and their building attributes. Households and firms are displaced in the earthquake event to find new housing and job locations. The model then forecasts where redevelopment might occur. If mitigtion is applied in an earthquake simulation scenario, buildings are selected to be retrofit based on their building attributes, changing their damage likelihood.</p>
+<h3 id="sea-level-rise-model">Sea Level Rise Model</h3>
+<p>Sea level rise model: The sea level rise model simulates the impact of sea level rise in a given year. Buildings impacted by sea level rise in that year are destroyed and their households and firms are displaced to search for new housing and job locations. A parcel that has been inundated sea level rise can no longer be developed. If mitigation is applied in a sea level rise simulation scenario, protected parcels are no longer impacted in their forecasted inundation year.</p>
+<h3 id="housing-preservation">Housing Preservation</h3>
+<p>This model randomly selects buildings to preserve in BAUS based on preservation targets established by geography. All deed-restricted affordable housing units in the model are treated in two ways. The first is that they cannot be redeveloped when the developer models examine potential sites. The second is that low-income households receive priority to locate in them in the location choice models using the models filters.</p>
+<h3 id="inclusionary-zoning">Inclusionary Zoning</h3>
+<p>Inclusionary zoning sets a requirement that a percentage of new housing development must be affordable units. The default inclusionary settings in BAUS represent the existing requirements without plan strategy interventions. Scenario-based strategies can set inclusionary rates at a given geography level. The model calculates Area Median Income, feasible new affordable housing count, and revenue_reduction amount.</p>
+<h3 id="housing-cost-reduction">Housing Cost Reduction</h3>
+<p>Reducing the cost of buildings housing can come in various forms: CEQA reform, lowering parking requirements, etc. These have the potential to make new projects profitable, especially when combined with other policies. For these policies, parcels within the specified geography decrease the required profitability level needed for the model to build on those parcels.</p>
+<h3 id="transportation-impact-fees">Transportation Impact Fees</h3>
+<p>This policy is implemented by changing the cost of development in a zone based on the VMT in the area. Low VMT areas see a slight reduction in fees.</p>
+<h3 id="housing-and-office-subsidies">Housing and Office Subsidies</h3>
+<p>Subsidies provide funding to either residential or commerical projects to improve their feasibility. A user-specified funding amount is applied to each model time step Development projects that are not feasible under market conditions are potentially qualified for subsidy. A qualified project draws money from the corresponding account to fill the feasibility gap. Not all qualified projects will be subsidized. </p>
+<h3 id="vmt-linkage-fees">VMT Linkage Fees</h3>
+<p>These fees on new commercial or residential development reflect transportation impacts associated with such development, focusing primarily on new commercial spaces or residential units anticipated to have high employment-related or residence-related vehicle miles traveled (VMT). The fees are applied to the specified geogrpahy on a $/sqft basis for commercial development and $/unit basis for residential development. They can be used on commercial development to subsidize residential development, on residential development to subsidize residential development, and on commercial development to subsidize commercial development. Each parcel in a given geography is assigned a user-specified fee based on its categorized VMT-level. </p>
+<h3 id="jobs-housing-linkage-fee">Jobs-Housing Linkage Fee</h3>
+<p>This policy is mechanically similar to transportatin impact fees, but is a regional jobs-housing linkage fee to generate funding for affordable housing when new office development occurs in job-rich places, thereby incentivizing more jobs to locate in housing-rich places. The $/sqft fee assigned to each geography is a composite fee based on the jobs-housing ratio and jobs-housing fit for both cities and counties. </p>
+<h3 id="office-and-residential-construction-caps">Office and Residential Construction Caps</h3>
+<p>These caps limit the number of new residential units and job spaces that can occur in a given geography. The default caps in BAUS are inherited in all model runs, including when scenario-based caps are added.</p>
 
 
 
