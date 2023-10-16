@@ -8,24 +8,22 @@
       
       
       
-        <link rel="canonical" href="https://bayareametro_urbansim.com/main/input/">
+        <link rel="canonical" href="https://bayareametro_urbansim.com/main/">
       
       
-        <link rel="prev" href="../user_guide/">
       
+        <link rel="next" href="model_overview/">
       
-        <link rel="next" href="../output/">
-      
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.18">
     
     
       
-        <title>Input - Bay Area UrbanSim</title>
+        <title>Bay Area UrbanSim</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.26e3688c.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.26e3688c.min.css">
       
       
 
@@ -41,7 +39,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -63,7 +61,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#bay-area-urbansim-baus-implementation" class="md-skip">
+        <a href="#bay-area-urbansim-baus" class="md-skip">
           Skip to content
         </a>
       
@@ -81,7 +79,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Bay Area UrbanSim" class="md-header__button md-logo" aria-label="Bay Area UrbanSim" data-md-component="logo">
+    <a href="." title="Bay Area UrbanSim" class="md-header__button md-logo" aria-label="Bay Area UrbanSim" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -100,7 +98,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Input
+              Home
             
           </span>
         </div>
@@ -139,10 +137,12 @@
         
   
   
+    
+  
 
 
   <li class="md-tabs__item">
-    <a href=".." class="md-tabs__link">
+    <a href="." class="md-tabs__link md-tabs__link--active">
       Home
     </a>
   </li>
@@ -154,7 +154,7 @@
 
 
   <li class="md-tabs__item">
-    <a href="../model_overview/" class="md-tabs__link">
+    <a href="model_overview/" class="md-tabs__link">
       Model Overview
     </a>
   </li>
@@ -166,7 +166,7 @@
 
 
   <li class="md-tabs__item">
-    <a href="../user_guide/" class="md-tabs__link">
+    <a href="user_guide/" class="md-tabs__link">
       User Guide
     </a>
   </li>
@@ -175,12 +175,10 @@
         
   
   
-    
-  
 
 
   <li class="md-tabs__item">
-    <a href="./" class="md-tabs__link md-tabs__link--active">
+    <a href="input/" class="md-tabs__link">
       Input
     </a>
   </li>
@@ -192,7 +190,7 @@
 
 
   <li class="md-tabs__item">
-    <a href="../output/" class="md-tabs__link">
+    <a href="output/" class="md-tabs__link">
       Output
     </a>
   </li>
@@ -204,7 +202,7 @@
 
 
   <li class="md-tabs__item">
-    <a href="../pba50/" class="md-tabs__link">
+    <a href="pba50/" class="md-tabs__link">
       PBA50
     </a>
   </li>
@@ -231,7 +229,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Bay Area UrbanSim" class="md-nav__button md-logo" aria-label="Bay Area UrbanSim" data-md-component="logo">
+    <a href="." title="Bay Area UrbanSim" class="md-nav__button md-logo" aria-label="Bay Area UrbanSim" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -260,51 +258,6 @@
 
   
   
-  
-    <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
-        Home
-      </a>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../model_overview/" class="md-nav__link">
-        Model Overview
-      </a>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../user_guide/" class="md-nav__link">
-        User Guide
-      </a>
-    </li>
-  
-
-    
-      
-      
-      
-
-  
-  
     
   
   
@@ -317,12 +270,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Input
+          Home
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="./" class="md-nav__link md-nav__link--active">
-        Input
+      <a href="." class="md-nav__link md-nav__link--active">
+        Home
       </a>
       
         
@@ -341,8 +294,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
+  <a href="#introduction" class="md-nav__link">
+    Introduction
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contents" class="md-nav__link">
+    Contents
   </a>
   
 </li>
@@ -363,7 +323,52 @@
   
   
     <li class="md-nav__item">
-      <a href="../output/" class="md-nav__link">
+      <a href="model_overview/" class="md-nav__link">
+        Model Overview
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="user_guide/" class="md-nav__link">
+        User Guide
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="input/" class="md-nav__link">
+        Input
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="output/" class="md-nav__link">
         Output
       </a>
     </li>
@@ -378,7 +383,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pba50/" class="md-nav__link">
+      <a href="pba50/" class="md-nav__link">
         PBA50
       </a>
     </li>
@@ -412,8 +417,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
+  <a href="#introduction" class="md-nav__link">
+    Introduction
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contents" class="md-nav__link">
+    Contents
   </a>
   
 </li>
@@ -436,20 +448,27 @@
   
 
 
-<h1 id="bay-area-urbansim-baus-implementation">Bay Area UrbanSim (BAUS) Implementation</h1>
-<p>This is the UrbanSim implementation for the Bay Area. Documentation for the UrbanSim framework is available <a href="https://udst.github.io/urbansim/">here</a>. All documentation for Bay Area Urbansim is at: http://bayareametro.github.io/bayarea_urbansim/main/</p>
-<h2 id="installation">Installation</h2>
-<p>Bay Area UrbanSim is written in Python and runs in a command line environment. It's compatible with Mac, Windows, and Linux, and with Python 2.7 and 3.5+. Python 3 is recommended. </p>
-<ol>
-<li>Install the Anaconda Python distribution (not strictly required, but makes things easier and more reliable)</li>
-<li>Clone this repository </li>
-<li>Create a Python environment with the current dependencies: <code>conda env create -f baus-env-2023.yml</code></li>
-<li>Activate the environment: <code>conda activate baus-env-2023</code></li>
-<li>Store <code>run_setup.yaml</code> next to the repository (ask an MTC contact for access) and use it to specify the <code>inputs</code> and <code>outputs</code> folder locations and <code>run_name</code></li>
-<li>Pull inputs into the model <code>inputs</code> folder (ask an MTC contact for access)</li>
-<li>Establish an outputs folder in the <code>outputs</code> folder using the <code>run_name</code> as the folder name, and copy the outputs folder structure into it (ask an MTC contact for access)</li>
-<li>Run <code>python baus.py</code> from the main model directory (more info about the command line arguments: <code>python baus.py --help</code>)</li>
-</ol>
+<h1 id="bay-area-urbansim-baus">Bay Area UrbanSim (BAUS)</h1>
+<h2 id="introduction">Introduction</h2>
+<p>Bay Area UrbanSim (BAUS) is a land use or urban economic model used to forecast metropolitan growth, study urban policies, and evaluate transportation projects at the Metropolitan Transportation Commission (MTC). It is written in Python and is a customized version of the popular UrbanSim model developed by Professor Paul Waddell over the last few decades. BAUS simulates the movement of households and employees within the region, and the construction of new buildings to hold those households and employees. In this manner, it is used to incrementally forecast potential future urban growth trajectories.</p>
+<h2 id="contents">Contents</h2>
+<!-- 
+    model_overview/index
+    user_guide/index
+    input/index
+    output/index
+    pba50/index -->
+
+<pre><code>[Model Overview]()
+</code></pre>
+<!--     mkdocs.yml              # The configuration file.
+    docs/
+        index.md            # The documentation homepage.
+        model_overview.md   #
+        user_guide.md       # Other markdown pages, images and other files.
+        input.md
+        output.md
+        pba50.md -->
 
 
 
@@ -489,10 +508,10 @@
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "content.code.annotate", "content.tabs.link", "navigation.indexes"], "search": "../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.tabs", "content.code.annotate", "content.tabs.link", "navigation.indexes"], "search": "assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.220ee61c.min.js"></script>
+      <script src="assets/javascripts/bundle.220ee61c.min.js"></script>
       
     
   </body>
