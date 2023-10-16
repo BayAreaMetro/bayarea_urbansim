@@ -8,20 +8,16 @@
       
       
       
-        <link rel="canonical" href="https://bayareametro_urbansim.com/main/user_guide/">
+        <link rel="canonical" href="https://bayareametro_urbansim.com/main/model/">
       
       
-        <link rel="prev" href="../configuration/">
-      
-      
-        <link rel="next" href="../input/">
       
       <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.18">
     
     
       
-        <title>User Guide - Bay Area UrbanSim</title>
+        <title>Bay Area UrbanSim (BAUS) - Bay Area UrbanSim</title>
       
     
     
@@ -63,7 +59,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#bay-area-urbansim-baus-implementation" class="md-skip">
+        <a href="#bay-area-urbansim-baus" class="md-skip">
           Skip to content
         </a>
       
@@ -100,7 +96,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              User Guide
+              Bay Area UrbanSim (BAUS)
             
           </span>
         </div>
@@ -163,12 +159,10 @@
         
   
   
-    
-  
 
 
   <li class="md-tabs__item">
-    <a href="./" class="md-tabs__link md-tabs__link--active">
+    <a href="../user_guide.md" class="md-tabs__link">
       User Guide
     </a>
   </li>
@@ -290,52 +284,11 @@
 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          User Guide
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../user_guide.md" class="md-nav__link">
         User Guide
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -412,8 +365,85 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    Installation
+  <a href="#model-overview" class="md-nav__link">
+    Model Overview
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#baus-sub-model-flow" class="md-nav__link">
+    BAUS Sub-Model Flow
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessibility-calculations" class="md-nav__link">
+    Accessibility Calculations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#price-rent-prediction" class="md-nav__link">
+    Price &amp; Rent Prediction
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#household-firm-relocation" class="md-nav__link">
+    Household &amp; Firm Relocation
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#household-firm-transition" class="md-nav__link">
+    Household &amp; Firm Transition
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-project-development" class="md-nav__link">
+    Pipeline Project Development
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#market-rate-developer-model" class="md-nav__link">
+    Market-Rate Developer Model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#affordable-housing-developer-model" class="md-nav__link">
+    Affordable Housing Developer Model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#household-firm-location-choice-models" class="md-nav__link">
+    Household &amp; Firm Location Choice Models
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#institutional-jobs-model" class="md-nav__link">
+    Institutional Jobs Model
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retail-model" class="md-nav__link">
+    Retail Model
   </a>
   
 </li>
@@ -436,20 +466,34 @@
   
 
 
-<h1 id="bay-area-urbansim-baus-implementation">Bay Area UrbanSim (BAUS) Implementation</h1>
-<p>This is the UrbanSim implementation for the Bay Area. Documentation for the UrbanSim framework is available <a href="https://udst.github.io/urbansim/">here</a>. All documentation for Bay Area Urbansim is at: http://bayareametro.github.io/bayarea_urbansim/main/</p>
-<h2 id="installation">Installation</h2>
-<p>Bay Area UrbanSim is written in Python and runs in a command line environment. It's compatible with Mac, Windows, and Linux, and with Python 2.7 and 3.5+. Python 3 is recommended. </p>
-<ol>
-<li>Install the Anaconda Python distribution (not strictly required, but makes things easier and more reliable)</li>
-<li>Clone this repository </li>
-<li>Create a Python environment with the current dependencies: <code>conda env create -f baus-env-2023.yml</code></li>
-<li>Activate the environment: <code>conda activate baus-env-2023</code></li>
-<li>Store <code>run_setup.yaml</code> next to the repository (ask an MTC contact for access) and use it to specify the <code>inputs</code> and <code>outputs</code> folder locations and <code>run_name</code></li>
-<li>Pull inputs into the model <code>inputs</code> folder (ask an MTC contact for access)</li>
-<li>Establish an outputs folder in the <code>outputs</code> folder using the <code>run_name</code> as the folder name, and copy the outputs folder structure into it (ask an MTC contact for access)</li>
-<li>Run <code>python baus.py</code> from the main model directory (more info about the command line arguments: <code>python baus.py --help</code>)</li>
-</ol>
+<h1 id="bay-area-urbansim-baus">Bay Area UrbanSim (BAUS)</h1>
+<h3 id="model-overview">Model Overview</h3>
+<p>Bay Area UrbanSim (BAUS) is a microeconomic land use model used to forecast intraregional growth and study urban policies. BAUS simulates the movement of households and firms within the region and the construction of built space. The total number of households and jobs in the region in future years is forecast using the REMI regional economic model and additional demographic processing scripts. BAUS uses these projections incrementally forecast urban growth trajectories, with forecasted land use patterns then used in the regional travel demand model to evaluate future travel patterns.</p>
+<p>Households, firms, and developers in BAUS act on the parcel as the model's base unit of analysis. Developers determine feasible parcels in the region to build housing units and jobs space. Households and firms choose where to locate based on behavioral model preferences for particular locations. The price of buildings in BAUS is updated each model time step to reflect local changes and changes in demand for particular areas, in turn altering the feasibility of redevelopment for developers. These core models run every five years to produce the land use forecast.</p>
+<p><img alt="Core Models" src="Core-Models.png" /></p>
+<h3 id="baus-sub-model-flow">BAUS Sub-Model Flow</h3>
+<p>A series of sub-models are used to simulate the decisions of households and firms in a land use forecast. The BAUS sub-models and their modeling methods are described below. Some BAUS models have been segmented to capture key elements of real estate markets, such as housing tenure, or to capture varying preferences among households and firms, such as the varying location preferences of different employment sectors. Additional models have been added that help model urban policies, such as the option to locate in affordable housing units.</p>
+<p><img alt="Alt text" src="BAUS-Models.png" /></p>
+<h3 id="accessibility-calculations">Accessibility Calculations</h3>
+<p>Pandana is open-source software package used to calculate endogenous accessibility variables. These generally describe how close a parcel is to something (e.g., BART) or how many things are nearby a parcel (e.g., number of jobs), informing both price prediction models and location choice models. Both local (local street network from Open Street Map) and regional (travel model network) networks are used to compute these variables.</p>
+<h3 id="price-rent-prediction">Price &amp; Rent Prediction</h3>
+<p>Hedonic regression models are applied to current model year conditions to estimate both <strong>prices and rents</strong> in that year. <strong><em>Accessibillity information from the regional travel model is entered into these models, allowing future year travel conditions to influence real estate prices. This feature is central to MTC's integrated land use and travel modeling.</em></strong></p>
+<h3 id="household-firm-relocation">Household &amp; Firm Relocation</h3>
+<p>Households and firm are selected to move based on historic relocation probabilities. <strong>Household move-out choice is conditional on tenure status</strong>. Households and firms that are selected to relocate are added to the set of relocation agents looking for homes and job space, to be placed with the model's location choice models.</p>
+<h3 id="household-firm-transition">Household &amp; Firm Transition</h3>
+<p><strong><em>REMI is used to generate the model's control totals for region's total number of households and jobs, while BAUS outputs on housing production are used to adjust regional housing prices in REMI.</em></strong> Additional households and employees are added or subtracted from BAUS in each model time step to reflect the exogenous control totals. Any net additional households and firms are added to the set of relocation agents looking for homes and job space, to be placed with the model's location choice models. </p>
+<h3 id="pipeline-project-development">Pipeline Project Development</h3>
+<p>Buildings in the region's development pipeline are constructed by entering the projects into the development poipeline list. These are often large approved development projects and development that has occurred after the model's base year. </p>
+<h3 id="market-rate-developer-model">Market-Rate Developer Model</h3>
+<p>The for-profit real estate development model in BAUS samples locations in the region in order to evaluate potential development sites using a simplified pro forma model. Sub-features of the developer model include a zone-level model that asserts ADU development to reflect ADU policy and a ground floor retail model adds retail to multi-story buildings to reflect typical policy.</p>
+<h3 id="affordable-housing-developer-model">Affordable Housing Developer Model</h3>
+<p>In many simulations, a similar <strong>not-for-profit real estate development process</strong> produces affordable housing units based on money available within BAUS affordable housing funding accounts.</p>
+<h3 id="household-firm-location-choice-models">Household &amp; Firm Location Choice Models</h3>
+<p>Households and firms are assigned to new locations based on logistic regresssion models that capture the preferences of particular segments of households and jobs (e.g., lower income households, retail jobs). Household location choice models are <strong>separated by housing tenure.</strong> Additional household location choice models are also run that ensure <strong>low-income households are given priority for affordable housing units</strong>, allowing affordable housing to be explicity modeled in BAUS.</p>
+<h3 id="institutional-jobs-model">Institutional Jobs Model</h3>
+<p>Particular industry sectors which don't follow traditional market economics are forecast separately from. For government and education jobs, the number of jobs grow over the simulation period in proportion to their zonal shares. The buildings that house these jobs are off-limits from redevelopment.</p>
+<h3 id="retail-model">Retail Model</h3>
+<p>An additional retail model takes into account where demand for retail is high and supply is low to ensure there are retail services in each jurisdiction. Retail demand is a function of the number of households and household incomes.</p>
 
 
 

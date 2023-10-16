@@ -16,17 +16,17 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://bayareametro_urbansim.com/main/model/</loc>
+         <lastmod>2023-10-16</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://bayareametro_urbansim.com/main/output/</loc>
          <lastmod>2023-10-16</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://bayareametro_urbansim.com/main/pba50/</loc>
-         <lastmod>2023-10-16</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://bayareametro_urbansim.com/main/user_guide/</loc>
          <lastmod>2023-10-16</lastmod>
          <changefreq>daily</changefreq>
     </url>
