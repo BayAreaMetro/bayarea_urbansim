@@ -6,12 +6,12 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://bayareametro_urbansim.com/main/input/</loc>
+         <loc>https://bayareametro_urbansim.com/main/configuration/</loc>
          <lastmod>2023-10-16</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://bayareametro_urbansim.com/main/model_overview/</loc>
+         <loc>https://bayareametro_urbansim.com/main/input/</loc>
          <lastmod>2023-10-16</lastmod>
          <changefreq>daily</changefreq>
     </url>
