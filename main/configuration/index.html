@@ -8,16 +8,10 @@
       
       
       
-        <link rel="canonical" href="https://bayareametro_urbansim.com/main/configuration/">
-      
-      
-        <link rel="prev" href="..">
-      
-      
-        <link rel="next" href="../input/">
+        <link rel="canonical" href="http://bayareametro.github.io/bayarea_urbansim/main/configuration/">
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.18">
+      <meta name="generator" content="mkdocs-1.3.1, mkdocs-material-8.2.11">
     
     
       
@@ -25,10 +19,12 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.26e3688c.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.8c5ef100.min.css">
       
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.9647289d.min.css">
+        
       
-
     
     
     
@@ -41,21 +37,23 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
-    
   </head>
   
   
-    <body dir="ltr">
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="none" data-md-color-accent="none">
   
     
-    
-      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -72,8 +70,10 @@
       
     </div>
     
-      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
-        
+      <div data-md-component="outdated" hidden>
+        <aside class="md-banner md-banner--warning">
+          
+        </aside>
       </div>
     
     
@@ -114,7 +114,7 @@
         <a href="https://github.com/BayAreaMetro/bayarea_urbansim" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -133,7 +133,7 @@
           
             
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
-  <div class="md-grid">
+  <div class="md-tabs__inner md-grid">
     <ul class="md-tabs__list">
       
         
@@ -232,7 +232,7 @@
       <a href="https://github.com/BayAreaMetro/bayarea_urbansim" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.1.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -268,7 +268,7 @@
   
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
       
       
       
@@ -302,11 +302,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bayarea_urbnasimconfigs" class="md-nav__link">
-    bayarea_urbnasim/configs
+  <a href="#bayarea_urbansimconfigs" class="md-nav__link">
+    bayarea_urbansim/configs
   </a>
   
-    <nav class="md-nav" aria-label="bayarea_urbnasim/configs">
+    <nav class="md-nav" aria-label="bayarea_urbansim/configs">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -455,11 +455,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#bayarea_urbnasimconfigs" class="md-nav__link">
-    bayarea_urbnasim/configs
+  <a href="#bayarea_urbansimconfigs" class="md-nav__link">
+    bayarea_urbansim/configs
   </a>
   
-    <nav class="md-nav" aria-label="bayarea_urbnasim/configs">
+    <nav class="md-nav" aria-label="bayarea_urbansim/configs">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -531,21 +531,21 @@
               </div>
             
           
-          
-            <div class="md-content" data-md-component="content">
-              <article class="md-content__inner md-typeset">
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              
                 
-                  
+  <a href="https://github.com/BayAreaMetro/bayarea_urbansim/edit/master/docs/configuration.md" title="Edit this page" class="md-content__button md-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
+  </a>
 
-  
-  
 
 
   <h1>Configuration</h1>
 
 <h3 id="baus-configuration">BAUS Configuration</h3>
-<p>The configuration file structure for Bay Area UrbanSim (BAUS) and a description of each file. Model configurations files are stored in a <code>configs</code> folder in the model repository. They specify model settings such as model estimation constants and assumptions.</p>
-<h2 id="bayarea_urbnasimconfigs">bayarea_urbnasim/configs</h2>
+<p>The configuration file structure for Bay Area UrbanSim (BAUS) and a description of each file. Model configurations files are stored in a <code>configs</code> folder in the model repository. They specify model settings such as model estimation coefficients and model assumptions.</p>
+<h2 id="bayarea_urbansimconfigs">bayarea_urbansim/configs</h2>
 <h3 id="adjusters">adjusters/</h3>
 <table>
 <thead>
@@ -556,24 +556,32 @@
 </thead>
 <tbody>
 <tr>
-<td>cost_shifters.yaml</td>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/cost_shifters.yaml">cost_shifters.yaml</a></td>
 <td>Multipliers to cost, currently specified by county, used to calibrate the model.</td>
 </tr>
 <tr>
-<td>development_caps_asserted.yaml</td>
+<td>[development_caps_asserted.yaml] (https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/cost_shifters.yaml)</td>
 <td>Caps on development, either residential or office, used to calibrate the model. (TODO: remove any base year existing policy caps entangled here).</td>
 </tr>
 <tr>
-<td>employment_relocation_rates_overwrites.csv</td>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/employment_relocation_rates_overwrites.csv">employment_relocation_rates_overwrites.csv</a></td>
 <td>These overwrite the relocation rates in employment_relocation_rates.csv to calibrate the model, e.g. leave government sector jobs in San Francisco City Hall's TAZ.</td>
 </tr>
 <tr>
-<td>sqft_per_job_adjusters</td>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/residential_vacancy_rate_mods.csv">residential_vacancy_rate_mods.csv</a> Region-level overwrites to the default residential vacancy rate, by simulation year.</td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/sqft_per_job_adjusters.csv">sqft_per_job_adjusters</a></td>
 <td>Multipliers to the number of sqft used by each job, defined in the model's developer settings, which modify the number of jobs that can occupy a building. This is used to calibrate the model, e.g. reflect CBD job densities or adjust vacancy rates by superdistrict. The inputs file telecommute_sqft_per_job_adjusters.csv uses alternative multipliers for for the forecast years in place of these, if the strategy is enabled. (TODO: Disentangle the k-factors and the policy application in these two files. In the meantime, use both files as is done in the PBA50 No Project).</td>
 </tr>
 <tr>
 <td>zoning_adjusters.yaml</td>
 <td>Adjusters used to modify the model's zoning data.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/zoning_adjusters.yaml">zoning_adjusters.yaml</a> Adjusters to zoning used to alter both the input zoning data and the simulation.</td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -618,8 +626,24 @@
 <td>Settings for the model's developer and feasibility models.</td>
 </tr>
 <tr>
-<td>residential_vacancy_rates.csv</td>
-<td>Residential vacancy rates for the residential developer model, separated from the main developer settings into this file to allow them to vary by year.</td>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/developer/developer_settings.yaml#L2">cap_rate</a> specifies the capitalization rate for the developer in BAUS, overwriting the urbansim cap rate and pairing with the urbansim profit factor.</td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/developer/developer_settings.yaml#L14">parcel_filter</a></td>
+<td></td>
+</tr>
+<tr>
+<td>describes all parcels which are off-limits in the model</td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/developer/developer_settings.yaml#L48">static_parcels</a> a list of parcels which are off-limits for development, since they get added to "nodev" which is included in `parcel_filter``, and whose agents don't move</td>
+<td></td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/developer/developer_settings.yaml#L88">building_sqft_per_job</a> settings for the amount of space a job occupies, by buildings type, which determines how many jobs fit in a building</td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -794,22 +818,49 @@
 <h3 id="pathsyaml">paths.yaml</h3>
 <p>Variables that store file names for use in the model code.</p>
 
-
-
-
-
-                
-              </article>
-            </div>
-          
-          
-  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
-
+              
+            </article>
+          </div>
         </div>
         
       </main>
       
         <footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        
+        <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Home
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../input/" class="md-footer__link md-footer__link--next" aria-label="Next: Input" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              Input
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -831,11 +882,10 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "content.code.annotate", "content.tabs.link", "navigation.indexes"], "search": "../assets/javascripts/workers/search.2a1c317c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "content.code.annotate", "content.tabs.link", "navigation.indexes"], "search": "../assets/javascripts/workers/search.74e28a9f.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
-    
-      <script src="../assets/javascripts/bundle.220ee61c.min.js"></script>
+      <script src="../assets/javascripts/bundle.748e2769.min.js"></script>
       
     
   </body>
