@@ -587,6 +587,75 @@
 <p>In many simulations, a similar <strong>not-for-profit real estate development process</strong> produces affordable housing units based on money available within BAUS affordable housing funding accounts.</p>
 <h3 id="household-firm-location-choice-models">Household &amp; Firm Location Choice Models</h3>
 <p>Households and firms are assigned to new locations based on logistic regresssion models that capture the preferences of particular segments of households and jobs (e.g., lower income households, retail jobs). Household location choice models are <strong>separated by housing tenure.</strong> Additional household location choice models are also run that ensure <strong>low-income households are given priority for affordable housing units</strong>, allowing affordable housing to be explicity modeled in BAUS.</p>
+<table>
+<thead>
+<tr>
+<th><strong>HLCM Model</strong></th>
+<th><strong>Estimation Choosers: Filters</strong></th>
+<th><strong>Estimation Alternatives: Filters</strong></th>
+<th><strong>Simulation Choosers: Filters</strong></th>
+<th><strong>Simulation Alternatives: Filters</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>owner</td>
+<td>Owners</td>
+<td>-</td>
+<td>Owners</td>
+<td>Owner Units</td>
+</tr>
+<tr>
+<td>owner_lowincome</td>
+<td>Owners</td>
+<td>-</td>
+<td>Low-Income Owners</td>
+<td>Affordable Owner Units</td>
+</tr>
+<tr>
+<td>owner_lowincome_no_unplaced</td>
+<td>-</td>
+<td>-</td>
+<td>Owners</td>
+<td>Affordable Owner Units</td>
+</tr>
+<tr>
+<td>owner_no_unplaced</td>
+<td>Owners</td>
+<td>-</td>
+<td>Owners</td>
+<td>Market-Rate Owner Units</td>
+</tr>
+<tr>
+<td>renter</td>
+<td>Renters</td>
+<td>-</td>
+<td>Renters</td>
+<td>Renters Units</td>
+</tr>
+<tr>
+<td>renter_lowincome</td>
+<td>Renters</td>
+<td>-</td>
+<td>Low-Income Renters</td>
+<td>Affordable Rental Units</td>
+</tr>
+<tr>
+<td>renter_lowincome_no_unplaced</td>
+<td>-</td>
+<td>-</td>
+<td>Renters</td>
+<td>Affordable Rentual Units</td>
+</tr>
+<tr>
+<td>renter_no_unplaced</td>
+<td>Renters</td>
+<td>-</td>
+<td>Renters</td>
+<td>Market Rate Rental Units</td>
+</tr>
+</tbody>
+</table>
 <h3 id="institutional-jobs-model">Institutional Jobs Model</h3>
 <p>Particular industry sectors which don't follow traditional market economics are forecast separately from. For government and education jobs, the number of jobs grow over the simulation period in proportion to their zonal shares. The buildings that house these jobs are off-limits from redevelopment.</p>
 <h3 id="retail-model">Retail Model</h3>

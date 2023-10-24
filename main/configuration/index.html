@@ -583,6 +583,34 @@
 <td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/zoning_adjusters.yaml">zoning_adjusters.yaml</a> Adjusters to zoning used to alter both the input zoning data and the simulation.</td>
 <td></td>
 </tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/cost_shifters.yaml">cost_shifters.yaml</a></td>
+<td>Multipliers to cost, currently specified by county, used to calibrate the model.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/cost_shifters.yaml">development_caps_asserted.yaml</a></td>
+<td>Caps on development, either residential or office, used to calibrate the model. (TODO: remove any base year existing policy caps entangled here).</td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/employment_relocation_rates_overwrites.csv">employment_relocation_rates_overwrites.csv</a></td>
+<td>These overwrite the relocation rates in employment_relocation_rates.csv to calibrate the model, e.g. leave government sector jobs in San Francisco City Hall's TAZ.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/residential_vacancy_rate_mods.csv">residential_vacancy_rate_mods.csv</a></td>
+<td>Region-level overwrites to the default residential vacancy rate, by simulation year.</td>
+</tr>
+<tr>
+<td>[sqft_per_job_adjusters] (https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/sqft_per_job_adjusters.csv)</td>
+<td>Multipliers to the number of sqft used by each job, defined in the model's developer settings, which modify the number of jobs that can occupy a building. This is used to calibrate the model, e.g. reflect CBD job densities or adjust vacancy rates by superdistrict. The inputs file telecommute_sqft_per_job_adjusters.csv uses alternative multipliers for for the forecast years in place of these, if the strategy is enabled. (TODO: Disentangle the k-factors and the policy application in these two files. In the meantime, use both files as is done in the PBA50 No Project).</td>
+</tr>
+<tr>
+<td>zoning_adjusters.yaml</td>
+<td>Adjusters used to modify the model's zoning data.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/adjusters/zoning_adjusters.yaml">zoning_adjusters.yaml</a></td>
+<td>Adjusters to zoning used to alter both the input zoning data and the simulation.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="accessibility">accessibility/</h3>
@@ -638,7 +666,7 @@
 <td></td>
 </tr>
 <tr>
-<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/developer/developer_settings.yaml#L48">static_parcels</a> a list of parcels which are off-limits for development, since they get added to "nodev" which is included in `parcel_filter``, and whose agents don't move</td>
+<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/main/configs/developer/developer_settings.yaml#L48">static_parcels</a> a list of parcels which are off-limits for development, since they get added to "nodev" which is included in <code>parcel_filter</code>, and whose agents don't move</td>
 <td></td>
 </tr>
 <tr>
@@ -718,75 +746,6 @@
 <tr>
 <td>hlcm_renter_no_unplaced.yaml</td>
 <td>This uses the same specification and estimated coefficients as hlcm_renter, but does another round of placement of renters, this time into non-deed-restricted rental units, to cover any gaps in assignment.</td>
-</tr>
-</tbody>
-</table>
-<table>
-<thead>
-<tr>
-<th><strong>HLCM Model</strong></th>
-<th><strong>Estimation Choosers: Filters</strong></th>
-<th><strong>Estimation Alternatives: Filters</strong></th>
-<th><strong>Simulation Choosers: Filters</strong></th>
-<th><strong>Simulation Alternatives: Filters</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>owner</td>
-<td>Owners</td>
-<td>-</td>
-<td>Owners</td>
-<td>Owner Units</td>
-</tr>
-<tr>
-<td>owner_lowincome</td>
-<td>Owners</td>
-<td>-</td>
-<td>Low-Income Owners</td>
-<td>Affordable Owner Units</td>
-</tr>
-<tr>
-<td>owner_lowincome_no_unplaced</td>
-<td>-</td>
-<td>-</td>
-<td>Owners</td>
-<td>Affordable Owner Units</td>
-</tr>
-<tr>
-<td>owner_no_unplaced</td>
-<td>Owners</td>
-<td>-</td>
-<td>Owners</td>
-<td>Market-Rate Owner Units</td>
-</tr>
-<tr>
-<td>renter</td>
-<td>Renters</td>
-<td>-</td>
-<td>Renters</td>
-<td>Renters Units</td>
-</tr>
-<tr>
-<td>renter_lowincome</td>
-<td>Renters</td>
-<td>-</td>
-<td>Low-Income Renters</td>
-<td>Affordable Rental Units</td>
-</tr>
-<tr>
-<td>renter_lowincome_no_unplaced</td>
-<td>-</td>
-<td>-</td>
-<td>Renters</td>
-<td>Affordable Rentual Units</td>
-</tr>
-<tr>
-<td>renter_no_unplaced</td>
-<td>Renters</td>
-<td>-</td>
-<td>Renters</td>
-<td>Market Rate Rental Units</td>
 </tr>
 </tbody>
 </table>

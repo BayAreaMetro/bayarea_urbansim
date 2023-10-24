@@ -347,6 +347,26 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#interim_zone_outputcsv" class="md-nav__link">
+    interim_zone_output.csv
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new_buildings_summarycsv" class="md-nav__link">
+    new_buildings_summary.csv
+  </a>
+  
+    <nav class="md-nav" aria-label="new_buildings_summary.csv">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#geographic-summaries" class="md-nav__link">
     geographic summaries
   </a>
@@ -383,27 +403,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#interim_zone_outputcsv" class="md-nav__link">
-    interim_zone_output.csv
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#new_buildings_summarycsv" class="md-nav__link">
-    new_buildings_summary.csv
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#taz1_summary_growthcsv" class="md-nav__link">
-    taz1_summary_growth.csv
-  </a>
   
 </li>
       
@@ -477,6 +476,26 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#interim_zone_outputcsv" class="md-nav__link">
+    interim_zone_output.csv
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new_buildings_summarycsv" class="md-nav__link">
+    new_buildings_summary.csv
+  </a>
+  
+    <nav class="md-nav" aria-label="new_buildings_summary.csv">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#geographic-summaries" class="md-nav__link">
     geographic summaries
   </a>
@@ -513,27 +532,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#interim_zone_outputcsv" class="md-nav__link">
-    interim_zone_output.csv
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#new_buildings_summarycsv" class="md-nav__link">
-    new_buildings_summary.csv
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#taz1_summary_growthcsv" class="md-nav__link">
-    taz1_summary_growth.csv
-  </a>
   
 </li>
       
@@ -592,6 +590,129 @@
 <tr>
 <td>feasibility.csv</td>
 <td>Parcel-level data on the development feasibilities of various development types given the zoning, development costs, and expected return. Contains two sets of development variables grouped by six development types (coded as <code>form</code>): <code>retail</code>, <code>industrial</code>, <code>office</code>, <code>residential</code>, <code>mixedresidential</code>, <code>mixedoffice</code>. For every development type, one set of variables are passed through from the parcels table as input for the feasibility evaluation; the other set of variables are the result of the feasibility evaluation.Only parcels where at least one development type is feasible are included.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="interim_zone_outputcsv"><code>interim_zone_output.csv</code></h4>
+<p>| <strong>attribute</strong> | <strong>description</strong> | <strong>source</strong> |
+|-----------------|-----------|--------------|--------------|--------------|
+unit_residential_price | median residential price of all residential units in a TAZ | BAUS "residential_units" table | <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/ual.py#L745">rsh_simulate</a>
+unit_residential_rent | median residential monthly rent of all residential units in a TAZ | BAUS "residential_units" table | <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/ual.py#L764">rrh_simulate()</a> |
+| unit_residential_price_&gt;_rent | 1 or 0 representing if the TAZ-level per-unit residential price is higher than annualized rent divided by <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/configs/developer/developer_settings.yaml#L2">cap_rate</a>. | int | BAUS "residential_units" table and "developer_settings" | <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/summaries.py#L265">summary.py</a> |
+| residential_price | median per sq.ft. residential price of all residential buildings in a TAZ (based on general building type); currently used only for estimation, not for simulation | float | "buildings" table  | <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/variables.py#L248">residential_price()</a> |
+| zoned_du | maximum number of dwelling units allowed on all parcels in a TAZ | int | BAUS "parcels" table | <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/variables.py#L957">zoned_du()</a> |
+| zoned_du_underbuild | additional dwelling units allowed on all parcels in a TAZ given existing development conditions, 0 if the additional units are not at least half of existing development | int | BAUS "parcels" table | <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/variables.py#L1037">zoned_du_underbuild()</a> 
+| zoned_du_underbuild_ratio | ratio of additional allowable residential units to maximum allowable residential units | int | BAUS "zones" table | <a href="">zoned_du_build_ratio()</a> |
+| building_count | total number of residential buildings in a TAZ, based on general building type | int | BAUS "buildings" table | XXX |
+| residential_units | total number of residential units in a TAZ | int | BAUS "buildings" table | XXX |
+| ave_unit_sqft | 0.6 quantile of building-level average residential unit size of all builidings in a TAZ | int | BAUS "building" table | <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/variables.py#L943">ave_unit_sqft()</a> |
+| residential_vacancy | percentage of residential units in a TAZ that are not occupied by a household | float | BAUS "households" table, BAUS "buildings" table | BAUS <a href="">summary.py</a> |
+| non_residential_sqft | total sq.ft. of all non-residential buildings in a TAZ | int | BAUS "buildings" table | XXX |
+| job_spaces | total number of jobs that can be accommodated by non-residential space in a TAZ | int | BAUS "building" table; sq.ft. per job setting | XXX |
+| non_residential_vacancy | percentage of job_spaces in a TAZ that are not occupied by a job | float | BAUS "jobs" table, BAUS "buildings" table | XXX |
+| average_income | median income of all households in a TAZ | int | BAUS "households" table; BAUS "households_preproc" table | <a href="">summary.py</a>; MTC/ABAG household models? |</p>
+<h3 id="new_buildings_summarycsv"><code>new_buildings_summary.csv</code></h3>
+<table>
+<thead>
+<tr>
+<th><strong>Attribute</strong></th>
+<th><strong>Description</strong></th>
+<th><strong>Data Type</strong></th>
+<th><strong>Source</strong></th>
+<th><strong>Sub-model/step</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>building_type</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>residential</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>building_sqft</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>non_residential_sqft</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>job_spaces</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>residential_sqft</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>residential_units</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>total_residential_units</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>total_sqft</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>source</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>x</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>y</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+</tr>
+<tr>
+<td>year_built</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
+<td>XXX</td>
 </tr>
 </tbody>
 </table>
@@ -658,6 +779,10 @@
 <tr>
 <td>taz1_summary_[year].csv</td>
 <td>TAZ1/TAZ1454-level summaries of development, households, jobs, demographics, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>See data dictionary in the travel model repository <a href="https://github.com/BayAreaMetro/modeling-website/wiki/TazData">here</a></td>
+<td></td>
 </tr>
 <tr>
 <td>taz1_summary_growth.csv</td>
@@ -822,239 +947,6 @@
 </tr>
 </tbody>
 </table>
-<h3 id="interim_zone_outputcsv"><code>interim_zone_output.csv</code></h3>
-<table>
-<thead>
-<tr>
-<th><strong>Attribute</strong></th>
-<th><strong>Description</strong></th>
-<th><strong>Data Type</strong></th>
-<th><strong>Source</strong></th>
-<th><strong>Sub-model/step</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>unit_residential_price</td>
-<td>median residential price of all residential units in a TAZ</td>
-<td>float</td>
-<td>BAUS "residential_units" table</td>
-<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/ual.py#L745">rsh_simulate()</a></td>
-</tr>
-<tr>
-<td>unit_residential_price_&gt;_rent</td>
-<td>1 or 0 representing if the TAZ-level per-unit residential price is higher than annualized rent divided by <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/configs/developer/developer_settings.yaml#L2">cap_rate</a>.</td>
-<td>int</td>
-<td>BAUS "residential_units" table and "developer_settings"</td>
-<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/summaries.py#L265">summary.py</a></td>
-</tr>
-<tr>
-<td>residential_price</td>
-<td>median per sq.ft. residential price of all residential buildings in a TAZ (based on general building type); currently used only for estimation, not for simulation</td>
-<td>float</td>
-<td>"buildings" table</td>
-<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/variables.py#L248">residential_price()</a></td>
-</tr>
-<tr>
-<td>zoned_du</td>
-<td>maximum number of dwelling units allowed on all parcels in a TAZ</td>
-<td>int</td>
-<td>BAUS "parcels" table</td>
-<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/variables.py#L957">zoned_du()</a></td>
-</tr>
-<tr>
-<td>zoned_du_underbuild</td>
-<td>additional dwelling units allowed on all parcels in a TAZ given existing development conditions, 0 if the additional units are not at least half of existing development</td>
-<td>int</td>
-<td>BAUS "parcels" table</td>
-<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/variables.py#L1037">zoned_du_underbuild()</a></td>
-</tr>
-<tr>
-<td>zoned_du_underbuild_ratio</td>
-<td>ratio of additional allowable residential units to maximum allowable residential units</td>
-<td>int</td>
-<td>BAUS "zones" table</td>
-<td><a href="">zoned_du_build_ratio()</a></td>
-</tr>
-<tr>
-<td>building_count</td>
-<td>total number of residential buildings in a TAZ, based on general building type</td>
-<td>int</td>
-<td>BAUS "buildings" table</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>residential_units</td>
-<td>total number of residential units in a TAZ</td>
-<td>int</td>
-<td>BAUS "buildings" table</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>ave_unit_sqft</td>
-<td>0.6 quantile of building-level average residential unit size of all builidings in a TAZ</td>
-<td>int</td>
-<td>BAUS "building" table</td>
-<td><a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/900cfd8674be3569ae42cc0afb532ee12581188f/baus/variables.py#L943">ave_unit_sqft()</a></td>
-</tr>
-<tr>
-<td>residential_vacancy</td>
-<td>percentage of residential units in a TAZ that are not occupied by a household</td>
-<td>float</td>
-<td>BAUS "households" table, BAUS "buildings" table</td>
-<td>BAUS <a href="">summary.py</a></td>
-</tr>
-<tr>
-<td>non_residential_sqft</td>
-<td>total sq.ft. of all non-residential buildings in a TAZ</td>
-<td>int</td>
-<td>BAUS "buildings" table</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>job_spaces</td>
-<td>total number of jobs that can be accommodated by non-residential space in a TAZ</td>
-<td>int</td>
-<td>BAUS "building" table; sq.ft. per job setting</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>non_residential_vacancy</td>
-<td>percentage of job_spaces in a TAZ that are not occupied by a job</td>
-<td>float</td>
-<td>BAUS "jobs" table, BAUS "buildings" table</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>average_income</td>
-<td>median income of all households in a TAZ</td>
-<td>int</td>
-<td>BAUS "households" table; BAUS "households_preproc" table</td>
-<td><a href="">summary.py</a>; MTC/ABAG household models?</td>
-</tr>
-</tbody>
-</table>
-<h3 id="new_buildings_summarycsv"><code>new_buildings_summary.csv</code></h3>
-<table>
-<thead>
-<tr>
-<th><strong>Attribute</strong></th>
-<th><strong>Description</strong></th>
-<th><strong>Data Type</strong></th>
-<th><strong>Source</strong></th>
-<th><strong>Sub-model/step</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>development_id</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>SDEM</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>building_type</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>residential</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>building_sqft</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>non_residential_sqft</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>job_spaces</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>residential_sqft</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>residential_units</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>total_residential_units</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>total_sqft</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>source</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>x</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>y</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-<tr>
-<td>year_built</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-<td>XXX</td>
-</tr>
-</tbody>
-</table>
-<h3 id="taz1_summary_growthcsv"><code>taz1_summary_growth.csv</code></h3>
-<p>https://github.com/BayAreaMetro/modeling-website/wiki/TazData</p>
 
               
             </article>
