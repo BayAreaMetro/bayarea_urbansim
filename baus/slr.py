@@ -10,7 +10,7 @@ from baus import variables
 
 
 @orca.step()
-def slr_inundate(slr_progression, parcels, run_setup):
+def slr_inundate(slr_progression, parcels, run_setup, year):
 
     # inundated parcels are all parcels at or below the SLR progression level in that year
     slr_progression = slr_progression.to_frame()
