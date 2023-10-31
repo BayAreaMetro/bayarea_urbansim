@@ -309,23 +309,25 @@ def taz1_summary(parcels, households, jobs, buildings, travel_model_zones, year,
     # (9) use maz forecast inputs to forecast group quarters
     mazi = tm1_tm2_maz_forecast_inputs.to_frame()
     mazi_yr = str(year)[2:]
-    maz = maz.to_frame(['taz1454'])  
-    maz["hhpop"] = households_df.groupby('tm2_maz').persons.sum()
-    maz["tothh"] = households_df.groupby('tm2_maz').size()
+    maz = pd.DataFrame(index=travel_model_zones.to_frame().groupby("maz_tm2").maz_tm2.first())
+    maz['taz_tm1'] = travel_model_zones.to_frame().groupby("maz_tm2").taz_tm1.first()
+    maz["hhpop"] = households_df.groupby('maz_tm2').persons.sum()
+    maz["tothh"] = households_df.groupby('maz_tm2').size()
     maz = add_households(maz, taz_df.tothh.sum())
     maz['gq_type_univ'] = mazi['gqpopu' + mazi_yr]
     maz['gq_type_mil'] = mazi['gqpopm' + mazi_yr]
     maz['gq_type_othnon'] = mazi['gqpopo' + mazi_yr]
     maz['gq_tot_pop'] = maz['gq_type_univ'] + maz['gq_type_mil'] + maz['gq_type_othnon']
-    taz_df['gq_type_univ'] = maz.groupby('taz1454').gq_type_univ.sum().fillna(0)
-    taz_df['gq_type_mil'] = maz.groupby('taz1454').gq_type_mil.sum().fillna(0)
-    taz_df['gq_type_othnon'] = maz.groupby('taz1454').gq_type_othnon.sum().fillna(0)
-    taz_df['gq_tot_pop'] = maz.groupby('taz1454').gq_tot_pop.sum().fillna(0)
+    taz_df['gq_type_univ'] = maz.groupby('taz_tm1').gq_type_univ.sum().fillna(0)
+    taz_df['gq_type_mil'] = maz.groupby('taz_tm1').gq_type_mil.sum().fillna(0)
+    taz_df['gq_type_othnon'] = maz.groupby('taz_tm1').gq_type_othnon.sum().fillna(0)
+    taz_df['gq_tot_pop'] = maz.groupby('taz_tm1').gq_tot_pop.sum().fillna(0)
 
     # (10) add acreage variables
     def count_acres_with_mask(mask):
-        mask *= parcels.acres
-        return mask.groupby(parcels.zone_id).sum()
+        parcels_df = parcels.to_frame().merge(travel_model_zones.to_frame(), on='parcel_id')
+        mask *= parcels_df.acres
+        return mask.groupby(parcels_df.taz_tm1).sum()
     f = orca.get_injectable('parcel_first_building_type_is')
     taz_df["resacre_unweighted"] = count_acres_with_mask(f('residential') | f('mixedresidential'))
     taz_df["ciacre_unweighted"] = count_acres_with_mask(f('select_non_residential'))
