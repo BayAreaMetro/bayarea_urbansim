@@ -623,21 +623,23 @@ def total_non_residential_sqft(parcels, buildings):
 def nodev(parcels, nodev_sites, static_parcels):
     # start with nodev parcels: parcels where development is off-limits
     # the input table tells us what category of nodev the various entries are:
-    # protected open space, small single-family lots, etc.  
-    nd = nodev_sites[nodev_sites["no_dev"] == 1].index
+    # protected open space, small single-family lots, etc.
+    nodev_sites = nodev_sites.to_frame()  
+    nd = nodev_sites[nodev_sites["no_dev"] == 1].index.values
     # then add all static parcels: a subset of nodev parcels where 
     # jobs and households don't relocate, including:
     # institutions (where job growth is handled separately) and sea level rise parcels
-    nd.append(static_parcels.index)
+    nd.append(static_parcels)
     # development projects and buildings less than 20 years old also become off limits in developer_settings.yaml
     return nd.reindex(parcels.index)
 
 
 @orca.injectable()
-def static_parcels(parcels, nodev_sites):
+def static_parcels(parcels, institutions):
     # start with insitutions
     # these are parcels where households and jobs don't move
-    static_parcels = nodev_sites[nodev_sites.institutions_flag == 1].index.values
+    institutions = institutions.to_frame()
+    static_parcels = institutions.index.values
     # add sea level rise parcels
     parcels = parcels.to_frame()
     static_parcels.append(parcels[parcels.slr_nodev ==1].index.values)
