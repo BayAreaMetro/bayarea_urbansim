@@ -158,12 +158,12 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
 
     # if adjusters are enabled, adjust sqft_per_job rates for all years
     if run_setup["run_telecommute_strategy"] and year != base_year:
-        sqft_per_job = sqft_per_job * superdistrict.map(telecommute_sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
+        sqft_per_job_adj = sqft_per_job * superdistrict.map(telecommute_sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
 	# if the telecommute strategy is enabled, instead adjust future year sqft_per_job rates with the factor for that year
     elif run_setup["sqft_per_job_adjusters"]:
-        sqft_per_job = sqft_per_job * superdistrict.map(sqft_per_job_adjusters['sqft_per_job_factor'])
+        sqft_per_job_adj = sqft_per_job * superdistrict.map(sqft_per_job_adjusters['sqft_per_job_factor'])
 
-    return sqft_per_job
+    return sqft_per_job_adj
 
 
 @orca.column('buildings', cache=True)

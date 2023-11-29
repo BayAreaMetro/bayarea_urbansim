@@ -46,6 +46,14 @@ def outputs_dir(run_setup):
 def viz_dir(run_setup):
     return os.path.join(run_setup['viz_dir'])
 
+@orca.injectable('sqft_per_job_adj_file', cache=True)
+def sqft_per_job_adj_file(run_setup):
+    return run_setup['sqft_per_job_adj_file']
+
+@orca.injectable('emp_reloc_rates_adj_file', cache=True)
+def emp_reloc_rates_adj_file(run_setup):
+    return run_setup['emp_reloc_rates_adj_file']
+
 
 @orca.injectable('paths', cache=True)
 def paths():
@@ -790,7 +798,7 @@ def superdistricts_geography():
 
 @orca.table(cache=True)
 def sqft_per_job_adjusters(): 
-    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters/sqft_per_job_adjusters.csv"), index_col="number")
+    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("sqft_per_job_adj_file")), index_col="number")
 
 
 @orca.table(cache=True)
@@ -868,7 +876,7 @@ def employment_relocation_rates():
 
 @orca.table(cache=True)
 def employment_relocation_rates_adjusters():
-    df = pd.read_csv(os.path.join(misc.configs_dir(), "adjusters/employment_relocation_rates_overwrites.csv"))
+    df = pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("emp_reloc_rates_adj_file")))
     df = df.set_index("zone_id")
     return df
 
