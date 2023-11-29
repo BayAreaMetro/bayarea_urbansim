@@ -30,10 +30,11 @@ IN_YEAR, OUT_YEAR = 2010, 2050
 
 SLACK = "URBANSIM_SLACK" in os.environ
 if SLACK:
-    from slacker import Slacker
-    slack = Slacker(os.environ["SLACK_TOKEN"])
     host = socket.gethostname()
-
+    from slack_sdk import WebClient
+    from slack_sdk.errors import SlackApiError
+    client = WebClient(token=os.environ["SLACK_TOKEN"])
+    slack_channel = "#urbansim_sim_update"
 
 SET_RANDOM_SEED = True
 if SET_RANDOM_SEED:
@@ -67,6 +68,7 @@ orca.add_injectable("final_year", OUT_YEAR)
 
 run_setup = orca.get_injectable("run_setup")
 run_name = orca.get_injectable("run_name")
+output_dir = orca.get_injectable("run_name")
 
 
 def run_models(MODE):
@@ -100,6 +102,7 @@ def run_models(MODE):
         def get_baseyear_models():
 
             baseyear_models = [
+                #"test_namespace",
             
                 "slr_inundate",
                 "slr_remove_dev",
@@ -367,6 +370,7 @@ def run_models(MODE):
         simulation_models = get_simulation_models()
         if run_setup["run_summaries"]:
             simulation_models.extend(get_simulation_summary_models())
+
         if run_setup["run_simulation_validation"]:
             simulation_models.extend(get_simulation_validation_models())
         orca.run(simulation_models, iter_vars=years_to_run)
@@ -383,14 +387,20 @@ def run_models(MODE):
                 "add_to_model_run_inventory_file"
         ])
 
-
     else:
         raise "Invalid mode"
 
 
+
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
-                                       
+
+# Memorialize the run config with the outputs - goes by run name attribute
+
+print('***Copying run_setup.yaml to output directory')
+import shutil
+shutil.copyfile("../run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
+
 print("Started", time.ctime())
 print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
 print("Current Commit : ", os.popen('git rev-parse HEAD').read().rstrip())
@@ -406,19 +416,36 @@ print("pandas version: %s" % pd.__version__)
 
 
 if SLACK and MODE == "simulation":
-    slack.chat.post_message('#urbansim_sim_update', 'Starting simulation %s on host %s' % (run_name, host), as_user=True)
+    slack_start_message = f'Starting simulation {run_name} on host {host}'
+    try:
+        # For first slack channel posting of a run, catch any auth errors
+        response = client.chat_postMessage(channel=slack_channel,text=slack_start_message)
+    except SlackApiError as e:
+        assert e.response["ok"] is False
+        assert e.response["error"]  
+        print(f"Slack Channel Connection Error: {e.response['error']}")
 
 try:
     run_models(MODE)
 except Exception as e:
     print(traceback.print_exc())
+    tb = e.__traceback__
+    
+    trace = traceback.extract_tb(tb=tb,limit=1)
+    error_type = type(e).__name__
+    error_msg = str(e)
+
     if SLACK and MODE == "simulation":
-        slack.chat.post_message('#urbansim_sim_update', 'DANG!  Simulation failed for %s on host %s' % (run_name, host), as_user=True)
+        slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}, from {trace}'
+        response = client.chat_postMessage(channel=slack_channel,text=slack_fail_message)
+
     else:
         raise e
     sys.exit(0)
 
 if SLACK and MODE == "simulation":
-    slack.chat.post_message('#urbansim_sim_update', 'Completed simulation %s on host %s' %  (run_name, host), as_user=True)
+    slack_completion_message = f'Completed simulation {run_name} on host {host}'
+    response = client.chat_postMessage(channel=slack_channel,text=slack_completion_message)
+
                                                                                             
 print("Finished", time.ctime())         
