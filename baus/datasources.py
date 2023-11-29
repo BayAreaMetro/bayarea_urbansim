@@ -48,12 +48,17 @@ def viz_dir(run_setup):
 
 @orca.injectable('sqft_per_job_adj_file', cache=True)
 def sqft_per_job_adj_file(run_setup):
-    return run_setup['sqft_per_job_adj_file']
+    # if no sqft_per_job_adj_file defined in yaml, return the default adjuster file
+    
+    adj_file = run_setup.get('sqft_per_job_adj_file', 'sqft_per_job_adjusters.csv')
+    return adj_file
 
 @orca.injectable('emp_reloc_rates_adj_file', cache=True)
 def emp_reloc_rates_adj_file(run_setup):
-    return run_setup['emp_reloc_rates_adj_file']
-
+    # if no emp_reloc_rates_adj_file defined in yaml, return the default adjuster file
+    
+    adj_file = run_setup.get('emp_reloc_rates_adj_file', 'employment_relocation_rates_overwrites.csv')
+    return adj_file
 
 @orca.injectable('paths', cache=True)
 def paths():
