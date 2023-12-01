@@ -867,19 +867,19 @@ def subsidized_residential_developer_lump_sum_accts(run_setup, households, build
     account_strategies = orca.get_injectable("account_strategies")
     coffer = orca.get_injectable("coffer")
 
+    # need to rerun the subsidized feasibility every time and get new
+    # results - this is not ideal and is a story to fix in pivotal,
+    # but the only cost is in time - the results should be the same
+    orca.eval_step("subsidized_residential_feasibility")
+    feasibility = orca.get_table("feasibility").to_frame()
+    feasibility = feasibility.stack(level=0).reset_index(level=1, drop=True)
+
     for key, acct in account_strategies["acct_settings"]["lump_sum_accounts"].items():
 
         if not run_setup[acct["name"]]:
             continue
 
         print("Running the subsidized developer for acct: %s" % acct["name"])
-
-        # need to rerun the subsidized feasibility every time and get new
-        # results - this is not ideal and is a story to fix in pivotal,
-        # but the only cost is in time - the results should be the same
-        orca.eval_step("subsidized_residential_feasibility")
-        feasibility = orca.get_table("feasibility").to_frame()
-        feasibility = feasibility.stack(level=0).reset_index(level=1, drop=True)
 
         run_subsidized_developer(feasibility,
                                  parcels,
@@ -941,13 +941,13 @@ def subsidized_office_developer_lump_sum_accts(run_setup, buildings, year, add_e
     
     account_strategies = orca.get_injectable("account_strategies")
     coffer = orca.get_injectable("coffer")
+
+    orca.eval_step("alt_feasibility")
+    feasibility = orca.get_table("feasibility").to_frame()
     
     for key, acct in account_strategies["acct_settings"]["office_lump_sum_accounts"].items():
 
         print("Running the subsidized office developer for acct: %s" % acct["name"])
-
-        orca.eval_step("alt_feasibility")
-        feasibility = orca.get_table("feasibility").to_frame()
 
         formula = acct["receiving_buildings_filter"]
         print('office receiving_buildings_filter: {}'.format(formula))
