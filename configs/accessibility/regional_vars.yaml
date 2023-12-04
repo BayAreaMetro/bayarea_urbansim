@@ -28,6 +28,23 @@ variable_definitions:
     radius: 45
     apply: np.log1p
 
+
+  - name: jobs_fps_45
+    filters:
+    - building_id != -1
+    - empsix =="FPSEMPN"
+    dataframe: jobs
+    radius: 45
+    apply: np.log1p
+
+  - name: jobs_her_45
+    filters:
+    - building_id != -1
+    - empsix =="HEREMPN"
+    dataframe: jobs
+    radius: 45
+    apply: np.log1p    
+
   - aggregation: sum
     dataframe: households
     decay: flat
