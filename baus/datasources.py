@@ -60,6 +60,14 @@ def emp_reloc_rates_adj_file(run_setup):
     adj_file = run_setup.get('emp_reloc_rates_adj_file', 'employment_relocation_rates_overwrites.csv')
     return adj_file
 
+
+@orca.injectable('elcm_spec_file', cache=True)
+def elcm_spec_file(run_setup):
+    # if no elcm_spec_file defined in yaml, return the default file
+    
+    elcm_file = run_setup.get('elcm_spec_file', 'elcm.yaml')
+    return elcm_file
+
 @orca.injectable('paths', cache=True)
 def paths():
     with open(os.path.join(misc.configs_dir(), "paths.yaml")) as f:

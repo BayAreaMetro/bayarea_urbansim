@@ -156,12 +156,15 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
     # this factor changes all sqft per job according to which superdistrict the building is in - this is so denser areas can have lower sqft per job
     # this is a simple multiply so a number 1.1 increases the sqft per job by 10% and .9 decreases it by 10%
 
-    # if adjusters are enabled, adjust sqft_per_job rates for all years
+    # if the telecommute strategy is enabled, instead adjust future year sqft_per_job rates with the year-specific factor
     if run_setup["run_telecommute_strategy"] and year != base_year:
         sqft_per_job_adj = sqft_per_job * superdistrict.map(telecommute_sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
-	# if the telecommute strategy is enabled, instead adjust future year sqft_per_job rates with the factor for that year
+	# if telecommute strategy flag is disabled, and if adjusters are enabled, adjust sqft_per_job rates for *all* years
     elif run_setup["sqft_per_job_adjusters"]:
         sqft_per_job_adj = sqft_per_job * superdistrict.map(sqft_per_job_adjusters['sqft_per_job_factor'])
+    else:
+        # if no adjustments, just keep the original values
+        sqft_per_job_adj = sqft_per_job
 
     return sqft_per_job_adj
 
