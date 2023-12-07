@@ -511,14 +511,9 @@ def parcels_geography(parcels):
     df["pda_id"] = df.pda_id.str.lower()
     df["gg_id"] = df.gg_id.str.lower()
     df["tra_id"] = df.tra_id.str.lower()
-    df['juris_tra'] = df.juris + '-' + df.tra_id
     df["ppa_id"] = df.ppa_id.str.lower()
-    df['juris_ppa'] = df.juris + '-' + df.ppa_id
     df["sesit_id"] = df.sesit_id.str.lower()
-    df['juris_sesit'] = df.juris + '-' + df.sesit_id
-
     df['coc_id'] = df.coc_id.str.lower()
-    df['juris_coc'] = df.juris + '-' + df.coc_id
 
     return df
 
