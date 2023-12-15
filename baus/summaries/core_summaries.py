@@ -4,6 +4,7 @@ import os
 import pathlib
 import orca
 import pandas as pd
+import numpy as np
 
 
 # ensure output directories are created before attempting to write to them
@@ -11,6 +12,39 @@ import pandas as pd
 folder_stub = 'core_summaries'
 target_path = os.path.join(orca.get_injectable("outputs_dir"), folder_stub)
 os.makedirs(target_path, exist_ok=True)
+
+
+@orca.step()
+def adjust_initial_summary_year_incomes(households, initial_summary_year_taz_controls, year, initial_summary_year):
+
+    if year != initial_summary_year:
+        return
+    
+    households = households.to_frame()
+    taz_controls = initial_summary_year_taz_controls.to_frame()
+
+    for taz in initial_summary_year_taz_controls.index:
+        # select the tazdata for a taz
+        tazdata = taz_controls.iloc[taz]
+        # select all households in that taz
+        hhs_in_taz = households[households.taz == tazdata.ZONE].index
+
+        hhs_to_update = hhs_in_taz.copy()
+        for inc_quartile in [1, 2, 3, 4]:
+            # use the taz controls to calculate the proportion of households in an income quartile
+            prop = (tazdata['HHINCQ'+str(inc_quartile)]/tazdata['TOTHH'])
+            # use the total number of HHs in the TAZ to calculate the number of HHs that should be in the income group
+            if prop > 0:
+                hh_target = (len(hhs_in_taz) * prop).astype(int)
+                # randomly select households to assign to the income groups using the target number
+                hhs_for_inc_quartile = (np.random.choice(hhs_to_update, hh_target, replace=False))
+                # update households in the taz with their new income group
+                households.loc[households.household_id.isin(hhs_for_inc_quartile), 'base_income_quartile'] = inc_quartile
+                # remove the updated households from the set of households in the taz to be updated
+                hhs_to_update = hhs_to_update[~hhs_to_update.isin(hhs_for_inc_quartile)]
+
+    # save the final table of households with updated incomes
+    households = orca.add_table("households", households)
 
 
 @orca.step()

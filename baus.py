@@ -314,6 +314,7 @@ def run_models(MODE):
 
             simulation_summary_models = [
 
+                "adjust_initial_summary_year_incomes",
                 "interim_zone_output",
                 "new_buildings_summary",
 

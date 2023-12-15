@@ -299,6 +299,11 @@ def base_year_summary_taz(mapping):
     return df
 
 
+@orca.table(cache=True)
+def initial_summary_year_taz_controls():
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/TAZ1454_2020_Land_Use.csv"))
+
+
 # non-residential rent data
 @orca.table(cache=True)
 def costar(store, parcels):
