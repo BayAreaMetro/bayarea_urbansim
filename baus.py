@@ -352,6 +352,9 @@ def run_models(MODE):
                 "maz_growth_summary",
             ]
 
+            if not run_setup['adjust_initial_summary_year_incomes']:
+                simulation_summary_models.remove("adjust_initial_summary_year_incomes")
+
             return simulation_summary_models
         
         
