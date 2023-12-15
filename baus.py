@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import pathlib
 import sys
 import time
 import traceback
@@ -21,6 +22,7 @@ import urbansim_defaults
 import orca
 import orca_test
 import pandana
+import shutil
 
 
 MODE = "simulation"
@@ -68,6 +70,8 @@ orca.add_injectable("final_year", OUT_YEAR)
 
 run_setup = orca.get_injectable("run_setup")
 run_name = orca.get_injectable("run_name")
+outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
+outputs_dir.mkdir(parents=True, exist_ok=True)
 
 
 def run_models(MODE):
@@ -388,6 +392,8 @@ def run_models(MODE):
     else:
         raise "Invalid mode"
 
+print('***Copying run_setup.yaml to output directory')
+shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), "{}_run_setup.yaml").format(run_name))
 
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
@@ -405,6 +411,8 @@ print("pandana version: %s" % pandana.__version__)
 print("numpy version: %s" % np.__version__)
 print("pandas version: %s" % pd.__version__)
 
+print("SLACK: {}".format(SLACK))
+print("MODE: {}".format(MODE))
 
 if SLACK and MODE == "simulation":
     slack_start_message = f'Starting simulation {run_name} on host {host}'
