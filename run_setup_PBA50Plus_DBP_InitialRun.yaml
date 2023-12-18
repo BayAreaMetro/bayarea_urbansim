@@ -16,7 +16,10 @@ run_visualizer: True
 viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 
 # INPUT FILE SELECTION
-development_pipeline_file: 2021_0309_1939_development_projects.csv
+
+development_pipeline_file: "2021_0309_1939_development_projects.csv"
+
+household_controls_file: "household_controls.csv"
 
 
 # ADJUSTERS
