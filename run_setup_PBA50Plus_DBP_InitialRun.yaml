@@ -15,6 +15,9 @@ run_summaries: True
 run_visualizer: True
 viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 
+# INPUT FILE SELECTION
+development_pipeline_file: 2021_0309_1939_development_projects.csv
+
 
 # ADJUSTERS
 employment_relocation_rates_adjusters: True
