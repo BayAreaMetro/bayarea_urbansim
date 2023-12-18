@@ -197,13 +197,13 @@ def final_year():
 
 
 @orca.injectable(cache=True)
-def store(paths):
+def store():
     # retrieve h5 from inputs folder
-    h5 = os.path.join(orca.get_injectable("inputs_dir"), paths["store"])
+    h5 = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/2015_09_01_bayarea_v3.h5")
     # copy it to outputs folder for reading and writing during run time
-    shutil.copyfile(h5, os.path.join(orca.get_injectable("outputs_dir"), "core_summaries", "{}_h5_input").format(run_name))
+    shutil.copyfile(h5, os.path.join(orca.get_injectable("outputs_dir"), "core_summaries", "{}_h5_store").format(run_name))
     # use the copied version for the model run
-    return pd.HDFStore(os.path.join(orca.get_injectable("outputs_dir"), "core_summaries", "{}_h5_input").format(run_name))
+    return pd.HDFStore(os.path.join(orca.get_injectable("outputs_dir"), "core_summaries", "{}_h5_store").format(run_name))
 
 
 @orca.injectable(cache=True)
