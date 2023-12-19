@@ -36,7 +36,7 @@ def adjust_initial_summary_year_incomes(households, initial_summary_year_taz_con
                 hhs_to_update = hhs_to_update[~hhs_to_update.isin(hhs_for_inc_quartile)]
 
     # save the final table of households with updated incomes
-    households = orca.add_table("households", households)
+    orca.add_table("households", households)
 
 
 @orca.step()
