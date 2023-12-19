@@ -12,6 +12,7 @@ from baus.utils import geom_id_to_parcel_id, parcel_id_to_geom_id
 from baus.utils import nearest_neighbor
 import yaml
 import shutil
+import pathlib
 
 
 #####################
@@ -197,13 +198,15 @@ def final_year():
 
 
 @orca.injectable(cache=True)
-def store():
+def store(run_name):
     # retrieve h5 from inputs folder
     h5 = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/2015_09_01_bayarea_v3.h5")
     # copy it to outputs folder for reading and writing during run time
-    shutil.copyfile(h5, os.path.join(orca.get_injectable("outputs_dir"), "core_summaries", "{}_h5_store").format(run_name))
+    coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
+    coresum_output_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(h5, os.path.join(coresum_output_dir, "{}_h5_store.csv").format(run_name))
     # use the copied version for the model run
-    return pd.HDFStore(os.path.join(orca.get_injectable("outputs_dir"), "core_summaries", "{}_h5_store").format(run_name))
+    return pd.HDFStore(os.path.join(coresum_output_dir, "{}_h5_store.csv").format(run_name))
 
 
 @orca.injectable(cache=True)
