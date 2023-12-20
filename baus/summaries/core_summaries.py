@@ -19,7 +19,7 @@ def adjust_initial_summary_year_incomes(households, initial_summary_year_taz_con
         # select the tazdata for a taz
         tazdata = taz_controls.iloc[taz]
         # select all households in that taz
-        hhs_in_taz = households[households.taz == tazdata.ZONE].index
+        hhs_in_taz = households[households.zone_id == tazdata.ZONE].index
 
         hhs_to_update = hhs_in_taz.copy()
         for inc_quartile in [1, 2, 3, 4]:
