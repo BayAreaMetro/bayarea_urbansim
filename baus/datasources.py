@@ -508,13 +508,6 @@ def parcels_geography(parcels):
     # assert no empty juris values
     assert True not in df.juris_name.isnull().value_counts()
 
-    df["pda_id"] = df.pda_id.str.lower()
-    df["gg_id"] = df.gg_id.str.lower()
-    df["tra_id"] = df.tra_id.str.lower()
-    df["ppa_id"] = df.ppa_id.str.lower()
-    df["sesit_id"] = df.sesit_id.str.lower()
-    df['coc_id'] = df.coc_id.str.lower()
-
     return df
 
 
