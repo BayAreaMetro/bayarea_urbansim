@@ -11,6 +11,8 @@ from baus import preprocessing
 from baus.utils import geom_id_to_parcel_id, parcel_id_to_geom_id
 from baus.utils import nearest_neighbor
 import yaml
+import shutil
+import pathlib
 
 
 #####################
@@ -196,8 +198,15 @@ def final_year():
 
 
 @orca.injectable(cache=True)
-def store(paths):
-    return pd.HDFStore(os.path.join(orca.get_injectable("inputs_dir"), paths["store"]))
+def store(run_name):
+    # retrieve h5 from inputs folder
+    h5 = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/2015_09_01_bayarea_v3.h5")
+    # copy it to outputs folder for reading and writing during run time
+    coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
+    coresum_output_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(h5, os.path.join(coresum_output_dir, "{}_h5_store.csv").format(run_name))
+    # use the copied version for the model run
+    return pd.HDFStore(os.path.join(coresum_output_dir, "{}_h5_store.csv").format(run_name))
 
 
 @orca.injectable(cache=True)
@@ -607,9 +616,8 @@ def reprocess_dev_projects(df):
 
 # shared between demolish and build tables below
 def get_dev_projects_table(parcels, run_setup):
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                     "basis_inputs/parcels_buildings_agents/development_pipeline_with_basis_buildings_nov2023.csv"), 
-                     dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents",
+                     run_setup["development_pipeline_file"]), dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
     df = reprocess_dev_projects(df)
 
     # Optionally - if flag set to use housing element pipeline, load that and append:
@@ -727,8 +735,9 @@ def residential_units(store):
 
 
 @orca.table(cache=True)
-def household_controls_unstacked():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls/household_controls.csv"), index_col='year')
+def household_controls_unstacked(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls",
+                       run_setup["household_controls_file"]), index_col='year')
 
 
 @orca.table(cache=True)
