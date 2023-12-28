@@ -2,8 +2,8 @@
 run_name: "PBA50Plus_NP_InitialRun"
 
 # PATHS FOR INPUTS AND OUTPUTS
-inputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_NP_InitialRun/inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_NP_InitialRun/outputs'
+inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -14,6 +14,12 @@ run_summaries: True
 # OPTIONAL VISUALIZER
 run_visualizer: True
 viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
+
+# INPUT FILE SELECTION
+
+development_pipeline_file: "2021_0309_1939_development_projects.csv"
+
+household_controls_file: "household_controls.csv"
 
 
 # ADJUSTERS
