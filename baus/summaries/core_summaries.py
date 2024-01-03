@@ -72,7 +72,7 @@ def adjust_initial_summary_year_incomes(households, initial_summary_year_taz_con
     
     #TODO: consider updating just the records that were re-classified
     # assign series to households df, to the income variable
-    households['income'] = out_inc.reset_index(0).income.sort_index()
+    households['income'] = updated_income.reset_index(0).income.sort_index()
     
     # save the final table of households with updated incomes
     orca.add_table("households", households)
