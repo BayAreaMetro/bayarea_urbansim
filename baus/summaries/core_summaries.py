@@ -38,27 +38,19 @@ def adjust_initial_summary_year_incomes(households, initial_summary_year_taz_con
 
     # second, update the continuous variable
     # data from PUMS 2010 1-year data, with HINCP inflated to 1999 dollars and binned            
-    pums_2010_income_array = np.array(
-        [
-            ('HHINCQ1', 15544.,  15746.,  15344., 122.25004458, 
-                     201.10132334, 0.00786444,  8365.98967118, 6956.),
-            ('HHINCQ2',  44090.,  44332.,  43850., 146.5190246,
-                        241.02379546, 0.00332315,  8691.10135314, 6557.),
-            ('HHINCQ3',  78017.,  78246.,  77790., 138.46359215,
-                        227.77260908, 0.00177478, 11496.2646283, 6083.),
-            ('HHINCQ4', 171912., 173468., 170357., 945.45444789, 
-                        1555.27256677, 0.00549964, 81914.79531203, 6862.)
-                        ],
-                      dtype=[
-                          ('hinc99_cat', 'O'), ('avg', '<f8'), ('ci_upper', '<f8'),
-                          ('ci_lower', '<f8'), ('se', '<f8'), ('moe', '<f8'),
-                            ('coef_variation', '<f8'), ('sd', '<f8'),
-                            ('sample_recs', '<f8')
-                            ]
-                             )
+    income_array = {
+        'sd':  {'HHINCQ1': 8365.99,
+                'HHINCQ2': 8691.1,
+                'HHINCQ3': 11496.26,
+                'HHINCQ4': 81914.8},
+        'avg': {'HHINCQ1': 15544.0,
+                'HHINCQ2': 44090.0,
+                'HHINCQ3': 78017.0,
+                'HHINCQ4': 171912.0}
+                }
     
     # turn to dataframe
-    income_deets = pd.DataFrame.from_records(pums_2010_income_array).set_index('hinc99_cat')
+    income_deets = pd.DataFrame.from_dict(income_array)
 
     # Loop through the four income groups, and for each generate an array 
     # with the index of the households in that income group, where the incomes
