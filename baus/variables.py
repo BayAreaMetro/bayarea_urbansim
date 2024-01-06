@@ -161,7 +161,26 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
         sqft_per_job_adj = sqft_per_job * superdistrict.map(telecommute_sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
 	# if telecommute strategy flag is disabled, and if adjusters are enabled, adjust sqft_per_job rates for *all* years
     elif run_setup["sqft_per_job_adjusters"]:
-        sqft_per_job_adj = sqft_per_job * superdistrict.map(sqft_per_job_adjusters['sqft_per_job_factor'])
+        
+        # single year
+        if 'sqft_per_job_factor' in sqft_per_job_adjusters.local.columns:
+            sqft_per_job_adj = sqft_per_job * superdistrict.map(sqft_per_job_adjusters['sqft_per_job_factor'])
+        
+        # multi-year - test for four digit integers in the column names
+        # elif sqft_per_job_adjusters.local.columns.str.contains('(\d{4})').any():
+        # actually, better to just check for the existence of the current year in the adjuster file - 
+        # that effectively allows for the adjuster file to contain arbitrary years and only adjust those
+        
+        # if any of the adjuster variables contain the current year:
+        elif sqft_per_job_adjusters.local.columns.str.contains(str(year)).any():
+        #elif sqft_year_var in sqft_per_job_adjusters.local:
+            # get that year's adjusters
+            sqft_per_job_adj = sqft_per_job * superdistrict.map(sqft_per_job_adjusters[f'sqft_per_job_factor_{year}'
+        ])
+        else:
+            if sqft_per_job_adj not in locals():
+                raise AssertionError('Variable "sqft_per_job_adj" is not defined but run_setup suggests it should be provided')
+
     else:
         # if no adjustments, just keep the original values
         sqft_per_job_adj = sqft_per_job
