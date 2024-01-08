@@ -196,8 +196,9 @@ def final_year():
 
 
 @orca.injectable(cache=True)
-def store(paths):
-    return pd.HDFStore(os.path.join(orca.get_injectable("inputs_dir"), paths["store"]))
+def store(run_name):
+    h5_path = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/2015_09_01_bayarea_v3.h5")
+    return pd.HDFStore(h5_path, mode='r')
 
 
 @orca.injectable(cache=True)
@@ -612,9 +613,8 @@ def reprocess_dev_projects(df):
 
 # shared between demolish and build tables below
 def get_dev_projects_table(parcels, run_setup):
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                     "basis_inputs/parcels_buildings_agents/development_pipeline_with_basis_buildings_nov2023.csv"), 
-                     dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents",
+                     run_setup["development_pipeline_file"]), dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
     df = reprocess_dev_projects(df)
 
     # Optionally - if flag set to use housing element pipeline, load that and append:
@@ -732,8 +732,9 @@ def residential_units(store):
 
 
 @orca.table(cache=True)
-def household_controls_unstacked():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls/household_controls.csv"), index_col='year')
+def household_controls_unstacked(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls",
+                       run_setup["household_controls_file"]), index_col='year')
 
 
 @orca.table(cache=True)
