@@ -80,6 +80,11 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
         summary_table['mfdu'] = buildings_df[(buildings_df.building_type == 'HM') | (buildings_df.building_type == 'MR')].\
             groupby(geography).residential_units.sum()
         
+        # add jurisdiction average income
+        if geography == 'juris':
+            summary_table['juris_ave_income'] = households_df.groupby(geography).income.quantile(.5)
+
+        
         # employees by sector
         summary_table['totemp'] = jobs_df.groupby(geography).size()
         for empsix in ['AGREMPN', 'MWTEMPN', 'RETEMPN', 'FPSEMPN', 'HEREMPN', 'OTHEMPN']:
