@@ -491,7 +491,6 @@ def taz(zones):
 def parcels_geography(parcels, run_setup):
 
     file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/", run_setup["parcels_geography_file"])
-    print('Versin of parcels_geography: {}'.format(file))
     df = pd.read_csv(file, dtype={'PARCEL_ID': np.int64, 'geom_id': np.int64, 'jurisdiction_id': np.int64},index_col="geom_id")
     df = geom_id_to_parcel_id(df, parcels)
 
@@ -508,6 +507,11 @@ def parcels_geography(parcels, run_setup):
 
     # assert no empty juris values
     assert True not in df.juris_name.isnull().value_counts()
+    
+    for col in run_setup["parcels_geography_cols"]:
+        print("now!")
+        print(df[col].reindex(parcels.index))
+        orca.add_column('parcels', col, df[col].reindex(parcels.index))
 
     return df
 

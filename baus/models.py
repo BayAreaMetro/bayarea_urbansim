@@ -343,15 +343,10 @@ def scheduled_development_events(buildings, development_projects, demolish_event
         new_buildings["vmt_nonres_cat"] = misc.reindex(vmt_fee_categories.nonres_cat, new_buildings.zone_id)
     del new_buildings["zone_id"]
 
-    new_buildings["pda_id"] = parcels_geography.pda_id.loc[new_buildings.parcel_id].values
-    new_buildings["tra_id"] = parcels_geography.tra_id.loc[new_buildings.parcel_id].values
-    new_buildings["ppa_id"] = parcels_geography.ppa_id.loc[new_buildings.parcel_id].values
-    new_buildings["sesit_id"] = parcels_geography.sesit_id.loc[new_buildings.parcel_id].values
-    new_buildings["coc_id"] = parcels_geography.coc_id.loc[new_buildings.parcel_id].values
-    new_buildings["juris_tra"] = parcels_geography.juris_tra.loc[new_buildings.parcel_id].values
-    new_buildings["juris_ppa"] = parcels_geography.juris_ppa.loc[new_buildings.parcel_id].values
-    new_buildings["juris_sesit"] = parcels_geography.juris_sesit.loc[new_buildings.parcel_id].values
-    new_buildings["juris_coc"] = parcels_geography.juris_coc.loc[new_buildings.parcel_id].values
+    for col in run_setup["parcels_geography_cols"]:
+        new_buildings[col] = parcels_geography[col].loc[new_buildings.parcel_id].values
+        print("now!!")
+    print(new_buildings[['parcel_id', 'tra_id', 'pda_id']])
 
 
 @orca.injectable(autocall=False)

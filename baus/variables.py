@@ -418,57 +418,7 @@ def fees_per_sqft(parcels, run_setup):
         s = pd.Series(0, index=parcels.index)
         s += parcels.vmt_com_fees
         return s
-
-
-@orca.column('parcels', cache=True)
-def pda_id(parcels, parcels_geography):
-    return parcels_geography.pda_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def cat_id(parcels, parcels_geography):
-    return parcels_geography.cat_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def tra_id(parcels, parcels_geography):
-    return parcels_geography.tra_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_tra(parcels, parcels_geography):
-    return parcels_geography.juris_tra.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def sesit_id(parcels, parcels_geography):
-    return parcels_geography.sesit_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_sesit(parcels, parcels_geography):
-    return parcels_geography.juris_sesit.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def ppa_id(parcels, parcels_geography):
-    return parcels_geography.ppa_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_ppa(parcels, parcels_geography):
-    return parcels_geography.juris_ppa.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def coc_id(parcels, parcels_geography):
-    return parcels_geography.coc_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_coc(parcels, parcels_geography):
-    return parcels_geography.juris_coc.reindex(parcels.index)
-
+    
 
 @orca.column('parcels', cache=True)
 def superdistrict(parcels, taz_geography):
