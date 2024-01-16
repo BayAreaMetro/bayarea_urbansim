@@ -151,40 +151,55 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
     
     sqft_per_job = buildings.building_type.fillna("O").map(building_sqft_per_job)
 
-    superdistrict = misc.reindex(taz_geography.superdistrict, buildings.zone_id)
+    office_mask = buildings.building_type=="OF"
+
+    building_to_superdist_map = misc.reindex(taz_geography.superdistrict, buildings.zone_id)
 
     # this factor changes all sqft per job according to which superdistrict the building is in - this is so denser areas can have lower sqft per job
     # this is a simple multiply so a number 1.1 increases the sqft per job by 10% and .9 decreases it by 10%
 
     # if the telecommute strategy is enabled, instead adjust future year sqft_per_job rates with the year-specific factor
     if run_setup["run_telecommute_strategy"] and year != base_year:
-        sqft_per_job_adj = sqft_per_job * superdistrict.map(telecommute_sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
+        sqft_per_job_adj = sqft_per_job * building_to_superdist_map.map(telecommute_sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
 	# if telecommute strategy flag is disabled, and if adjusters are enabled, adjust sqft_per_job rates for *all* years
     elif run_setup["sqft_per_job_adjusters"]:
+        print('Calculating sqft_per_job_adjusters...')
         
-        # single year
+        # base series
+        sqft_per_job_adj = sqft_per_job.copy() 
+        
+        # Check for single year variable without a year as part of the string
         if 'sqft_per_job_factor' in sqft_per_job_adjusters.local.columns:
-            sqft_per_job_adj = sqft_per_job * superdistrict.map(sqft_per_job_adjusters['sqft_per_job_factor'])
-        
-        # multi-year - test for four digit integers in the column names
+            print('\tSingle year adjuster instruction found')
+            #sqft_per_job_adj = sqft_per_job * building_to_superdist_map.map(sqft_per_job_adjusters['sqft_per_job_factor'])
+            sqft_per_job_adj.loc[office_mask] = sqft_per_job_adj.loc[office_mask] * building_to_superdist_map.loc[office_mask].map(sqft_per_job_adjusters['sqft_per_job_factor'])
+
+        # Check for multi-year variable, looking for four digit integers in the column names
         # elif sqft_per_job_adjusters.local.columns.str.contains('(\d{4})').any():
-        # actually, better to just check for the existence of the current year in the adjuster file - 
+        # actually, better to just check for the existence of the current run year in the adjuster file - 
         # that effectively allows for the adjuster file to contain arbitrary years and only adjust those
         
         # if any of the adjuster variables contain the current year:
         elif sqft_per_job_adjusters.local.columns.str.contains(str(year)).any():
         #elif sqft_year_var in sqft_per_job_adjusters.local:
+            print('\tMulti-year adjusters instruction found')
+            print(f'Adjusting constants for year {year}')
             # get that year's adjusters
-            sqft_per_job_adj = sqft_per_job * superdistrict.map(sqft_per_job_adjusters[f'sqft_per_job_factor_{year}'
-        ])
-        else:
-            if sqft_per_job_adj not in locals():
-                raise AssertionError('Variable "sqft_per_job_adj" is not defined but run_setup suggests it should be provided')
+            
+            # Jan 2024: adjust office portion only
+            sqft_per_job_adj.loc[office_mask] = sqft_per_job_adj.loc[office_mask] * building_to_superdist_map.loc[office_mask].map(sqft_per_job_adjusters[f'sqft_per_job_factor_{year}'])
 
+        else:
+            # if no adjustmers found for this particular year, keep the original values
+            print('\tNo adjusters found for this year: Using regional constants')
+            sqft_per_job_adj = sqft_per_job
     else:
         # if no adjustments, just keep the original values
+        print('\tNo adjusters found: Using regional constants')
         sqft_per_job_adj = sqft_per_job
 
+    print('Describing sqft_per_job factors...')
+    print(sqft_per_job_adj.describe())
     return sqft_per_job_adj
 
 
