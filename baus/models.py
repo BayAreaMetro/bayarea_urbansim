@@ -345,8 +345,6 @@ def scheduled_development_events(buildings, development_projects, demolish_event
 
     for col in run_setup["parcels_geography_cols"]:
         new_buildings[col] = parcels_geography[col].loc[new_buildings.parcel_id].values
-        print("now!!")
-    print(new_buildings[['parcel_id', 'tra_id', 'pda_id']])
 
 
 @orca.injectable(autocall=False)

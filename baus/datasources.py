@@ -509,8 +509,6 @@ def parcels_geography(parcels, run_setup):
     assert True not in df.juris_name.isnull().value_counts()
     
     for col in run_setup["parcels_geography_cols"]:
-        print("now!")
-        print(df[col].reindex(parcels.index))
         orca.add_column('parcels', col, df[col].reindex(parcels.index).str.lower())
 
     return df
