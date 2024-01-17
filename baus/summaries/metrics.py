@@ -63,11 +63,11 @@ def growth_geography_metrics(parcels, parcels_geography, buildings, households, 
         growth_geog_growth[col+'_growth'] = year2[col] - year1[col]
         
         # percent change in geography's households or jobs
-        growth_geog_growth[col+'_pct_change'] = (year2[col] / year1[col] - 1)
+        growth_geog_growth[col+'_pct_change'] = (year2[col] / year1[col] - 1).round(2)
 
         # percent geography's growth of all regional growth in household or jobs
         tot_growth = growth_geog_growth["tothh_growth"].sum() if "hh" in col else growth_geog_growth["totemp_growth"].sum()
-        growth_geog_growth[col+'_pct_of_regional_growth'] = ((year2[col] - year1[col] / tot_growth) * 100)
+        growth_geog_growth[col+'_pct_of_regional_growth'] = ((year2[col] - year1[col] / tot_growth) * 100).round(2)
     
     growth_geog_growth = growth_geog_growth.fillna(0)
     growth_geog_growth.to_csv(metrics_output_dir / f"{run_name}_growth_geography_growth_summary.csv")
@@ -108,11 +108,11 @@ def deed_restricted_units_metrics(parcels, buildings, year, initial_summary_year
 
     # percent of new units that are deed-restricted units, by growth geography
     dr_units_growth["pct_new_units_dr"] = ((dr_units_summary_y2["dr_units"] - dr_units_summary_y1["dr_units"]) /
-                                            (dr_units_summary_y2["res_units"] - dr_units_summary_y1["res_units"]))
+                                            (dr_units_summary_y2["res_units"] - dr_units_summary_y1["res_units"])).round(2)
     dr_units_growth["pct_new_units_dr_hra"] = ((dr_units_summary_y2["dr_units_hra"] - dr_units_summary_y1["dr_units_hra"]) /
-                                                (dr_units_summary_y2["res_units_hra"] - dr_units_summary_y1["res_units_hra"]))
+                                                (dr_units_summary_y2["res_units_hra"] - dr_units_summary_y1["res_units_hra"])).round(2)
     dr_units_growth["pct_new_units_dr_coc"] = ((dr_units_summary_y2["dr_units_coc"] - dr_units_summary_y1["dr_units_coc"]) /
-                                                (dr_units_summary_y2["res_units_coc"] - dr_units_summary_y1["res_units_coc"]))
+                                                (dr_units_summary_y2["res_units_coc"] - dr_units_summary_y1["res_units_coc"])).round(2)
 
     dr_units_growth = dr_units_growth.fillna(0).transpose()
 
@@ -146,18 +146,18 @@ def household_income_metrics(year, initial_summary_year, final_year, parcels, bu
                                                 ((hh_df.base_income_quartile == 1) | (hh_df.base_income_quartile == 2))].size
     
     # total number of LIHHs by growth geography and LIHH by growth geography as a share of all households
-    hh_inc_summary['low_inc_hh_share'] = (hh_inc_summary['low_inc_hh'] / hh_df.size)
+    hh_inc_summary['low_inc_hh_share'] = (hh_inc_summary['low_inc_hh'] / hh_df.size).round(2)
     hh_inc_summary['low_inc_hh_share_tra_hra'] = ((hh_inc_summary['low_inc_hh_tra_hra'] /
                                                     hh_df[(hh_df.tra_id > '') & ((hh_df.sesit_id == 'hra') | (hh_df.sesit_id == 'hradis'))].size) 
                                                     if hh_df[(hh_df.tra_id > '') & ((hh_df.sesit_id == 'hra') | (hh_df.sesit_id == 'hradis'))].size > 0 
-                                                    else 0)
+                                                    else 0).round(2)
     hh_inc_summary['low_inc_hh_share_tra'] = ((hh_inc_summary['low_inc_hh_tra'] / hh_df[hh_df.tra_id > ''].size)
-                                                if hh_df[hh_df.tra_id > ''].size > 0 else 0)
+                                                if hh_df[hh_df.tra_id > ''].size > 0 else 0).round(2)
     hh_inc_summary['low_inc_hh_share_hra'] = ((hh_inc_summary['low_inc_hh_hra'] /
                                                 hh_df[(hh_df.sesit_id == 'hra') | (hh_df.sesit_id == 'hradis')].size)
-                                                if hh_df[(hh_df.sesit_id == 'hra') | (hh_df.sesit_id == 'hradis')].size > 0 else 0)
+                                                if hh_df[(hh_df.sesit_id == 'hra') | (hh_df.sesit_id == 'hradis')].size > 0 else 0).round(2)
     hh_inc_summary['low_inc_hh_share_coc'] = ((hh_inc_summary['low_inc_hh_coc'] / hh_df[hh_df.coc_id > ''].size)
-                                             if hh_df[hh_df.coc_id > ''].size > 0 else 0)
+                                             if hh_df[hh_df.coc_id > ''].size > 0 else 0).round(2)
     
     hh_inc_summary = hh_inc_summary.transpose()
 
@@ -219,12 +219,12 @@ def equity_metrics(year, initial_summary_year, final_year, parcels, buildings, h
 
         df["low_inc_hh_change"] = (df['low_inc_hh_y2'] - df['low_inc_hh_y1'])
         df.loc[(df['low_inc_hh_change'] < 0), "low_inc_hh_loss"] = 1
-        tract_hhs_change[df.name+"_pct_tracts_low_inc_loss"] = ((df[df.low_inc_hh_loss == 1].size / df.size) * 100)
+        tract_hhs_change[df.name+"_pct_tracts_low_inc_loss"] = ((df[df.low_inc_hh_loss == 1].size / df.size) * 100).round(2)
 
         df["low_inc_hh_share_change"] = (df['low_inc_share_y1'] - df['low_inc_share_y2'])
         df.loc[(df['low_inc_hh_share_change'] > -.10), "ten_pct_low_inc_share_change"] = 1
         tract_hhs_change[df.name+"_pct_ten_pct_low_inc_share_change"] = \
-                                            ((df[df.ten_pct_low_inc_share_change == 1].size / df.size) * 100)
+                                            ((df[df.ten_pct_low_inc_share_change == 1].size / df.size) * 100).round(2)
 
     tract_hhs_change = tract_hhs_change.fillna(0).transpose()
 
@@ -246,14 +246,14 @@ def jobs_housing_metrics(parcels, buildings, jobs, households, year, initial_sum
 
         jobs_housing_summary = pd.DataFrame(index=['jobs_housing_ratio'])
         # regional jobs-housing ratio
-        jobs_housing_summary['Regional'] = (jobs_df.size / households_df.size)
+        jobs_housing_summary['Regional'] = (jobs_df.size / households_df.size).round(2)
         # county-level jobs-housing ratios
         parcels = parcels.to_frame()
         for county in parcels.county.unique():
             if pd.isna(county):
                 continue
             jobs_housing_summary[str(county)] = (jobs_df[jobs_df.county == county].size / 
-                                                            households_df[households_df.county == county].size)
+                                                            households_df[households_df.county == county].size).round(2)
         
         jobs_housing_summary = jobs_housing_summary.fillna(0).transpose()
 
@@ -285,7 +285,7 @@ def jobs_metrics(year, parcels, buildings, jobs, parcels_geography, initial_summ
         jobs_growth_summary = pd.DataFrame(index=['total'])
         columns = ['totemp', 'ppa_jobs', 'mfg_jobs', 'ppa_mfg_jobs']
         for col in columns:
-            jobs_growth_summary[col+'_pct_growth'] = ((jobs_summary_y2[col] / jobs_summary_y1[col] - 1) * 100)
+            jobs_growth_summary[col+'_pct_growth'] = ((jobs_summary_y2[col] / jobs_summary_y1[col] - 1) * 100).round(2)
 
         jobs_growth_summary = jobs_growth_summary.fillna(0).transpose()
 
@@ -433,7 +433,7 @@ def greenfield_metrics(buildings, parcels, year, initial_summary_year, final_yea
     buildings_out_uf_2015 = orca.get_table(f"buildings_outside_urban_footprint_{initial_summary_year}").to_frame()
     buildings_out_uf_2050 = orca.get_table(f"buildings_outside_urban_footprint_{final_year}").to_frame()
     greenfield_metric["annual_greenfield_dev_acres_2050"] = (((buildings_out_uf_2050["acres"].sum() - buildings_out_uf_2015["acres"].sum()) /
-                                                              (final_year - initial_summary_year)))
+                                                              (final_year - initial_summary_year))).round(0)
     greenfield_metric = greenfield_metric.transpose()
 
     metrics_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "metrics"
