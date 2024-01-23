@@ -68,7 +68,7 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
     taz_geog = taz_geography.to_frame()
 
     res_units = res_units.merge(bldgs[['parcel_id']], left_on='building_id', right_index=True, how='left').\
-        merge(parcels_geog[['gg_id', 'sesit_id', 'tra_id', 'juris']], left_on='parcel_id', right_index=True, how='left').\
+        merge(parcels_geog, left_on='parcel_id', right_index=True, how='left').\
         merge(taz_geog, left_on='zone_id', right_index=True, how='left')
 
     s = preservation["housing_preservation"]["settings"]

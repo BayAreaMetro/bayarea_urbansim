@@ -101,7 +101,7 @@ def new_buildings_summary(run_name, parcels, buildings, year, final_year):
              'non_residential_sqft', 'residential_price', 'residential_units', 'source',	
              'vacant_residential_units', 'vacant_job_spaces', 'vacant_res_units', 'price_per_sqft',	'unit_price',	
              'land_value',	'acres', 'x', 'y', 'parcel_acres', 'total_residential_units',	'total_job_spaces',	
-             'zoned_du', 'zoned_du_underbuild', 'sdem', 'pda_id', 'cat_id',	'tra_id', 'sesit_id', 'ppa_id',	'coc_id',	
+             'zoned_du', 'zoned_du_underbuild', 'sdem',	
              'urbanized', 'manual_nodev', 'total_non_residential_sqft',	'nodev',	
              'built_far', 'max_far', 'built_dua', 'max_dua', 'building_purchase_price_sqft',	
              'building_purchase_price',	'land_cost', 'slr_nodev']]
