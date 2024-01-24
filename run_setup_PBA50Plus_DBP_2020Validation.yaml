@@ -1,9 +1,9 @@
 # RUN NAME
-run_name: "PBA50Plus_NP_InitialRun"
+run_name: "contingency_v7"
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_DBP_Contingency_v7'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -17,9 +17,9 @@ viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 
 # INPUT FILE SELECTION
 
-development_pipeline_file: "2021_0309_1939_development_projects.csv"
+development_pipeline_file: "development_pipeline_with_basis_buildings_nov2023.csv"
 
-household_controls_file: "household_controls.csv"
+household_controls_file: "household_controls_2020tazdata_adjustment.csv"
 
 parcels_geography_file: "2021_02_25_parcels_geography.csv"
 parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]

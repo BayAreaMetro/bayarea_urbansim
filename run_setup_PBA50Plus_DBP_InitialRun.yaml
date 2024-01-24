@@ -21,8 +21,8 @@ development_pipeline_file: "2021_0309_1939_development_projects.csv"
 
 household_controls_file: "household_controls.csv"
 
-parcels_geography_file: "parcels_geography_2023_12_08.csv"
-parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "hra_id", "epc_id", "ppa_id"]
+parcels_geography_file: "2021_02_25_parcels_geography.csv"
+parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]
 
 
 # ADJUSTERS
