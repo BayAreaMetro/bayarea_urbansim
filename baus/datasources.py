@@ -439,9 +439,10 @@ def tm1_tm2_maz_forecast_inputs(tm1_tm2_regional_demographic_forecast):
 
 
 @orca.table(cache=True)
-def zoning_strategy(parcels_geography, mapping):
+def zoning_strategy(parcels_geography, mapping, run_setup):
 
-    strategy_zoning = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/zoning_mods.csv'))
+    strategy_zoning = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/',
+                                               run_setup['zoning_mods_file']))
 
     for k in mapping["building_type_map"].keys():
         strategy_zoning[k] = np.nan
