@@ -121,7 +121,7 @@ def inclusionary_strategy():
 
 @orca.injectable('preservation', cache=True)
 def preservation(run_setup):
-    with open(os.path.join(orca.get_injectable("inputs_dir"), run_setup["preservation_file"])) as f:
+    with open(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/', run_setup["preservation_file"])) as f:
         return yaml.load(f)
 
 
