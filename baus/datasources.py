@@ -513,6 +513,10 @@ def parcels_geography(parcels, run_setup):
         df[col] = df[col].str.lower()
         orca.add_column('parcels', col, df[col].reindex(parcels.index))
 
+    df['zoningmodcat'] = ''
+    for col in run_setup["zoningmodcat_cols"]:
+        df['zoningmodcat'] = df['zoningmodcat'] + df[col]
+
     return df
 
 
