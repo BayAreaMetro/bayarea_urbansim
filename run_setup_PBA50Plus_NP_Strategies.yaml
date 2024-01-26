@@ -29,6 +29,7 @@ presevervation_file: "preservation_PBA50Plus_DBP.yaml"
 # if a scenario is run, it always has a zoningmods file, since
 # no project still uses it to apply a UGB
 zoning_mods_file: "zoningmods_PBA50Plus_DBP.yaml"
+zoningmodcat_cols: ["gg_id", "tra_id", "hra_id", "epc_id", "ppa_id", "exp2020_id"]
 
 # ADJUSTERS
 employment_relocation_rates_adjusters: True
