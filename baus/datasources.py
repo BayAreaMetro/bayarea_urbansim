@@ -807,8 +807,9 @@ def sqft_per_job_adjusters():
 
 
 @orca.table(cache=True)
-def telecommute_sqft_per_job_adjusters(): 
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/telecommute_sqft_per_job_adjusters.csv"), index_col="number")
+def telecommute_sqft_per_job_adjusters(run_setup): 
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies",
+                                    run_setup["sqft_per_job_telecommute_file"]), index_col="number")
 
 
 @orca.table(cache=True)
