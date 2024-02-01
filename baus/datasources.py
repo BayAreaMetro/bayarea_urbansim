@@ -515,6 +515,7 @@ def parcels_geography(parcels, run_setup):
 
     df['zoningmodcat'] = ''
     for col in run_setup["zoningmodcat_cols"]:
+        df[col] = df[col].fillna('NA')
         df['zoningmodcat'] = df['zoningmodcat'] + df[col]
 
     return df
@@ -753,8 +754,8 @@ def household_controls(household_controls_unstacked):
 
 
 @orca.table(cache=True)
-def employment_controls_unstacked():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls/employment_controls.csv"), index_col='year')
+def employment_controls_unstacked(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls", run_setup["employment_controls_file"]), index_col='year')
 
 
 @orca.table(cache=True)
