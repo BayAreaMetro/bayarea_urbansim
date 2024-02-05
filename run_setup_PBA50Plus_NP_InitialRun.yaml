@@ -1,3 +1,9 @@
+# INITIAL SUMMARY YEAR
+# the model's initial year is 2015, while this specifies the first reporting year
+# generally the initial summary year is the current year, validated with external data
+# adter which external forces and strategies are applied
+initial_summary_year: 2015
+
 # RUN NAME
 run_name: "PBA50Plus_NP_InitialRun_v5"
 
@@ -27,6 +33,10 @@ parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa
 
 # this has to be turned on for NP as well since the config and the strategy are entangled
 sqft_per_job_telecommute_file: "sqft_per_job_adjusters_DBP_NP.csv"
+
+# if a scenario is run, it always has a zoningmods file, since
+# no project still uses it to apply a UGB
+zoning_mods_file: "zoning_mods_PBA50Plus_NP.csv"
 
 
 # ADJUSTERS
