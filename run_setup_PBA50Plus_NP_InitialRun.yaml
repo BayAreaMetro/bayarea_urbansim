@@ -1,9 +1,9 @@
 # RUN NAME
-run_name: "PBA50Plus_NP_InitialRun"
+run_name: "PBA50Plus_NP_InitialRun_v5"
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_NP_InitialRun/outputs'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -20,9 +20,13 @@ viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 development_pipeline_file: "2021_0309_1939_development_projects.csv"
 
 household_controls_file: "household_controls.csv"
+employment_controls_file: "employment_controls_PBA50.csv"
 
 parcels_geography_file: "2021_02_25_parcels_geography.csv"
 parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]
+
+# this has to be turned on for NP as well since the config and the strategy are entangled
+sqft_per_job_telecommute_file: "sqft_per_job_adjusters_DBP_NP.csv"
 
 
 # ADJUSTERS
@@ -127,8 +131,8 @@ run_housing_preservation_strategy: False
 
 
 # TELECOMMUTE STRATEGIES
-
-run_telecommute_strategy: False
+# this has to be turned on for NP as well since the config and the strategy are entangled
+run_telecommute_strategy: True
 
 
 # ACCESSORY DWELLING UNIT POLICY
