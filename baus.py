@@ -168,16 +168,6 @@ def run_models(MODE):
 
                 "geographic_summary",
 
-                "growth_geography_metrics",
-                "deed_restricted_units_metrics",
-                "household_income_metrics",
-                "equity_metrics",
-                "jobs_housing_metrics",
-                "jobs_metrics",
-                "slr_metrics",
-                "earthquake_metrics",
-                "greenfield_metrics",
-
                 "taz1_summary",
                 "maz_marginals",
                 "maz_summary",
@@ -187,6 +177,23 @@ def run_models(MODE):
             ]
 
             return baseyear_summary_models
+
+        def get_baseyear_metrics():
+            
+            baseyear_metrics_models = [
+
+                "growth_geography_metrics",
+                "deed_restricted_units_metrics",
+                "household_income_metrics",
+                "equity_metrics",
+                "jobs_housing_metrics",
+                "jobs_metrics",
+                "slr_metrics",
+                "earthquake_metrics",
+                "greenfield_metrics",
+            ]
+
+            return baseyear_metrics_models
     
         def get_simulation_models():
         
@@ -310,6 +317,7 @@ def run_models(MODE):
             ]
 
             return simulation_validation_models
+        
 
         def get_simulation_summary_models():
 
@@ -331,16 +339,6 @@ def run_models(MODE):
                 "geographic_summary",
                 "geographic_growth_summary",
 
-                "growth_geography_metrics",
-                "deed_restricted_units_metrics",
-                "household_income_metrics",
-                "equity_metrics",
-                "jobs_housing_metrics",
-                "jobs_metrics",
-                "slr_metrics",
-                "earthquake_metrics",
-                "greenfield_metrics",
-
                 "taz1_summary",
                 "maz_marginals",
                 "maz_summary",
@@ -353,6 +351,23 @@ def run_models(MODE):
 
             return simulation_summary_models
         
+
+        def get_simulation_metrics():
+            
+            simulation_metrics_models = [
+
+                "growth_geography_metrics",
+                "deed_restricted_units_metrics",
+                "household_income_metrics",
+                "equity_metrics",
+                "jobs_housing_metrics",
+                "jobs_metrics",
+                "slr_metrics",
+                "earthquake_metrics",
+                "greenfield_metrics",
+            ]
+
+            return simulation_metrics_models
         
         def get_simulation_visualization_models():
 
@@ -366,12 +381,16 @@ def run_models(MODE):
         baseyear_models = get_baseyear_models()
         if run_setup["run_summaries"]:
             baseyear_models.extend(get_baseyear_summary_models())
+        if run_setup["run_metrics"]:
+            baseyear_models.extend(get_baseyear_metrics_models())
         orca.run(baseyear_models, iter_vars=[IN_YEAR])
 
         years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
         simulation_models = get_simulation_models()
         if run_setup["run_summaries"]:
             simulation_models.extend(get_simulation_summary_models())
+        if run_setup["run_metrics"]:
+            simulation_models.extend(get_simulation_metrics_models())
         if run_setup["run_simulation_validation"]:
             simulation_models.extend(get_simulation_validation_models())
         orca.run(simulation_models, iter_vars=years_to_run)
