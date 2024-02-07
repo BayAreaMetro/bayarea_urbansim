@@ -537,10 +537,12 @@ def mandatory_accessibility(year, run_setup):
 
     if year in run_setup['logsum_period1']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/mandatoryAccessibilities_{}.csv").format(run_setup['logsum_year1']))
+                         "accessibility/travel_model/mandatoryAccessibilities_{}_{}.csv").\
+                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
     elif year in run_setup['logsum_period2']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/mandatoryAccessibilities_{}.csv").format(run_setup['logsum_year2']))
+                         "accessibility/travel_model/mandatoryAccessibilities_{}_{}.csv").\
+                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
 
     df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
     df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
@@ -555,10 +557,12 @@ def non_mandatory_accessibility(year, run_setup):
 
     if year in run_setup['logsum_period1']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/nonMandatoryAccessibilities_{}.csv").format(run_setup['logsum_year1']))
+                         "accessibility/travel_model/nonMandatoryAccessibilities_{}_{}.csv").\
+                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
     elif year in run_setup['logsum_period2']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/nonmandatoryAccessibilities_{}.csv").format(run_setup['logsum_year2']))
+                         "accessibility/travel_model/nonmandatoryAccessibilities_{}_{}.csv").\
+                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
 
     df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
     df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
@@ -573,10 +577,12 @@ def accessibilities_segmentation(year, run_setup):
 
     if year in run_setup['logsum_period1']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/AccessibilityMarkets_{}.csv").format(run_setup['logsum_year1']))
+                         "accessibility/travel_model/AccessibilityMarkets_{}_{}.csv").\
+                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
     elif year in run_setup['logsum_period2']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/AccessibilityMarkets_{}.csv").format(run_setup['logsum_year2']))
+                         "accessibility/travel_model/AccessibilityMarkets_{}_{}.csv").\
+                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
 
     df['AV'] = df['hasAV'].apply(lambda x: 'AV' if x == 1 else 'noAV')
     df['label'] = (df['incQ_label'] + '_' + df['autoSuff_label'] + '_' + df['AV'])
@@ -842,17 +848,18 @@ def zones(store):
 
 # SLR progression by year
 @orca.table(cache=True)
-def slr_progression():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_progression.csv"))
+def slr_progression(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/",
+                                    run_setup["slr_progression_file"]))
 
 
 # SLR inundation levels for parcels
 # if slr is activated, there is either a committed projects mitigation applied
 # or a committed projects + policy projects mitigation applied
 @orca.table(cache=True)
-def slr_parcel_inundation():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_parcel_inundation.csv"),
-                       dtype={'parcel_id': np.int64}, index_col='parcel_id')
+def slr_parcel_inundation(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/", 
+                                    run_setup["slr_inundation_file"]), dtype={'parcel_id': np.int64}, index_col='parcel_id')
 
 
 # census tracts for parcels, to assign earthquake probabilities
