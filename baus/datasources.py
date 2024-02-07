@@ -513,10 +513,15 @@ def parcels_geography(parcels, run_setup):
         df[col] = df[col].str.lower()
         orca.add_column('parcels', col, df[col].reindex(parcels.index))
 
-    df['zoningmodcat'] = ''
-    for col in run_setup["zoningmodcat_cols"]:
-        df[col] = df[col].fillna('NA')
-        df['zoningmodcat'] = df['zoningmodcat'] + df[col]
+    try: 
+        # PBA50 parcels_geography input has the zoningmodcat column
+        # so preserving it with the try/except logic for now
+        print("{} zoningmodcat format is".format(df['zoningmodcat']))
+    except KeyError:
+        df['zoningmodcat'] = ''
+        for col in run_setup["zoningmodcat_cols"]:
+            df['zoningmodcat'] = df['zoningmodcat'] + df[col].fillna('NA')
+        print("{} zoningmodcat format is".format(df['zoningmodcat']))        
 
     return df
 
