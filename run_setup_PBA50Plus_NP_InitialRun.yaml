@@ -96,10 +96,14 @@ run_job_cap_strategy: False
 
 
 # INCLUSIONARY HOUSING STRATEGY
+inclusionary_strategy_file:
 run_inclusionary_strategy: False
 
 
+
 # LUMP SUM ACCOUNT STRATEGIES
+account_strategies_file:
+
 run_obag_strategy: False
 
 run_capital_gains_tax_strategy: False
@@ -130,6 +134,7 @@ run_jobs_housing_fee_strategy: False
 
 
 # PROFITABILITY ADJUSTMENT STRATEGIES
+profit_adjustment_strategy_file:
 run_ceqa_streamlining_strategy: False
 
 run_reduce_parking_requirements_strategy: False
@@ -143,13 +148,13 @@ run_land_value_tax_strategy: False
 
 # AFFORDABLE HOUSING PRESERVATION STRATEGY
 run_housing_preservation_strategy: False
-
+preservation_file:
 
 # TELECOMMUTE STRATEGY
 # this has to be turned on for NP as well since the config and the strategy are entangled
 run_telecommute_strategy: True
 # this has to be turned on for NP as well since the config and the strategy are entangled
-sqft_per_job_telecommute_file: "sqft_per_job_adjusters_PBA50Plus_NP.csv"
+sqft_per_job_telecommute_file: "sqft_per_job_adjusters_PBA50_NP.csv"
 
 
 # ACCESSORY DWELLING UNIT POLICY
