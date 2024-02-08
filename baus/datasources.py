@@ -66,14 +66,16 @@ def transition_relocation_settings():
 
 
 @orca.injectable('profit_adjustment_strategies', cache=True)
-def profit_adjustment_strategies():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/profit_adjustment_strategies.yaml")) as f:
+def profit_adjustment_strategies(run_setup):
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies", 
+                           run_setup["profit_adjustment_strategies_file"])) as f:
         return yaml.load(f)
 
 
 @orca.injectable('account_strategies', cache=True)
-def account_strategies():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/account_strategies.yaml")) as f:
+def account_strategies(run_setup):
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies", 
+                           run_setup["account_strategies_file"])) as f:
         return yaml.load(f)
 
 
@@ -108,8 +110,9 @@ def development_caps_strategy():
 
 
 @orca.injectable('inclusionary', cache=True)
-def inclusionary():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/inclusionary.yaml")) as f:
+def inclusionary(run_setup):
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/",
+                           run_setup["inclusionary_strategy_PBA50_FBP.yaml"])) as f:
         return yaml.load(f)
 
 

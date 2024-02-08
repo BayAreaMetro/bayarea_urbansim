@@ -41,14 +41,14 @@ employment_controls_file: "employment_controls_PBA50.csv"
 
 
 # DEVELOPMENT PIPELINE
-development_pipeline_file: "2021_0309_1939_development_projects_PBA50_DBP.csv"
+development_pipeline_file: "2021_0309_1939_development_projects_PBA50_FBP.csv"
 
 
 # SEA LEVEL RISE
 # sea level rise and sea level rise mitigation
 # if sea level rise is activated, there is either no project or scenario-based mitigation
 run_slr: True
-slr_inundation_file: "slr_parcel_inundation_PBA50_DBP.csv"
+slr_inundation_file: "slr_parcel_inundation_PBA50_FBP.csv"
 slr_progression_file: "slr_progression_PBA50.csv"
 
 
@@ -60,7 +60,7 @@ run_eq_mitigation: False
 
 # LOGSUMS
 # the logsum file suffix
-logsum_file: "PBA50_DBP"
+logsum_file: "PBA50_FBP"
 # the travel model years of the logsums 
 logsum_year1: 2035
 logsum_year2: 2050
@@ -84,7 +84,7 @@ parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa
 # ZONING STRATEGY
 # if a scenario is run, it always has a zoningmods file, since
 # no project still uses it to apply a UGB
-zoning_mods_file: "zoning_mods_PBA50_DBP.csv"
+zoning_mods_file: "zoning_mods_PBA50_FBP.csv"
 
 
 # RENTER PROTECTIONS STRATEGY
@@ -96,10 +96,13 @@ run_job_cap_strategy: False
 
 
 # INCLUSIONARY HOUSING STRATEGY
+inclusionary_strategy_file: "inclusionary_strategy_PBA50_FBP.yaml"
 run_inclusionary_strategy: True
 
 
 # LUMP SUM ACCOUNT STRATEGIES
+account_strategies_file: "account_strategies_PBA50_FBP.yaml"
+
 run_obag_strategy: False
 
 run_capital_gains_tax_strategy: False
@@ -130,6 +133,7 @@ run_jobs_housing_fee_strategy: False
 
 
 # PROFITABILITY ADJUSTMENT STRATEGIES
+profit_adjustment_strategy_file: "profit_adjustment_strategies_PBA50_FBP.yaml"
 run_ceqa_streamlining_strategy: False
 
 run_reduce_parking_requirements_strategy: False
@@ -143,13 +147,13 @@ run_land_value_tax_strategy: False
 
 # AFFORDABLE HOUSING PRESERVATION STRATEGY
 run_housing_preservation_strategy: True
+preservation_file: "preservation_PBA50_FBP.yaml"
 
 
 # TELECOMMUTE STRATEGY
 # this has to be turned on for NP as well since the config and the strategy are entangled
 run_telecommute_strategy: True
-# this has to be turned on for NP as well since the config and the strategy are entangled
-sqft_per_job_telecommute_file: "sqft_per_job_adjusters_PBA50Plus_NP.csv"
+sqft_per_job_telecommute_file: "sqft_per_job_adjusters_PBA50_FBP.csv"
 
 
 # ACCESSORY DWELLING UNIT POLICY
