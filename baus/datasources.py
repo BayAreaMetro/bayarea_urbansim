@@ -110,15 +110,15 @@ def development_caps_strategy():
 
 
 @orca.injectable('inclusionary', cache=True)
-def inclusionary(run_setup):
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/",
-                           run_setup["inclusionary_strategy_PBA50_FBP.yaml"])) as f:
+def inclusionary():
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/inclusionary.yaml")) as f:
         return yaml.load(f)
 
 
 @orca.injectable('inclusionary_strategy', cache=True)
-def inclusionary_strategy():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/inclusionary_strategy.yaml")) as f:
+def inclusionary_strategy(run_setup):
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/",
+                           run_setup["inclusionary_strategy_file"])) as f:
         return yaml.load(f)
 
 
