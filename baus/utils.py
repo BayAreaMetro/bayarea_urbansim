@@ -10,7 +10,7 @@ from urbansim.developer.developer import Developer as dev
 import itertools as it
 # for urbanforecast.com visualizer
 if "URBANSIM_SLACK" in os.environ:
-    import boto3
+    #import boto3
     import time
     import requests
     import json
@@ -261,3 +261,59 @@ def subtract_base_year_urban_footprint(run_number):
     sdf.to_csv(
         'runs/run{}_urban_footprint_subtracted_summaries_{}.csv'
         .format(run_number, 2040))
+
+
+def pipeline_filtering(input_pipeline, list_filter_criteria):
+    """Filters a DataFrame of development projects based on specified criteria.
+
+    Args:
+        input_pipeline (pd.DataFrame): The DataFrame containing development projects.
+        filter_criteria (dict): A dictionary where keys are column names and values are tuples
+            containing the comparison operator and the value to compare against.
+
+    Returns:
+        pd.DataFrame: The filtered DataFrame.
+    """
+
+    key_numerics = ['non_residential_sqft', 'residential_units']
+
+    print('Starting length of the pipeline: {:,}'.format(len(input_pipeline)))
+
+    for filter_criteria in list_filter_criteria:
+        filter_components = []
+        for key, operator_value in filter_criteria.items():
+            if not key == 'name':
+                value = operator_value['value']
+                operator = operator_value['operator']
+                # Generate query expression list from components
+                lst_conditions = [
+                    f"{key}{operator}" +
+                    f'"{value}"' if isinstance(
+                        value, str) else f"{key}{operator}{value}"
+                ]
+
+                # Generate query string from query list
+                str_conditions = "".join(lst_conditions)
+                filter_components.append(str_conditions)
+
+        # Concatenate component filters
+        str_full_query = " & ".join(filter_components)
+
+        # Create mask of matching records from component filters - to drop
+        drop_mask = input_pipeline.eval(str_full_query)
+
+        if len(drop_mask.value_counts()) > 1:
+            drop_summary = input_pipeline[drop_mask][key_numerics].sum()
+            series_string = f"\tRecords Lost: {'; '.join([f'{key}: {value:,.0f}' for key, value in drop_summary.items()])}"
+
+            print(
+                f'Applying filter: `{str_full_query}`\n',
+                f'\tRemoving {drop_mask.value_counts()[True]} records from pipeline\n',
+                #f'\tRecords lost:\n\t{input_pipeline[drop_mask][key_numerics].sum()}',
+                series_string)
+
+        else:
+            print('Filters match no records. Keeping all pipeline records.')
+
+    # Drop records based on the mask
+    return input_pipeline[~drop_mask]

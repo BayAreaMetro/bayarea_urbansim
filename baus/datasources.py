@@ -8,7 +8,7 @@ from urbansim_defaults import utils
 from urbansim.utils import misc
 import orca
 from baus import preprocessing
-from baus.utils import geom_id_to_parcel_id, parcel_id_to_geom_id
+from baus.utils import geom_id_to_parcel_id, parcel_id_to_geom_id, pipeline_filtering
 from baus.utils import nearest_neighbor
 import yaml
 
@@ -73,6 +73,11 @@ def paths():
     with open(os.path.join(misc.configs_dir(), "paths.yaml")) as f:
         return yaml.load(f)
 
+
+@orca.injectable('pipeline_filters', cache=True)
+def pipeline_filters():
+    with open(os.path.join(misc.configs_dir(), "adjusters/pipeline_filters.yaml")) as f:
+        return yaml.load(f)
 
 @orca.injectable('accessibility_settings', cache=True)
 def accessibility_settings():
@@ -632,10 +637,21 @@ def reprocess_dev_projects(df):
 
 
 # shared between demolish and build tables below
-def get_dev_projects_table(parcels):
+def get_dev_projects_table(parcels, run_setup):
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
                      "basis_inputs/parcels_buildings_agents/2021_0309_1939_development_projects.csv"), 
                      dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
+
+    # do any pre-filtering
+    print('Records in pipeline table - pre-filter: ',df.shape[0])
+    if run_setup['use_pipeline_filters']:
+        
+        # return a list of dicts, where dicts have column key - value criteria
+        filter_criteria = orca.get_injectable('pipeline_filters')['filters']
+        # pipeline filtering function turns dicts into query strings and drops records accordingly
+        df = pipeline_filtering(df, filter_criteria)
+        print('Records in pipeline table - post-filter: ',df.shape[0])
+
     df = reprocess_dev_projects(df)
     orca.add_injectable("devproj_len", len(df))
 
@@ -657,16 +673,16 @@ def get_dev_projects_table(parcels):
 
 
 @orca.table(cache=True)
-def demolish_events(parcels):
-    df = get_dev_projects_table(parcels)
+def demolish_events(parcels, run_setup):
+    df = get_dev_projects_table(parcels, run_setup)
 
     # keep demolish and build records
     return df[df.action.isin(["demolish", "build"])]
 
 
 @orca.table(cache=True)
-def development_projects(parcels, mapping):
-    df = get_dev_projects_table(parcels)
+def development_projects(parcels, mapping, run_setup):
+    df = get_dev_projects_table(parcels, run_setup)
 
     for col in [
             'residential_sqft', 'residential_price', 'non_residential_rent']:
@@ -779,14 +795,18 @@ def residential_vacancy_rate_mods():
 # the following overrides employment_controls
 # table defined in urbansim_defaults
 @orca.table(cache=True)
-def employment_controls(employment_controls_unstacked):
+def employment_controls(employment_controls_unstacked,mapping):
     df = employment_controls_unstacked.to_frame()
     # rename to match legacy table
-    df.columns = [1, 2, 3, 4, 5, 6]
+    # ao: dangerous if ordering changes. Use explicit mapping instead
+    #df.columns = [1, 2, 3, 4, 5, 6]
+    
     # stack and fill in columns
     df = df.stack().reset_index().set_index('year')
     # rename to match legacy table
-    df.columns = ['empsix_id', 'number_of_jobs']
+    df.columns = ['empsix', 'number_of_jobs']
+    df['empsix_id'] = df.empsix.map(mapping['empsix_name_to_id'])
+    df = df[['empsix_id','number_of_jobs']]
     return df
 
 

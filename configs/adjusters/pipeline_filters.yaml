@@ -1,0 +1,28 @@
+filters:
+  - name: "San Francisco"
+    county:
+      operator: "=="
+      value: "San Francisco"
+    source:
+      operator: "=="
+      value: "cs"
+    year_built:
+      operator: ">="
+      value: 2025
+    building_type:
+      operator: "=="
+      value: "OF"
+  - name: "San Mateo"
+    county:
+      operator: "=="
+      value: "San Mateo"
+    source:
+      operator: "=="
+      value: "cs"
+    year_built:
+      operator: ">="
+      value: 2025
+    building_type:
+      operator: "=="
+      value: "OF"
+  
