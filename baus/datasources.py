@@ -492,7 +492,7 @@ def taz(zones):
 
 
 @orca.table(cache=True)
-def parcels_geography(parcels, run_setup):
+def parcels_geography(parcels, run_setup, developer_settings):
 
     file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/", run_setup["parcels_geography_file"])
     df = pd.read_csv(file, dtype={'PARCEL_ID': np.int64, 'geom_id': np.int64, 'jurisdiction_id': np.int64},index_col="geom_id")
@@ -517,6 +517,9 @@ def parcels_geography(parcels, run_setup):
         # which corresponds to PBA50 inputs so preserving it for now
         df[col] = df[col].astype(str).str.lower()
         orca.add_column('parcels', col, df[col].reindex(parcels.index))
+
+    # also add the columns to the feasibility "pass_through" columns
+    developer_settings['feasibility']['pass_through'].extend(run_setup["parcels_geography_cols"])
 
     try: 
         # PBA50 parcels_geography input has the zoningmodcat column
