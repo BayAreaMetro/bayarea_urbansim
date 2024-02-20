@@ -515,7 +515,7 @@ def parcels_geography(parcels, run_setup):
     for col in run_setup["parcels_geography_cols"]:
         # PBA50 parcels_geography code used this lower case line
         # which corresponds to PBA50 inputs so preserving it for now
-        df[col] = df[col].str.lower()
+        df[col] = df[col].astype(str).str.lower()
         orca.add_column('parcels', col, df[col].reindex(parcels.index))
 
     try: 
