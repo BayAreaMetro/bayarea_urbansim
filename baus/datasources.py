@@ -332,7 +332,7 @@ def zoning_lookup(run_setup):
 
 
 @orca.table(cache=True)
-def zoning_existing(parcels, zoning_lookup):
+def zoning_existing(parcels, zoning_lookup, run_setup):
 
     file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/", run_setup["zoning_file"])
     print('Version of zoning_parcels: {}'.format(file))
