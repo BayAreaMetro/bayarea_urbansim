@@ -282,9 +282,13 @@ def pipeline_filtering(input_pipeline, list_filter_criteria):
     for filter_criteria in list_filter_criteria:
         filter_components = []
         for key, operator_value in filter_criteria.items():
+            
+            # name key is just matched to a county identifier so no conditions found in values there
             if not key == 'name':
+                 
                 value = operator_value['value']
                 operator = operator_value['operator']
+                
                 # Generate query expression list from components
                 lst_conditions = [
                     f"{key}{operator}" +
@@ -311,9 +315,12 @@ def pipeline_filtering(input_pipeline, list_filter_criteria):
                 f'\tRemoving {drop_mask.value_counts()[True]} records from pipeline\n',
                 #f'\tRecords lost:\n\t{input_pipeline[drop_mask][key_numerics].sum()}',
                 series_string)
+            
+            # applying to source data
+            input_pipeline = input_pipeline[~drop_mask]
 
         else:
             print('Filters match no records. Keeping all pipeline records.')
 
-    # Drop records based on the mask
-    return input_pipeline[~drop_mask]
+    # Return resulting pipeline
+    return input_pipeline
