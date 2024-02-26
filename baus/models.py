@@ -24,11 +24,24 @@ def elcm_simulate(jobs, buildings, aggregations):
     """
     testing docstring documentation for automated documentation creation
     """
+    
     buildings.local["non_residential_rent"] = \
         buildings.local.non_residential_rent.fillna(0)
-    return utils.lcm_simulate("location_choice/elcm.yaml", jobs, buildings, aggregations,
+    
+    spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
+    
+    print(f'Simulating elcm with {spec_path}')
+    print('Agents:')
+    print('\tJobs:',jobs.to_frame().shape[0])
+    print('\tBuildings:',buildings.to_frame().shape[0])
+    print('Office rents - before estimation', buildings.to_frame().query('building_type=="OF"').non_residential_rent.describe())
+
+    elcm = utils.lcm_simulate(spec_path, 
+                              jobs, buildings, aggregations,
                               "building_id", "job_spaces",
                               "vacant_job_spaces", cast=True)
+    return elcm
+
 
 
 @orca.step()
