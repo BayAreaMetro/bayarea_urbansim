@@ -393,6 +393,8 @@ def form_to_btype_func(building):
     # precise mapping of form to building type for residential
     if form is None or form == "residential":
         if dua < 16:
+            # this will lead to counterintuitive results for, say, larger parcels of several acres
+            # where dozens of units would be classified as HS all the same
             return "HS"
         elif dua < 32:
             return "HT"
@@ -962,7 +964,7 @@ def net(accessibility_settings):
 
 @orca.step()
 def local_pois(accessibility_settings):
-    # because of the aforementioned limit of one netowrk at a time for the
+    # because of the aforementioned limit of one network at a time for the
     # POIS, as well as the large amount of memory used, this is now a
     # preprocessing step
     n = make_network(
@@ -993,14 +995,14 @@ def local_pois(accessibility_settings):
 @orca.step()
 def neighborhood_vars(net):
     """
-    Applies pandana to create 226060 network nodes (focusing on pedestrian level), deviding the region into 226060 neighborhoods; 
+    Applies pandana to create 226060 network nodes (focusing on pedestrian level), dividing the region into 226060 neighborhoods; 
     key variables that reflect neighborhood characteristics (existing units, hh, income, jobs, etc.) are gathered from various tables
     (households, buildings, jobs) following certain rules defined in "neighborhood_vars.yaml", e.g. referencing radii (e.g. 1500, 3000),
     aggregation method (75%, average, median, etc.), filter (e.g. residential vs non-residential buildings).
     
     The pandana network is based on the base year OSM network from the H5 file. 
-    How pandana works: quickly moves along the network, uses the H5 file has openstreet esiting year network to run a mini-travel model
-    (focusing on pedestrian level), get job conuts, etc. along the network.
+    How pandana works: quickly moves along the network, uses the H5 file has openstreet existing year network to run a mini-travel model
+    (focusing on pedestrian level), get job counts, etc. along the network.
     """
     nodes = networks.from_yaml(net["walk"], "accessibility/neighborhood_vars.yaml")
     nodes = nodes.replace(-np.inf, np.nan)
