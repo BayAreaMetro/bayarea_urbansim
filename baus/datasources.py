@@ -674,6 +674,7 @@ def get_dev_projects_table(parcels, run_setup):
 
 @orca.table(cache=True)
 def demolish_events(parcels, run_setup):
+    print('Preparing demolish events')
     df = get_dev_projects_table(parcels, run_setup)
 
     # keep demolish and build records
@@ -682,6 +683,8 @@ def demolish_events(parcels, run_setup):
 
 @orca.table(cache=True)
 def development_projects(parcels, mapping, run_setup):
+    print('Preparing development events')
+    
     df = get_dev_projects_table(parcels, run_setup)
 
     for col in [
