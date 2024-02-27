@@ -323,18 +323,18 @@ def costar(store, parcels):
 
 
 @orca.table(cache=True)
-def zoning_lookup():
+def zoning_lookup(run_setup):
     
-    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/2020_11_05_zoning_lookup_hybrid_pba50.csv")
+    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/", run_setup["zoning_lookup_file"])
     print('Version of zoning_lookup: {}'.format(file))
     
     return pd.read_csv(file, dtype={'id': np.int64}, index_col='id')
 
 
 @orca.table(cache=True)
-def zoning_existing(parcels, zoning_lookup):
+def zoning_existing(parcels, zoning_lookup, run_setup):
 
-    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/2020_11_05_zoning_parcels_hybrid_pba50.csv")
+    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/", run_setup["zoning_file"])
     print('Version of zoning_parcels: {}'.format(file))
 
     df = pd.read_csv(file, dtype={'geom_id':   np.int64, 'PARCEL_ID': np.int64, 'zoning_id': np.int64}, index_col="geom_id")
@@ -492,7 +492,7 @@ def taz(zones):
 
 
 @orca.table(cache=True)
-def parcels_geography(parcels, run_setup):
+def parcels_geography(parcels, run_setup, developer_settings):
 
     file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/", run_setup["parcels_geography_file"])
     df = pd.read_csv(file, dtype={'PARCEL_ID': np.int64, 'geom_id': np.int64, 'jurisdiction_id': np.int64},index_col="geom_id")
@@ -517,6 +517,9 @@ def parcels_geography(parcels, run_setup):
         # which corresponds to PBA50 inputs so preserving it for now
         df[col] = df[col].astype(str).str.lower()
         orca.add_column('parcels', col, df[col].reindex(parcels.index))
+
+    # also add the columns to the feasibility "pass_through" columns
+    developer_settings['feasibility']['pass_through'].extend(run_setup["parcels_geography_cols"])
 
     try: 
         # PBA50 parcels_geography input has the zoningmodcat column

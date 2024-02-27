@@ -134,7 +134,7 @@ run_jobs_housing_fee_strategy: False
 
 
 # PROFITABILITY ADJUSTMENT STRATEGIES
-profit_adjustment_strategy_file:
+profit_adjustment_strategies_file: "profit_adjustment_strategies_PBA50_NP.yaml"
 run_ceqa_streamlining_strategy: False
 
 run_reduce_parking_requirements_strategy: False
