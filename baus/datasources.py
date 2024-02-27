@@ -525,8 +525,8 @@ def parcels_geography(parcels, run_setup):
     except KeyError:
         df['zoningmodcat'] = ''
         for col in run_setup["zoningmodcat_cols"]:
-            df['zoningmodcat'] = df['zoningmodcat'] + df[col].fillna('NA')
-        print("{} zoningmodcat format is".format(df['zoningmodcat']))        
+            df['zoningmodcat'] = df['zoningmodcat'] + df[col]
+        print("{} zoningmodcat format is".format(df['zoningmodcat']))       
 
     return df
 
