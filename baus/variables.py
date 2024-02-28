@@ -469,57 +469,7 @@ def fees_per_sqft(parcels, run_setup):
         s = pd.Series(0, index=parcels.index)
         s += parcels.vmt_com_fees
         return s
-
-
-@orca.column('parcels', cache=True)
-def pda_id(parcels, parcels_geography):
-    return parcels_geography.pda_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def cat_id(parcels, parcels_geography):
-    return parcels_geography.cat_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def tra_id(parcels, parcels_geography):
-    return parcels_geography.tra_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_tra(parcels, parcels_geography):
-    return parcels_geography.juris_tra.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def sesit_id(parcels, parcels_geography):
-    return parcels_geography.sesit_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_sesit(parcels, parcels_geography):
-    return parcels_geography.juris_sesit.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def ppa_id(parcels, parcels_geography):
-    return parcels_geography.ppa_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_ppa(parcels, parcels_geography):
-    return parcels_geography.juris_ppa.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def coc_id(parcels, parcels_geography):
-    return parcels_geography.coc_id.reindex(parcels.index)
-
-
-@orca.column('parcels', cache=True)
-def juris_coc(parcels, parcels_geography):
-    return parcels_geography.juris_coc.reindex(parcels.index)
-
+    
 
 @orca.column('parcels', cache=True)
 def superdistrict(parcels, taz_geography):
@@ -690,15 +640,10 @@ def newest_building(parcels, buildings):
 # this returns the set of parcels which have been marked as
 # disapproved by "the button" - only equals true when disallowed
 @orca.column('parcels', cache=True)
-def manual_nodev(parcel_rejections, parcels):
-    df1 = parcels.to_frame(['x', 'y']).dropna(subset=['x', 'y'])
-    df2 = parcel_rejections.to_frame(['lng', 'lat'])
-    df2 = df2[parcel_rejections.state == "denied"]
-    df2 = df2[["lng", "lat"]]  # need to change the order
-    ind = nearest_neighbor(df1, df2)
-
-    s = pd.Series(False, parcels.index)
-    s.loc[ind.flatten()] = True
+def manual_nodev(parcel_rejections):
+    df = parcel_rejections.to_frame()
+    df = df[df.state == "denied"]
+    s = df.parcelId
     return s.astype('int')
 
 

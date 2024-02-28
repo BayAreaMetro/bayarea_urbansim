@@ -23,7 +23,7 @@ import yaml
 # this is similar to the code for settings in urbansim_defaults
 @orca.injectable('run_setup', cache=True)
 def run_setup():
-    with open("../run_setup.yaml") as f:
+    with open("run_setup.yaml") as f:
         return yaml.load(f)
 
 
@@ -208,7 +208,7 @@ def initial_year():
 
 @orca.injectable()
 def initial_summary_year():
-    return 2015
+    return 2020
 
 
 @orca.injectable()
@@ -222,8 +222,9 @@ def final_year():
 
 
 @orca.injectable(cache=True)
-def store(paths):
-    return pd.HDFStore(os.path.join(orca.get_injectable("inputs_dir"), paths["store"]))
+def store(run_name):
+    h5_path = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/2015_09_01_bayarea_v3.h5")
+    return pd.HDFStore(h5_path, mode='r')
 
 
 @orca.injectable(cache=True)
@@ -513,10 +514,9 @@ def taz(zones):
 
 
 @orca.table(cache=True)
-def parcels_geography(parcels):
+def parcels_geography(parcels, run_setup):
 
-    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/2021_02_25_parcels_geography.csv")
-    print('Versin of parcels_geography: {}'.format(file))
+    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/", run_setup["parcels_geography_file"])
     df = pd.read_csv(file, dtype={'PARCEL_ID': np.int64, 'geom_id': np.int64, 'jurisdiction_id': np.int64},index_col="geom_id")
     df = geom_id_to_parcel_id(df, parcels)
 
@@ -533,18 +533,10 @@ def parcels_geography(parcels):
 
     # assert no empty juris values
     assert True not in df.juris_name.isnull().value_counts()
-
-    df["pda_id"] = df.pda_id.str.lower()
-    df["gg_id"] = df.gg_id.str.lower()
-    df["tra_id"] = df.tra_id.str.lower()
-    df['juris_tra'] = df.juris + '-' + df.tra_id
-    df["ppa_id"] = df.ppa_id.str.lower()
-    df['juris_ppa'] = df.juris + '-' + df.ppa_id
-    df["sesit_id"] = df.sesit_id.str.lower()
-    df['juris_sesit'] = df.juris + '-' + df.sesit_id
-
-    df['coc_id'] = df.coc_id.str.lower()
-    df['juris_coc'] = df.juris + '-' + df.coc_id
+    
+    for col in run_setup["parcels_geography_cols"]:
+        df[col] = df[col].str.lower()
+        orca.add_column('parcels', col, df[col].reindex(parcels.index))
 
     return df
 
@@ -618,7 +610,7 @@ def manual_edits():
 @orca.table(cache=True)
 def parcel_rejections():
     url = "https://forecast-feedback.firebaseio.com/parcelResults.json"
-    return pd.read_json(url, orient="index").set_index("geomId")
+    return pd.read_json(url, orient="index").reset_index()
 
 
 def reprocess_dev_projects(df):
@@ -638,21 +630,24 @@ def reprocess_dev_projects(df):
 
 # shared between demolish and build tables below
 def get_dev_projects_table(parcels, run_setup):
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                     "basis_inputs/parcels_buildings_agents/2021_0309_1939_development_projects.csv"), 
+    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents",
+                     run_setup["development_pipeline_file"]), 
                      dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
-
-    # do any pre-filtering
-    print('Records in pipeline table - pre-filter: ',df.shape[0])
-    if run_setup['use_pipeline_filters']:
-        
-        # return a list of dicts, where dicts have column key - value criteria
-        filter_criteria = orca.get_injectable('pipeline_filters')['filters']
-        # pipeline filtering function turns dicts into query strings and drops records accordingly
-        df = pipeline_filtering(df, filter_criteria)
-        print('Records in pipeline table - post-filter: ',df.shape[0])
-
     df = reprocess_dev_projects(df)
+
+    # Optionally - if flag set to use housing element pipeline, load that and append:
+    if run_setup.get('use_housing_element_pipeline',False):
+        
+
+        he_pipe = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
+                                           "basis_inputs/parcels_buildings_agents",
+                                           "he_pipeline_updated_dec2023.csv"),
+                                           dtype={'parcel_id': np.int64})
+        he_pipe = he_pipe.rename(columns={'parcel_id':'PARCEL_ID'})
+
+        he_pipe = he_pipe['geom_id'] = parcel_id_to_geom_id(he_pipe.PARCEL_ID)
+        df = pd.concat([df,he_pipe],axis=0)
+
     orca.add_injectable("devproj_len", len(df))
 
     df = df.dropna(subset=['geom_id'])
@@ -728,6 +723,7 @@ def development_projects(parcels, mapping, run_setup):
     return df
 
 
+
 def print_error_if_not_available(store, table):
     if table not in store:
         raise Exception(
@@ -757,8 +753,9 @@ def residential_units(store):
 
 
 @orca.table(cache=True)
-def household_controls_unstacked():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls/household_controls.csv"), index_col='year')
+def household_controls_unstacked(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls",
+                       run_setup["household_controls_file"]), index_col='year')
 
 
 @orca.table(cache=True)

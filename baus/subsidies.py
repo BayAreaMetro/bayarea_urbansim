@@ -55,8 +55,12 @@ def coffer(account_strategies):
 
 
 @orca.step()
-def preserve_affordable(year, base_year, preservation, residential_units, taz_geography, buildings, parcels_geography):
+def preserve_affordable(year, base_year, preservation, residential_units, taz_geography,
+                        buildings, parcels_geography, initial_summary_year):
 
+    if not year > initial_summary_year:
+        return
+    
     # join several geography columns to units table so that we can apply units
     res_units = residential_units.to_frame()
     bldgs = buildings.to_frame()
@@ -64,7 +68,7 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
     taz_geog = taz_geography.to_frame()
 
     res_units = res_units.merge(bldgs[['parcel_id']], left_on='building_id', right_index=True, how='left').\
-        merge(parcels_geog[['gg_id', 'sesit_id', 'tra_id', 'juris']], left_on='parcel_id', right_index=True, how='left').\
+        merge(parcels_geog, left_on='parcel_id', right_index=True, how='left').\
         merge(taz_geog, left_on='zone_id', right_index=True, how='left')
 
     s = preservation["housing_preservation"]["settings"]
