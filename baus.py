@@ -414,12 +414,24 @@ print("pandana version: %s" % pandana.__version__)
 print("numpy version: %s" % np.__version__)
 print("pandas version: %s" % pd.__version__)
 
-
-if SLACK and MODE == "simulation":
-    slack_start_message = f'Starting simulation {run_name} on host {host}'
+if SLACK and MODE == "estimation":
+    slack_start_message = f'Starting estimation {run_name} on host {host}'
     try:
         # For first slack channel posting of a run, catch any auth errors
-        response = client.chat_postMessage(channel=slack_channel,text=slack_start_message)
+        init_response = client.chat_postMessage(channel=slack_channel,
+                                                text=slack_start_message)
+    except SlackApiError as e:
+        assert e.response["ok"] is False
+        assert e.response["error"]  
+        print(f"Slack Channel Connection Error: {e.response['error']}")
+
+if SLACK and MODE == "simulation":
+    slack_start_message = f'Starting simulation {run_name} on host {host}\nOutput written to: {run_setup["outputs_dir"]}'
+    
+    try:
+        # For first slack channel posting of a run, catch any auth errors
+        init_response = client.chat_postMessage(channel=slack_channel,
+                                           text=slack_start_message)
     except SlackApiError as e:
         assert e.response["ok"] is False
         assert e.response["error"]  
@@ -437,7 +449,9 @@ except Exception as e:
 
     if SLACK and MODE == "simulation":
         slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}, from {trace}'
-        response = client.chat_postMessage(channel=slack_channel,text=slack_fail_message)
+        response = client.chat_postMessage(channel=slack_channel,
+                                           thread_ts=init_response.data['ts'],
+                                           text=slack_fail_message)
 
     else:
         raise e
@@ -445,7 +459,9 @@ except Exception as e:
 
 if SLACK and MODE == "simulation":
     slack_completion_message = f'Completed simulation {run_name} on host {host}'
-    response = client.chat_postMessage(channel=slack_channel,text=slack_completion_message)
+    response = client.chat_postMessage(channel=slack_channel,
+                                       thread_ts=init_response.data['ts'],
+                                       text=slack_completion_message)
 
                                                                                             
 print("Finished", time.ctime())         
