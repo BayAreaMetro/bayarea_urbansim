@@ -44,6 +44,11 @@ employment_controls_file: "employment_controls_PBA50.csv"
 development_pipeline_file: "2021_0309_1939_development_projects_PBA50_FBP.csv"
 
 
+# ZONING FILES
+zoning_lookup_file: "2020_11_05_zoning_lookup_hybrid_pba50.csv"
+zoning_file: "2020_11_05_zoning_parcels_hybrid_pba50.csv"
+
+
 # SEA LEVEL RISE
 # sea level rise and sea level rise mitigation
 # if sea level rise is activated, there is either no project or scenario-based mitigation
