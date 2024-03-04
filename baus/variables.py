@@ -149,19 +149,30 @@ def vacant_res_units(buildings, households):
 @orca.column('buildings', cache=True)
 def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telecommute_sqft_per_job_adjusters, taz_geography, base_year, year, run_setup):
     
-    # base series (building-level)
+    # get building types list
+    mapping = orca.get_injectable("mapping")
+    form_to_btype = mapping["form_to_btype"]
+
+    # get non-res list, exclusive of office
+    nonres_list = form_to_btype['select_non_residential']
+    nonres_list = [i for i in nonres_list if i!="OF"]
     
+    # base series (building-level)
     sqft_per_job = buildings.building_type.fillna("OF").map(building_sqft_per_job)
     
     # keep a default series
     sqft_per_job_adj = sqft_per_job.copy() 
         
-    print('Describing sqft_per_job factors - before adjustment...')
+    print('Describing sqft_per_job factors - before adjustment')
+    print('\tAcross building types')
     print(sqft_per_job.describe())
 
+    # create masks
     office_mask = buildings.building_type=="OF"
+    other_nonres_mask = buildings.building_type.isin(nonres_list)
 
-    print('Office job factors before:\n', sqft_per_job.loc[office_mask].describe())
+    print('\tOffice buildings alone')
+    print(sqft_per_job.loc[office_mask].describe())
 
     building_to_superdist_map = misc.reindex(taz_geography.superdistrict, buildings.zone_id)
 
@@ -169,13 +180,12 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
     # this is a simple multiply so a number 1.1 increases the sqft per job by 10% and .9 decreases it by 10%
 
     # if the telecommute strategy is enabled, instead adjust future year sqft_per_job rates with the year-specific factor
-    if run_setup["run_telecommute_strategy"] and year != base_year:
+    if run_setup.get("run_telecommute_strategy",False) and year != base_year:
         sqft_per_job_adj = sqft_per_job * building_to_superdist_map.map(telecommute_sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
 
 	# if telecommute strategy flag is disabled, AND if adjusters are enabled, adjust sqft_per_job rates for *all* years
-    elif run_setup["sqft_per_job_adjusters"]:
+    elif run_setup.get("sqft_per_job_adjusters",True):
         print('Calculating sqft_per_job_adjusters...')
-        
         
         # Some adjuster files come with time-varying values (with a year embedded in the column name) - others are just one variable.
         # Check for single year variable *without* a year as part of the string.
@@ -186,33 +196,54 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
             sqft_per_job_adj.loc[office_mask] = (sqft_per_job_adj.loc[office_mask] 
                 * building_to_superdist_map.loc[office_mask].map(sqft_per_job_adjusters['sqft_per_job_factor']))
 
+            # Currently testing this - applying adjusters to non-office building stock 
+            # mostly not practically useful to have the building type segmentation since 
+            # the same adjusters are applied to both segments - but we could move to separation
+            # TODO: consider just making a frame with building type or form x time density factors
+
+            if not run_setup.get('job_density_adj_office_only',False):
+                print('Applying adjusters to non-office buildings, time invariant')
+                sqft_per_job_adj.loc[other_nonres_mask] = (sqft_per_job_adj.loc[other_nonres_mask] 
+                    * building_to_superdist_map.loc[other_nonres_mask].map(sqft_per_job_adjusters['sqft_per_job_factor']))
+
         # Alternatively - for multi-year variable adjuster files, check for the
         # existence of the current run year in the adjuster file - 
         # that effectively allows for the adjuster file to contain arbitrary years and only adjust those
         # if any of the adjuster variables contains the current simulation year:
         elif sqft_per_job_adjusters.local.columns.str.contains(str(year)).any():
-            print('\tMulti-year adjusters instruction found')
-            print(f'Adjusting constants for year {year}')
+            print(f'\tMulti-year adjusters instruction found - adjusting constants for year {year}')
         
             # Then get that year's adjusters
             
-            # Jan 2024: adjust office portion only
+            # adjust office portion only
             sqft_per_job_adj.loc[office_mask] = (sqft_per_job_adj.loc[office_mask] 
                 * building_to_superdist_map.loc[office_mask].map(sqft_per_job_adjusters[f'sqft_per_job_factor_{year}']))
 
-            print('Describing sqft_per_job factors - after adjustment...')
+            print('Describing sqft_per_job factors - after adjustment')
+            print('\tAcross building types')
+    
             print(sqft_per_job_adj.describe())
 
-            print('Office job factors after:\n', sqft_per_job_adj.loc[office_mask].describe())
+            print('\tOffice buildings alone')
+    
+            print(sqft_per_job_adj.loc[office_mask].describe())
 
             #TODO: would any non-office adjusters per sqft be prudent here?
 
+            # Test just applying to second "half" of building stock - use the 2010 factor, ignoring the time factor
+            # but using the sd-specicic cross-sectional difference signal
+            if not run_setup.get('job_density_adj_office_only',False):
+                print('Applying adjusters to non-office buildings, 2010 levels')
+                sqft_per_job_adj.loc[other_nonres_mask] = (sqft_per_job_adj.loc[other_nonres_mask] 
+                    * building_to_superdist_map.loc[other_nonres_mask].map(sqft_per_job_adjusters['sqft_per_job_factor_2010']))
+
+
         else:
             # if no adjustmers found for this particular year, keep the original values
-            print('\tNo adjusters found for this year, but there probably should be: Using regional constants')
+            print(f'No adjusters found for {year}; reverting to regional constants')
     else:
         # if no adjustments, just keep the original values
-        print('\tNo adjustments requested from yaml: Using regional constants')
+        print('No adjustments requested from yaml: Using regional constants')
 
     
     return sqft_per_job_adj
