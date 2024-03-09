@@ -242,8 +242,7 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
         # time-invariant sqft_per_job_factor
         elif 'sqft_per_job_factor' in sqft_per_job_adjusters.local.columns:
             print('\tSingle year adjuster instruction found')
-            sqft_per_job_adj.loc[office_mask] =
-            (sqft_per_job_adj.loc[office_mask]
+            sqft_per_job_adj.loc[office_mask] = (sqft_per_job_adj.loc[office_mask]
              * building_to_superdist_map.loc[office_mask]
              .map(sqft_per_job_adjusters['sqft_per_job_factor']))
 
