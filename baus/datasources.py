@@ -658,6 +658,17 @@ def get_dev_projects_table(parcels, run_setup):
     df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents",
                      run_setup["development_pipeline_file"]), 
                      dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
+
+    # do any pre-filtering
+    print('Records in pipeline table - pre-filter: ',df.shape[0])
+    if run_setup['use_pipeline_filters']:
+        
+        # return a list of dicts, where dicts have column key - value criteria
+        filter_criteria = orca.get_injectable('pipeline_filters')['filters']
+        # pipeline filtering function turns dicts into query strings and drops records accordingly
+        df = pipeline_filtering(df, filter_criteria)
+        print('Records in pipeline table - post-filter: ',df.shape[0])
+
     df = reprocess_dev_projects(df)
 
     # Optionally - if flag set to use housing element pipeline, load that and append:
