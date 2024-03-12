@@ -129,9 +129,8 @@ def geographic_growth_summary(year, final_year, initial_summary_year, run_name):
                                                      geog_growth[col+"_"+str(initial_summary_year)] - 1) * 100, 2))
 
             # percent geography's growth of households/jobs/etc. of all regional growth in households/jobs/etc.
-            geog_growth[col+'_pct_of_regional_growth'] = (round(((geog_growth[col+"_growth"]) / 
-                                                                 (geog_growth[col+"_"+str(final_year)].sum() - 
-                                                                  geog_growth[col+"_"+str(initial_summary_year)].sum())) * 100, 2))
+            geog_growth[col+'_pct_of_regional_growth'] = (round(geog_growth[col+"_growth"] / 
+                                                                geog_growth[col+"_growth"].sum()) * 100, 2)
 
             # change in the regional share of households/jobs/etc. in the geography      
             geog_growth[col+"_"+str(initial_summary_year)+"_regional_share"] = (round(geog_growth[col+"_"+str(initial_summary_year)] / 

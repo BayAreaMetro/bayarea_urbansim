@@ -391,9 +391,8 @@ def taz1_growth_summary(year, initial_summary_year, final_year, run_name, buildi
                                                   taz_summary[col+"_"+str(initial_summary_year)] - 1) * 100, 2))
 
         # percent geography's growth of households/jobs/etc. of all regional growth in households/jobs/etc.
-        taz_summary[col+'_pct_of_regional_growth'] = (round(((taz_summary[col+"_growth"]) / 
-                                                              (taz_summary[col+"_"+str(final_year)].sum() - 
-                                                              taz_summary[col+"_"+str(initial_summary_year)].sum())) * 100, 2))
+        taz_summary[col+'_pct_of_regional_growth'] = (round(taz_summary[col+"_growth"] / 
+                                                            taz_summary[col+"_growth"].sum()) * 100, 2)
         
         taz_summary[col+"_"+str(initial_summary_year)+"_share"] = (round(taz_summary[col+"_"+str(initial_summary_year)] / 
                                                                          taz_summary[col+"_"+str(initial_summary_year)].sum(), 2))
