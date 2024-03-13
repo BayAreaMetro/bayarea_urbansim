@@ -120,16 +120,15 @@ def deed_restricted_units_growth_summary(year, initial_summary_year, final_year,
             dr_growth[col+'_growth'] = dr_growth[col+"_"+str(final_year)] - dr_growth[col+"_"+str(initial_summary_year)]
 
             # percent geography's growth of households/jobs/etc. of all regional growth in households/jobs/etc.
-            dr_growth[col+'_pct_of_regional_growth'] = (round(dr_growth[col+"_growth"] / 
-                                                              dr_growth[col+"_growth"].sum()) * 100, 2)
+            dr_growth[col+'_pct_of_regional_growth'] = round(dr_growth[col+"_growth"] / dr_growth[col+"_growth"].sum() * 100, 2)
 
             # change in the regional share of units in the geography 
             dr_growth[col+"_"+str(initial_summary_year)+"_share"] = (round(dr_growth[col+"_"+str(initial_summary_year)] / 
                                                                            dr_growth[col+"_"+str(initial_summary_year)].sum(), 2))
             dr_growth[col+"_"+str(final_year)+"_share"] = (round(dr_growth[col+"_"+str(final_year)] / 
-                                                                 dr_growth[col+"_"+str(final_year)].sum(), 2)   )         
-            dr_growth[col+'_share_change'] =  (dr_growth[col+"_"+str(final_year)+"_share"] - 
-                                               dr_growth[col+"_"+str(initial_summary_year)+"_share"])
+                                                                 dr_growth[col+"_"+str(final_year)].sum(), 2))         
+            dr_growth[col+'_share_change'] = (dr_growth[col+"_"+str(final_year)+"_share"] - 
+                                              dr_growth[col+"_"+str(initial_summary_year)+"_share"])
         
         dr_growth = dr_growth.fillna(0)
         
