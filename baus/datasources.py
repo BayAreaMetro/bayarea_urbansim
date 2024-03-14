@@ -463,7 +463,11 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
     join_col = 'zoningmodcat'
     print('join_col of zoningmods is {}'.format(join_col))
 
-    return pd.merge(parcels_geography.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('parcel_id')
+    print('length of parcels table before merging the zoning strategy table is {}'.format(len(parcels_geography.to_frame())))
+    pg = pd.merge(parcels_geography.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('parcel_id')
+    print('length of parcels table after merging the zoning strategy table is {} '.format(len(pg)))
+
+    return pg
 
 
 @orca.table(cache=True)
