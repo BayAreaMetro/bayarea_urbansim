@@ -66,14 +66,16 @@ def transition_relocation_settings():
 
 
 @orca.injectable('profit_adjustment_strategies', cache=True)
-def profit_adjustment_strategies():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/profit_adjustment_strategies.yaml")) as f:
+def profit_adjustment_strategies(run_setup):
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies", 
+                           run_setup["profit_adjustment_strategies_file"])) as f:
         return yaml.load(f)
 
 
 @orca.injectable('account_strategies', cache=True)
-def account_strategies():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/account_strategies.yaml")) as f:
+def account_strategies(run_setup):
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies", 
+                           run_setup["account_strategies_file"])) as f:
         return yaml.load(f)
 
 
@@ -114,14 +116,15 @@ def inclusionary():
 
 
 @orca.injectable('inclusionary_strategy', cache=True)
-def inclusionary_strategy():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/inclusionary_strategy.yaml")) as f:
+def inclusionary_strategy(run_setup):
+    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/",
+                           run_setup["inclusionary_strategy_file"])) as f:
         return yaml.load(f)
 
 
 @orca.injectable('preservation', cache=True)
-def preservation():
-    with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/preservation.yaml")) as f:
+def preservation(run_setup):
+    with open(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/', run_setup["preservation_file"])) as f:
         return yaml.load(f)
 
 
@@ -181,8 +184,8 @@ def initial_year():
 
 
 @orca.injectable()
-def initial_summary_year():
-    return 2020
+def initial_summary_year(run_setup):
+    return run_setup["initial_summary_year"]
 
 
 @orca.injectable()
@@ -320,18 +323,18 @@ def costar(store, parcels):
 
 
 @orca.table(cache=True)
-def zoning_lookup():
+def zoning_lookup(run_setup):
     
-    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/2020_11_05_zoning_lookup_hybrid_pba50.csv")
+    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/", run_setup["zoning_lookup_file"])
     print('Version of zoning_lookup: {}'.format(file))
     
     return pd.read_csv(file, dtype={'id': np.int64}, index_col='id')
 
 
 @orca.table(cache=True)
-def zoning_existing(parcels, zoning_lookup):
+def zoning_existing(parcels, zoning_lookup, run_setup):
 
-    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/2020_11_05_zoning_parcels_hybrid_pba50.csv")
+    file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/zoning/", run_setup["zoning_file"])
     print('Version of zoning_parcels: {}'.format(file))
 
     df = pd.read_csv(file, dtype={'geom_id':   np.int64, 'PARCEL_ID': np.int64, 'zoning_id': np.int64}, index_col="geom_id")
@@ -439,9 +442,10 @@ def tm1_tm2_maz_forecast_inputs(tm1_tm2_regional_demographic_forecast):
 
 
 @orca.table(cache=True)
-def zoning_strategy(parcels_geography, mapping):
+def zoning_strategy(parcels_geography, mapping, run_setup):
 
-    strategy_zoning = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/zoning_mods.csv'))
+    strategy_zoning = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/',
+                                               run_setup['zoning_mods_file']))
 
     for k in mapping["building_type_map"].keys():
         strategy_zoning[k] = np.nan
@@ -459,7 +463,11 @@ def zoning_strategy(parcels_geography, mapping):
     join_col = 'zoningmodcat'
     print('join_col of zoningmods is {}'.format(join_col))
 
-    return pd.merge(parcels_geography.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('parcel_id')
+    print('length of parcels table before merging the zoning strategy table is {}'.format(len(parcels_geography.to_frame())))
+    pg = pd.merge(parcels_geography.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('parcel_id')
+    print('length of parcels table after merging the zoning strategy table is {} '.format(len(pg)))
+
+    return pg
 
 
 @orca.table(cache=True)
@@ -488,7 +496,7 @@ def taz(zones):
 
 
 @orca.table(cache=True)
-def parcels_geography(parcels, run_setup):
+def parcels_geography(parcels, run_setup, developer_settings):
 
     file = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/", run_setup["parcels_geography_file"])
     df = pd.read_csv(file, dtype={'PARCEL_ID': np.int64, 'geom_id': np.int64, 'jurisdiction_id': np.int64},index_col="geom_id")
@@ -509,8 +517,23 @@ def parcels_geography(parcels, run_setup):
     assert True not in df.juris_name.isnull().value_counts()
     
     for col in run_setup["parcels_geography_cols"]:
-        df[col] = df[col].str.lower()
+        # PBA50 parcels_geography code used this lower case line
+        # which corresponds to PBA50 inputs so preserving it for now
+        df[col] = df[col].astype(str).str.lower()
         orca.add_column('parcels', col, df[col].reindex(parcels.index))
+
+    # also add the columns to the feasibility "pass_through" columns
+    developer_settings['feasibility']['pass_through'].extend(run_setup["parcels_geography_cols"])
+
+    try: 
+        # PBA50 parcels_geography input has the zoningmodcat column
+        # so preserving it with the try/except logic for now
+        print("{} zoningmodcat format is".format(df['zoningmodcat']))
+    except KeyError:
+        df['zoningmodcat'] = ''
+        for col in run_setup["zoningmodcat_cols"]:
+            df['zoningmodcat'] = df['zoningmodcat'] + df[col]
+        print("{} zoningmodcat format is".format(df['zoningmodcat']))       
 
     return df
 
@@ -526,10 +549,12 @@ def mandatory_accessibility(year, run_setup):
 
     if year in run_setup['logsum_period1']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/mandatoryAccessibilities_{}.csv").format(run_setup['logsum_year1']))
+                         "accessibility/travel_model/mandatoryAccessibilities_{}_{}.csv").\
+                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
     elif year in run_setup['logsum_period2']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/mandatoryAccessibilities_{}.csv").format(run_setup['logsum_year2']))
+                         "accessibility/travel_model/mandatoryAccessibilities_{}_{}.csv").\
+                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
 
     df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
     df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
@@ -544,10 +569,12 @@ def non_mandatory_accessibility(year, run_setup):
 
     if year in run_setup['logsum_period1']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/nonMandatoryAccessibilities_{}.csv").format(run_setup['logsum_year1']))
+                         "accessibility/travel_model/nonMandatoryAccessibilities_{}_{}.csv").\
+                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
     elif year in run_setup['logsum_period2']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/nonmandatoryAccessibilities_{}.csv").format(run_setup['logsum_year2']))
+                         "accessibility/travel_model/nonmandatoryAccessibilities_{}_{}.csv").\
+                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
 
     df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
     df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
@@ -562,10 +589,12 @@ def accessibilities_segmentation(year, run_setup):
 
     if year in run_setup['logsum_period1']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/AccessibilityMarkets_{}.csv").format(run_setup['logsum_year1']))
+                         "accessibility/travel_model/AccessibilityMarkets_{}_{}.csv").\
+                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
     elif year in run_setup['logsum_period2']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/AccessibilityMarkets_{}.csv").format(run_setup['logsum_year2']))
+                         "accessibility/travel_model/AccessibilityMarkets_{}_{}.csv").\
+                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
 
     df['AV'] = df['hasAV'].apply(lambda x: 'AV' if x == 1 else 'noAV')
     df['label'] = (df['incQ_label'] + '_' + df['autoSuff_label'] + '_' + df['AV'])
@@ -748,8 +777,8 @@ def household_controls(household_controls_unstacked):
 
 
 @orca.table(cache=True)
-def employment_controls_unstacked():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls/employment_controls.csv"), index_col='year')
+def employment_controls_unstacked(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "regional_controls", run_setup["employment_controls_file"]), index_col='year')
 
 
 @orca.table(cache=True)
@@ -801,8 +830,9 @@ def sqft_per_job_adjusters():
 
 
 @orca.table(cache=True)
-def telecommute_sqft_per_job_adjusters(): 
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/telecommute_sqft_per_job_adjusters.csv"), index_col="number")
+def telecommute_sqft_per_job_adjusters(run_setup): 
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies",
+                                    run_setup["sqft_per_job_telecommute_file"]), index_col="number")
 
 
 @orca.table(cache=True)
@@ -830,17 +860,18 @@ def zones(store):
 
 # SLR progression by year
 @orca.table(cache=True)
-def slr_progression():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_progression.csv"))
+def slr_progression(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/",
+                                    run_setup["slr_progression_file"]))
 
 
 # SLR inundation levels for parcels
 # if slr is activated, there is either a committed projects mitigation applied
 # or a committed projects + policy projects mitigation applied
 @orca.table(cache=True)
-def slr_parcel_inundation():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/slr_parcel_inundation.csv"),
-                       dtype={'parcel_id': np.int64}, index_col='parcel_id')
+def slr_parcel_inundation(run_setup):
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/", 
+                                    run_setup["slr_inundation_file"]), dtype={'parcel_id': np.int64}, index_col='parcel_id')
 
 
 # census tracts for parcels, to assign earthquake probabilities
