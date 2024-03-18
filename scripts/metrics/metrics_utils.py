@@ -108,21 +108,21 @@ def extract_ids_from_row(row):
     - row (pd.Series): A row from the df_model_runs DataFrame, containing at least 'scenario_group' and 'directory' columns.
     
     Returns:
-    - tuple: A tuple containing two strings: (model_run_alias, modelrun_id), where model_run_alias is derived from the 'scenario_group' 
+    - tuple: A tuple containing two strings: (modelrun_alias, modelrun_id), where modelrun_alias is derived from the 'scenario_group' 
             column, and modelrun_id is extracted from the 'directory' column, following the specified path structure.
     """
-    model_run_alias = row['scenario_group']
+    modelrun_alias = row['scenario_group']
     
     base_path = "C:/Users/nrezaei/Box/Modeling and Surveys/Urban Modeling/Bay Area UrbanSim/PBA50/"
     modelrun_id = row['directory'].replace(base_path.format("{}"), "").replace("\\", "/")
     
-    return model_run_alias, modelrun_id
+    return modelrun_alias, modelrun_id
 
 # -----------------------------------
 # Metrics Results Saving Utility
 # -----------------------------------
-def save_metric_results(df, metric_name, modelrun_id, model_run_alias, output_path):
-    filename = f"{metric_name}_{modelrun_id}_{model_run_alias}_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.csv"
+def save_metric_results(df, metric_name, modelrun_id, modelrun_alias, output_path):
+    filename = f"{metric_name}_{modelrun_id}_{modelrun_alias}_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.csv"
     filepath = output_path / "Metrics" / filename
     df.to_csv(filepath, index=False)
     logging.info(f"Saved {metric_name} results to {filepath}")
@@ -130,20 +130,20 @@ def save_metric_results(df, metric_name, modelrun_id, model_run_alias, output_pa
 # ----------------------------------
 # Results Assembly for the Metrics
 # ----------------------------------
-def assemble_results_wide_format(modelrun_id, model_run_alias, metrics_data):
+def assemble_results_wide_format(modelrun_id, modelrun_alias, metrics_data):
     """
     Assemble metric results into a DataFrame with a wide format.
 
     Parameters:
     - modelrun_id: str, identifier for the model run.
-    - model_run_alias: str, a friendly or alias name for the model run.
+    - modelrun_alias: str, a friendly or alias name for the model run.
     - metrics_data: dict, a dictionary where each key is a metric name and each value is a tuple or list containing:
         - A list of years (int)
         - A list of corresponding metric values (float or int)
     
     Returns:
     - pd.DataFrame with the assembled metric results in a wide format, where each metric has its own column,
-      including 'modelrun_id', 'model_run_alias', and 'year' as separate columns.
+      including 'modelrun_id', 'modelrun_alias', and 'year' as separate columns.
     """
     # Initialize an empty list to hold each row of our resulting DataFrame
     results_list = []
@@ -166,16 +166,61 @@ def assemble_results_wide_format(modelrun_id, model_run_alias, metrics_data):
     # This step aggregates all metric values for the same year into a single row
     df_grouped = df.groupby('year', as_index=False).first()
 
-    # Add 'modelrun_id' and 'model_run_alias' to the DataFrame
+    # Add 'modelrun_id' and 'modelrun_alias' to the DataFrame
     df_grouped['modelrun_id'] = modelrun_id
-    # Concatenate 'year' and 'model_run_alias'
-    df_grouped['model_run_alias'] = df_grouped['year'].astype(str) + " " + model_run_alias
+    # Concatenate 'year' and 'modelrun_alias'
+    df_grouped['modelrun_alias'] = df_grouped['year'].astype(str) + " " + modelrun_alias
     
     # Drop the 'year' column as it's now redundant
     df_grouped = df_grouped.drop('year', axis=1)
 
-    # Reorder columns to place 'modelrun_id', 'model_run_alias' at the front
-    cols = ['modelrun_id', 'model_run_alias'] + [col for col in df_grouped if col not in ['modelrun_id', 'model_run_alias']]
+    # Reorder columns to place 'modelrun_id', 'modelrun_alias' at the front
+    cols = ['modelrun_id', 'modelrun_alias'] + [col for col in df_grouped if col not in ['modelrun_id', 'modelrun_alias']]
     df_wide = df_grouped[cols]
     
     return df_wide
+
+# -----------------------------------
+# Extract Concatenated String Values
+# -----------------------------------
+
+def extract_pba50_concat_values(row):
+    """
+    Extracts values from concatenated strings within a DataFrame row.
+
+    The function identifies specific segments within the string, denoted by
+    'GG', 'tra', 'HRA', 'DIS'. Each segment corresponds to a particular ID and 
+    is assigned a value of 1 if present.
+
+    Parameters:
+    - row (str): A single string from the DataFrame's row.
+
+    Returns:
+    - pd.Series: A Series object containing the extracted values for 'gg_id', 
+                 'tra_id', 'hra_id', and 'dis_id'.
+    """
+     # Initialize the id values with 0
+    gg_id, tra_id, hra_id, dis_id = 0, 0, 0, 0
+    
+    # Return all 0s if the input is not a string or represents missing data
+    if not isinstance(row, str) or row == 'nan':
+        return pd.Series([gg_id, tra_id, hra_id, dis_id], index=['gg_id', 'tra_id', 'hra_id', 'dis_id'])
+    
+    # Set to 1 if the respective segment is present in the string
+    if row.startswith('GG'):
+        gg_id = 1
+        row = row[2:]  # Process the remaining string
+    
+    if 'tra' in row:
+        tra_id = 1
+        row = row[row.index('tra')+3:]  # Process the remaining string
+
+    if 'HRA' in row:
+        hra_id = 1
+        row = row[row.index('HRA')+3:]  # Process the remaining string
+
+    if 'DIS' in row:
+        dis_id = 1
+        row = row[row.index('DIS')+3:]  # Process the remaining string
+
+    return pd.Series([gg_id, tra_id, hra_id, dis_id], index=['gg_id', 'tra_id', 'hra_id', 'dis_id'])
