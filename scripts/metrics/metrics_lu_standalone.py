@@ -31,23 +31,22 @@ import pandas as pd
 from pathlib import Path
 import logging
 from datetime import datetime
-from metrics_utils import load_data_for_runs, load_crosswalk_data, extract_ids_from_row
-from metrics_affordable import deed_restricted_affordable_share, new_prod_deed_restricted_affordable_share
+from metrics_utils import load_data_for_runs, load_crosswalk_data, extract_ids_from_row, extract_pba50_concat_values
+#from metrics_affordable import deed_restricted_affordable_share, new_prod_deed_restricted_affordable_share
 # from metrics_connected import 
-from  metrics_diverse import low_income_households_share
+from metrics_diverse import low_income_households_share
 # from metrics_healthy import
 from metrics_vibrant import jobs_housing_ratio
-import glob
 
 # Setup logging
-current_datetime = datetime.now().strftime("%Y-%m-%d_%H%M") # Generate a timestamp for the log filename
+current_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M") # Generate a timestamp for the log filename
 log_filename = f'M:/urban_modeling/baus/PBA50Plus/Metrics/{current_datetime}_log.log' #{run_name}_
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_filename, filemode='w')  # 'w' to overwrite if necessary
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', filename=log_filename, filemode='w')  # 'w' to overwrite if necessary
 
 # -----------------------------------
 # Comprehensive Metrics Calculation
 # -----------------------------------
-def calculate_metrics(core_summary_dfs, geographic_summary_dfs, modelrun_id, model_run_alias, plan, output_path):
+def calculate_metrics(core_summary_dfs, geographic_summary_dfs, modelrun_id, modelrun_alias, plan, output_path):
     """
     Calculates various performance metrics for the Bay Area UrbanSim model runs.
 
@@ -58,7 +57,7 @@ def calculate_metrics(core_summary_dfs, geographic_summary_dfs, modelrun_id, mod
     - core_summary_dfs (list of pd.DataFrame): A list containing two dataframes with core summary data for different years.
     - geographic_summary_dfs (list of pd.DataFrame): A list containing two dataframes with geographic summary data for different years.
     - modelrun_id (str): An identifier for the model run.
-    - model_run_alias (str): The model_run_alias associated with the model run.
+    - modelrun_alias (str): The modelrun_alias associated with the model run.
     - plan (str): name of the plan (e.g. pba50 or pba50plus)
     - output_path (str): The file path where the aggregated results DataFrame should be saved as a CSV file.
 
@@ -66,20 +65,22 @@ def calculate_metrics(core_summary_dfs, geographic_summary_dfs, modelrun_id, mod
     - pd.DataFrame: A dataframe containing aggregated results from all metrics calculations, with each metric's results
                     appended as rows.
     """
-    logging.info(f"Starting metrics calculation for {modelrun_id} with {model_run_alias}")
+    logging.info(f"Starting metrics calculation for {modelrun_id} with {modelrun_alias}")
     # Initialize an empty DataFrame for aggregated results
     aggregated_results = pd.DataFrame()
 
     if len(core_summary_dfs) == 2 and len(geographic_summary_dfs) == 2:
-        #dr_share_results = deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, model_run_alias)
-        #new_prod_dr_share_results = new_prod_deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, model_run_alias)
-        #li_households_share_results = low_income_households_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, model_run_alias, pba50plus_path)
-        job_housing_ratio_results = jobs_housing_ratio(geographic_summary_dfs[0], geographic_summary_dfs[1], modelrun_id, model_run_alias, plan, output_path)
+        #dr_share_results = deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias)
+        #new_prod_dr_share_results = new_prod_deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias)
+        li_households_share_results = low_income_households_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
+        job_housing_ratio_results = jobs_housing_ratio(geographic_summary_dfs[0], geographic_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
 
-        # Aggregate the results
-        all_results = pd.concat([job_housing_ratio_results], ignore_index=True) #dr_share_results, new_prod_dr_share_results, li_households_share_results, 
-
-        aggregated_results = pd.concat([aggregated_results, all_results], ignore_index=True)
+        # Assign metric_type for distinction
+        li_households_share_results['metric_type'] = 'diverse'
+        job_housing_ratio_results['metric_type'] = 'vibrant'
+        
+        # Combine the results
+        aggregated_results = pd.concat([job_housing_ratio_results, li_households_share_results], ignore_index=True)
 
         if not aggregated_results.empty:
             logging.info(f"Aggregated results contain {aggregated_results.shape[0]} rows. Proceeding to save to CSV.")
@@ -91,25 +92,21 @@ def calculate_metrics(core_summary_dfs, geographic_summary_dfs, modelrun_id, mod
 def main():
     # Define paths
     output_path = Path("M:/urban_modeling/baus/PBA50Plus")
-    path_dictionary = "M:/urban_modeling/baus/PBA50Plus/Metrics/PBA50plus_model_run_inventory.csv" #or M:/urban_modeling/baus/PBA50Plus/Metrics/PBA50_model_run_inventory.csv
+    path_dictionary = "M:/urban_modeling/baus/PBA50Plus/Metrics/PBA50_model_run_inventory.csv" #or M:/urban_modeling/baus/PBA50Plus/Metrics/PBA50plus_model_run_inventory.csv
     
     # Load the model runs inventory
     df_model_runs = pd.read_csv(path_dictionary, low_memory=False)
 
     # Define crosswalk paths for both plans
     crosswalk_paths = {"pba50plus": "M:/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/parcels_geography_2024_02_14.csv", 
-                       "pba50": "C:/Users/nrezaei/Box/Horizon and Plan Bay Area 2050/Equity and Performance/7_Analysis/Metrics/metrics_input_files/2021_02_25_parcels_geography.csv"}
-
-    # Initialize an empty DataFrame to collect all metrics
-    all_metrics = pd.DataFrame()
+                       "pba50": "C:/Users/nrezaei/Box/Horizon and Plan Bay Area 2050/Equity and Performance/7_Analysis/Metrics/metrics_input_files/COCs_ACS2018_tbl_TEMP.csv"}
     
-    #vibrant_results = []
     # Iterate over each row in the csv file to get the directory paths
     for _, row in df_model_runs.iterrows():
         directory_path = Path(row['directory'])
         plan = row['plan']
     
-    # Choose the correct crosswalk path based on the plan
+        # Choose the correct crosswalk path based on the plan
         crosswalk_path = crosswalk_paths.get(plan.lower(), None)
         if not crosswalk_path:
             logging.error(f"Unrecognized plan or missing crosswalk path for {plan}. Skipping this model run.")
@@ -133,25 +130,55 @@ def main():
         # Load data for the current run
         core_dfs, geo_dfs = load_data_for_runs([core_summaries_path], [geographic_summaries_path], plan)
 
-        # Merge the loaded data with the crosswalk data
-        core_dfs_merged = [df.merge(parcels_geography, left_on="parcel_id", right_on="PARCEL_ID", how="left") for df in core_dfs]
+        if plan == "pba50":
+            for i, df in enumerate(core_dfs):
+                if 'fbpchcat' in df.columns:
+                    # Directly expand the results of extract_pba50_concat_values into new columns in the DataFrame
+                    new_columns = df['fbpchcat'].apply(extract_pba50_concat_values).apply(pd.Series)
+                    new_columns.columns = ['gg_id', 'tra_id', 'hra_id', 'dis_id']
+                    core_dfs[i] = df.join(new_columns)
+                    logging.info("Sample data after joining new columns:")
+                    logging.info(core_dfs[i].head().to_dict(orient='records')[0])  # Log the first row as a dict
+                    logging.info(f"First few 'tra_id' values after extraction: {core_dfs[i]['tra_id'].head().to_list()}")
+                    for index, values in enumerate(zip(new_columns['gg_id'].head(), new_columns['tra_id'].head(), new_columns['hra_id'].head(), new_columns['dis_id'].head())):
+                        logging.debug(f"Row {index} extracted values: gg_id={values[0]}, tra_id={values[1]}, hra_id={values[2]}, dis_id={values[3]}")
+                else:
+                    logging.warning(f"'fbpchcat' column not found in DataFrame for model run {modelrun_id}. Skipping this DataFrame.")
+        elif plan == "pba50plus":
+            # For "pba50plus", merge the loaded data with the crosswalk data
+            core_dfs = [df.merge(parcels_geography, left_on="parcel_id", right_on="PARCEL_ID", how="left") for df in core_dfs]
 
-        # Extract 'modelrun_id' and 'model_run_alias' for the current model run directory
-        modelrun_id, model_run_alias = extract_ids_from_row(row)
+        logging.info(f"New columns added: {new_columns.columns.tolist()}")
+
+        # Extract 'modelrun_id' and 'modelrun_alias' for the current model run directory
+        modelrun_id, modelrun_alias = extract_ids_from_row(row)
         logging.info(f"Loaded {len(core_dfs)} core dataframes and {len(geo_dfs)} geographic dataframes for {modelrun_id}")
 
         # Calculate metrics for the current run
-        run_metrics = calculate_metrics(core_dfs_merged, geo_dfs, model_run_alias, modelrun_id, plan, output_path)
+        run_metrics = calculate_metrics(core_dfs, geo_dfs, modelrun_alias, modelrun_id, plan, output_path)
         logging.info(f"Calculating metrics for {modelrun_id}. Core summary DFs: {len(core_dfs)}, Geographic summary DFs: {len(geo_dfs)}")
 
-        # Collect the metrics from all runs
-        all_metrics = pd.concat([all_metrics, run_metrics], ignore_index=True)
+        # Save vibrant metrics
+        vibrant_metrics = run_metrics[run_metrics['metric_type'] == 'vibrant']
+        if not vibrant_metrics.empty:
+            filename = f"metrics_vibrant1_{plan}_jobs_housing_ratio_{datetime.now().strftime('%Y_%m_%d')}.csv"
+            filepath = output_path / "Metrics" / filename
+        if filepath.is_file():
+            vibrant_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'county', 'jobs_housing_ratio'], mode='a', header=False, index=False)
+        else:
+            vibrant_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'county', 'jobs_housing_ratio'], mode='w', header=True, index=False)
+        logging.info(f"Saved vibrant metric results to {filepath}")
 
-        # After all runs, concatenate and save vibrant metrics
-        filename = f"metrics_vibrant1_{plan}_jobs_housing_ratio_{datetime.now().strftime('%Y-%m-%d_%H')}.csv"
-        filepath = Path(output_path) / "Metrics" / filename
-        all_metrics.to_csv(filepath, index=False)
-        logging.info(f"Saved all vibrant metric results to {filepath}")
+        # Save diverse metrics
+        diverse_metrics = run_metrics[run_metrics['metric_type'] == 'diverse']
+        if not diverse_metrics.empty:
+            filename = f"metrics_diverse1_{plan}_low_income_households_share_{datetime.now().strftime('%Y_%m_%d')}.csv"
+            filepath = output_path / "Metrics" / filename
+            if filepath.is_file():
+                diverse_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area', 'Q1HH_share'], mode='a', header=False, index=False)
+            else:
+                diverse_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area', 'Q1HH_share'], mode='w', header=True, index=False)
+        logging.info(f"Saved diverse metric results to {filepath}")
 
 if __name__ == "__main__":
     main()
