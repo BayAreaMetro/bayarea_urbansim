@@ -2,52 +2,79 @@
 # ====== Diverse Metrics =======
 # ==============================
 
-from datetime import datetime
+import pandas as pd
 import logging
 
-def low_income_households_share(parcel_geog_summary_2020, parcel_geog_summary_2050, modelrun_id, model_run_alias, pba50plus_path):
+def low_income_households_share(parcel_geog_summary_initial, parcel_geog_summary_final, modelrun_id, modelrun_alias, plan, output_path):
     """
     Calculate the share of households that are low-income in Transit-Rich Areas (TRA), High-Resource Areas (HRA), and both
-    """
-    def calculate_share_low_inc(df_2020, df_2050):
-        total_hhs_2020 = df_2020['tothh'].sum()
-        total_hhs_2050 = df_2050['tothh'].sum()
-        low_inc_hhs_2020 = df_2020['hhq1'].sum()
-        low_inc_hhs_2050 = df_2050['hhq1'].sum()
-        low_inc_hh_share_2020 = round((low_inc_hhs_2020 / total_hhs_2020), 2) if total_hhs_2020 > 0 else 0
-        low_inc_hh_share_2050 = round((low_inc_hhs_2050 / total_hhs_2050), 2) if total_hhs_2050 > 0 else 0
-        
-        return low_inc_hh_share_2020, low_inc_hh_share_2050
     
-    # Overall calculation
-    overall_low_inc_hh_share = calculate_share_low_inc(parcel_geog_summary_2020, parcel_geog_summary_2050)
+    Parameters:
+    - parcel_geog_summary_initial: pd.DataFrame 
+        DataFrame with columns ['hra_id', 'tra_id', 'tothh', 'hhq1'] for the initial year.
+    - parcel_geog_summary_final: pd.DataFrame
+        DataFrame with columns ['hra_id', 'tra_id', 'tothh', 'hhq1'] for the final year.
+    - modelrun_id: str, the unique identifier for the model run.
+    - model_run_alias: str, a friendly name for the model run.
+    - plan: str, indicates the plan type ('pba50' or 'pba50plus').
+    - output_path: str or Path, the directory path to save the output CSV file.
+    
+    Returns:
+    - result_hh_share: pd.DataFrame
+        DataFrame containing the share of low-income households at the regional level and for TRAs, HRAs, and both.
+    """ 
+    
+    def calculate_share_low_inc(df, area, year):
+        total_hhs = df['tothh'].sum()
+        low_inc_hhs = df['hhq1'].sum()
+        logging.info(f"Calculating low-income household share for {area} in {year}: Total households - {total_hhs}, Low-income households - {low_inc_hhs}")
+        low_inc_hh_share = round((low_inc_hhs / total_hhs), 3) if total_hhs > 0 else 0
+        return {'modelrun_id': modelrun_id,
+                'modelrun_alias': f"{year} {modelrun_alias}",
+                'area': area,
+                'Q1HH_share': low_inc_hh_share}
+    
+    results = []
 
-    # Calculation for HRA
-    hra_filter_2020 = parcel_geog_summary_2020[parcel_geog_summary_2020['hra_id'] == 'HRA']
-    hra_filter_2050 = parcel_geog_summary_2050[parcel_geog_summary_2050['hra_id'] == 'HRA']
-    hra_low_inc_hh_share = calculate_share_low_inc(hra_filter_2020, hra_filter_2050)
+    # Define the years to process
+    years_data = {'initial': (parcel_geog_summary_initial, '2015' if plan == "pba50" else '2020'),
+                  'final': (parcel_geog_summary_final, '2050')}
 
-    # Calculation for TRA
-    tra_filter_2020 = parcel_geog_summary_2020[parcel_geog_summary_2020['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])]
-    tra_filter_2050 = parcel_geog_summary_2050[parcel_geog_summary_2050['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])]
-    tra_low_inc_hh_share = calculate_share_low_inc(tra_filter_2020, tra_filter_2050)
+    # Define area filters
+    if plan == "pba50":
+        area_filters = {'HRA': lambda df: df['hra_id'] == 1,
+                        'TRA': lambda df: df['tra_id'] == 1,
+                        'HRATRA': lambda df: (df['tra_id'] == 1) & (df['hra_id'] == 1),
+                        'Region': None}
+    elif plan == "pba50plus":
+        area_filters = {'HRA': 'hra_id',
+                        'TRA': lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
+                        'HRATRA': lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
+                        # 'EPC': 'epc_id',
+                        'Region': None}
 
-    # Calculation for both TRA and HRA
-    tra_hra_filter_2020 = parcel_geog_summary_2020[(parcel_geog_summary_2020['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']))&(parcel_geog_summary_2020['hra_id'] == 'HRA')]
-    tra_hra_filter_2050 = parcel_geog_summary_2050[(parcel_geog_summary_2050['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']))&(parcel_geog_summary_2050['hra_id'] == 'HRA')]
-    tra_hra_low_inc_hh_share = calculate_share_low_inc(tra_hra_filter_2020, tra_hra_filter_2050)
+    # Process each area and year
+    for year_key, (df, year) in years_data.items():
+        for area, filter_condition in area_filters.items():
+            if filter_condition is not None:
+                if callable(filter_condition):  # Check if the filter is a function
+                    df_area = df[filter_condition(df)]
+                else:
+                    df_area = df[df[filter_condition] == area]
+            else:
+                df_area = df
 
-    # Define the metrics and years for iteration
-    metrics_names = ["low_income_households_share_total",
-                     "low_income_households_share_hra",
-                     "low_income_households_share_tra",
-                     "low_income_households_share_tra_hra"]
-    metrics_values = [overall_low_inc_hh_share, hra_low_inc_hh_share, tra_low_inc_hh_share, tra_hra_low_inc_hh_share]
-    metrics_years = [2020, 2050]
-    result_hh_share = assemble_results_wide_format(modelrun_id, 'D1', metrics_names, metrics_years, model_run_alias, metrics_values)
-    # Call the utility function to save the results
-    filename = f"metrics_{modelrun_id}_{model_run_alias}_low_income_households_share_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.csv"
-    filepath = pba50plus_path / "Metrics" / filename
-    result_hh_share.to_csv(filepath, index=False)
-    logging.info(f"Saved metric results to {filepath}")
+            # Log the filtered dataframe
+            logging.info(f"Filtering for {area} in {year}, number of rows: {len(df_area)}")
+            if df_area.empty:
+                logging.warning(f"No data found for {area} in {year}. This will result in 0 values for low-income household share.")
+            
+            # Calculate the share and append to results
+            area_result = calculate_share_low_inc(df_area, area, year)
+            results.append(area_result)
+
+    # Create the results DataFrame
+    result_hh_share = pd.DataFrame(results)
+
+    result_hh_share['metric_type'] = 'diverse'
     return result_hh_share
