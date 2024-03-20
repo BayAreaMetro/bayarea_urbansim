@@ -36,20 +36,23 @@ def profit_to_prob_func(df):
 
 
 @orca.injectable(cache=True)
-def coffer(account_strategies):
+def coffer(account_strategies, run_setup):
     d = {
         "vmt_res_acct":  accounts.Account("vmt_res_acct"),
         "vmt_com_acct":  accounts.Account("vmt_com_acct")
     }
 
-    for key, acct in account_strategies["acct_settings"]["lump_sum_accounts"].items():
-        d[acct["name"]] = accounts.Account(acct["name"])
+    if run_setup["run_housing_bond_strategy"]:
+        for key, acct in account_strategies["acct_settings"]["lump_sum_accounts"].items():
+            d[acct["name"]] = accounts.Account(acct["name"])
 
-    for key, acct in account_strategies["acct_settings"]["office_lump_sum_accounts"].items():
-        d[acct["name"]] = accounts.Account(acct["name"])    
-
-    for key, acct in account_strategies["acct_settings"]["jobs_housing_fee_settings"].items():
-        d[acct["name"]] = accounts.Account(acct["name"])
+    if run_setup["run_office_bond_strategy"]:
+        for key, acct in account_strategies["acct_settings"]["office_lump_sum_accounts"].items():
+            d[acct["name"]] = accounts.Account(acct["name"])    
+    
+    if run_setup["run_jobs_housing_fee_strategy"]:
+        for key, acct in account_strategies["acct_settings"]["jobs_housing_fee_settings"].items():
+            d[acct["name"]] = accounts.Account(acct["name"])
 
     return d
 
