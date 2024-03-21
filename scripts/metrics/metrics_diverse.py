@@ -10,14 +10,12 @@ def low_income_households_share(parcel_geog_summary_initial, parcel_geog_summary
     Calculate the share of households that are low-income in Transit-Rich Areas (TRA), High-Resource Areas (HRA), and both
     
     Parameters:
-    - parcel_geog_summary_initial: pd.DataFrame 
-        DataFrame with columns ['hra_id', 'tra_id', 'tothh', 'hhq1'] for the initial year.
-    - parcel_geog_summary_final: pd.DataFrame
-        DataFrame with columns ['hra_id', 'tra_id', 'tothh', 'hhq1'] for the final year.
-    - modelrun_id: str, the unique identifier for the model run.
-    - model_run_alias: str, a friendly name for the model run.
-    - plan: str, indicates the plan type ('pba50' or 'pba50plus').
-    - output_path: str or Path, the directory path to save the output CSV file.
+    - parcel_geog_summary_initial (pd.DataFrame): DataFrame with columns ['hra_id', 'tra_id', 'tothh', 'hhq1'] for the initial year.
+    - parcel_geog_summary_final (pd.DataFrame): DataFrame with columns ['hra_id', 'tra_id', 'tothh', 'hhq1'] for the final year.
+    - modelrun_id (str): Unique identifier for the model run.
+    - model_run_alias (str): An alias name for the model run.
+    - plan (str): Indicates the plan type ('pba50' or 'pba50plus').
+    - output_path (str or Path): The directory path to save the output CSV file.
     
     Returns:
     - result_hh_share: pd.DataFrame
@@ -45,12 +43,13 @@ def low_income_households_share(parcel_geog_summary_initial, parcel_geog_summary
         area_filters = {'HRA': lambda df: df['hra_id'] == 1,
                         'TRA': lambda df: df['tra_id'] == 1,
                         'HRATRA': lambda df: (df['tra_id'] == 1) & (df['hra_id'] == 1),
+                        'EPC': lambda df: df['coc_flag_pba2050'] == 1,
                         'Region': None}
     elif plan == "pba50plus":
         area_filters = {'HRA': 'hra_id',
                         'TRA': lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
                         'HRATRA': lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
-                        # 'EPC': 'epc_id',
+                        'EPC': 'epc_id',
                         'Region': None}
 
     # Process each area and year
