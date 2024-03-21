@@ -206,6 +206,11 @@ def extract_pba50_concat_values(row):
     if not isinstance(row, str) or row == 'nan':
         return pd.Series([gg_id, tra_id, hra_id, dis_id], index=['gg_id', 'tra_id', 'hra_id', 'dis_id'])
     
+    # Special handling for 'eirzoningmodcat' format: remove city name and anything before the first 'NA', 'GG', or any capitalized letter
+    if any(char.isupper() for char in row[:3]):  # Assumes city names do not start with uppercase in the first 3 chars
+        first_capitalized = next((i for i, char in enumerate(row) if char.isupper()), None)
+        row = row[first_capitalized:]
+        
     # Set to 1 if the respective segment is present in the string
     if row.startswith('GG'):
         gg_id = 1
