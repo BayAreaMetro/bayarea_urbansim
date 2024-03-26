@@ -179,7 +179,7 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
         # adjust sqft_per_job rates for *all* years for all building types, time invariant
 
         print('Applying standard sqft per job adjusters for all building types')
-        sqft_per_job_adj = sqft_per_job_adj * superdistrict.map(sqft_per_job_adjusters['sqft_per_job_factor'])
+        sqft_per_job_adj = sqft_per_job_adj * building_to_superdist_map.map(sqft_per_job_adjusters['sqft_per_job_factor'])
     
     elif run_setup["use_exogenous_sqft_per_job_adjusters"]:
         # if telecommute strategy flag and standard adjusters are disabled, AND if adjusters are enabled, 
