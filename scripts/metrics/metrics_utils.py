@@ -229,3 +229,9 @@ def extract_pba50_concat_values(row):
         row = row[row.index('DIS')+3:]  # Process the remaining string
 
     return pd.Series([gg_id, tra_id, hra_id, dis_id], index=['gg_id', 'tra_id', 'hra_id', 'dis_id'])
+
+def map_area_to_alias(area):
+    area_aliases = {'HRA': "High-Resource Areas",
+                    'EPC': "Equity Priority Communities",
+                    'Region': "Regionwide"}
+    return area_aliases.get(area, "Unknown Area")
