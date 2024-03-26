@@ -41,7 +41,7 @@ employment_controls_file: "employment_controls_PBA50.csv"
 
 
 # DEVELOPMENT PIPELINE
-development_pipeline_file: "2021_0309_1939_development_projects_PBA50_NP.csv"
+development_pipeline_file: "development_pipeline_NP_2024-03-08.csv"
 
 
 # ZONING FILES
@@ -80,6 +80,16 @@ run_sb_743_strategy: True
 
 
 # PLAN STRATEGIES
+
+# DEVELOPMENT PIPELINE-BASED STRATEGIES (EC2, EC6, H6/H8)
+# These strategies consist of appending additional records to the
+# development pipeline table
+# To disable all these strategies, just comment out the indented list elements;
+# leave the line immediately below this one unchanged
+dev_pipeline_strategies:
+  # - "EC2_development_pipeline_entries.csv"
+  # - "EC6_development_pipeline_entries.csv"
+  # - "H6_H8_development_pipeline_entries.csv"
 
 # GROWTH GEOGRAPHY INPUT FILE
 parcels_geography_file: "2021_02_25_parcels_geography.csv"
