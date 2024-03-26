@@ -2,7 +2,7 @@
 # the model's initial year is 2015, while this specifies the first reporting year
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
-initial_summary_year: 2015
+initial_summary_year: 2020
 
 # RUN NAME
 run_name: "PBA50Plus_NP_InitialRun_v7"
