@@ -32,7 +32,7 @@ from pathlib import Path
 import logging
 from datetime import datetime
 from metrics_utils import load_data_for_runs, load_crosswalk_data, extract_ids_from_row, extract_pba50_concat_values
-from metrics_affordable import deed_restricted_affordable_share #, new_prod_deed_restricted_affordable_share
+from metrics_affordable import deed_restricted_affordable_share , new_prod_deed_restricted_affordable_share, at_risk_housing_preserv_share
 #from metrics_connected import 
 from metrics_diverse import low_income_households_share
 #from metrics_healthy import
@@ -72,20 +72,23 @@ def calculate_metrics(core_summary_dfs, geographic_summary_dfs, modelrun_id, mod
 
     if len(core_summary_dfs) == 2 and len(geographic_summary_dfs) == 2:
         dr_share_results = deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
-        #new_prod_dr_share_results = new_prod_deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
+        new_prod_dr_share_results = new_prod_deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
+        at_risk_preserv_share_results = at_risk_housing_preserv_share(modelrun_id, modelrun_alias, output_path)
         li_households_share_results = low_income_households_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
         job_housing_ratio_results = jobs_housing_ratio(geographic_summary_dfs[0], geographic_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
         #growth_patterns_county_results = growth_patterns_county(geographic_summary_dfs[0], geographic_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
         
         # Assign metric_type for distinction
         dr_share_results ['metric_type'] = 'affordable'
+        new_prod_dr_share_results['metric_type'] = 'affordable_new_prod'
+        at_risk_preserv_share_results['metric_type'] = 'affordable_at_risk_preserv'
         li_households_share_results['metric_type'] = 'diverse'
         job_housing_ratio_results['metric_type'] = 'vibrant'
         #growth_patterns_county_results['metric_type'] = 'growth'
         
         # Combine the results
-        aggregated_results = pd.concat([dr_share_results, li_households_share_results, job_housing_ratio_results], ignore_index=True)  #, growth_patterns_county_results
-
+        aggregated_results = pd.concat([dr_share_results, new_prod_dr_share_results, at_risk_preserv_share_results, 
+                                        li_households_share_results, job_housing_ratio_results], ignore_index=True) # growth_patterns_county_results
         if not aggregated_results.empty:
             logging.info(f"Aggregated results contain {aggregated_results.shape[0]} rows. Proceeding to save to CSV.")
         else:
@@ -96,7 +99,7 @@ def calculate_metrics(core_summary_dfs, geographic_summary_dfs, modelrun_id, mod
 def main():
     # Define paths
     output_path = Path("M:/urban_modeling/baus/PBA50Plus")
-    path_dictionary = "M:/urban_modeling/baus/PBA50Plus/Metrics/PBA50plus_model_run_inventory.csv" #or M:/urban_modeling/baus/PBA50Plus/Metrics/PBA50plus_model_run_inventory.csv
+    path_dictionary = "M:/urban_modeling/baus/PBA50Plus/Metrics/PBA50_model_run_inventory.csv" #or M:/urban_modeling/baus/PBA50Plus/Metrics/PBA50plus_model_run_inventory.csv
     
     # Load the model runs inventory
     df_model_runs = pd.read_csv(path_dictionary, low_memory=False)
@@ -162,7 +165,7 @@ def main():
                 logging.info(df_final.head().to_dict(orient='records')[0])
 
                 # Retain only a subset of columns after merging
-                columns_to_keep = ['parcel_id', 'tract_id', column_name, 'gg_id', 'tra_id', 'hra_id', 'dis_id', 'hhq1', 'hhq2', 'hhq3', 'hhq4', 'tothh', 'totemp', 'deed_restricted_units', 'residential_units', 'geoid', 'tot_pop', 'coc_flag_pba2050', 'coc_class']
+                columns_to_keep = ['parcel_id', 'tract_id', column_name, 'gg_id', 'tra_id', 'hra_id', 'dis_id', 'hhq1', 'hhq2', 'hhq3', 'hhq4', 'tothh', 'totemp', 'deed_restricted_units', 'residential_units', 'preserved_units', 'geoid', 'tot_pop', 'coc_flag_pba2050', 'coc_class']
                 df_final = df_final[columns_to_keep]
                 
                 core_dfs[i] = df_final
@@ -186,10 +189,32 @@ def main():
             filename = f"metrics_affordable2_{plan}_deed_restricted_pct_{datetime.now().strftime('%Y_%m_%d')}.csv"
             filepath = output_path / "Metrics" / filename
             if filepath.is_file():
-                affordable_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area', 'deed_restricted_pct'], mode='a', header=False, index=False)
+                affordable_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'area', 'deed_restricted_pct'], mode='a', header=False, index=False)
             else:
-                affordable_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area', 'deed_restricted_pct'], mode='w', header=True, index=False)
+                affordable_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'area', 'deed_restricted_pct'], mode='w', header=True, index=False)
             logging.info(f"Saved affordable metric results to {filepath}")
+
+        # New code to save new production deed-restricted affordable metrics
+        affordable_new_prod_metrics = run_metrics[run_metrics['metric_type'] == 'affordable_new_prod'].drop_duplicates(subset=['modelrun_id', 'modelrun_alias', 'area', 'deed_restricted_pct_newUnits'])
+        if not affordable_new_prod_metrics.empty:
+            filename = f"metrics_affordable2_{plan}_newUnits_deed_restricted_pct_{datetime.now().strftime('%Y_%m_%d')}.csv"
+            filepath = output_path / "Metrics" / filename
+            if filepath.is_file():
+                affordable_new_prod_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'area', 'deed_restricted_pct_newUnits'], mode='a', header=False, index=False)
+            else:
+                affordable_new_prod_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'area', 'deed_restricted_pct_newUnits'], mode='w', header=True, index=False)
+            logging.info(f"Saved new production affordable metric results to {filepath}")
+
+        # Save at risk preserved metric 
+        affordable_at_risk_preserved_metrics = run_metrics[run_metrics['metric_type'] == 'affordable_at_risk_preserv'].drop_duplicates(subset=['modelrun_id', 'modelrun_alias', 'area_alias', 'at_risk_preserv_pct'])
+        if not affordable_at_risk_preserved_metrics.empty:
+            filename = f"metrics_affordable2_{plan}_at_risk_housing_preserve_pct_{datetime.now().strftime('%Y_%m_%d')}.csv"
+            filepath = output_path / "Metrics" / filename
+            if filepath.is_file():
+                affordable_at_risk_preserved_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'at_risk_preserv_pct'], mode='a', header=False, index=False)
+            else:
+                affordable_at_risk_preserved_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'at_risk_preserv_pct'], mode='w', header=True, index=False)
+            logging.info(f"Saved presereved affordable metric results to {filepath}")
 
         # Save vibrant metrics
         vibrant_metrics = run_metrics[run_metrics['metric_type'] == 'vibrant']
@@ -214,15 +239,15 @@ def main():
             logging.info(f"Saved diverse metric results to {filepath}")
 
         # Save growth metrics
-        #growth_metrics = run_metrics[run_metrics['metric_type'] == 'growth']
-        #if not growth_metrics.empty:
-            #filename = f"metrics_{plan}_growthPattern_county{datetime.now().strftime('%Y_%m_%d')}.csv"
-            #filepath = output_path / "Metrics" / filename
-            #if filepath.is_file():
-                #growth_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'county', 'TotHH', 'TotJobs', 'hh_share_of_growth', 'jobs_share_of_growth'], mode='a', header=False, index=False)
-            #else:
-                #growth_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'county', 'TotHH', 'TotJobs', 'hh_share_of_growth', 'jobs_share_of_growth'], mode='w', header=True, index=False)
-            #logging.info(f"Saved growth metric results to {filepath}")
+        growth_metrics = run_metrics[run_metrics['metric_type'] == 'growth']
+        if not growth_metrics.empty:
+            filename = f"metrics_growthPattern_county_{plan}_{datetime.now().strftime('%Y_%m_%d')}.csv"
+            filepath = output_path / "Metrics" / filename
+            if filepath.is_file():
+                growth_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'county', 'TotHH', 'TotJobs', 'hh_share_of_growth', 'jobs_share_of_growth'], mode='a', header=False, index=False)
+            else:
+                growth_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'county', 'TotHH', 'TotJobs', 'hh_share_of_growth', 'jobs_share_of_growth'], mode='w', header=True, index=False)
+            logging.info(f"Saved growth metric results to {filepath}")
 
 if __name__ == "__main__":
     main()
