@@ -672,7 +672,7 @@ def get_dev_projects_table(parcels, run_setup):
     df = reprocess_dev_projects(df)
 
     # Optionally - if flag set to use housing element pipeline, load that and append:
-    if run_setup.get('use_housing_element_pipeline',False):
+    if run_setup['use_housing_element_pipeline']:
         
 
         he_pipe = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
