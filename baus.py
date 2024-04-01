@@ -105,7 +105,6 @@ def run_models(MODE):
         def get_baseyear_models():
 
             baseyear_models = [
-                #"test_namespace",
             
                 "slr_inundate",
                 "slr_remove_dev",
@@ -419,8 +418,7 @@ sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), 
 # Memorialize the run config with the outputs - goes by run name attribute
 
 print('***Copying run_setup.yaml to output directory')
-import shutil
-shutil.copyfile("../run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
+shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
 print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
