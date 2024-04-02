@@ -11,12 +11,12 @@ from pathlib import Path
 import pandas as pd
 import geopandas as gpd
 
-from transit_area_buffer import (
+from transit_area_buffer_utils import (
     create_multiple_transit_areas,
-    data_filtering,
-    get_combination_names,
-    get_combination_names_hierarchy,
-    station_buffer,
+    # data_filtering,
+    # get_combination_names,
+    # get_combination_names_hierarchy,
+    # station_buffer,
     col_values,
 )
 
@@ -33,7 +33,7 @@ home_dir = Path.home()
 box_dir = Path(home_dir, "Box")
 
 # set the mounted path for M: drive
-# in my case, M:\urban_modeling is mounted to /Volumes/Data/Models/urban_modeling
+# in my (AO) case, M:\urban_modeling is mounted to /Volumes/Data/Models/urban_modeling
 m_drive = "/Volumes/Data/Models" if os.name != "nt" else "M:/"
 
 metrics_path = Path(
@@ -46,32 +46,37 @@ metrics_path = Path(
 )
 
 # working_dir_path = os.path.abspath(".")
+# M has been unstable recently, so heading to Box for now.
 working_dir_path = Path(
     m_drive, "Data", "GIS layers", "JobsHousingTransitProximity", "update_2024"
 )
-working_dir_path.mkdir(parents=True, exist_ok=True)
+
+working_dir_path = Path(
+    box_dir,
+    "Modeling and Surveys",
+    "Urban Modeling",
+    "Spatial",
+    "transit",
+    "transit_service_levels",
+    "update_2024",
+)
+# working_dir_path.mkdir(parents=True, exist_ok=True)
 
 YMD = datetime.now().strftime("%Y%m%d")
 today_path = Path(working_dir_path, "outputs", YMD)
-today_path.mkdir(exist_ok=True)
-
-
-# set the path for the parcel to transit service area crosswalk produced by the first half of the script
-# if it does - we shouldn't need to rerun that part and can proceed to assignment and summaries
-
-parcel_classes_gpd_path = Path(working_dir_path, "outputs", "p10_topofix_pt2.parquet")
+today_path.mkdir(parents=True, exist_ok=True)
 
 # boolean for whether the main parcel to service area crosswalk already exists
 # crosswalk_exists = parcel_classes_gpd_path.exists()
 
 
-def logger_process(log_name="proximity2transit.log"):
+def logger_process(dir_path: Path, log_name: str = "proximity2transit.log"):
 
     # Create a unique log file path
-    log_file = Path(working_dir_path, log_name)
+    log_file = Path(dir_path, log_name)
 
     # Create the output directory if it doesn't exist
-    # output_dir = Path(working_dir_path, "outputs")
+    # output_dir = Path(dir_path, "outputs")
     # output_dir.mkdir(parents=True, exist_ok=True)  # Create parent directories if needed
 
     # Configure logger
@@ -100,7 +105,6 @@ def logger_process(log_name="proximity2transit.log"):
     return logger
 
 
-
 # ### Data paths - AGOL URLs, and local versions until we get utils working
 MTC_ONLINE_TRANSIT_URL = "https://services3.arcgis.com/i2dkYWmb4wHvYPda/arcgis/rest/services/transitstops_existing_planned_2021/FeatureServer/0"
 
@@ -113,11 +117,8 @@ MTC_ONLINE_TRACT_URL = "https://services3.arcgis.com/i2dkYWmb4wHvYPda/ArcGIS/res
 # # create arc client object
 # arcgis_client = create_arcgis_client()
 
-# # set URL
-# SOME_URL = 'https://services3.arcgis.com/i2dkYWmb4wHvYPda/arcgis/rest/services/DRAFT_TOC_Transit_Stations_Existing_June_2023_/FeatureServer'
-
 # # pull data
-# transit_data = pull_geotable_agol(base_url=SOME_URL, client=arcgis_client)
+# transit_data = pull_geotable_agol(base_url=MTC_ONLINE_TRANSIT_URL, client=arcgis_client)
 
 # Define paths to data files
 # TODO: a bunch of these could be fetched from live sources such as AGOL. Currently getting token errors, so
@@ -236,6 +237,7 @@ ANALYSIS_CRS = "EPSG:26910"
 # TODO: should probably not be in global name space
 # transit_buffers = {}
 
+
 def assign_transit_service_areas_to_parcels(
     parcels_geo, transit_areas, slug="current", variable="cat5"
 ):
@@ -288,14 +290,22 @@ def assign_transit_service_areas_to_parcels(
 
         mapping = combo_assignments.set_index("PARCEL_ID")[variable]
 
+    # store in global namespace dict
+    transit_scenario_crosswalk[f"{slug}_{variable}"] = mapping
+
+    xwalk_path = Path(today_path, f"{slug}_{variable}.csv")
+    logger.info(f"Writing crosswalk to {xwalk_path}")
+    mapping.reset_index().to_csv(xwalk_path)
+
     return mapping
 
 
 # This could perhaps be handled by more general lookups from DataViz instead
 # of rolling our own on the fly. It's a kind of grab bag crosswalk with
-# often multiple vintages (e.g. EPCs, HRAs for different years). A more 
+# often multiple vintages (e.g. EPCs, HRAs for different years). A more
 # targeted crosswalk could perhaps be more useful / efficient. But this
 # makes it easier to adjust grouping levels when calculating metrics.
+
 
 def add_classifications_to_p10_topo(p10_topofix_pt):
     """
@@ -321,7 +331,6 @@ def add_classifications_to_p10_topo(p10_topofix_pt):
 
     # load a feather version of p10 parcels after the topology fixes
     # https://app.asana.com/0/1202179257399094/1205973096797373/f
-
 
     logger.info("\tLoading hras 2023")
     tract_hra_2023 = pd.read_excel(
@@ -361,7 +370,9 @@ def add_classifications_to_p10_topo(p10_topofix_pt):
 
     logger.info("Enforcing 11-character tract ids")
     tract_epc21_file["geoid10"] = tract_epc21_file.geoid.map(lambda x: f"{x:011d}")
-    tract_epc24_file["geoid20"] = tract_epc24_file.tract_geoid.map(lambda x: f"{x:011d}")
+    tract_epc24_file["geoid20"] = tract_epc24_file.tract_geoid.map(
+        lambda x: f"{x:011d}"
+    )
 
     # ### Crosswalks
 
@@ -377,7 +388,6 @@ def add_classifications_to_p10_topo(p10_topofix_pt):
     # load parcel-to-areatype crosswalk
     logger.info("\tLoad taz-to-areatype crosswalk")
     taz_x_areatype = pd.read_csv(taz_x_areatype_file, index_col=["TAZ1454"]).area_type
-
 
     logger.info("Adding classifications to parcels based on transit service area")
 
@@ -396,69 +406,69 @@ def add_classifications_to_p10_topo(p10_topofix_pt):
     p10_topofix_pt["tract10"] = p10_topofix_pt.PARCEL_ID.map(
         parcel_x_tracts.set_index("parcel_id").tract10.map(lambda x: f"{x:011.0f}")
     )
-    col_values(p10_topofix_pt["tract10"], "tract10",logger)
+    col_values(p10_topofix_pt["tract10"], "tract10", logger)
 
     # vintage 2020
     p10_topofix_pt["tract20"] = p10_topofix_pt.PARCEL_ID.map(
         parcel_x_tracts.set_index("parcel_id").tract20.map(lambda x: f"{x:011.0f}")
     )
-    col_values(p10_topofix_pt["tract20"], "tract20",logger)
+    col_values(p10_topofix_pt["tract20"], "tract20", logger)
 
     # add TAZs
     p10_topofix_pt["taz"] = p10_topofix_pt.PARCEL_ID.map(
         parcel_x_taz.set_index("PARCEL_ID").ZONE_ID
     )
-    col_values(p10_topofix_pt["taz"], "taz",logger)
+    col_values(p10_topofix_pt["taz"], "taz", logger)
 
     ####################################################
 
     # add area type based on the just assigned taz
     p10_topofix_pt["area_type"] = p10_topofix_pt.taz.map(taz_x_areatype)
-    col_values(p10_topofix_pt["area_type"], "area_type",logger)
+    col_values(p10_topofix_pt["area_type"], "area_type", logger)
 
     # add epc (RTP2021 version) to parcels using tract10
     p10_topofix_pt["epc21"] = p10_topofix_pt.tract10.map(
         tract_epc21_file.set_index("geoid10").epc_class.fillna("Not EPC")
     )
-    col_values(p10_topofix_pt["epc21"], "epc21",logger)
+    col_values(p10_topofix_pt["epc21"], "epc21", logger)
 
     p10_topofix_pt["is_epc21"] = (p10_topofix_pt.epc21 != "Not EPC").map(
         {True: "CoCs", False: "Not CoCs"}
     )
-    col_values(p10_topofix_pt["is_epc21"], "is_epc21",logger)
+    col_values(p10_topofix_pt["is_epc21"], "is_epc21", logger)
 
     # add epc (RTP2025 version) to parcels using tract10
     p10_topofix_pt["epc24"] = p10_topofix_pt.tract20.map(
         tract_epc24_file.set_index("geoid20").epc_class.fillna("Not EPC")
     )
-    col_values(p10_topofix_pt["epc24"], "epc24",logger)
+    col_values(p10_topofix_pt["epc24"], "epc24", logger)
 
     p10_topofix_pt["is_epc24"] = (p10_topofix_pt.epc24 != "Not EPC").map(
         {True: "CoCs", False: "Not CoCs"}
     )
-    col_values(p10_topofix_pt["is_epc24"], "is_epc24",logger)
+    col_values(p10_topofix_pt["is_epc24"], "is_epc24", logger)
 
     # add hra23 to parcels using tract10 (!)
     p10_topofix_pt["hra23"] = p10_topofix_pt.tract10.map(
         tract_hra_2023.set_index("geoid").hra_category
     )
-    col_values(p10_topofix_pt["hra23"], "hra23",logger)
+    col_values(p10_topofix_pt["hra23"], "hra23", logger)
 
     p10_topofix_pt["is_hra23"] = p10_topofix_pt.hra23.isin(
         ["High Resource", "Highest Resource"]
     ).map({True: "HRAs", False: "Not HRAs"})
-    col_values(p10_topofix_pt["is_hra23"], "is_hra23",logger)
+    col_values(p10_topofix_pt["is_hra23"], "is_hra23", logger)
 
     # add hra19 to parcels using tract10
     p10_topofix_pt["hra19"] = p10_topofix_pt.tract10.map(
         tract_hra_2019.set_index("geoid").hra_category
     )
-    col_values(p10_topofix_pt["hra19"], "hra19",logger)
+    col_values(p10_topofix_pt["hra19"], "hra19", logger)
 
     p10_topofix_pt["is_hra19"] = p10_topofix_pt.hra19.isin(
         ["High Resource", "Highest Resource"]
     ).map({True: "HRAs", False: "Not HRAs"})
-    col_values(p10_topofix_pt["is_hra19"], "is_hra19",logger)
+    col_values(p10_topofix_pt["is_hra19"], "is_hra19", logger)
 
     # assign different service level resolution classifications to parcels
     for key, val in transit_scenario_crosswalk.items():
@@ -467,11 +477,12 @@ def add_classifications_to_p10_topo(p10_topofix_pt):
         p10_topofix_pt[service_level_var] = p10_topofix_pt.PARCEL_ID.map(
             transit_scenario_crosswalk[key]
         )
-        col_values(p10_topofix_pt[service_level_var], service_level_var,logger)
+        col_values(p10_topofix_pt[service_level_var], service_level_var, logger)
 
     return p10_topofix_pt
 
-logger = logger_process(f"proximity2transit_{YMD}.log")
+
+logger = logger_process(working_dir_path, f"proximity2transit_{YMD}.log")
 
 
 #######################################################################
@@ -519,11 +530,18 @@ logger.info(
 
 if __name__ == "__main__":
 
-
-    RUN_5_WAY_BUFFERS = False
-    RUN_6_WAY_BUFFERS = False
+    RUN_5_WAY_BUFFERS = True
+    RUN_6_WAY_BUFFERS = True
     RUN_2_WAY_BUFFERS = True
-    
+
+    logger.info("\tLoad parcel geoms")
+    p10_topofix = gpd.read_feather(parcel_topo_file)
+    p10_topofix["geom_pt"] = p10_topofix.representative_point()
+    p10_topofix_pt = p10_topofix.set_geometry("geom_pt")[["PARCEL_ID", "geom_pt"]]
+
+    # store parcel-to-transit service area crosswalks of different stripes
+    transit_scenario_crosswalk = {}
+
     # ## Step 1a: define filters for buffers and headways on transit stops - each category is defined separately, and we combine in a list
     # these are in effect the parameters for the buffers: headways and buffer sizes.
     # set specific criteria for selecting headways and what kind of buffer to apply to selected stops
@@ -545,8 +563,14 @@ if __name__ == "__main__":
         filter_criteria_hdwy_15_to_30 = {
             "name": "Bus_15_30min",
             "buffer": 0.25,
-            "am_av_hdwy": [{"operator": ">", "value": 15}, {"operator": "<=", "value": 30}],
-            "pm_av_hdwy": [{"operator": ">", "value": 15}, {"operator": "<=", "value": 30}],
+            "am_av_hdwy": [
+                {"operator": ">", "value": 15},
+                {"operator": "<=", "value": 30},
+            ],
+            "pm_av_hdwy": [
+                {"operator": ">", "value": 15},
+                {"operator": "<=", "value": 30},
+            ],
         }
 
         filter_criteria_hdwy_gt30 = {
@@ -580,25 +604,37 @@ if __name__ == "__main__":
         # using current plus fbp transit service
         transit_areas_fbp_cat5, transit_areas_fbp_dissolved_cat5 = (
             create_multiple_transit_areas(
-                transit_fbp, 
-                criteria_list, 
-                "fbp_cat5", 
-                True, 
-                today_path, 
-                logger=logger
+                transit_fbp, criteria_list, "fbp_cat5", True, today_path, logger=logger
             )
         )
 
         # using current plus np transit service
         transit_areas_np_cat5, transit_areas_np_dissolved_cat5 = (
             create_multiple_transit_areas(
-                transit_np, 
-                criteria_list, 
-                "np_cat5", 
-                True, 
-                today_path, 
-                logger=logger
+                transit_np, criteria_list, "np_cat5", True, today_path, logger=logger
             )
+        )
+
+        # #### cat5 - six way categorization assignment to parcels
+        p10_x_transit_area_np_cat5 = assign_transit_service_areas_to_parcels(
+            parcels_geo=p10_topofix_pt,
+            transit_areas=transit_areas_np_dissolved_cat5,
+            slug="np",
+            variable="cat5",
+        )
+
+        p10_x_transit_area_fbp_cat5 = assign_transit_service_areas_to_parcels(
+            p10_topofix_pt,
+            transit_areas=transit_areas_fbp_dissolved_cat5,
+            slug="fbp",
+            variable="cat5",
+        )
+
+        p10_x_transit_area_current_cat5 = assign_transit_service_areas_to_parcels(
+            p10_topofix_pt,
+            transit_areas=transit_areas_current_dissolved_cat5,
+            slug="current",
+            variable="cat5",
         )
 
     if RUN_6_WAY_BUFFERS:
@@ -624,14 +660,26 @@ if __name__ == "__main__":
         filter_criteria_hdwy_11_to_15 = {
             "name": "Bus_11_15min",
             "buffer": 0.25,
-            "am_av_hdwy": [{"operator": ">", "value": 10}, {"operator": "<=", "value": 15}],
-            "pm_av_hdwy": [{"operator": ">", "value": 10}, {"operator": "<=", "value": 15}],
+            "am_av_hdwy": [
+                {"operator": ">", "value": 10},
+                {"operator": "<=", "value": 15},
+            ],
+            "pm_av_hdwy": [
+                {"operator": ">", "value": 10},
+                {"operator": "<=", "value": 15},
+            ],
         }
         filter_criteria_hdwy_15_to_30 = {
             "name": "Bus_15_30min",
             "buffer": 0.25,
-            "am_av_hdwy": [{"operator": ">", "value": 15}, {"operator": "<=", "value": 30}],
-            "pm_av_hdwy": [{"operator": ">", "value": 15}, {"operator": "<=", "value": 30}],
+            "am_av_hdwy": [
+                {"operator": ">", "value": 15},
+                {"operator": "<=", "value": 30},
+            ],
+            "pm_av_hdwy": [
+                {"operator": ">", "value": 15},
+                {"operator": "<=", "value": 30},
+            ],
         }
 
         filter_criteria_hdwy_gt30 = {
@@ -679,16 +727,40 @@ if __name__ == "__main__":
         # using current plus np transit service
         transit_areas_np_cat6, transit_areas_np_dissolved_cat6 = (
             create_multiple_transit_areas(
-                transit_np, 
-                criteria_list_detail, 
-                "np_cat6", 
-                True, 
-                today_path, 
-                logger=logger
+                transit_np,
+                criteria_list_detail,
+                "np_cat6",
+                True,
+                today_path,
+                logger=logger,
             )
         )
+
+        # #### cat6 - six way categorization assignment to parcels
+
+        p10_x_transit_area_np_cat6 = assign_transit_service_areas_to_parcels(
+            parcels_geo=p10_topofix_pt,
+            transit_areas=transit_areas_np_dissolved_cat6,
+            slug="np",
+            variable="cat6",
+        )
+
+        p10_x_transit_area_fbp_cat6 = assign_transit_service_areas_to_parcels(
+            parcels_geo=p10_topofix_pt,
+            transit_areas=transit_areas_fbp_dissolved_cat6,
+            slug="fbp",
+            variable="cat6",
+        )
+
+        p10_x_transit_area_current_cat6 = assign_transit_service_areas_to_parcels(
+            parcels_geo=p10_topofix_pt,
+            transit_areas=transit_areas_current_dissolved_cat6,
+            slug="current",
+            variable="cat6",
+        )
+
     if RUN_2_WAY_BUFFERS:
-    
+
         ###########################################################################
         # repeat the exercise one last time, but for a coarse 2-way categorization
 
@@ -728,20 +800,40 @@ if __name__ == "__main__":
                 "fbp_cat2",
                 True,
                 today_path,
-                logger=logger
+                logger=logger,
             )
         )
 
         # using current plus np transit service
         transit_areas_np_cat2, transit_areas_np_dissolved_cat2 = (
             create_multiple_transit_areas(
-                transit_np, 
-                criteria_list_coarse, 
-                "np_cat2", 
+                transit_np,
+                criteria_list_coarse,
+                "np_cat2",
                 True,
                 today_path,
-                logger=logger
+                logger=logger,
             )
+        )
+
+        # #### cat2 frequent transit vs all other areas - categorization assignment to parcels
+        p10_x_transit_area_np_cat2 = assign_transit_service_areas_to_parcels(
+            parcels_geo=p10_topofix_pt,
+            transit_areas=transit_areas_np_dissolved_cat2,
+            slug="np",
+            variable="cat2",
+        )
+        p10_x_transit_area_fbp_cat2 = assign_transit_service_areas_to_parcels(
+            parcels_geo=p10_topofix_pt,
+            transit_areas=transit_areas_fbp_dissolved_cat2,
+            slug="fbp",
+            variable="cat2",
+        )
+        p10_x_transit_area_current_cat2 = assign_transit_service_areas_to_parcels(
+            parcels_geo=p10_topofix_pt,
+            transit_areas=transit_areas_current_dissolved_cat2,
+            slug="current",
+            variable="cat2",
         )
 
     # #################################################################
@@ -751,97 +843,26 @@ if __name__ == "__main__":
 
     # ### Assign service areas
 
-    logger.info("\tLoad parcel geoms")
-    p10_topofix = gpd.read_feather(parcel_topo_file)
-    p10_topofix["geom_pt"] = p10_topofix.representative_point()
-    p10_topofix_pt = p10_topofix.set_geometry("geom_pt")[["PARCEL_ID", "geom_pt"]]
-
-    # #### cat5 - six way categorization assignment to parcels
-
-    p10_x_transit_area_np_cat5 = assign_transit_service_areas_to_parcels(
-        parcels_geo=p10_topofix_pt,
-        transit_areas=transit_areas_np_dissolved_cat5,
-        slug="np",
-        variable="cat5",
-    )
-
-    p10_x_transit_area_fbp_cat5 = assign_transit_service_areas_to_parcels(
-        p10_topofix_pt,
-        transit_areas=transit_areas_fbp_dissolved_cat5,
-        slug="fbp",
-        variable="cat5",
-    )
-
-    p10_x_transit_area_current_cat5 = assign_transit_service_areas_to_parcels(
-        p10_topofix_pt,
-        transit_areas=transit_areas_current_dissolved_cat5,
-        slug="current",
-        variable="cat5",
-    )
-
-    # #### cat6 - six way categorization assignment to parcels
-
-    p10_x_transit_area_np_cat6 = assign_transit_service_areas_to_parcels(
-        parcels_geo=p10_topofix_pt,
-        transit_areas=transit_areas_np_dissolved_cat6,
-        slug="np",
-        variable="cat6",
-    )
-
-    p10_x_transit_area_fbp_cat6 = assign_transit_service_areas_to_parcels(
-        parcels_geo=p10_topofix_pt,
-        transit_areas=transit_areas_fbp_dissolved_cat6,
-        slug="fbp",
-        variable="cat6",
-    )
-
-    p10_x_transit_area_current_cat6 = assign_transit_service_areas_to_parcels(
-        parcels_geo=p10_topofix_pt,
-        transit_areas=transit_areas_current_dissolved_cat6,
-        slug="current",
-        variable="cat6",
-    )
-
-    # #### cat2 frequent transit vs all other areas - categorization assignment to parcels
-
-    p10_x_transit_area_np_cat2 = assign_transit_service_areas_to_parcels(
-        parcels_geo=p10_topofix_pt,
-        transit_areas=transit_areas_np_dissolved_cat2,
-        slug="np",
-        variable="cat2",
-    )
-    p10_x_transit_area_fbp_cat2 = assign_transit_service_areas_to_parcels(
-        parcels_geo=p10_topofix_pt,
-        transit_areas=transit_areas_fbp_dissolved_cat2,
-        slug="fbp",
-        variable="cat2",
-    )
-    p10_x_transit_area_current_cat2 = assign_transit_service_areas_to_parcels(
-        parcels_geo=p10_topofix_pt,
-        transit_areas=transit_areas_current_dissolved_cat2,
-        slug="current",
-        variable="cat2",
-    )
     logger.info("Finished preparing parcel-to-transit service area assignment")
 
     # ### Collect parcel to transit service area mappings / crosswalks in dict
 
     # store the parcels-to-transit service level correspondences in a dict for easy retrieval
 
-    transit_scenario_crosswalk = {
-        # 5-way categorizations
-        "cur_cat5": p10_x_transit_area_current_cat5,
-        "fbp_cat5": p10_x_transit_area_fbp_cat5,
-        "np_cat5": p10_x_transit_area_np_cat5,
-        # 6-way categorizations
-        "cur_cat6": p10_x_transit_area_current_cat6,
-        "fbp_cat6": p10_x_transit_area_fbp_cat6,
-        "np_cat6": p10_x_transit_area_np_cat6,
-        # binary categorizations
-        "cur_cat2": p10_x_transit_area_current_cat2,
-        "fbp_cat2": p10_x_transit_area_fbp_cat2,
-        "np_cat2": p10_x_transit_area_np_cat2,
-    }
+    # transit_scenario_crosswalk = {
+    #     # 5-way categorizations
+    #     "cur_cat5": p10_x_transit_area_current_cat5,
+    #     "fbp_cat5": p10_x_transit_area_fbp_cat5,
+    #     "np_cat5": p10_x_transit_area_np_cat5,
+    #     # 6-way categorizations
+    #     "cur_cat6": p10_x_transit_area_current_cat6,
+    #     "fbp_cat6": p10_x_transit_area_fbp_cat6,
+    #     "np_cat6": p10_x_transit_area_np_cat6,
+    #     # binary categorizations
+    #     "cur_cat2": p10_x_transit_area_current_cat2,
+    #     "fbp_cat2": p10_x_transit_area_fbp_cat2,
+    #     "np_cat2": p10_x_transit_area_np_cat2,
+    # }
 
     # ## Chunk A Preliminary Result - a parcel file classified with relevant geographies and transit service areas
 
@@ -852,7 +873,28 @@ if __name__ == "__main__":
 
     # ## Step A3 Classify topo parcels to transit service areas and tracts and epc based on parcel_id
     # relies on transit_scenario_crossswalk above
+
+    # get a string of the transit service level categories present in the transit_scenario_crosswalk dict
+    svc_area_cats = "-".join(
+        pd.Series(list(transit_scenario_crosswalk.keys()))
+        .str.split("_")
+        .apply(lambda x: x[1])
+        .unique()
+    )
+
+    # assign various classifiers back to parcels (transit service areas, EPCs, HRAs, etc.)
     p10_topofix_pt2 = add_classifications_to_p10_topo(p10_topofix_pt)
+
+    # set the path for the parcel to transit service area crosswalk produced by the first half of the script
+    # if it does - we shouldn't need to rerun that part and can proceed to assignment and summaries
+
+    parcel_classes_gpd_path = Path(
+        working_dir_path, "outputs", f"p10_topofix_classified_{svc_area_cats}.parquet"
+    )
+
+    logger.info(
+        f"Write classified parcel dataset to parquet file {parcel_classes_gpd_path}_{svc_area_cats}"
+    )
     p10_topofix_pt2.to_parquet(parcel_classes_gpd_path)
 
     logger.info(
