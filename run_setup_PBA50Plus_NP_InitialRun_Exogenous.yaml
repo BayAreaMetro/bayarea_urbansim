@@ -1,75 +1,86 @@
-
-
-inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-#outputs_dir: M:/urban_modeling/baus/PBA50Plus_Development/Exogenous/outputs
-
-outputs_dir: M:/urban_modeling/baus/PBA50Plus/PBA50Plus_NP_InitialRun/outputs/PBA50Plus_NP_InitialRun_v9_exog/outputs
-
-# RUN NAME
-run_name: "PBA50Plus_NP_InitialRun_exog_but_standard"
-
-
-emp_reloc_rates_adj_file: employment_relocation_rates_overwrites.csv
-#sqft_per_job_adj_file: superdistricts_s25.csv
-sqft_per_job_adj_file: sqft_per_job_adjusters_costar_qcew_timevarying_base_2023_0p8_reduction_feb_sd.csv
-job_density_adj_office_only: false
-elcm_spec_file: elcm.yaml
-
-# DEVELOPMENT PIPELINE
-development_pipeline_file: "2021_0309_1939_development_projects_PBA50_NP.csv"
-use_housing_element_pipeline: False
-use_pipeline_filters: false
-
-
-# ZONING
-zoning_lookup_file: 2024_02_09_zoning_lookup_hybrid_he_pba50plus.csv
-zoning_file: 2024_02_09_zoning_parcels_hybrid_he_pba50plus.csv
-
-
-# REGIONAL CONTROL FILES
-household_controls_file: "household_controls_PBA50Plus.csv"
-employment_controls_file: "employment_controls_PBA50Plus.csv"
-
 # INITIAL SUMMARY YEAR
 # the model's initial year is 2015, while this specifies the first reporting year
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
 initial_summary_year: 2020
 
+# RUN NAME
+run_name: "PBA50Plus_NP_InitialRun_v12_exog"
+
+
+# PATHS FOR INPUTS AND OUTPUTS
+inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_NP_InitialRun/outputs'
+
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
 
 # OPTIONAL SUMMARY WRITING
 run_summaries: True
+
 # OPTIONAL METRICS WRITING
 run_metrics: False
 
 # OPTIONAL VISUALIZER
 run_visualizer: True
-viz_dir: '../../BAUS_Visualizer_PBA50Plus_Files'
+viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 
 
-# ADJUSTERS
+# CORE CONFIGS
+elcm_spec_file: elcm.yaml
+
+
+# MODEL ADJUSTERS
 employment_relocation_rates_adjusters: True
-
-sqft_per_job_adjusters: False
-use_exogenous_sqft_per_job_adjusters: True
+emp_reloc_rates_adj_file: employment_relocation_rates_overwrites.csv
 
 cost_shifters: True
-
 # office caps currently in inputs/plan_strategies/development_caps_strategy.yaml, while residential
 # caps are in configs/adjusters/development_caps_asserted.yaml, but may need to be disentangled 
 asserted_development_caps: True
-
 residential_vacancy_rate_mods: True
 
+
+# TELECOMMUTE STRATEGY  / VS Adjusters - only one of them can be true.
+run_telecommute_strategy: False 
+sqft_per_job_adjusters: False
+use_exogenous_sqft_per_job_adjusters: True
+
+# used for exogenous block to denote if exogenous adjusters should be applied to office only
+job_density_adj_office_only: false
+
+# sqft adjuster files
+sqft_per_job_telecommute_file: sqft_per_job_adjusters_PBA50_FBP.csv
+sqft_per_job_adj_file: sqft_per_job_adjusters_PBA50_NP.csv
+exog_sqft_per_job_adj_file: sqft_per_job_adjusters_costar_qcew_timevarying_base_2023_0p8_reduction_feb_sd.csv
+
+
+
+# REGIONAL CONTROL FILES
+household_controls_file: "household_controls_PBA50.csv"
+employment_controls_file: "employment_controls_PBA50.csv"
+
+# ZONING
+zoning_lookup_file: 2024_02_09_zoning_lookup_hybrid_he_pba50plus.csv
+zoning_file: 2024_02_09_zoning_parcels_hybrid_he_pba50plus.csv
+
+
+# DEVELOPMENT PIPELINE
+development_pipeline_file: "2021_0309_1939_development_projects_PBA50_NP.csv"
+use_housing_element_pipeline: False
+use_pipeline_filters: false
+
+dev_pipeline_strategies:
+   #- "EC2_development_pipeline_entries.csv"
+   #- "EC6_development_pipeline_entries.csv"
+   #- "H6_H8_development_pipeline_entries.csv"
 
 # SEA LEVEL RISE
 # sea level rise and sea level rise mitigation
 # if sea level rise is activated, there is either no project or scenario-based mitigation
 run_slr: True
-slr_progression_file: slr_progression_PBA50.csv
-slr_inundation_file: slr_parcel_inundation_PBA50_NP.csv
+slr_inundation_file: "slr_parcel_inundation_PBA50_NP.csv"
+slr_progression_file: "slr_progression_PBA50.csv"
 
 
 # EARTHQUAKE
@@ -77,24 +88,37 @@ slr_inundation_file: slr_parcel_inundation_PBA50_NP.csv
 run_eq: False
 run_eq_mitigation: False
 
+
 # LOGSUMS
 # the logsum file suffix
 logsum_file: "PBA50_NP"
-#  time steps in which the logsums are applied
-logsum_period1: [2010, 2015, 2020, 2025]
-logsum_period2: [2030, 2035, 2040, 2045, 2050]
-# travel model years of the logsums 
+# the travel model years of the logsums 
 logsum_year1: 2035
 logsum_year2: 2050
+# years in which the logsums are applied to the land use
+logsum_period1: [2010, 2015, 2020, 2025]
+logsum_period2: [2030, 2035, 2040, 2045, 2050]
 
 
 # POLICY
-
 # SB-743 - permanently activated as now legislated policy
 run_sb_743_strategy: True
 
 
 # PLAN STRATEGIES
+
+# GROWTH GEOGRAPHY INPUT FILE
+parcels_geography_file: "2021_02_25_parcels_geography.csv"
+parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]
+
+
+# ZONING STRATEGY
+# if a scenario is run, it always has a zoningmods file, since
+# no project still uses it to apply a UGB
+zoning_mods_file: "zoning_mods_PBA50_NP.csv"
+#zoning_mods_file: "zoning_mods_PBA50Plus_DBP.csv"
+zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]
+
 
 # RENTER PROTECTIONS STRATEGY
 run_renter_protections_strategy: False
@@ -103,13 +127,16 @@ run_renter_protections_strategy: False
 # JOB CAP STRATEGY
 run_job_cap_strategy: False
 
+
 # INCLUSIONARY HOUSING STRATEGY
-inclusionary_strategy_file: "inclusionary_strategy_PBA50_FBP.yaml"
+inclusionary_strategy_file:
 run_inclusionary_strategy: False
 
 
+
 # LUMP SUM ACCOUNT STRATEGIES
-account_strategies_file: "account_strategies_PBA50_NP.yaml"
+account_strategies_file:
+
 run_obag_strategy: False
 
 run_capital_gains_tax_strategy: False
@@ -140,8 +167,8 @@ run_jobs_housing_fee_strategy: False
 
 
 # PROFITABILITY ADJUSTMENT STRATEGIES
-run_ceqa_streamlining_strategy: False
 profit_adjustment_strategies_file: "profit_adjustment_strategies_PBA50_NP.yaml"
+run_ceqa_streamlining_strategy: False
 
 run_reduce_parking_requirements_strategy: False
 
@@ -154,26 +181,9 @@ run_land_value_tax_strategy: False
 
 # AFFORDABLE HOUSING PRESERVATION STRATEGY
 run_housing_preservation_strategy: False
-preservation_file: "preservation_PBA50_NP.yaml"
+preservation_file:
 
 
-# TELECOMMUTE STRATEGIES
-
-run_telecommute_strategy: False
-sqft_per_job_telecommute_file: sqft_per_job_adjusters_PBA50_FBP.csv
 
 # ACCESSORY DWELLING UNIT POLICY
 run_adu_strategy: False
-
-
-
-# GROWTH GEOGRAPHY INPUT FILE
-parcels_geography_file: "parcels_geography_2024_02_14.csv"
-parcels_geography_cols: ["gg_id", "exd_id", "pda_id", "tra_id", "hra_id", "epc_id", "dis_id", "ppa_id", "ugb_id"]
-
-
-# ZONING STRATEGY
-# if a scenario is run, it always has a zoningmods file, since
-# no project still uses it to apply a UGB
-zoning_mods_file: "zoning_mods_PBA50Plus_DBP.csv"
-zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]
