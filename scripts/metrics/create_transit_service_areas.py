@@ -482,59 +482,57 @@ def add_classifications_to_p10_topo(p10_topofix_pt):
     return p10_topofix_pt
 
 
-logger = logger_process(working_dir_path, f"proximity2transit_{YMD}.log")
-
-
-#######################################################################
-# Begin processing ####################################################
-#######################################################################
-
-# load transit stops gdf
-logger.info("\tLoading transit stops")
-transit_file = gpd.read_file(transit_path)
-transit_file = transit_file.to_crs(ANALYSIS_CRS)
-
-# Create separate stop universes: existing; under construction; open; or FBP
-
-logger.info("Segmenting transit data into current; current plus FBP, current plus NP")
-logger.info(f"\tRecords in raw transit stop data: {len(transit_file)}")
-
-qry_fbp = (
-    'status.isin(["Under Construction","Open","Final Blueprint","Existing/Built"]) '
-)
-
-transit_fbp = transit_file.query(qry_fbp)
-logger.info(
-    f"\tSubsetting transit data for Final Blueprint with: {qry_fbp}\nRecords after: {len(transit_fbp)}"
-)
-
-# subset to existing major stop, and under construction or open
-# | (major_stop==1 & status!="Final Blueprint")
-qry_np = 'status.isin(["Under Construction","Open","Existing/Built"]) '
-
-transit_np = transit_file.query(qry_np)
-logger.info(
-    f"\tSubsetting transit data for No Project with: {qry_np}\nRecords after: {len(transit_np)}"
-)
-
-# subset to existing transit infrastructure (per 2015 or so, pre-plan)
-
-qry_current = ' status=="Existing/Built"'
-
-transit_current = transit_file.query(qry_current)
-
-logger.info(
-    f"\tSubsetting transit data for Current Conditions with: {qry_current}\nRecords after: {len(transit_current)}"
-)
-
-
 if __name__ == "__main__":
 
     RUN_5_WAY_BUFFERS = True
     RUN_6_WAY_BUFFERS = True
     RUN_2_WAY_BUFFERS = True
 
-    logger.info("\tLoad parcel geoms")
+    logger = logger_process(working_dir_path, f"proximity2transit_{YMD}.log")
+
+    #######################################################################
+    # Begin processing ####################################################
+    #######################################################################
+
+    # load transit stops gdf
+    logger.info("\tLoading transit stops")
+    transit_file = gpd.read_file(transit_path)
+    transit_file = transit_file.to_crs(ANALYSIS_CRS)
+
+    # Create separate stop universes: existing; under construction; open; or FBP
+
+    logger.info("Segmenting transit data into current; current plus FBP, current plus NP")
+    logger.info(f"\tRecords in raw transit stop data: {len(transit_file)}")
+
+    qry_fbp = (
+        'status.isin(["Under Construction","Open","Final Blueprint","Existing/Built"]) '
+    )
+
+    transit_fbp = transit_file.query(qry_fbp)
+    logger.info(
+        f"\tSubsetting transit data for Final Blueprint with: {qry_fbp}\nRecords after: {len(transit_fbp)}"
+    )
+
+    # subset to existing major stop, and under construction or open
+    # | (major_stop==1 & status!="Final Blueprint")
+    qry_np = 'status.isin(["Under Construction","Open","Existing/Built"]) '
+
+    transit_np = transit_file.query(qry_np)
+    logger.info(
+        f"\tSubsetting transit data for No Project with: {qry_np}\nRecords after: {len(transit_np)}"
+    )
+
+    # subset to existing transit infrastructure (per 2015 or so, pre-plan)
+
+    qry_current = ' status=="Existing/Built"'
+
+    transit_current = transit_file.query(qry_current)
+
+    logger.info(
+        f"\tSubsetting transit data for Current Conditions with: {qry_current}\nRecords after: {len(transit_current)}"
+    )
+
+    logger.info("\tLoad parcel geoms (pre-processed to feather, which loads in 10s)")
     p10_topofix = gpd.read_feather(parcel_topo_file)
     p10_topofix["geom_pt"] = p10_topofix.representative_point()
     p10_topofix_pt = p10_topofix.set_geometry("geom_pt")[["PARCEL_ID", "geom_pt"]]
@@ -547,6 +545,11 @@ if __name__ == "__main__":
     # set specific criteria for selecting headways and what kind of buffer to apply to selected stops
 
     if RUN_5_WAY_BUFFERS:
+        # these constants are sort of post-hoc - the categories (here, 5-way) is what they are because we define four categories, plus rest of region
+        # if we had a different set of criteria define here, we would have a different set of constants
+
+
+        # define filter dicts for identifying the proper stops and how much to buffer them
         filter_criteria_major_stop = {
             "name": "Major_Transit_Stop",
             "buffer": 0.5,
@@ -580,7 +583,7 @@ if __name__ == "__main__":
             "pm_av_hdwy": [{"operator": ">", "value": 30}],
         }
 
-        criteria_list = [
+        criteria_list_cat5 = [
             filter_criteria_major_stop,
             filter_criteria_hdwy_lt15,
             filter_criteria_hdwy_15_to_30,
@@ -589,11 +592,12 @@ if __name__ == "__main__":
 
         # Next, use this list to create transit areas with *5-way* (including remainder areas) categorization
 
+        #TODO: consider just looping create_multiple_transit_areas() and in turn assign_transit_service_areas_to_parcels() as this gets repetitive when needing to run for multiple resolutions
         # using current transit service
         transit_areas_current_cat5, transit_areas_current_dissolved_cat5 = (
             create_multiple_transit_areas(
                 transit_current,
-                criteria_list,
+                criteria_list_cat5,
                 "current_cat5",
                 True,
                 today_path,
@@ -604,18 +608,28 @@ if __name__ == "__main__":
         # using current plus fbp transit service
         transit_areas_fbp_cat5, transit_areas_fbp_dissolved_cat5 = (
             create_multiple_transit_areas(
-                transit_fbp, criteria_list, "fbp_cat5", True, today_path, logger=logger
+                transit_fbp, 
+                criteria_list_cat5, 
+                "fbp_cat5", 
+                True, 
+                today_path, 
+                logger=logger
             )
         )
 
         # using current plus np transit service
         transit_areas_np_cat5, transit_areas_np_dissolved_cat5 = (
             create_multiple_transit_areas(
-                transit_np, criteria_list, "np_cat5", True, today_path, logger=logger
+                transit_np, 
+                criteria_list_cat5, 
+                "np_cat5", 
+                True, 
+                today_path, 
+                logger=logger
             )
         )
 
-        # #### cat5 - six way categorization assignment to parcels
+        # #### cat5 - 5 way categorization assignment to parcels, for each stop universe (np, fbp, current)
         p10_x_transit_area_np_cat5 = assign_transit_service_areas_to_parcels(
             parcels_geo=p10_topofix_pt,
             transit_areas=transit_areas_np_dissolved_cat5,
@@ -690,7 +704,7 @@ if __name__ == "__main__":
         }
 
         # collect filter criteria for selecting headways and what kind of buffer to apply to stops
-        criteria_list_detail = [
+        criteria_list_cat6 = [
             filter_criteria_major_stop,
             filter_criteria_hdwy_lt10,
             filter_criteria_hdwy_11_to_15,
@@ -704,7 +718,7 @@ if __name__ == "__main__":
         transit_areas_current_cat6, transit_areas_current_dissolved_cat6 = (
             create_multiple_transit_areas(
                 transit_current,
-                criteria_list_detail,
+                criteria_list_cat6,
                 "current_cat6",
                 True,
                 today_path,
@@ -716,7 +730,7 @@ if __name__ == "__main__":
         transit_areas_fbp_cat6, transit_areas_fbp_dissolved_cat6 = (
             create_multiple_transit_areas(
                 transit_fbp,
-                criteria_list_detail,
+                criteria_list_cat6,
                 "fbp_cat6",
                 True,
                 today_path,
@@ -728,7 +742,7 @@ if __name__ == "__main__":
         transit_areas_np_cat6, transit_areas_np_dissolved_cat6 = (
             create_multiple_transit_areas(
                 transit_np,
-                criteria_list_detail,
+                criteria_list_cat6,
                 "np_cat6",
                 True,
                 today_path,
@@ -769,7 +783,7 @@ if __name__ == "__main__":
 
         # filter criteria for selecting headways and what kind of buffer to apply to selected stops
         filter_criteria_hdwy_lt10 = {
-            "name": "FREQUENT TRANSIT",
+            "name": "frequent_transit",
             "buffer": 0.5,
             "am_av_hdwy": [{"operator": "<=", "value": 10}],
             "pm_av_hdwy": [{"operator": "<=", "value": 10}],
@@ -836,6 +850,7 @@ if __name__ == "__main__":
             variable="cat2",
         )
 
+
     # #################################################################
     # # Crosswalk creation ############################################
     # # Relate parcels to enclosing transit service areas  ############
@@ -845,34 +860,8 @@ if __name__ == "__main__":
 
     logger.info("Finished preparing parcel-to-transit service area assignment")
 
-    # ### Collect parcel to transit service area mappings / crosswalks in dict
-
-    # store the parcels-to-transit service level correspondences in a dict for easy retrieval
-
-    # transit_scenario_crosswalk = {
-    #     # 5-way categorizations
-    #     "cur_cat5": p10_x_transit_area_current_cat5,
-    #     "fbp_cat5": p10_x_transit_area_fbp_cat5,
-    #     "np_cat5": p10_x_transit_area_np_cat5,
-    #     # 6-way categorizations
-    #     "cur_cat6": p10_x_transit_area_current_cat6,
-    #     "fbp_cat6": p10_x_transit_area_fbp_cat6,
-    #     "np_cat6": p10_x_transit_area_np_cat6,
-    #     # binary categorizations
-    #     "cur_cat2": p10_x_transit_area_current_cat2,
-    #     "fbp_cat2": p10_x_transit_area_fbp_cat2,
-    #     "np_cat2": p10_x_transit_area_np_cat2,
-    # }
-
-    # ## Chunk A Preliminary Result - a parcel file classified with relevant geographies and transit service areas
-
-    # if not crosswalk_exists:
-
-    #     # if the parquet file doesn't exist already, write one
-    #     p10_topofix_pt2.to_parquet(parcel_classes_gpd_path)
-
-    # ## Step A3 Classify topo parcels to transit service areas and tracts and epc based on parcel_id
-    # relies on transit_scenario_crossswalk above
+    # Classify topo parcels to transit service areas and tracts and epc based on parcel_id
+    # relies on transit_scenario_crossswalk containing parcel-to-transit-service-area at different temporal resolutions
 
     # get a string of the transit service level categories present in the transit_scenario_crosswalk dict
     svc_area_cats = "-".join(
@@ -893,7 +882,7 @@ if __name__ == "__main__":
     )
 
     logger.info(
-        f"Write classified parcel dataset to parquet file {parcel_classes_gpd_path}_{svc_area_cats}"
+        f"Write classified parcel dataset to parquet file"
     )
     p10_topofix_pt2.to_parquet(parcel_classes_gpd_path)
 

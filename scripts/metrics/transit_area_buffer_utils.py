@@ -194,6 +194,17 @@ def get_combination_names(group,first=True):
     If first=True, it grabs the first, highest order buffer "membership" found and that is the classification.
     Otherwise, a concantenated string is provided for any/all overlapping transit headway buffers.
 
+    Data expectations:
+    - This is grouped on a column which by definition has one row - so a tuple of booleans.
+    Example row in scope:
+    
+    Major_Transit_Stop  Bus_<10min  Bus_11_15min  Bus_15_30min  Bus_30plusmin  No_Fixed_Route_Transit
+    3       True        True        False         True          True           True
+    
+     - Note some columns have false; others have true. 
+     - When first=True, we grab the first true-valued column from the left.
+     - When first=False, we grab all true-valued columns, in order.
+
     Args:
     group: A Series (from a pandas GroupBy) containing boolean values.
     first: A boolean indicating whether to return the first buffer classification found.
@@ -203,18 +214,24 @@ def get_combination_names(group,first=True):
     """
 
     if first:
-        for col, val in group.items():
-            if val.any():
-                return f"{col}_only" if col != "No_Fixed_Route_Transit" else "none"
+        for col_name, value in group.items():
+            # these are technically shape (1,) series - so we need to use any() even if there is just one element in the array to check for truthiness
+            
+            if value.any():
+                out = f"{col_name}_only" if col_name != "No_Fixed_Route_Transit" else "none"
+                return out
 
-        return group
+        # in an edge case of a misplaced parcel, a row could have only false values 
+        # - not even inluded in the residual areas of the region. Code as 'none'
+        return 'none'
     else:
         combination_names = []
         for col_name, value in group.items():
             if value.any():
                 # if there are any true values - keep the corresponding column name
                 combination_names.append(col_name)
-        return "-".join(combination_names)
+        out = "-".join(combination_names)
+        return out
 
 
 
@@ -424,7 +441,7 @@ def create_multiple_transit_areas(
 
         )
     )
-
+    logger.info(f"transit service categories: {prior_frame[cat_count_var].value_counts()}" )
     # Get the full string list of components in any given unioned area - might be in the vicinity
     # of a major stop, 15 min headway, 30 min headway, or just one or none of them. Which?
 
@@ -434,7 +451,8 @@ def create_multiple_transit_areas(
             #get_combination_names
         )
     )
-
+    logger.info(f"transit service categories desc: {prior_frame['combination_id_desc'].value_counts()}")
+    
     # dissolve to just the core service category areas
     prior_frame_dissolved = prior_frame.dissolve([cat_count_var], as_index=False)
 

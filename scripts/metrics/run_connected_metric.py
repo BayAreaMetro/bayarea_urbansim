@@ -6,14 +6,16 @@ import logging
 import yaml
 from datetime import datetime
 from pathlib import Path
+from itertools import product
 
 import pandas as pd
 import geopandas as gpd
 
+
 def logger_process(
-        dir_path:Path,   
-        log_name:str = "connected_metric.log"
-        ):
+        dir_path: Path,
+        log_name: str = "connected_metric.log"
+):
 
     # Create a unique log file path
     log_file = Path(dir_path, log_name)
@@ -48,15 +50,23 @@ def logger_process(
     return logger
 
 # function for forming the file path
-def parcel_file_path(run_handle, 
-                     year
-                     ) -> str:
+
+
+def parcel_file_path(
+        baus_run_details:dict,
+        run_handle:str,
+        year:str,
+        logger:logging.Logger = None
+        ) -> Path:
     """
     Returns the file path for the specified run and year.
     """
+
     logger.info(f"Getting file path for {run_handle} {year}")
     parcel_template = baus_run_details[run_handle]["parcel_template"][year]
-    file_path = parcel_template.format(baus_run_details[run_handle]["mnemonic"], year)
+    file_path = parcel_template.format(
+        baus_run_details[run_handle]["mnemonic"], year)
+    
     out_path = Path(
         baus_run_details[run_handle]["root_path"],
         baus_run_details[run_handle]["run_path"],
@@ -65,22 +75,25 @@ def parcel_file_path(run_handle,
     return out_path
 
 # function for loading the file path into a df
-def load_parcels(run_handle: str, 
-                 year:str, 
+
+
+def load_parcels(baus_run_details:dict,
+                 run_handle:str,
+                 year:str,
+                 logger:logging.Logger = None, 
                  **csv_kwargs) -> pd.DataFrame:
-     
     """
     Loads the parcels for the specified run and year.
     """
-    
-    logger.info(f"Loading parcels for {run_handle} {year}")
-    
+
     # get path to relevant parcel data
-    parcel_path = parcel_file_path(run_handle, year)
-    
+    parcel_path = parcel_file_path(baus_run_details, run_handle, year, logger)
+
+    logger.info(f"Loading parcels for {run_handle} {year}")
+
     # load the csv as a df - pass through kwargs such as use_cols
     parcels_df = pd.read_csv(parcel_path, **csv_kwargs)
-    
+
     # adding a constant value for groupby convenience
     parcels_df["region"] = "Region"
     return parcels_df
@@ -91,10 +104,9 @@ def transit_service_area_share(
     parcel_classes: pd.DataFrame,
     year: int,
     baus_scenario: str,
-    variant:str,
-    tableau_id:str
-    ) -> pd.DataFrame:
-    
+    variant: str,
+    tableau_id: str
+) -> pd.DataFrame:
     """Summarizes parcel data by transit service levels and geographic groupings.
 
     This function reads a DataFrame containing parcel information, prepares it for analysis,
@@ -110,7 +122,7 @@ def transit_service_area_share(
     Returns:
       A pandas DataFrame with summaries for various transit service levels, EPCs, HRAs, and area types.
     """
-    
+
     # mapping relates the run type to which transit stop buffer universe is appropriate
     # e.g. final blueprint simulation runs should be matched with similar scenario transit stops / headways
     transit_scenario_mapping = {
@@ -120,7 +132,7 @@ def transit_service_area_share(
         "Draft Blueprint": "fbp",
         "Alt1": "fbp",
         "Alt2": "fbp",
-        "Current": "cur",  
+        "Current": "cur",
     }
 
     # get the transit scenario to focus on (e.g., 'fbp' for final bluerprint)
@@ -173,9 +185,10 @@ def transit_service_area_share(
                 }
             )
         )
-        logger.info(f'Summarizing parcels with respect to: {"; ".join(group_vars)}')
+        logger.info(
+            f'Summarizing parcels with respect to: {"; ".join(group_vars)}')
         logger.info(f"{grp_summary.head()}")
-        
+
         # this assumed the FIRST group level is the non-transit service area one!!
         # We are in other words getting the within-group distribution by transit service area
         # so, for HRAs, what is the share living in major transit areas; same for the region; same for
@@ -183,7 +196,7 @@ def transit_service_area_share(
         # this_group_var = group_vars if isinstance(group_vars,str) else group_vars[0]
         grp_summary_shares = (
             grp_summary
-            .groupby(level=group_vars[0], 
+            .groupby(level=group_vars[0],
                      group_keys=False)
             .apply(pct)
             .round(3)
@@ -193,11 +206,12 @@ def transit_service_area_share(
 
     # Identify the passed scenario-specific columns (fbp,no project, current)
     # this returns different classifications for each - like the 5-way or 6-way service level (cat5, cat6)
+    # several may be returned depending on how many are in the crosswalk
     # we summarize run data for each classification variable
 
     transit_svcs_cols = parcel_output_w_classifiers.filter(
         regex=transit_scenario
-    ).columns
+    ).columns.tolist()
 
     logger.info(
         f'Transit scenario specific classifier columns: {"; ".join(transit_svcs_cols)}'
@@ -205,45 +219,33 @@ def transit_service_area_share(
 
     container = {}
 
-    # Now for the summaries - a variable (e.g. tothh) for a geographic area (e.g. region, hra, etc.) 
+    # Now for the summaries - a variable (e.g. tothh) for a geographic area (e.g. region, hra, etc.)
     # is distributed by transit service area (e.g. cat5, cat6, etc.): what share of households
     # live in major transit areas? what share of jobs live in major transit areas?
-    
-    for transit_svc_area in transit_svcs_cols:
 
-        # the regional total version, across geographies
-        summary_servicelevel_tot = groupby_summaries(
-            parcel_output_w_classifiers, ["region", transit_svc_area]
+    area_vars = {'region': "Region", 'is_epc24': 'CoCs',
+                 'is_hra23': 'HRAs', 'area_type': 'area_type'}
+
+    # loop through combinations of area types and transit service area classifications
+    for combo in product(*[area_vars, transit_svcs_cols]):
+
+        # run summary on this combination
+        logger.info(f"Running parcel summaries for {'-'.join(combo)}")
+        this_summary_servicelevel = groupby_summaries(
+            parcel_output_w_classifiers, list(combo)
         )
 
-        # summary by epc (2024 version)
-        summary_servicelevel_epc = groupby_summaries(
-            parcel_output_w_classifiers, ["is_epc24", transit_svc_area]
-        )
-
-        # summary by HRA (2023 vintage)
-        summary_servicelevel_hra = groupby_summaries(
-            parcel_output_w_classifiers, ["is_hra23", transit_svc_area]
-        )
-
-        # summary by area type (urban, suburban, rural)
-        summary_servicelevel_areatype = groupby_summaries(
-            parcel_output_w_classifiers, ["area_type", transit_svc_area]
-        )
-
-        # store dfs in the appropriate buckets
-
-        container[(year, "Region", transit_svc_area)] = summary_servicelevel_tot
-        container[(year, "CoCs", transit_svc_area)] = summary_servicelevel_epc
-        container[(year, "HRAs", transit_svc_area)] = summary_servicelevel_hra
-        container[(year, "area_type", transit_svc_area)] = summary_servicelevel_areatype
+        # new key, including year
+        this_key = (year,) + combo
+        container[this_key] = this_summary_servicelevel
 
     container_df = pd.concat(
         container,
         names=[
             "year",
             "area_grouping",          # i.e. the area concept
-            "transit_grouping",       # i.e.  the classification variable (5-way; 6-way)
+            # i.e.  the classification variable (5-way; 6-way)
+            "transit_grouping",
             "area_detail",            # i.e. the area concept domain levels
             "service_level_detail",   # i.e. the headway / stop type
         ],
@@ -257,7 +259,8 @@ def transit_service_area_share(
     )
 
     # recode a value so it works readily when concatenating / comparing with the old version
-    transit_service_simplification_map = {"Major_Transit_Stop_only": "majorstop"}
+    transit_service_simplification_map = {
+        "Major_Transit_Stop_only": "majorstop"}
     container_df.service_level_detail = container_df.service_level_detail.replace(
         transit_service_simplification_map
     )
@@ -267,12 +270,16 @@ def transit_service_area_share(
         axis=1,
     )
 
-    #TODO - probably don't need *that* many identifiers here - or in the yaml file
-    
+    # TODO - probably don't need *that* many identifiers here - or in the yaml file
+
     container_df["metric"] = "C1"
     container_df["modelrunID"] = baus_scenario
     container_df["tableau_id"] = tableau_id
     container_df["blueprint"] = variant
+
+    # finally, clean up area values a bit
+    container_df['area_grouping'] = container_df.area_grouping.map(area_vars)
+    
     return container_df
 
 
@@ -445,6 +452,16 @@ if __name__ == "__main__":
     
     baus_run_details = yaml_to_dict(baus_run_mapping_path)
 
+    def subsetter(some_dict):
+        new_dict = {}
+        for k,v in some_dict.items():
+            if v['include']:
+                new_dict[k] = v
+        return new_dict
+    
+    # just keep the runs flagged as include = true
+    baus_run_details_sub = subsetter(baus_run_details)
+
     # dump dictionary to yaml
     # with open(baus_run_mapping_file, 'w',) as f :
     #         yaml.dump(baus_run_details,f,sort_keys=False)
@@ -489,16 +506,16 @@ if __name__ == "__main__":
     for run_handle, vals in baus_run_details.items():
         logger.info(f"Processing {run_handle} 2050 data...")
         # load run data
-        this_parcel_data = load_parcels(run_handle, "2050", usecols=parcel_cols_keep)
+        this_parcel_data = load_parcels(baus_run_details, run_handle, "2050", logger, usecols=parcel_cols_keep)
 
         # add classification and summarize run
         this_summary = transit_service_area_share(
             parcel_output=this_parcel_data,
             parcel_classes=p10_parcel_classified,
             year="2050",
-            baus_scenario=baus_run_details[run_handle]["tm_id"],
-            variant=baus_run_details[run_handle]["variant"],
-            tableau_id=baus_run_details[run_handle]["tableau_id"],
+            baus_scenario=vals["tm_id"],
+            variant=vals["variant"],
+            tableau_id=vals["tableau_id"],
         )
         summaries_storage[(run_handle, "2050")] = this_summary
 
@@ -506,17 +523,15 @@ if __name__ == "__main__":
         if run_handle == "PBA50_FBP":
             logger.info("Processing PBA50_FBP for 2015 for a base year dataset")
             # add base year to the mix
-            this_parcel_data = load_parcels(
-                run_handle, "2015", usecols=parcel_cols_keep
-            )
+            this_parcel_data = load_parcels(baus_run_details, run_handle, "2015", logger, usecols=parcel_cols_keep)
 
             this_summary = transit_service_area_share(
                 parcel_output=this_parcel_data,
                 parcel_classes=p10_parcel_classified,
                 year="2015",
-                baus_scenario=baus_run_details[run_handle]["tm_id"],
-                variant=baus_run_details[run_handle]["variant"],
-                tableau_id=baus_run_details[run_handle]["tableau_id"],
+                baus_scenario=vals["tm_id"],
+                variant=vals["variant"],
+                tableau_id=vals["tableau_id"],
             )
             summaries_storage[(run_handle, "2015")] = this_summary
 
