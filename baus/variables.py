@@ -951,6 +951,12 @@ def effective_max_dua(zoning_existing, parcels):
     return (s.fillna(0) * s3).reindex(parcels.index).fillna(0).astype('float')
 
 
+@orca.column('parcels_zoning_calculations')
+def zoned_far(parcels, parcels_zoning_calculations):
+    # adding to help look at nonres capacity in model outputs
+    return parcels_zoning_calculations.effective_max_far * parcels.parcel_size
+
+
 @orca.column('parcels_zoning_calculations', cache=True)
 def effective_max_far(zoning_existing, parcels):
 
@@ -1009,6 +1015,12 @@ def zoned_du_build_ratio(parcels, parcels_zoning_calculations):
     s = parcels.total_residential_units / \
        (parcels_zoning_calculations.effective_max_dua * parcels.parcel_acres)
     return s.replace(np.inf, 1).clip(0, 1)
+
+
+@orca.column('parcels_zoning_calculations')
+def zoned_far_underbuild(parcels, parcels_zoning_calculations):
+    # adding to help look at nonres capacity in model outputs
+    return parcels_zoning_calculations.zoned_far - parcels.total_non_residential_sqft
 
 
 @orca.column('parcels_zoning_calculations')
