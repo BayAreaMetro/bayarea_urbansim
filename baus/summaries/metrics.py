@@ -289,7 +289,7 @@ def jobs_metrics(year, parcels, buildings, jobs, parcels_geography, initial_summ
         jobs_summary['ppa_jobs'] = jobs_df[jobs_df.ppa_id > ''].size
         jobs_summary['mfg_jobs'] = jobs_df[jobs_df.empsix == 'MWTEMPN'].size
         jobs_summary['ppa_mfg_jobs'] = jobs_df[(jobs_df.ppa_id > '') & (jobs_df.empsix == 'MWTEMPN')].size
-        orca.add_table("jobs_summary_"+str(year), jobs_summary)
+        orca.add_   table("jobs_summary_"+str(year), jobs_summary)
 
     if year == final_year:
          # now calculate growth metrics

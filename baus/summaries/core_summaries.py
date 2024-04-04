@@ -88,20 +88,23 @@ def building_summary(run_name, parcels, buildings, year, initial_summary_year, f
 
 
 @orca.step()
-def new_buildings_summary(run_name, parcels, buildings, year, final_year):
+def new_buildings_summary(run_name, parcels, parcels_zoning_calculations, buildings, year, final_year):
 
     if year != final_year:
         return
 
-    df = orca.merge_tables('buildings', [parcels, buildings])    
-    df = df[~df.source.isin(["h5_inputs"])]
+    parcels = parcels.to_frame().join(parcels_zoning_calculations.to_frame(), lsuffix='parcels')
+    df = buildings.to_frame().merge(parcels, left_on="parcel_id", right_index=True)
+
+    df = df[~df.source.isin(["h5_inputs"])] 
 
     df = df[['parcel_id', 'building_type', 'building_sqft', 'deed_restricted_units', 'year_built',
              'preserved_units', 'inclusionary_units', 'subsidized_units',
              'non_residential_sqft', 'residential_price', 'residential_units', 'source',	
              'vacant_residential_units', 'vacant_job_spaces', 'vacant_res_units', 'price_per_sqft',	'unit_price',	
              'land_value',	'acres', 'x', 'y', 'parcel_acres', 'total_residential_units',	'total_job_spaces',	
-             'zoned_du', 'zoned_du_underbuild', 'sdem',	
+             'zoned_du', 'zoned_du_underbuild', 'zoned_du_build_ratio', 'zoned_far', 'zoned_far_underbuild', 
+             'zoned_far_build_ratio', 'sdem',	
              'urbanized', 'manual_nodev', 'total_non_residential_sqft',	'nodev',	
              'built_far', 'max_far', 'built_dua', 'max_dua', 'building_purchase_price_sqft',	
              'building_purchase_price',	'land_cost', 'slr_nodev']]
@@ -116,7 +119,7 @@ def new_buildings_summary(run_name, parcels, buildings, year, final_year):
 
 @orca.step()
 def interim_zone_output(run_name, households, buildings, residential_units, parcels, jobs, zones, year,
-                        initial_summary_year, final_year):
+                        parcels_zoning_calculations, initial_summary_year, final_year):
 
     # TODO: currently TAZ, do we want this to be MAZ?
     zones = pd.DataFrame(index=zones.index)
@@ -134,6 +137,8 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     jobs["zone_id"] = jobs.zone_id_x
 
     parcels = parcels.to_frame()
+    parcels = parcels.join(parcels_zoning_calculations.to_frame(), lsuffix='parcels')
+
     buildings = buildings.to_frame()
     residential_units = residential_units.to_frame()
 
@@ -149,7 +154,10 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     # CAPACITY
     zones['zoned_du'] = parcels.groupby('zone_id').zoned_du.sum()
     zones['zoned_du_underbuild'] = parcels.groupby('zone_id').zoned_du_underbuild.sum()
-    zones['zoned_du_underbuild_ratio'] = zones.zoned_du_underbuild / zones.zoned_du
+    zones['zoned_du_build_ratio'] = zones.residential_units / zones.zoned_du
+    zones['zoned_far'] = parcels.groupby('zone_id').zoned_far.sum()
+    zones['zoned_far_underbuild'] = parcels.groupby('zone_id').zoned_far_underbuild.sum()
+    zones['zoned_far_build_ratio'] = zones.non_residential_sqft / zones.zoned_far
 
     # VACANCY
     tothh = households.zone_id.value_counts().reindex(zones.index).fillna(0)
