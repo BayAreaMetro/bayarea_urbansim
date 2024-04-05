@@ -1,15 +1,15 @@
 # INITIAL SUMMARY YEAR
-# the model's initial year is 2015, while this specifies the first reporting year
+# the model's initial year is 2010, while this specifies the first reporting year
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
 initial_summary_year: 2010
 
 # RUN NAME
-run_name: "PBA50_NoProject"
+run_name: "PBA50_FinalBlueprint"
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_NP_InitialRun/outputs'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_DBP_InitialRun/outputs'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -56,7 +56,7 @@ employment_controls_file: "employment_controls_PBA50.csv"
 
 
 # DEVELOPMENT PIPELINE
-development_pipeline_file: "2021_0309_1939_development_projects_PBA50_NP.csv"
+development_pipeline_file: "2021_0309_1939_development_projects_PBA50_FBP.csv"
 use_housing_element_pipeline: False
 use_pipeline_filters: False
 
@@ -70,7 +70,7 @@ zoning_file: "2020_11_05_zoning_parcels_hybrid_pba50.csv"
 # sea level rise and sea level rise mitigation
 # if sea level rise is activated, there is either no project or scenario-based mitigation
 run_slr: True
-slr_inundation_file: "slr_parcel_inundation_PBA50_NP.csv"
+slr_inundation_file: "slr_parcel_inundation_PBA50_FBP.csv"
 slr_progression_file: "slr_progression_PBA50.csv"
 
 
@@ -82,7 +82,7 @@ run_eq_mitigation: False
 
 # LOGSUMS
 # the logsum file suffix
-logsum_file: "PBA50_NP"
+logsum_file: "PBA50_FBP"
 # the travel model years of the logsums 
 logsum_year1: 2035
 logsum_year2: 2050
@@ -113,11 +113,11 @@ parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa
 # ZONING STRATEGY
 # if a scenario is run, it always has a zoningmods file, since
 # no project still uses it to apply a UGB
-zoning_mods_file: "zoning_mods_PBA50_NP.csv"
+zoning_mods_file: "zoning_mods_PBA50_FBP.csv"
 
 
 # RENTER PROTECTIONS STRATEGY
-run_renter_protections_strategy: False
+run_renter_protections_strategy: True
 
 
 # JOB CAP STRATEGY
@@ -125,13 +125,12 @@ run_job_cap_strategy: False
 
 
 # INCLUSIONARY HOUSING STRATEGY
-inclusionary_strategy_file:
-run_inclusionary_strategy: False
-
+inclusionary_strategy_file: "inclusionary_strategy_PBA50_FBP.yaml"
+run_inclusionary_strategy: True
 
 
 # LUMP SUM ACCOUNT STRATEGIES
-account_strategies_file:
+account_strategies_file: "account_strategies_PBA50_FBP.yaml"
 
 run_obag_strategy: False
 
@@ -139,19 +138,19 @@ run_capital_gains_tax_strategy: False
 
 run_parcel_tax_strategy: False
 
-run_housing_bond_strategy: False
+run_housing_bond_strategy: True
 # sub-accounts
-run_alameda_housing_bond_strategy: False
-run_contra_costa_housing_bond_strategy: False
-run_marin_housing_bond_strategy: False
-run_napa_housing_bond_strategy: False
-run_san_francisco_housing_bond_strategy: False
-run_san_mateo_housing_bond_strategy: False
-run_santa_clara_housing_bond_strategy: False
-run_solano_housing_bond_strategy: False
-run_sonoma_housing_bond_strategy: False
+run_alameda_housing_bond_strategy: True
+run_contra_costa_housing_bond_strategy: True
+run_marin_housing_bond_strategy: True
+run_napa_housing_bond_strategy: True
+run_san_francisco_housing_bond_strategy: True
+run_san_mateo_housing_bond_strategy: True
+run_santa_clara_housing_bond_strategy: True
+run_solano_housing_bond_strategy: True
+run_sonoma_housing_bond_strategy: True
 
-run_office_bond_strategy: False
+run_office_bond_strategy: True
 
 run_vmt_fee_strategy: False
 # sub-strategies
@@ -163,21 +162,21 @@ run_jobs_housing_fee_strategy: False
 
 
 # PROFITABILITY ADJUSTMENT STRATEGIES
-profit_adjustment_strategies_file: "profit_adjustment_strategies_PBA50_NP.yaml"
+profit_adjustment_strategies_file: "profit_adjustment_strategies_PBA50_FBP.yaml"
 run_ceqa_streamlining_strategy: False
 
 run_reduce_parking_requirements_strategy: False
 
-run_reduce_housing_costs_tier1_strategy: False
-run_reduce_housing_costs_tier2_strategy: False
-run_reduce_housing_costs_tier3_strategy: False
+run_reduce_housing_costs_tier1_strategy: True
+run_reduce_housing_costs_tier2_strategy: True
+run_reduce_housing_costs_tier3_strategy: True
 
 run_land_value_tax_strategy: False
 
 
 # AFFORDABLE HOUSING PRESERVATION STRATEGY
-run_housing_preservation_strategy: False
-preservation_file:
+run_housing_preservation_strategy: True
+preservation_file: "preservation_PBA50_FBP.yaml"
 
 
 # TELECOMMUTE STRATEGY
@@ -187,4 +186,4 @@ run_telecommute_strategy: False
 
 
 # ACCESSORY DWELLING UNIT POLICY
-run_adu_strategy: False
+run_adu_strategy: True
