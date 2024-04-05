@@ -49,16 +49,14 @@ def viz_dir(run_setup):
 
 @orca.injectable('sqft_per_job_adj_file', cache=True)
 def sqft_per_job_adj_file(run_setup):
-    # if no sqft_per_job_adj_file defined in yaml, return the default adjuster file
     
-    adj_file = run_setup.get('sqft_per_job_adj_file', 'superdistricts_s25.csv')
+    adj_file = run_setup['sqft_per_job_adj_file']
     return adj_file
 
 @orca.injectable('exog_sqft_per_job_adj_file', cache=True)
 def exog_sqft_per_job_adj_file(run_setup):
-    # if no sqft_per_job_adj_file defined in yaml, return the default adjuster file
     
-    adj_file = run_setup.get('exog_sqft_per_job_adj_file', 'sqft_per_job_adjusters.csv')
+    adj_file = run_setup['exog_sqft_per_job_adj_file']
     return adj_file
 
 @orca.injectable('emp_reloc_rates_adj_file', cache=True)
