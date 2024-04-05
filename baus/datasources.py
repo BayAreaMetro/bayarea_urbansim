@@ -8,7 +8,7 @@ from urbansim_defaults import utils
 from urbansim.utils import misc
 import orca
 from baus import preprocessing
-from baus.utils import geom_id_to_parcel_id, parcel_id_to_geom_id
+from baus.utils import geom_id_to_parcel_id, parcel_id_to_geom_id, pipeline_filtering
 from baus.utils import nearest_neighbor
 import yaml
 import pathlib
@@ -47,12 +47,43 @@ def outputs_dir(run_setup):
 def viz_dir(run_setup):
     return os.path.join(run_setup['viz_dir'])
 
+@orca.injectable('sqft_per_job_adj_file', cache=True)
+def sqft_per_job_adj_file(run_setup):
+    
+    adj_file = run_setup['sqft_per_job_adj_file']
+    return adj_file
+
+@orca.injectable('exog_sqft_per_job_adj_file', cache=True)
+def exog_sqft_per_job_adj_file(run_setup):
+    
+    adj_file = run_setup['exog_sqft_per_job_adj_file']
+    return adj_file
+
+@orca.injectable('emp_reloc_rates_adj_file', cache=True)
+def emp_reloc_rates_adj_file(run_setup):
+    # if no emp_reloc_rates_adj_file defined in yaml, return the default adjuster file
+    
+    adj_file = run_setup.get('emp_reloc_rates_adj_file', 'employment_relocation_rates_overwrites.csv')
+    return adj_file
+
+
+@orca.injectable('elcm_spec_file', cache=True)
+def elcm_spec_file(run_setup):
+    # if no elcm_spec_file defined in yaml, return the default file
+    
+    elcm_file = run_setup.get('elcm_spec_file', 'elcm.yaml')
+    return elcm_file
 
 @orca.injectable('paths', cache=True)
 def paths():
     with open(os.path.join(misc.configs_dir(), "paths.yaml")) as f:
         return yaml.load(f)
 
+
+@orca.injectable('pipeline_filters', cache=True)
+def pipeline_filters():
+    with open(os.path.join(misc.configs_dir(), "adjusters/pipeline_filters.yaml")) as f:
+        return yaml.load(f)
 
 @orca.injectable('accessibility_settings', cache=True)
 def accessibility_settings():
@@ -640,6 +671,17 @@ def get_dev_projects_table(parcels, run_setup):
         inputs_dir / "basis_inputs/parcels_buildings_agents" / run_setup["development_pipeline_file"],
         dtype={'PARCEL_ID': np.int64, 'geom_id': np.int64},
     )
+    
+    # do any pre-filtering
+#     print('Records in pipeline table - pre-filter: ',df.shape[0])
+#     if run_setup['use_pipeline_filters']:
+        
+#         # return a list of dicts, where dicts have column key - value criteria
+#         filter_criteria = orca.get_injectable('pipeline_filters')['filters']
+#         # pipeline filtering function turns dicts into query strings and drops records accordingly
+#         df = pipeline_filtering(df, filter_criteria)
+#         print('Records in pipeline table - post-filter: ',df.shape[0])
+
     df = reprocess_dev_projects(df)
 
     # Optionally - if flag set to use housing element pipeline, load that and append:
@@ -683,6 +725,7 @@ def get_dev_projects_table(parcels, run_setup):
 
 @orca.table(cache=True)
 def demolish_events(parcels, run_setup):
+    print('Preparing demolish events')
     df = get_dev_projects_table(parcels, run_setup)
 
     # keep demolish and build records
@@ -691,6 +734,8 @@ def demolish_events(parcels, run_setup):
 
 @orca.table(cache=True)
 def development_projects(parcels, mapping, run_setup):
+    print('Preparing development events')
+    
     df = get_dev_projects_table(parcels, run_setup)
 
     for col in [
@@ -806,14 +851,18 @@ def residential_vacancy_rate_mods():
 # the following overrides employment_controls
 # table defined in urbansim_defaults
 @orca.table(cache=True)
-def employment_controls(employment_controls_unstacked):
+def employment_controls(employment_controls_unstacked,mapping):
     df = employment_controls_unstacked.to_frame()
     # rename to match legacy table
-    df.columns = [1, 2, 3, 4, 5, 6]
+    # ao: dangerous if ordering changes. Use explicit mapping instead
+    #df.columns = [1, 2, 3, 4, 5, 6]
+    
     # stack and fill in columns
     df = df.stack().reset_index().set_index('year')
     # rename to match legacy table
-    df.columns = ['empsix_id', 'number_of_jobs']
+    df.columns = ['empsix', 'number_of_jobs']
+    df['empsix_id'] = df.empsix.map(mapping['empsix_name_to_id'])
+    df = df[['empsix_id','number_of_jobs']]
     return df
 
 
@@ -838,8 +887,12 @@ def superdistricts_geography():
 
 @orca.table(cache=True)
 def sqft_per_job_adjusters(): 
-    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters/sqft_per_job_adjusters.csv"), index_col="number")
+    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("sqft_per_job_adj_file")), index_col="number")
 
+
+@orca.table(cache=True)
+def exog_sqft_per_job_adjusters(): 
+    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("exog_sqft_per_job_adj_file")), index_col="number")
 
 @orca.table(cache=True)
 def telecommute_sqft_per_job_adjusters(run_setup): 
@@ -918,7 +971,7 @@ def employment_relocation_rates():
 
 @orca.table(cache=True)
 def employment_relocation_rates_adjusters():
-    df = pd.read_csv(os.path.join(misc.configs_dir(), "adjusters/employment_relocation_rates_overwrites.csv"))
+    df = pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("emp_reloc_rates_adj_file")))
     df = df.set_index("zone_id")
     return df
 

@@ -269,6 +269,8 @@ def reconcile_placed_households(households, residential_units):
     models assign only a 'unit_id', so this model step updates the building
     id's accordingly.
 
+    TODO: probably makes sense to reconcile this upstream
+
     Data expectations
     -----------------
     - 'households' table has the following columns:

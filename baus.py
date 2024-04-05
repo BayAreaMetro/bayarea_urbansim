@@ -407,16 +407,19 @@ def run_models(MODE):
                 "add_to_model_run_inventory_file"
         ])
 
-
     else:
         raise "Invalid mode"
 
-print('***Copying run_setup.yaml to output directory')
-shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), "{}_run_setup.yaml").format(run_name))
+
 
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
-                                       
+
+# Memorialize the run config with the outputs - goes by run name attribute
+
+print('***Copying run_setup.yaml to output directory')
+shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
+
 print("Started", time.ctime())
 print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
 print("Current Commit : ", os.popen('git rev-parse HEAD').read().rstrip())
@@ -433,11 +436,24 @@ print("pandas version: %s" % pd.__version__)
 print("SLACK: {}".format(SLACK))
 print("MODE: {}".format(MODE))
 
-if SLACK and MODE == "simulation":
-    slack_start_message = f'Starting simulation {run_name} on host {host}'
+if SLACK and MODE == "estimation":
+    slack_start_message = f'Starting estimation {run_name} on host {host}'
     try:
         # For first slack channel posting of a run, catch any auth errors
-        response = client.chat_postMessage(channel=slack_channel,text=slack_start_message)
+        init_response = client.chat_postMessage(channel=slack_channel,
+                                                text=slack_start_message)
+    except SlackApiError as e:
+        assert e.response["ok"] is False
+        assert e.response["error"]  
+        print(f"Slack Channel Connection Error: {e.response['error']}")
+
+if SLACK and MODE == "simulation":
+    slack_start_message = f'Starting simulation {run_name} on host {host}\nOutput written to: {run_setup["outputs_dir"]}'
+    
+    try:
+        # For first slack channel posting of a run, catch any auth errors
+        init_response = client.chat_postMessage(channel=slack_channel,
+                                           text=slack_start_message)
     except SlackApiError as e:
         assert e.response["ok"] is False
         assert e.response["error"]  
@@ -447,9 +463,17 @@ try:
     run_models(MODE)
 except Exception as e:
     print(traceback.print_exc())
+    tb = e.__traceback__
+    
+    trace = traceback.extract_tb(tb=tb,limit=1)
+    error_type = type(e).__name__
+    error_msg = str(e)
+
     if SLACK and MODE == "simulation":
-        slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host}'
-        response = client.chat_postMessage(channel=slack_channel,text=slack_fail_message)
+        slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}, from {trace}'
+        response = client.chat_postMessage(channel=slack_channel,
+                                           thread_ts=init_response.data['ts'],
+                                           text=slack_fail_message)
 
     else:
         raise e
@@ -457,7 +481,9 @@ except Exception as e:
 
 if SLACK and MODE == "simulation":
     slack_completion_message = f'Completed simulation {run_name} on host {host}'
-    response = client.chat_postMessage(channel=slack_channel,text=slack_completion_message)
+    response = client.chat_postMessage(channel=slack_channel,
+                                       thread_ts=init_response.data['ts'],
+                                       text=slack_completion_message)
 
                                                                                             
 print("Finished", time.ctime())         

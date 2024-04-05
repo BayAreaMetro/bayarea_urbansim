@@ -1,0 +1,41 @@
+# set county-level filters for runtime pipeline subsetting
+filters:
+  - name: "San Francisco"
+    county:
+      operator: "=="
+      value: "San Francisco"
+    source:
+      operator: "=="
+      value: "cs"
+    year_built:
+      operator: ">="
+      value: 2020
+    building_type:
+      operator: "=="
+      value: "OF"
+  - name: "San Mateo"
+    county:
+      operator: "=="
+      value: "San Mateo"
+    source:
+      operator: "=="
+      value: "cs"
+    year_built:
+      operator: ">="
+      value: 2020
+    building_type:
+      operator: "=="
+      value: "OF"
+  - name: "Santa Clara"
+    county:
+      operator: "=="
+      value: "Santa Clara"
+    source:
+      operator: "=="
+      value: "cs"
+    year_built:
+      operator: ">="
+      value: 2020
+    building_type:
+      operator: "=="
+      value: "OF"
