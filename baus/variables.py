@@ -116,6 +116,13 @@ def vacant_units(residential_units, households):
 # BUILDINGS VARIABLES
 #####################
 
+@orca.column('buildings', cache=True)
+def ec5_cat(buildings, ec5_parcels):
+    buildings_x_ec5_cat = buildings.parcel_id.map(ec5_parcels.to_frame().ec5_cat)
+    buildings_x_ec5_cat = buildings_x_ec5_cat.fillna('Outside')
+    print('buildings_x_ec5',buildings_x_ec5_cat.value_counts())
+    return buildings_x_ec5_cat
+
 
 @orca.column('buildings', cache=True)
 def general_type(buildings, building_type_map):

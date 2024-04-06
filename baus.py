@@ -4,9 +4,9 @@ import pathlib
 import sys
 import time
 import traceback
-from baus import \
-    datasources, variables, models, subsidies, ual, slr, earthquake, \
-    utils, preprocessing
+from baus import (
+    datasources, variables, models, subsidies, ual, slr, earthquake, 
+    utils, preprocessing)
 from baus.tests import validation
 from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
@@ -272,6 +272,8 @@ def run_models(MODE):
                 "reconcile_placed_households",
 
                 "proportional_elcm",
+                "gov_transit_elcm",
+                #"elcm_simulate_ec5",
                 "elcm_simulate",  
 
                 "calculate_vmt_fees",
@@ -420,7 +422,7 @@ sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), 
 
 print('***Copying run_setup.yaml to output directory')
 import shutil
-shutil.copyfile("../run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
+shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
 print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())

@@ -43,6 +43,85 @@ def elcm_simulate(jobs, buildings, aggregations):
     return elcm
 
 
+@orca.step()
+def elcm_simulate_ec5(jobs, buildings, aggregations):
+    """
+    testing docstring documentation for automated documentation creation
+    """
+    
+    #spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
+    spec_path = os.path.join("location_choice",'elcm_ec5.yaml')
+    
+    elcm = utils.lcm_simulate(spec_path, 
+                              jobs, buildings, aggregations,
+                              "building_id", "job_spaces",
+                              "vacant_job_spaces", cast=True)
+    return elcm
+
+
+
+# EC5 jobs-to-transit buffers assignment testing
+@orca.step()
+def gov_transit_elcm(jobs, households, buildings, parcels):
+
+    # Jobs prep
+    jobs_df = jobs.to_frame(["building_id", "empsix"])
+    df = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], columns=['juris', 'zone_id'])
+    jobs_df["juris"] = df["juris"]
+    jobs_df["zone_id"] = df["zone_id"]
+
+    # Buildings prep
+    buildings_df = orca.merge_tables(target='buildings', tables=[buildings, parcels], 
+                                     columns=['juris', 'zone_id', 'general_type', 'vacant_job_spaces'])
+
+    buildings_df = buildings_df.rename(columns={'zone_id_x': 'zone_id', 'general_type_x': 'general_type'})
+
+
+    # We could do this out of step - just grabbing jobs not
+    # explicitly selected for relocation - and moving them anyway
+
+    # available_jobs = (jobs_df
+    # .query("empsix == '%s' and building_id == -1" % sector)
+    # )
+    
+    # Move candidates
+    moving_jobs_candidates = jobs_df.query('sector_id==91')
+
+    movers_n = len(moving_jobs)
+
+    half_n = int(movers_n / 2)
+    moving_jobs = moving_jobs_candidates.sample(half_n)
+
+    print(f'Number of NAICS 91 jobs moving: {half_n}')
+
+    # get locations
+
+    # Where to go? Buffers!
+
+    building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 10')
+
+    print(f"{building_hosts.vacant_job_spaces.sum():,} job spaces  in {len(building_hosts)} buildings")
+
+    # get half_n jobs
+    # first - enumerate job spaces
+    location_options = building_hosts.repeat(building_hosts.vacant_job_spaces.clip(0))
+    print('location_options',location_options.head())
+
+    # #hh_df = orca.merge_tables(target='households', tables=[households, buildings, parcels], columns=['juris', 'zone_id', 'county'])
+
+    
+    # # location options are vacant job spaces in retail buildings - this will
+    # # overfill certain location because we don't have enough space
+    # building_subset = buildings_df[buildings_df.general_type == "Retail"]
+    # location_options = building_subset.juris.repeat(building_subset.vacant_job_spaces.clip(0))
+
+    # # location options are vacant job spaces in retail buildings - this will
+    # # overfill certain location because we don't have enough space
+    # building_subset = buildings_df[buildings.general_type.isin(["Office", "School"])]
+    # location_options = building_subset.zone_id.repeat(building_subset.vacant_job_spaces.clip(0))
+
+
+        
 
 @orca.step()
 def households_transition(households, household_controls, year, transition_relocation_settings):
