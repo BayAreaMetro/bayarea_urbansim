@@ -154,41 +154,23 @@ def vacant_res_units(buildings, households):
 
 
 @orca.column('buildings', cache=True)
-def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telecommute_sqft_per_job_adjusters, taz_geography, base_year, year, run_setup):
-
-    # get building types list
-    mapping = orca.get_injectable("mapping")
-    form_to_btype = mapping["form_to_btype"]
-    nonres_list = form_to_btype['select_non_residential']
-    nonres_list = [i for i in nonres_list if i != "OF"]
-
-    print('Elements in non-res list ', nonres_list)
-
-    # get building types list
-    mapping = orca.get_injectable("mapping")
-    form_to_btype = mapping["form_to_btype"]
-
-    # get non-res list, exclusive of office
-    nonres_list = form_to_btype['select_non_residential']
-    nonres_list = [i for i in nonres_list if i != "OF"]
-
-    # create building-level building type masks
-    office_mask = buildings.building_type == "OF"
-    other_nonres_mask = buildings.building_type.isin(nonres_list)
+def sqft_per_job(buildings, 
+                building_sqft_per_job, 
+                sqft_per_job_adjusters, 
+                exog_sqft_per_job_adjusters,
+                telecommute_sqft_per_job_adjusters, 
+                taz_geography,
+                base_year, 
+                year, 
+                run_setup):
 
     # base series (building-level)
     sqft_per_job = buildings.building_type.fillna(
         "OF").map(building_sqft_per_job)
 
-    # keep a default series
-    sqft_per_job_adj = sqft_per_job.copy()
-
     print('Describing sqft_per_job factors - before adjustment')
     print('\tAcross building types')
     print(sqft_per_job.describe())
-
-    print('\tOffice buildings alone')
-    print(sqft_per_job.loc[office_mask].describe())
 
     building_to_superdist_map = misc.reindex(
         taz_geography.superdistrict, buildings.zone_id)
@@ -200,83 +182,93 @@ def sqft_per_job(buildings, building_sqft_per_job, sqft_per_job_adjusters, telec
 
     # if the telecommute strategy is enabled, instead adjust future year sqft_per_job 
     # rates with the year-specific factor
-    if run_setup.get("run_telecommute_strategy", False) and year != base_year:
-        sqft_per_job_adj = sqft_per_job * building_to_superdist_map.map(
+    if run_setup["run_telecommute_strategy"] and year != base_year:
+        sqft_per_job = sqft_per_job * building_to_superdist_map.map(
             telecommute_sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
+        return sqft_per_job
 
+    elif run_setup['sqft_per_job_adjusters'] and year != base_year:
         # if telecommute strategy flag is disabled, AND if adjusters are enabled, 
-        # adjust sqft_per_job rates for *all* years
-    elif run_setup.get("sqft_per_job_adjusters", True):
-        print('Calculating sqft_per_job_adjusters...')
+        # adjust sqft_per_job rates for *all* years for all building types, time invariant
+        
+        # deprecated - the RTP2021 NP also used time varying factors
+        #adjuster_variable = ('sqft_per_job_factor' if 'sqft_per_job_factor'
+        # in sqft_per_job_adjusters.local.columns else 'sqft_per_job_factor_2010') 
+        #sqft_per_job = sqft_per_job * building_to_superdist_map.map(sqft_per_job_adjusters[adjuster_variable])
 
-        # Some adjuster files come with time-varying year specific values -
-        # Others are just one variable. Check for single year variable
-        # *without* a year as part of the string.
+        print('Applying standard sqft per job adjusters for all building types')
+        
+        # has time varying factors
+        sqft_per_job = sqft_per_job * building_to_superdist_map.map(
+            sqft_per_job_adjusters['sqft_per_job_factor_{}'.format(year)])
+        
+        return sqft_per_job
+    
+    elif run_setup["use_exogenous_sqft_per_job_adjusters"]:
+        
+        # if telecommute strategy flag and standard adjusters are disabled, AND if adjusters are enabled, 
+        # adjust sqft_per_job rates for *all* years for office buildings
+        
+        print('Applying exogenous sqft per job adjusters for all office buildings')
+        
+        # get building types list
+        mapping = orca.get_injectable("mapping")
+        form_to_btype = mapping["form_to_btype"]
 
-        # For time-varying variable adjuster files, check for the existence
-        # of the current run year, and adjust if found
+        # get non-res list, exclusive of office
+        nonres_list = form_to_btype['select_non_residential']
+        nonres_list = [i for i in nonres_list if i != "OF"]
 
-        if sqft_per_job_adjusters.local.columns.str.contains(str(year)).any():
-            print(
-                f'\tMulti-year adjusters instruction found - adjusting constants for year {year}')
+        # create building-level building type masks
+        office_mask = buildings.building_type == "OF"
+        other_nonres_mask = buildings.building_type.isin(nonres_list)
 
-            # Then get that year's adjusters
+        print('\tOffice buildings alone')
+        print(sqft_per_job.loc[office_mask].describe())
 
-            # adjust office portion only
-            sqft_per_job_adj.loc[office_mask] = (sqft_per_job_adj.loc[office_mask]
-                                                 * building_to_superdist_map.loc[office_mask]
-                                                 .map(sqft_per_job_adjusters[f'sqft_per_job_factor_{year}'])
-                                                 )
+        print('Calculating exog_sqft_per_job_adjusters...')
 
-            print('Describing sqft_per_job factors - after adjustment')
-            print('\tAcross building types')
-            print(sqft_per_job_adj.describe())
+        #Assume year-varying values are available
+        print(
+            f'\tMulti-year adjusters instruction found - adjusting constants for year {year}')
 
-            print('\tOffice buildings alone')
-            print(sqft_per_job_adj.loc[office_mask].describe())
+        # Then get that year's adjusters
 
-            # Test just applying to second "half" of building stock - use the
-            # 2010 factor, ignoring the time factor but using the sd-specific
-            # cross-sectional difference signal
-            if not run_setup.get('job_density_adj_office_only', False):
-                print('Applying adjusters to non-office buildings, 2010 levels')
-                sqft_per_job_adj.loc[other_nonres_mask] = (sqft_per_job_adj.loc[other_nonres_mask]
-                                                           * building_to_superdist_map.loc[other_nonres_mask]
-                                                           .map(sqft_per_job_adjusters['sqft_per_job_factor_2010'])
-                                                           )
+        # adjust office portion only
+        sqft_per_job.loc[office_mask] = (sqft_per_job.loc[office_mask]
+                                                * building_to_superdist_map.loc[office_mask]
+                                                .map(exog_sqft_per_job_adjusters[f'sqft_per_job_factor_{year}'])
+                                                )
 
-        # Fallback if no time-varying adjusters found for a sim year:
-        # time-invariant sqft_per_job_factor
-        elif 'sqft_per_job_factor' in sqft_per_job_adjusters.local.columns:
-            print('\tSingle year adjuster instruction found')
-            sqft_per_job_adj.loc[office_mask] = (sqft_per_job_adj.loc[office_mask]
-             * building_to_superdist_map.loc[office_mask]
-             .map(sqft_per_job_adjusters['sqft_per_job_factor']))
+        print('Describing sqft_per_job factors - after adjustment')
+        print('\tAcross building types')
+        print(sqft_per_job.describe())
 
-            # Currently testing this - applying adjusters to non-office building stock;
-            # as written not practically useful to have the building type segmentation since
-            # the same adjusters are applied to both segments - but we could move to separation
-            # by applying non-office-specific adjusters
+        print('\tOffice buildings alone')
+        print(sqft_per_job.loc[office_mask].describe())
 
-            # TODO: consider just making a frame with building type or form x time density factors
-
-            if not run_setup.get('job_density_adj_office_only', False):
-                print('Applying adjusters to non-office buildings, time invariant')
-                sqft_per_job_adj.loc[other_nonres_mask] = (sqft_per_job_adj.loc[other_nonres_mask]
-                                                           * building_to_superdist_map.loc[other_nonres_mask]
-                                                           .map(sqft_per_job_adjusters['sqft_per_job_factor'])
-                                                           )
+        # Apply to second "half" of building stock - use the
+        # 2010 factor, ignoring the time factor but using the sd-specific
+        # cross-sectional difference signal
+        if not run_setup['job_density_adj_office_only']:
+            print('Applying adjusters to non-office buildings, 2010 levels')
+            sqft_per_job.loc[other_nonres_mask] = (sqft_per_job.loc[other_nonres_mask]
+                                                        * building_to_superdist_map.loc[other_nonres_mask]
+                                                        .map(exog_sqft_per_job_adjusters['sqft_per_job_factor_2010'])
+                                                        )
 
         else:
             # if no adjustmers found for this particular year, keep the original values
             print(
                 f'No adjusters found for {year}; reverting to regional constants')
 
+        return sqft_per_job
+
     else:
         # if no adjustments, just keep the original values
         print('No adjustments requested from yaml: Using regional constants')
+        return sqft_per_job
 
-    return sqft_per_job_adj
 
 @orca.column('buildings', cache=True)
 def building_age(buildings, year):
@@ -1078,6 +1070,12 @@ def effective_max_dua(zoning_existing, parcels):
     return (s.fillna(0) * s3).reindex(parcels.index).fillna(0).astype('float')
 
 
+@orca.column('parcels_zoning_calculations')
+def zoned_far(parcels, parcels_zoning_calculations):
+    # adding to help look at nonres capacity in model outputs
+    return parcels_zoning_calculations.effective_max_far * parcels.parcel_size
+
+
 @orca.column('parcels_zoning_calculations', cache=True)
 def effective_max_far(zoning_existing, parcels):
 
@@ -1136,6 +1134,12 @@ def zoned_du_build_ratio(parcels, parcels_zoning_calculations):
     s = parcels.total_residential_units / \
        (parcels_zoning_calculations.effective_max_dua * parcels.parcel_acres)
     return s.replace(np.inf, 1).clip(0, 1)
+
+
+@orca.column('parcels_zoning_calculations')
+def zoned_far_underbuild(parcels, parcels_zoning_calculations):
+    # adding to help look at nonres capacity in model outputs
+    return parcels_zoning_calculations.zoned_far - parcels.total_non_residential_sqft
 
 
 @orca.column('parcels_zoning_calculations')

@@ -1,11 +1,11 @@
 # INITIAL SUMMARY YEAR
-# the model's initial year is 2015, while this specifies the first reporting year
+# the model's initial year is 2010, while this specifies the first reporting year
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
-initial_summary_year: 2015
+initial_summary_year: 2020
 
 # RUN NAME
-run_name: "PBA50Plus_NP_InitialRun_v7"
+run_name: "PBA50Plus_NoProject"
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
@@ -25,9 +25,24 @@ run_visualizer: True
 viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 
 
+# CORE CONFIGS
+elcm_spec_file: elcm.yaml
+
+
+# EXOGENOUS FORCES
+exog_sqft_per_job_adj_file: sqft_per_job_adjusters_exogenous.csv
+# must be set to false is sqft per job adjusters or telecommute strategy is enabled
+use_exogenous_sqft_per_job_adjusters: True
+# used for exogenous block to denote if exogenous adjusters should be applied to office only
+job_density_adj_office_only: False
+
+
 # MODEL ADJUSTERS
+emp_reloc_rates_adj_file: employment_relocation_rates_overwrites.csv
 employment_relocation_rates_adjusters: True
-sqft_per_job_adjusters: True
+sqft_per_job_adj_file: 
+# must be set to false if sqft per job exogenous forces or telecommute are enabled
+sqft_per_job_adjusters: False
 cost_shifters: True
 # office caps currently in inputs/plan_strategies/development_caps_strategy.yaml, while residential
 # caps are in configs/adjusters/development_caps_asserted.yaml, but may need to be disentangled 
@@ -36,20 +51,27 @@ residential_vacancy_rate_mods: True
 
 
 # REGIONAL CONTROL FILES
-household_controls_file: "household_controls_PBA50.csv"
-employment_controls_file: "employment_controls_PBA50.csv"
+household_controls_file: "household_controls_PBA50Plus_NP.csv"
+employment_controls_file: "employment_controls_PBA50Plus_NP_DBP.csv"
 
 
 # DEVELOPMENT PIPELINE
-development_pipeline_file: "2021_0309_1939_development_projects_PBA50_NP.csv"
+development_pipeline_file: "development_pipeline_NP_2024-03-08.csv"
+use_housing_element_pipeline: False
+use_pipeline_filters: False
+
+
+# ZONING FILES
+zoning_lookup_file: "2024_02_09_zoning_lookup_hybrid_he_pba50plus.csv"
+zoning_file: "2024_02_09_zoning_parcels_hybrid_he_pba50plus.csv"
 
 
 # SEA LEVEL RISE
 # sea level rise and sea level rise mitigation
 # if sea level rise is activated, there is either no project or scenario-based mitigation
 run_slr: True
-slr_inundation_file: "slr_parcel_inundation_PBA50_NP.csv"
-slr_progression_file: "slr_progression_PBA50.csv"
+slr_inundation_file: "slr_parcel_inundation_PBA50Plus_NP.csv"
+slr_progression_file: "slr_progression_PBA50Plus.csv"
 
 
 # EARTHQUAKE
@@ -76,6 +98,13 @@ run_sb_743_strategy: True
 
 # PLAN STRATEGIES
 
+#DEVELOPMENT PIPELINE STRATEGIES
+dev_pipeline_strategies:
+   #- "EC2_development_pipeline_entries.csv"
+   #- "EC6_development_pipeline_entries.csv"
+   #- "H6_H8_development_pipeline_entries.csv"
+
+
 # GROWTH GEOGRAPHY INPUT FILE
 parcels_geography_file: "2021_02_25_parcels_geography.csv"
 parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]
@@ -85,6 +114,7 @@ parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa
 # if a scenario is run, it always has a zoningmods file, since
 # no project still uses it to apply a UGB
 zoning_mods_file: "zoning_mods_PBA50_NP.csv"
+zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]
 
 
 # RENTER PROTECTIONS STRATEGY
@@ -150,11 +180,11 @@ run_land_value_tax_strategy: False
 run_housing_preservation_strategy: False
 preservation_file:
 
+
 # TELECOMMUTE STRATEGY
-# this has to be turned on for NP as well since the config and the strategy are entangled
-run_telecommute_strategy: True
-# this has to be turned on for NP as well since the config and the strategy are entangled
-sqft_per_job_telecommute_file: "sqft_per_job_adjusters_PBA50_NP.csv"
+sqft_per_job_telecommute_file: 
+# must be set to false if sqft per job adjusters or exogenous forces are enabled
+run_telecommute_strategy: False
 
 
 # ACCESSORY DWELLING UNIT POLICY

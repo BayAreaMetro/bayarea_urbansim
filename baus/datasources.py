@@ -11,6 +11,7 @@ from baus import preprocessing
 from baus.utils import geom_id_to_parcel_id, parcel_id_to_geom_id, pipeline_filtering
 from baus.utils import nearest_neighbor
 import yaml
+import pathlib
 
 
 #####################
@@ -48,9 +49,14 @@ def viz_dir(run_setup):
 
 @orca.injectable('sqft_per_job_adj_file', cache=True)
 def sqft_per_job_adj_file(run_setup):
-    # if no sqft_per_job_adj_file defined in yaml, return the default adjuster file
     
-    adj_file = run_setup.get('sqft_per_job_adj_file', 'sqft_per_job_adjusters.csv')
+    adj_file = run_setup['sqft_per_job_adj_file']
+    return adj_file
+
+@orca.injectable('exog_sqft_per_job_adj_file', cache=True)
+def exog_sqft_per_job_adj_file(run_setup):
+    
+    adj_file = run_setup['exog_sqft_per_job_adj_file']
     return adj_file
 
 @orca.injectable('emp_reloc_rates_adj_file', cache=True)
@@ -489,7 +495,11 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
     join_col = 'zoningmodcat'
     print('join_col of zoningmods is {}'.format(join_col))
 
-    return pd.merge(parcels_geography.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('parcel_id')
+    print('length of parcels table before merging the zoning strategy table is {}'.format(len(parcels_geography.to_frame())))
+    pg = pd.merge(parcels_geography.to_frame().reset_index(), strategy_zoning, on=join_col, how='left').set_index('parcel_id')
+    print('length of parcels table after merging the zoning strategy table is {} '.format(len(pg)))
+
+    return pg
 
 
 @orca.table(cache=True)
@@ -655,34 +665,44 @@ def reprocess_dev_projects(df):
 
 # shared between demolish and build tables below
 def get_dev_projects_table(parcels, run_setup):
-    df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents",
-                     run_setup["development_pipeline_file"]), 
-                     dtype={'PARCEL_ID': np.int64, 'geom_id':   np.int64})
+    inputs_dir = pathlib.Path(orca.get_injectable("inputs_dir"))
 
+    df = pd.read_csv(
+        inputs_dir / "basis_inputs/parcels_buildings_agents" / run_setup["development_pipeline_file"],
+        dtype={'PARCEL_ID': np.int64, 'geom_id': np.int64},
+    )
+    
     # do any pre-filtering
-    print('Records in pipeline table - pre-filter: ',df.shape[0])
-    if run_setup['use_pipeline_filters']:
+#     print('Records in pipeline table - pre-filter: ',df.shape[0])
+#     if run_setup['use_pipeline_filters']:
         
-        # return a list of dicts, where dicts have column key - value criteria
-        filter_criteria = orca.get_injectable('pipeline_filters')['filters']
-        # pipeline filtering function turns dicts into query strings and drops records accordingly
-        df = pipeline_filtering(df, filter_criteria)
-        print('Records in pipeline table - post-filter: ',df.shape[0])
+#         # return a list of dicts, where dicts have column key - value criteria
+#         filter_criteria = orca.get_injectable('pipeline_filters')['filters']
+#         # pipeline filtering function turns dicts into query strings and drops records accordingly
+#         df = pipeline_filtering(df, filter_criteria)
+#         print('Records in pipeline table - post-filter: ',df.shape[0])
 
     df = reprocess_dev_projects(df)
 
     # Optionally - if flag set to use housing element pipeline, load that and append:
     if run_setup.get('use_housing_element_pipeline',False):
-        
-
-        he_pipe = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                                           "basis_inputs/parcels_buildings_agents",
-                                           "he_pipeline_updated_dec2023.csv"),
-                                           dtype={'parcel_id': np.int64})
+        he_pipe = pd.read_csv(
+            inputs_dir / "basis_inputs/parcels_buildings_agents/he_pipeline_updated_dec2023.csv",
+            dtype={'parcel_id': np.int64}
+        )
         he_pipe = he_pipe.rename(columns={'parcel_id':'PARCEL_ID'})
 
-        he_pipe = he_pipe['geom_id'] = parcel_id_to_geom_id(he_pipe.PARCEL_ID)
-        df = pd.concat([df,he_pipe],axis=0)
+        he_pipe['geom_id'] = parcel_id_to_geom_id(he_pipe.PARCEL_ID)
+        df = pd.concat([df, he_pipe], axis=0)
+
+    # Append zero or more plan strategy dev pipeline tables (EC2, EC6, H6/H8)
+    if run_setup["dev_pipeline_strategies"] is not None:
+        for filename in run_setup["dev_pipeline_strategies"]:
+            print(f"Appending {filename} to development pipeline...")
+            in_df = pd.read_csv(inputs_dir / "plan_strategies" / filename,
+                                dtype={"PARCEL_ID": np.int64})
+            in_df['geom_id'] = parcel_id_to_geom_id(in_df["PARCEL_ID"])
+            df = pd.concat([df, in_df], axis=0)
 
     orca.add_injectable("devproj_len", len(df))
 
@@ -869,6 +889,10 @@ def superdistricts_geography():
 def sqft_per_job_adjusters(): 
     return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("sqft_per_job_adj_file")), index_col="number")
 
+
+@orca.table(cache=True)
+def exog_sqft_per_job_adjusters(): 
+    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("exog_sqft_per_job_adj_file")), index_col="number")
 
 @orca.table(cache=True)
 def telecommute_sqft_per_job_adjusters(run_setup): 

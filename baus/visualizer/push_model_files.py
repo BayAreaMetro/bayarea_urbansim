@@ -34,6 +34,11 @@ def copy_files_to_viz_loc(run_name, outputs_dir, viz_dir):
         output_file["run_name"] = run_name
         output_file.to_csv(viz_dir_path / f"{run_name}_{geog}_summary_growth.csv")
 
+    for geog in ["juris", "superdistrict", "county"]:
+        output_file = pd.read_csv(outputs_dir_path / "affordable_housing_summaries" / f"{run_name}_{geog}_dr_growth.csv")
+        output_file["run_name"] = run_name
+        output_file.to_csv(viz_dir_path / f"{run_name}_{geog}_dr_growth.csv")
+
 
 @orca.step()
 def add_to_model_run_inventory_file(run_name):

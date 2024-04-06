@@ -26,7 +26,7 @@ def hazards_slr_summary(run_setup, run_name, year):
         orca.add_table("slr_demolish_tot", slr_demolish_tot)
     else:
         slr_demolish_tot = orca.get_table("slr_demolish_tot").to_frame()
-        slr_demolish_tot.append(orca.get_table("slr_demolish").to_frame())
+        slr_demolish_tot = slr_demolish_tot.append(orca.get_table("slr_demolish").to_frame())
 
     slr_summary["impacted_units"] = slr_demolish_tot['residential_units'].sum()
     slr_summary["impacted_sqft"] = slr_demolish_tot['building_sqft'].sum()
@@ -37,7 +37,7 @@ def hazards_slr_summary(run_setup, run_name, year):
         orca.add_injectable("unplaced_hh_tot", unplaced_hh_tot)
     else:
         unplaced_hh_tot = orca.get_injectable("unplaced_hh_tot")
-        unplaced_hh_tot.append(orca.get_injectable("hh_unplaced_slr"))
+        unplaced_hh_tot = unplaced_hh_tot.append(orca.get_injectable("hh_unplaced_slr"))
 
     slr_summary["impacted_hh"] = unplaced_hh_tot.size
     for quartile in [1, 2, 3, 4]:
@@ -49,7 +49,7 @@ def hazards_slr_summary(run_setup, run_name, year):
         orca.add_injectable("unplaced_jobs_tot", unplaced_jobs_tot)
     else:
         unplaced_jobs_tot = orca.get_injectable("unplaced_jobs_tot")
-        unplaced_jobs_tot.append(orca.get_injectable("jobs_unplaced_slr"))
+        unplaced_jobs_tot = unplaced_jobs_tot.append(orca.get_injectable("jobs_unplaced_slr"))
 
     for empsix in ['AGREMPN', 'MWTEMPN', 'RETEMPN', 'FPSEMPN', 'HEREMPN', 'OTHEMPN']:
         slr_summary["impacted_jobs_"+str(empsix)] = (unplaced_jobs_tot["empsix"] == empsix).sum()
