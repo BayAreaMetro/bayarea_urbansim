@@ -2,121 +2,163 @@ import pandas as pd
 import logging
 from datetime import datetime
 
+# make global so we only read once
+parcel_crosswalk_df    = pd.DataFrame()
+geography_crosswalk_df = pd.DataFrame()
+tract_crosswalk_df     = pd.DataFrame()
+pda_crosswalk_df       = pd.DataFrame()
 # --------------------------------------
 # Data Loading Based on Model Run Plan
 # --------------------------------------
-def load_data_for_runs(core_summaries_paths, geographic_summaries_paths, plan):
+def load_data_for_runs(rtp, METRICS_DIR, run_directory_path):
     """
-    Loads core and geographic summary data for various BAUS model runs. This function searches for files matching patterns 
-    indicating summary data for the years specific to PBA50Plus or PBA50 runs, loads them into DataFrames, and aggregates these
+    Reads crosswalk data as well as core summary and geographic summary data for the given BAUS model run
+    for both the base year and the horizon year (which varies based on the rtp)
+
     DataFrames into two lists: one for core summaries and one for geographic summaries.
 
     Parameters:
-    - core_summaries_paths (list of Path objects): Paths to directories containing core summary files.
-    - geographic_summaries_paths (list of Path objects): Paths to directories containing geographic summary files.
-    - plan (str): Indicates the plan name, affecting which file name patterns to use.
+    - rtp (str): one of RTP2021 or RTP2025
+    - METRICS_DIR (str): metrics directory for finding crosswalks
+    - run_directory_path (pathlib.Path): path for model run output files
 
     Returns:
-    - tuple of two lists: 
-        - The first list contains DataFrames loaded from core summary files.
-        - The second list contains DataFrames loaded from geographic summary files.
+    - dict with year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
     
-    Both lists include DataFrames for files that match the year-specific patterns, assuming files for both target years are present.
+    Both lists include DataFrames for files that match the year-specific patterns, 
+    assuming files for both target years are present.
     """
-    core_summary_dfs = []
-    geographic_summary_dfs = []
+    # make global so we only read once
+    global parcel_crosswalk_df
+    global geography_crosswalk_df
+    global tract_crosswalk_df
+    global pda_crosswalk_df
 
-    # Patterns to match files ending with the specified years
-    if plan == "pba50plus":
-        core_summary_patterns = ["*_parcel_summary_2020.csv", "*_parcel_summary_2050.csv"]
-        geo_summary_patterns = ["*_county_summary_2020.csv", "*_county_summary_2050.csv"]
-    elif plan == "pba50":
-        core_summary_patterns = ["*_parcel_data_2015.csv", "*_parcel_data_2050.csv"]
-        geo_summary_patterns = ["*_county_summaries_2015.csv", "*_county_summaries_2050.csv"]
+    # year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
+    modelrun_data = {}
+    if rtp == "RTP2025":
+        if len(parcel_crosswalk_df) == 0:
+            PARCEL_CROSSWALK_FILE = "M:/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/parcels_geography_2024_02_14.csv"
+            parcel_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(parcel_crosswalk_df), PARCEL_CROSSWALK_FILE))
+            logging.debug("  parcel_crosswalk_df.head():\n{}".format(parcel_crosswalk_df.head()))
+
+        # define analysis years
+        modelrun_data[2020]  = {}
+        modelrun_data[2050]  = {}
+        core_summary_pattern = "core_summaries/*_parcel_summary_{}.csv"
+        geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
+    elif rtp == "RTP2021":
+        if len(geography_crosswalk_df) == 0:
+            GEOGRAPHY_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "COCs_ACS2018_tbl_TEMP.csv"
+            geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(geography_crosswalk_df), GEOGRAPHY_CROSSWALK_FILE))
+            logging.debug("  geography_crosswalk_df.head():\n{}".format(geography_crosswalk_df.head()))
+
+        if len(tract_crosswalk_df) == 0:
+            TRACT_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tract_crosswalk.csv"
+            tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_crosswalk_df), TRACT_CROSSWALK_FILE))
+            logging.debug("  tract_crosswalk_df.head():\n{}".format(tract_crosswalk_df.head()))
+
+        if len(pda_crosswalk_df) == 0:
+            # the old script called this "parcel_GG_newxwalk_file"
+            PDA_CROSSWALK_FILE =  METRICS_DIR / "metrics_input_files" / "parcel_tra_hra_pda_fbp_20210816.csv"
+            pda_crosswalk_df = pd.read_csv(PDA_CROSSWALK_FILE, usecols=['PARCEL_ID','pda_id_pba50_fb'])
+            pda_crosswalk_df.rename(columns={'PARCEL_ID':'parcel_id'}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(pda_crosswalk_df), PDA_CROSSWALK_FILE))
+            logging.debug("  pda_crosswalk_df.head():\n{}".format(pda_crosswalk_df.head()))
+
+        # define analysis years
+        modelrun_data[2015] = {}
+        modelrun_data[2050] = {}
+        core_summary_pattern = "*_parcel_data_{}.csv"
+        geo_summary_pattern  = "*_county_summaries_{}.csv"
+
     else:
-        raise ValueError(f"Unrecognized plan: {plan}")
+        raise ValueError(f"Unrecognized plan: {rtp}")
     
-    # Load core summaries if files matching both patterns exist
-    for core_path in core_summaries_paths:
-        matching_files = [list(core_path.glob(pattern)) for pattern in core_summary_patterns]
-        if all(matching_files):  # Check if there are files for both patterns
-            for file_list in matching_files:
-                for file in file_list:
-                    df = pd.read_csv(file) # consider adding usecols when all metrics are defined to increase the speed
-                    logging.info(f"Loaded file {file} with shape {df.shape}")
-                    core_summary_dfs.append(df)
+    # Load parcels summaries
+    for year in sorted(modelrun_data.keys()):
+        logging.debug("Looking for core summaries matching {}".format(core_summary_pattern.format(year)))
+        core_summary_file_list = run_directory_path.glob(core_summary_pattern.format(year))
+        for file in core_summary_file_list:
+            # TODO: consider adding usecols when all metrics are defined to increase the speed
+            parcel_df = pd.read_csv(file) 
+            logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
+            logging.debug("Head:\n{}".format(parcel_df))
 
-    # Load geographic summaries if files matching both patterns exist
-    for geo_path in geographic_summaries_paths:
-        matching_files = [list(geo_path.glob(pattern)) for pattern in geo_summary_patterns]
-        if all(matching_files):  
-            for file_list in matching_files:
-                for file in file_list:
-                    df = pd.read_csv(file)
-                    logging.info(f"Loaded file {file} with shape {df.shape}")
-                    geographic_summary_dfs.append(df)
+            if rtp=="RTP2025":
+                parcel_df = pd.merge(
+                    left     = parcel_df,
+                    right    = parcel_crosswalk_df,
+                    how      = "left",
+                    left_on  = "parcel_id",
+                    right_on = "PARCEL_ID",
+                    validate = "one_to_one"
+                )
+                logging.debug("Head after merge with parcel_crosswalk:\n{}".format(parcel_df))
+                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
-    return core_summary_dfs, geographic_summary_dfs
+            if rtp == "RTP2021":
+                zoning_column = None
+                if 'fbpchcat' in parcel_df.columns:
+                    zoning_column = 'fbpchcat'
+                elif 'eirzoningmodcat' in parcel_df.columns:
+                    zoning_column = 'eirzoningmodcat'
+                else:
+                    logging.warning(f"'Neither 'fbpchcat' nor 'eirzoningmodcat' found in DataFrame for model run. Skipping this DataFrame.")
 
-# -------------------------
-# Crosswalk Data Handling
-# -------------------------
-def load_crosswalk_data(crosswalk_path):
-    """
-    This function loads the crosswalk data called parcels_geography from the BAUS Inputs folder. This dataset map parcel IDs to other geographic identifiers, 
-    facilitating the enrichment of parcel summary data with additional geographic information.
+                if zoning_column:
+                    logging.debug("zoning_column {} unique values:\n{}".format(zoning_column, parcel_df[zoning_column].unique()))
+                    # Expand the zoning column into component parts
+                    parcel_zoning_df = parcel_df[zoning_column].str.extract(
+                        r'^(?P<gg_id>GG|NA)(?P<tra_id>tra1|tra2c|tra2b|tra2a|tra2|tra3a|tra3|NA)(?P<hra_id>HRA)?(?P<dis_id>DIS)?(?P<zone_remainder>.*)$')
+                    parcel_zoning_df[zoning_column] = parcel_df[zoning_column]
+                    logging.debug("parcel_zoning_df=\n{}".format(parcel_zoning_df.head(500)))
 
-    Parameters: 
-    - crosswalk_path (str or Path): The file path to the most recent parcels_geography CSV file.
+                    # check if any are missed: if zone_remainder contains 'HRA' or 'DIS
+                    zone_re_problem_df = parcel_zoning_df.loc[parcel_zoning_df.zone_remainder.str.contains("HRA|DIS", na=False, regex=True)]
+                    logging.debug("zone_re_problem_df nrows={} dataframe:\n{}".format(len(zone_re_problem_df), zone_re_problem_df))
 
-    Returns:
-    - pandas.DataFrame: A DataFrame containing the loaded crosswalk data.
+                    # join it back to parcel_df
+                    parcel_df = pd.concat([parcel_df, parcel_zoning_df.drop(columns=[zoning_column])], axis='columns')
 
-    """
-    parcels_geography = pd.read_csv(crosswalk_path, na_values="NA", low_memory=False)
-    return parcels_geography
+                # Merging using the tract and geography crosswalks
+                parcel_df = parcel_df.merge(tract_crosswalk_df, on="parcel_id", how="left")
+                logging.debug("parcel_df after first merge with tract crosswalk:\n{}".format(parcel_df.head(30)))
 
-# -------------------------------------------
-# Merging Model Run dfs with Crosswalk Data
-# ----------------------    -----------------
-# This function should be called after loading each run's data and before calculating metrics.
-def merge_with_crosswalk(parcel_summary_dfs, parcels_geography):
-    """
-    This function merges each DataFrame in a list of parcel summary DataFrames with the parcels geography DataFrame on parcel ID values. 
+                parcel_df = parcel_df.merge(geography_crosswalk_df, on="tract_id", how="left")
+                logging.debug("parcel_df after second merge with geography crosswalk:\n{}".format(parcel_df.head(30)))
 
-    Parameters: 
-    - parcel_summary_dfs (list of pandas.DataFrame): List of DataFrames containing parcel summary data.
-    - parcels_geography (pandas.DataFrame): DataFrame containing the crosswalk data mapping parcel IDs to parcel summary data.
+                parcel_df = parcel_df.merge(pda_crosswalk_df, on="parcel_id", how="left")
+                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
-    Returns:
-    - list of pandas.DataFrame: A list of DataFrames, each showing a parcel summary DataFrame merged with the parcels_geography data.
-    """
-    merged_dfs = []
-    for df in parcel_summary_dfs:
-        merged_df = df.merge(parcels_geography, left_on="parcel_id", right_on="PARCEL_ID", how="left")
-        merged_dfs.append(merged_df)
-    return merged_dfs
+                # Retain only a subset of columns after merging
+                columns_to_keep = ['parcel_id', 'tract_id', zoning_column, 
+                                   'gg_id', 'tra_id', 'hra_id', 'dis_id',
+                                   'hhq1', 'hhq2', 'hhq3', 'hhq4', 
+                                   'tothh', 'totemp',
+                                   'deed_restricted_units', 'residential_units', 'preserved_units',
+                                   'geoid', 'tot_pop', 'coc_flag_pba2050', 'coc_class', 'pda_id_pba50_fb']
+                parcel_df = parcel_df[columns_to_keep]
+                logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 
-# -----------------------------------
-# Identifier Extraction from Path
-# -----------------------------------
-def extract_ids_from_row(row):
-    """
-    Extracts the model run alias and model run identifier from a DataFrame row.
-    
-    Parameters:
-    - row (pd.Series): A row from the df_model_runs DataFrame, containing at least 'scenario_group' and 'directory' columns.
-    
-    Returns:
-    - tuple: A tuple containing two strings: (modelrun_alias, modelrun_id), where modelrun_alias is derived from the 'scenario_group' 
-            column, and modelrun_id is extracted from the 'directory' column, following the specified path structure.
-    """
-    modelrun_alias = row['scenario_group']
-    
-    base_path = "C:/Users/nrezaei/Box/Modeling and Surveys/Urban Modeling/Bay Area UrbanSim/PBA50/"
-    modelrun_id = row['directory'].replace(base_path.format("{}"), "").replace("\\", "/")
-    
-    return modelrun_alias, modelrun_id
+
+            modelrun_data[year]['parcel'] = parcel_df
+
+    # Load geographic summaries
+    for year in sorted(modelrun_data.keys()):
+        logging.debug("Looking for geographic summaries matching {}".format(geo_summary_pattern.format(year)))
+        geo_summary_file_list = run_directory_path.glob(geo_summary_pattern.format(year))
+        for file in geo_summary_file_list:
+            geo_summary_df = pd.read_csv(file)
+            logging.info("  Read {:,} rows from geography summary {}".format(len(geo_summary_df), file))
+            logging.debug("Head:\n{}".format(geo_summary_df))
+            modelrun_data[year]['county'] = geo_summary_df
+
+    logging.debug("modelrun_data:\n{}".format(modelrun_data))
+    return modelrun_data
 
 # -----------------------------------
 # Metrics Results Saving Utility
@@ -179,56 +221,6 @@ def assemble_results_wide_format(modelrun_id, modelrun_alias, metrics_data):
     df_wide = df_grouped[cols]
     
     return df_wide
-
-# -----------------------------------
-# Extract Concatenated String Values
-# -----------------------------------
-
-def extract_pba50_concat_values(row):
-    """
-    Extracts values from concatenated strings within a DataFrame row.
-
-    The function identifies specific segments within the string, denoted by
-    'GG', 'tra', 'HRA', 'DIS'. Each segment corresponds to a particular ID and 
-    is assigned a value of 1 if present.
-
-    Parameters:
-    - row (str): A single string from the DataFrame's row.
-
-    Returns:
-    - pd.Series: A Series object containing the extracted values for 'gg_id', 
-                 'tra_id', 'hra_id', and 'dis_id'.
-    """
-     # Initialize the id values with 0
-    gg_id, tra_id, hra_id, dis_id = 0, 0, 0, 0
-    
-    # Return all 0s if the input is not a string or represents missing data
-    if not isinstance(row, str) or row == 'nan':
-        return pd.Series([gg_id, tra_id, hra_id, dis_id], index=['gg_id', 'tra_id', 'hra_id', 'dis_id'])
-    
-    # Special handling for 'eirzoningmodcat' format: remove city name and anything before the first 'NA', 'GG', or any capitalized letter
-    if any(char.isupper() for char in row[:3]):  # Assumes city names do not start with uppercase in the first 3 chars
-        first_capitalized = next((i for i, char in enumerate(row) if char.isupper()), None)
-        row = row[first_capitalized:]
-        
-    # Set to 1 if the respective segment is present in the string
-    if row.startswith('GG'):
-        gg_id = 1
-        row = row[2:]  # Process the remaining string
-    
-    if 'tra' in row:
-        tra_id = 1
-        row = row[row.index('tra')+3:]  # Process the remaining string
-
-    if 'HRA' in row:
-        hra_id = 1
-        row = row[row.index('HRA')+3:]  # Process the remaining string
-
-    if 'DIS' in row:
-        dis_id = 1
-        row = row[row.index('DIS')+3:]  # Process the remaining string
-
-    return pd.Series([gg_id, tra_id, hra_id, dis_id], index=['gg_id', 'tra_id', 'hra_id', 'dis_id'])
 
 def map_area_to_alias(area):
     area_aliases = {'HRA': "High-Resource Areas",

@@ -5,150 +5,195 @@ import pandas as pd
 import logging
 from metrics_utils import map_area_to_alias 
 
-def growth_patterns_county(county_summary_initial, county_summary_final, modelrun_id, modelrun_alias, plan, output_path):
+def growth_patterns_county(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path, append_output):
     """
-    Calculates the growth in total households (TotHH) and total jobs (TotJobs) at the county level, 
+    Calculates the growth in total households and total jobs at the county level, 
     between an initial and a final summary period, and assigns the share of growth in households and jobs to each county.
 
     Parameters:
-    - county_summary_initial (DataFrame): Pandas DataFrame containing county level summary data for the initial period.
-    - county_summary_final (DataFrame): Pandas DataFrame containing county level summary data for the final period.
-    - modelrun_id (str): Identifier for the model run.
+    - rtp (str): RTP2021 or RTP2025.
     - modelrun_alias (str): Alias for the model run, used for labeling output.
-    - plan (str): Plan name (e.g., 'pba50', 'pba50plus').
-    - output_path (str): File path for saving the output results.
+    - modelrun_id (str): Identifier for the model run.
+    - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
+    - output_path (str): File path for saving the output results
+    - append_output (bool): True if appending output; False if writing
 
-    Returns:
-    - DataFrame: A Pandas DataFrame containing the combined initial and final growth totals for households and jobs by county.
+    Writes metrics_growthPattern_county.csv to output_path, apeending if append_output is True. Columns are:
+    - modelrun_id
+    - modelrun_alias
+    - county
+    - total_[households|jobs]
+    - [hh|jobs]_growth
+    - [hh|jobs]_share_of_growth
     """
-    column_mapping = {"pba50": ('TOTEMP', 'TOTHH', 'COUNTY_NAME'),
-                      "pba50plus": ('totemp', 'tothh', 'county')}
-    
-    total_job_column, total_hh_column, county_column = column_mapping.get(plan.lower(), column_mapping['pba50plus']) 
-
-    def calculate_totals(df, year):
-        df_totals = df.groupby(county_column, as_index=False).agg(TotHH=(total_hh_column, 'sum'),
-                                                                  TotJobs=(total_job_column, 'sum'))
-        df_totals['year'] = year
-        df_totals['modelrun_id'] = modelrun_id
-        df_totals['modelrun_alias'] = f"{year} {modelrun_alias}"
-        df_totals['hh_share_of_growth'] = None
-        df_totals['jobs_share_of_growth'] = None
-        return df_totals
+    logging.info("Calculating_growth_patterns_county")
+    RTP_COLUMNS = {
+        "RTP2021": ('TOTEMP', 'TOTHH', 'COUNTY_NAME'),
+        "RTP2025": ('totemp', 'tothh', 'county')
+    }
+    total_job_column, total_hh_column, county_column = RTP_COLUMNS[rtp]
     
     # Calculate totals for initial and final years
-    totals_initial = calculate_totals(county_summary_initial, 2015 if plan == "pba50" else 2020)
-    totals_final = calculate_totals(county_summary_final, 2050)
+    SUMMARY_YEARS = sorted(modelrun_data.keys())
 
-    totals_final = totals_final.merge(totals_initial[[county_column, 'TotHH', 'TotJobs']], on=county_column, suffixes=('', '_initial'))
+    summary_initial = modelrun_data[SUMMARY_YEARS[0]]["county"].groupby(county_column, as_index=False).agg(
+            total_households=(total_hh_column, 'sum'),
+            total_jobs=(total_job_column, 'sum'))
+    summary_initial['modelrun_alias'] = f"{SUMMARY_YEARS[0]} {modelrun_alias}"
 
-    totals_final['hh_growth'] = totals_final['TotHH'] - totals_final['TotHH_initial']
-    totals_final['jobs_growth'] = totals_final['TotJobs'] - totals_final['TotJobs_initial']
+    summary_final   = modelrun_data[SUMMARY_YEARS[-1]]["county"].groupby(county_column, as_index=False).agg(
+            total_households=(total_hh_column, 'sum'),
+            total_jobs=(total_job_column, 'sum'))
+    summary_final['modelrun_alias'] = f"{SUMMARY_YEARS[-1]} {modelrun_alias}"
+
+    # join summary initial to summary final
+    summary_final = pd.merge(
+        left  = summary_final,
+        right = summary_initial,
+        on    = county_column,
+        suffixes=('', '_initial')
+    )
+
+    summary_final['hh_growth']   = summary_final['total_households'] - summary_final['total_households_initial']
+    summary_final['jobs_growth'] = summary_final['total_jobs']       - summary_final['total_jobs_initial']
+    logging.debug("summary_final:\n{}".format(summary_final))
 
     # Calculate the total growth in households and jobs across all counties
-    total_hh_growth = totals_final['hh_growth'].sum()
-    total_jobs_growth = totals_final['jobs_growth'].sum()
+    total_hh_growth   = summary_final['hh_growth'].sum()
+    total_jobs_growth = summary_final['jobs_growth'].sum()
 
-    totals_final['hh_share_of_growth'] = (totals_final['hh_growth'] / total_hh_growth).round(3)
-    totals_final['jobs_share_of_growth'] = (totals_final['jobs_growth'] / total_jobs_growth).round(3)
+    summary_final['hh_share_of_growth']   = summary_final['hh_growth'] / total_hh_growth
+    summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / total_jobs_growth
 
     # Drop initial totals columns as they're no longer needed
-    totals_final.drop(['TotHH_initial', 'TotJobs_initial'], axis=1, inplace=True)
+    summary_final.drop(columns=['total_households_initial', 'total_jobs_initial'], inplace=True)
+    logging.debug("summary_final:\n{}".format(summary_final))
 
     # Concatenate the initial and final totals.
-    combined_df = pd.concat([totals_initial.drop(['hh_share_of_growth', 'jobs_share_of_growth'], axis=1), totals_final], ignore_index=True)
-    combined_df['metric_type'] = 'growth_county'
+    combined_df = pd.concat([summary_initial, summary_final], ignore_index=True)
     combined_df.rename(columns={county_column: 'county'}, inplace=True)
+    combined_df['modelrun_id'] = modelrun_id
     # Select and order the columns  
-    combined_df = combined_df[['modelrun_id', 'modelrun_alias', 'county', 'TotHH', 'TotJobs', 'hh_share_of_growth', 'jobs_share_of_growth']]
+    combined_df = combined_df[[
+        'modelrun_id', 'modelrun_alias', 'county', 
+        'total_households', 'total_jobs', 
+        'hh_growth', 'jobs_growth',
+        'hh_share_of_growth', 'jobs_share_of_growth']]
+    logging.debug("combined_df:\n{}".format(combined_df))
 
-    return combined_df
+    filename = "metrics_growthPattern_county.csv"
+    filepath = output_path / filename
 
+    combined_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+    logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(combined_df), filepath))
 
-def growth_patterns_geography(parcel_geog_summary_initial: pd.DataFrame, 
-                              parcel_geog_summary_final: pd.DataFrame, 
-                              modelrun_id: str, 
+def growth_patterns_geography(rtp: str,
                               modelrun_alias: str, 
-                              plan: str, 
-                              output_path: str) -> pd.DataFrame:
+                              modelrun_id: str, 
+                              modelrun_data: dict, 
+                              output_path: str,
+                              append_output: bool):
     """
-    Calculates the growth in total households (TotHH) and total jobs (TotJobs) at different geographic levels,
+    Calculates the growth in total households (total_households) and total jobs (total_jobs) at different geographic levels,
     between an initial and a final summary period, and assigns the share of growth in households and jobs to each area.
 
     Parameters:
-    - parcel_geog_summary_initial (DataFrame): Pandas DataFrame containing parcel level summary data for the initial period.
-    - parcel_geog_summary_final (DataFrame): Pandas DataFrame containing parcel level summary data for the final period.
-    - modelrun_id (str): Identifier for the model run.
+    - rtp (str): RTP2021 or RTP2025.
     - modelrun_alias (str): Alias for the model run, used for labeling output.
-    - plan (str): Plan name (e.g., 'pba50', 'pba50plus').
-    - output_path (str): File path for saving the output results.
+    - modelrun_id (str): Identifier for the model run.
+    - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
+    - output_path (str): File path for saving the output results
+    - append_output (bool): True if appending output; False if writing
 
-    Returns:
-    - DataFrame: A Pandas DataFrame containing the combined initial and final growth totals for households and jobs by geography.
+    Writes metrics_growthPattern_county.csv to output_path, apeending if append_output is True. Columns are:
+    - modelrun_id
+    - modelrun_alias
+    - area
+    - total_[households|jobs]
+    - [hh|jobs]_growth
+    - [hh|jobs]_share_of_growth
+
     """
-     
-    def calculate_growth_geog(df, area, year):
-        total_hhs = df['tothh'].sum()
-        total_emp = df['totemp'].sum()
-        return {'modelrun_id': modelrun_id,
-                'modelrun_alias': f"{year} {modelrun_alias}",
-                'area': area,
-                'area_alias': map_area_to_alias(area),
-                'TotHH': total_hhs,
-                'TotJobs': total_emp}
-    
-    # Define the years to process
-    years_data = {'initial': (parcel_geog_summary_initial, '2015' if plan == "pba50" else '2020'),
-                  'final': (parcel_geog_summary_final, '2050')}
+    logging.info("Calculating growth_patterns_geography")
     
     # Define area filters
-    if plan == "pba50":
-        area_filters = {'HRA': lambda df: df['hra_id'] == 1,
-                        'TRA': lambda df: df['tra_id'] == 1,
-                        'HRAandTRA': lambda df: (df['tra_id'] == 1) & (df['hra_id'] == 1),
-                        'GG': lambda df: df['gg_id'] == 1,
-                        'EPC': lambda df: df['coc_flag_pba2050'] == 1,
-                        'Region': None}
-    elif plan == "pba50plus":
-        area_filters = {'HRA': lambda df: df['hra_id'] == 'HRA',
-                        'TRA': lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
-                        'HRAandTRA': lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
-                        'GG': lambda df: df['gg_id'] == 'GG',
-                        'PDA': lambda df: df['pda_id'] != 'NA', # this should be modified
-                        'EPC': lambda df: df['epc_id'] == 'EPC',
-                        'Region': None}
+    if rtp == "RTP2021":
+        area_filters = {
+            'HRA'      : lambda df: df['hra_id'] == 'HRA',
+            'TRA'      : lambda df: df['tra_id'] != 'NA',  # note this is the string NA
+            'HRAandTRA': lambda df: (df['tra_id'] != 'NA') & (df['hra_id'] == 'HRA'),
+            'GG'       : lambda df: df['gg_id'] == 'GG',
+            'PDA'      : lambda df: pd.notna(df['pda_id_pba50_fb']),
+            'EPC'      : lambda df: df['coc_flag_pba2050'] == 1,
+            'Region'   : None
+    }
+    if rtp == "RTP2025":
+        area_filters = {
+            'HRA'      : lambda df: df['hra_id'] == 'HRA',
+            'TRA'      : lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
+            'HRAandTRA': lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
+            'GG'       : lambda df: df['gg_id'] == 'GG',
+            'PDA'      : lambda df: pd.notna(df['pda_id']), # this should be modified
+            'EPC'      : lambda df: df['epc_id'] == 'EPC',
+            'Region'   : None
+        }
 
-    growth_df = []
+
+    SUMMARY_YEARS = sorted(modelrun_data.keys())
 
     # Process each area filter and calculate growth patterns
-    for year_key, (df, year) in years_data.items():
+    summary_dfs = []
+    for year in SUMMARY_YEARS:
+        summary_list = [] # list of dicts
         for area, filter_condition in area_filters.items():
-            if filter_condition is not None:
-                if callable(filter_condition):  # Check if the filter is a function
-                    df_area = df[filter_condition(df)]
-                else:
-                    df_area = df[df[filter_condition] == area]
+            if callable(filter_condition):  # Check if the filter is a function]
+                df_area = modelrun_data[year]['parcel'][filter_condition(modelrun_data[year]['parcel'])]
             else:
-                df_area = df
+                df_area = modelrun_data[year]['parcel']
+            logging.debug("area={} df_area len={:,}".format(area, len(df_area)))
                 
-            area_result = calculate_growth_geog(df_area, area, year)
-            growth_df.append(area_result)
-
-    result_growth_share = pd.DataFrame(growth_df)
+            summary_list.append({
+                'modelrun_alias'  : f"{year} {modelrun_alias}",
+                'area'            : area,
+                'total_households': df_area['tothh'].sum(),
+                'total_jobs'      : df_area['totemp'].sum()
+            })
+        summary_dfs.append( pd.DataFrame(summary_list))
     
-    result_growth_share = result_growth_share[['modelrun_id', 'modelrun_alias', 'area', 'area_alias', 'TotHH', 'TotJobs']]
+    # join summary initial to summary final
+    summary_final = pd.merge(
+        left  = summary_dfs[1],
+        right = summary_dfs[0].drop(columns=['modelrun_alias']),
+        on    = 'area',
+        suffixes=('', '_initial')
+    )
+    logging.debug("summary_final:\n{}".format(summary_final))
 
-    result_growth_share['metric_type'] = 'growth_geography'
-    return result_growth_share
+    summary_final['hh_growth']   = summary_final['total_households'  ] - summary_final['total_households_initial']
+    summary_final['jobs_growth'] = summary_final['total_jobs'] - summary_final['total_jobs_initial']
 
-
-    # Calculate the total growth to find shares
-    # total_hh_growth = growth_df['hh_growth'].sum()
-    # total_jobs_growth = growth_df['jobs_growth'].sum()
+    # Calculate the total regional growth to find shares
+    total_hh_growth   = summary_final.loc[summary_final.area=='Region', 'hh_growth'].sum()
+    total_jobs_growth = summary_final.loc[summary_final.area=='Region', 'jobs_growth'].sum()
 
     # Calculate shares of growth
-    # growth_df['hh_share_of_growth'] = (growth_df['hh_growth'] / total_hh_growth).round(3)
-    # growth_df['jobs_share_of_growth'] = (growth_df['jobs_growth'] / total_jobs_growth).round(3)
+    summary_final['hh_share_of_growth']   = summary_final['hh_growth'] / total_hh_growth
+    summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / total_jobs_growth
 
     # Remove the growth columns if not needed in the final output
-    # growth_df.drop(['hh_growth', 'jobs_growth'], axis=1, inplace=True)
+    summary_final.drop(columns=['total_households_initial', 'total_jobs_initial'], inplace=True)
+    logging.debug("summary_final:\n{}".format(summary_final))
+
+    # Concatenate the initial and final totals.
+    combined_df = pd.concat([summary_dfs[0], summary_final], ignore_index=True)
+    combined_df['modelrun_id'] = modelrun_id
+    combined_df = combined_df[['modelrun_id','modelrun_alias','area',
+                               'total_households','total_jobs',
+                               'hh_growth','jobs_growth',
+                               'hh_share_of_growth','jobs_share_of_growth']]
+
+    filename = "metrics_growthPattern_geography.csv"
+    filepath = output_path / filename
+
+    combined_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+    logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(combined_df), filepath))
