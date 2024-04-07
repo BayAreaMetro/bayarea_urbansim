@@ -4,8 +4,7 @@ from datetime import datetime
 
 # make global so we only read once
 rtp2025_parcel_crosswalk_df    = pd.DataFrame()
-rtp2021_coc_flag_df            = pd.DataFrame()
-rtp2021_tract_crosswalk_df     = pd.DataFrame()
+rtp2021_tract_crosswalk_df     = pd.DataFrame() # include coc/epc, displacement, growth geography, HRA/TRA
 rtp2021_pda_crosswalk_df       = pd.DataFrame()
 rtp2021_geography_crosswalk_df = pd.DataFrame()
 
@@ -54,7 +53,6 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     """
     # make global so we only read once
     global rtp2025_parcel_crosswalk_df
-    global rtp2021_coc_flag_df
     global rtp2021_geography_crosswalk_df
     global rtp2021_tract_crosswalk_df
     global rtp2021_pda_crosswalk_df
@@ -74,21 +72,85 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
     elif rtp == "RTP2021":
-        if len(rtp2021_coc_flag_df) == 0:
-            # pba50_metrics.py called this the "coc_flag_file"
-            COC_FLAG_FILE = METRICS_DIR / "metrics_input_files" / "COCs_ACS2018_tbl_TEMP.csv"
-            rtp2021_coc_flag_df = pd.read_csv(COC_FLAG_FILE)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_coc_flag_df), COC_FLAG_FILE))
-            logging.debug("  rtp2021_coc_flag_df.head():\n{}".format(rtp2021_coc_flag_df.head()))
-
+        # these are all tract-based -- load into one dataframe
         if len(rtp2021_tract_crosswalk_df) == 0:
+
+            # pba50_metrics.py called this parcel_tract_crosswalk_file/parcel_tract_crosswalk_df
             TRACT_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tract_crosswalk.csv"
-            rtp2021_tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE)
+            rtp2021_tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE, usecols=['parcel_id','tract_id'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_tract_crosswalk_df), TRACT_CROSSWALK_FILE))
+            logging.info("  rtp2021_tract_crosswalk_df.tract_id.unique count:{:,}".format(
+                len(rtp2021_tract_crosswalk_df.tract_id.unique())
+            ))
             logging.debug("  rtp2021_tract_crosswalk_df.head():\n{}".format(rtp2021_tract_crosswalk_df.head()))
 
+            # pba50_metrics.py called this coc_flag_file/coc_flag_df
+            COC_FLAG_FILE = METRICS_DIR / "metrics_input_files" / "COCs_ACS2018_tbl_TEMP.csv"
+            tract_coc_df = pd.read_csv(COC_FLAG_FILE, usecols=['tract_id','coc_flag_pba2050'])
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_coc_df), COC_FLAG_FILE))
+            logging.debug("  tract_coc_df.head():\n{}".format(tract_coc_df.head()))
+            # merge it into rtp2021_tract_crosswalk_df
+            rtp2021_tract_crosswalk_df = pd.merge(
+                left     = rtp2021_tract_crosswalk_df,
+                right    = tract_coc_df,
+                on       = 'tract_id',
+                how      = 'left',
+                validate = 'many_to_one',
+                indicator= True
+            )
+            logging.debug("rtp2021_tract_crosswalk_df merged with COC: {:,} rows, _merge=\n{}".format(
+                len(rtp2021_tract_crosswalk_df), rtp2021_tract_crosswalk_df._merge.value_counts()))
+            rtp2021_tract_crosswalk_df.drop(columns=['_merge'], inplace=True)
+            
+            # displacement risk - udp_file/udp_DR_df
+            TRACT_DISPLACEMENT_FILE = METRICS_DIR / "metrics_input_files" / "udp_2017results.csv"
+            tract_displacement_df = pd.read_csv(TRACT_DISPLACEMENT_FILE, usecols=['Tract','DispRisk'])
+            tract_displacement_df.rename(columns={'Tract':'tract_id'}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_displacement_df), TRACT_DISPLACEMENT_FILE))
+            logging.debug("  tract_displacement_df.head():\n{}".format(tract_displacement_df.head()))
+            # merge it into rtp2021_tract_crosswalk_df
+            rtp2021_tract_crosswalk_df = pd.merge(
+                left     = rtp2021_tract_crosswalk_df,
+                right    = tract_displacement_df,
+                on       = 'tract_id',
+                how      = 'left',
+                validate = 'many_to_one',
+                indicator= True
+            )
+            logging.debug("rtp2021_tract_crosswalk_df merged with DispRisk: {:,} rows, _merge=\n{}".format(
+                len(rtp2021_tract_crosswalk_df), rtp2021_tract_crosswalk_df._merge.value_counts()))
+            rtp2021_tract_crosswalk_df.drop(columns=['_merge'], inplace=True)
+
+            # tract_HRA_xwalk_file/tract_HRA_xwalk_df
+            TRACT_HRA_FILE = METRICS_DIR / "metrics_input_files" / "tract_hra_xwalk.csv"
+            tract_hra_df = pd.read_csv(TRACT_HRA_FILE, usecols=['tract_id','hra','tra','growth_geo'])
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_hra_df), TRACT_HRA_FILE))
+            # rename hra, tra, growth_geo to make it clear these are tract-baed
+            tract_hra_df.rename(columns={'hra':'tract_hra', 'tra':'tract_tra', 'growth_geo':'tract_growth_geo'}, inplace=True)
+
+            logging.debug("  tract_hra_df.head():\n{}".format(tract_hra_df.head()))
+            # merge it into rtp2021_tract_crosswalk_df
+            rtp2021_tract_crosswalk_df = pd.merge(
+                left     = rtp2021_tract_crosswalk_df,
+                right    = tract_hra_df,
+                on       = 'tract_id',
+                how      = 'left',
+                validate = 'many_to_one',
+                indicator= True
+            )
+            logging.debug("rtp2021_tract_crosswalk_df merged with HRA xwalk: {:,} rows, _merge=\n{}".format(
+                len(rtp2021_tract_crosswalk_df), rtp2021_tract_crosswalk_df._merge.value_counts()))
+            rtp2021_tract_crosswalk_df.drop(columns=['_merge'], inplace=True)
+
+            # fillna with zero and make int
+            rtp2021_tract_crosswalk_df.fillna(0, inplace=True)
+            rtp2021_tract_crosswalk_df = rtp2021_tract_crosswalk_df.astype(int)
+
+            logging.debug("final rtp2021_tract_crosswalk_df.head():\n{}".format(rtp2021_tract_crosswalk_df))
+            # columns are: parcel_id, tract_id, coc_flag_pba2050, DispRisk, tract_hra, tract_growth_geo, tract_tra
+
         if len(rtp2021_pda_crosswalk_df) == 0:
-            # pba50_metrics.py called this "parcel_GG_newxwalk_file"
+            # pba50_metrics.py called this parcel_GG_newxwalk_file/parcel_GG_newxwalk_df
             PDA_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tra_hra_pda_fbp_20210816.csv"
             rtp2021_pda_crosswalk_df = pd.read_csv(PDA_CROSSWALK_FILE, usecols=['PARCEL_ID','pda_id_pba50_fb'])
             rtp2021_pda_crosswalk_df.rename(columns={'PARCEL_ID':'parcel_id'}, inplace=True)
@@ -179,9 +241,6 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                 parcel_df = parcel_df.merge(rtp2021_tract_crosswalk_df, on="parcel_id", how="left")
                 logging.debug("parcel_df after first merge with tract crosswalk:\n{}".format(parcel_df.head(30)))
 
-                parcel_df = parcel_df.merge(rtp2021_coc_flag_df, on="tract_id", how="left")
-                logging.debug("parcel_df after second merge with geography crosswalk:\n{}".format(parcel_df.head(30)))
-
                 parcel_df = parcel_df.merge(rtp2021_pda_crosswalk_df, on="parcel_id", how="left")
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
@@ -191,7 +250,9 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                                    'hhq1', 'hhq2', 'hhq3', 'hhq4', 
                                    'tothh', 'totemp',
                                    'deed_restricted_units', 'residential_units', 'preserved_units',
-                                   'geoid', 'tot_pop', 'coc_flag_pba2050', 'coc_class', 'pda_id_pba50_fb']
+                                   'pda_id_pba50_fb',
+                                   # tract-level columns
+                                   'coc_flag_pba2050', 'DispRisk', 'tract_hra', 'tract_growth_geo', 'tract_tra']
                 parcel_df = parcel_df[columns_to_keep]
                 logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 
