@@ -124,8 +124,10 @@ def main():
             metrics_affordable.at_risk_housing_preserve_share(
                 SUMMARY_YEARS[-1], modelrun_alias, modelrun_id, OUTPUT_PATH, append_output)
             
-        #li_households_share_results = low_income_households_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
-
+        if (args.only == None) or (args.only == 'diverse'):
+            metrics_diverse.low_income_households_share(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+            
         if (args.only == None) or (args.only == 'growth'):
             metrics_growth.growth_patterns_county(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
@@ -136,19 +138,8 @@ def main():
             metrics_vibrant.jobs_housing_ratio(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
+        # output files are started; append henceforth
         append_output = True
-        continue
-
-        # Save diverse metrics
-        diverse_metrics = run_metrics[run_metrics['metric_type'] == 'diverse']
-        if not diverse_metrics.empty:
-            filename = f"metrics_diverse1_{plan}_low_income_households_share_{datetime.now().strftime('%Y_%m_%d')}.csv"
-            filepath = output_path / "Metrics" / filename
-            if filepath.is_file():
-                diverse_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area', 'Q1HH_share'], mode='a', header=False, index=False)
-            else:
-                diverse_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area', 'Q1HH_share'], mode='w', header=True, index=False)
-            logging.info(f"Saved diverse metric results to {filepath}")
 
 if __name__ == "__main__":
     main()
