@@ -3,10 +3,11 @@ import logging
 from datetime import datetime
 
 # make global so we only read once
-parcel_crosswalk_df    = pd.DataFrame()
-geography_crosswalk_df = pd.DataFrame()
-tract_crosswalk_df     = pd.DataFrame()
-pda_crosswalk_df       = pd.DataFrame()
+rtp2025_parcel_crosswalk_df    = pd.DataFrame()
+rtp2021_coc_flag_df            = pd.DataFrame()
+rtp2021_tract_crosswalk_df     = pd.DataFrame()
+rtp2021_pda_crosswalk_df       = pd.DataFrame()
+rtp2021_geography_crosswalk_df = pd.DataFrame()
 
 PARCEL_AREA_FILTERS = {
     'RTP2021': {
@@ -52,19 +53,20 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     assuming files for both target years are present.
     """
     # make global so we only read once
-    global parcel_crosswalk_df
-    global geography_crosswalk_df
-    global tract_crosswalk_df
-    global pda_crosswalk_df
+    global rtp2025_parcel_crosswalk_df
+    global rtp2021_coc_flag_df
+    global rtp2021_geography_crosswalk_df
+    global rtp2021_tract_crosswalk_df
+    global rtp2021_pda_crosswalk_df
 
     # year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
     modelrun_data = {}
     if rtp == "RTP2025":
-        if len(parcel_crosswalk_df) == 0:
+        if len(rtp2025_parcel_crosswalk_df) == 0:
             PARCEL_CROSSWALK_FILE = "M:/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/parcels_geography_2024_02_14.csv"
-            parcel_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(parcel_crosswalk_df), PARCEL_CROSSWALK_FILE))
-            logging.debug("  parcel_crosswalk_df.head():\n{}".format(parcel_crosswalk_df.head()))
+            rtp2025_parcel_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_parcel_crosswalk_df), PARCEL_CROSSWALK_FILE))
+            logging.debug("  rtp2025_parcel_crosswalk_df.head():\n{}".format(rtp2025_parcel_crosswalk_df.head()))
 
         # define analysis years
         modelrun_data[2020]  = {}
@@ -72,25 +74,33 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
     elif rtp == "RTP2021":
-        if len(geography_crosswalk_df) == 0:
-            GEOGRAPHY_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "COCs_ACS2018_tbl_TEMP.csv"
-            geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(geography_crosswalk_df), GEOGRAPHY_CROSSWALK_FILE))
-            logging.debug("  geography_crosswalk_df.head():\n{}".format(geography_crosswalk_df.head()))
+        if len(rtp2021_coc_flag_df) == 0:
+            # pba50_metrics.py called this the "coc_flag_file"
+            COC_FLAG_FILE = METRICS_DIR / "metrics_input_files" / "COCs_ACS2018_tbl_TEMP.csv"
+            rtp2021_coc_flag_df = pd.read_csv(COC_FLAG_FILE)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_coc_flag_df), COC_FLAG_FILE))
+            logging.debug("  rtp2021_coc_flag_df.head():\n{}".format(rtp2021_coc_flag_df.head()))
 
-        if len(tract_crosswalk_df) == 0:
+        if len(rtp2021_tract_crosswalk_df) == 0:
             TRACT_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tract_crosswalk.csv"
-            tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_crosswalk_df), TRACT_CROSSWALK_FILE))
-            logging.debug("  tract_crosswalk_df.head():\n{}".format(tract_crosswalk_df.head()))
+            rtp2021_tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_tract_crosswalk_df), TRACT_CROSSWALK_FILE))
+            logging.debug("  rtp2021_tract_crosswalk_df.head():\n{}".format(rtp2021_tract_crosswalk_df.head()))
 
-        if len(pda_crosswalk_df) == 0:
-            # the old script called this "parcel_GG_newxwalk_file"
-            PDA_CROSSWALK_FILE =  METRICS_DIR / "metrics_input_files" / "parcel_tra_hra_pda_fbp_20210816.csv"
-            pda_crosswalk_df = pd.read_csv(PDA_CROSSWALK_FILE, usecols=['PARCEL_ID','pda_id_pba50_fb'])
-            pda_crosswalk_df.rename(columns={'PARCEL_ID':'parcel_id'}, inplace=True)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(pda_crosswalk_df), PDA_CROSSWALK_FILE))
-            logging.debug("  pda_crosswalk_df.head():\n{}".format(pda_crosswalk_df.head()))
+        if len(rtp2021_pda_crosswalk_df) == 0:
+            # pba50_metrics.py called this "parcel_GG_newxwalk_file"
+            PDA_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tra_hra_pda_fbp_20210816.csv"
+            rtp2021_pda_crosswalk_df = pd.read_csv(PDA_CROSSWALK_FILE, usecols=['PARCEL_ID','pda_id_pba50_fb'])
+            rtp2021_pda_crosswalk_df.rename(columns={'PARCEL_ID':'parcel_id'}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_pda_crosswalk_df), PDA_CROSSWALK_FILE))
+            logging.debug("  rtp2021_pda_crosswalk_df.head():\n{}".format(rtp2021_pda_crosswalk_df.head()))
+        
+        if len(rtp2021_geography_crosswalk_df) == 0:
+            # pba50_metrics.py called this "parcel_geography_file" - use it to get fbpchcat
+            GEOGRAPHY_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "2021_02_25_parcels_geography.csv"
+            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID','fbpchcat'])
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_geography_crosswalk_df), GEOGRAPHY_CROSSWALK_FILE))
+            logging.debug("  rtp2021_geography_crosswalk_df.head():\n{}".format(rtp2021_geography_crosswalk_df.head()))
 
         # define analysis years
         modelrun_data[2015] = {}
@@ -124,7 +134,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             if rtp=="RTP2025":
                 parcel_df = pd.merge(
                     left     = parcel_df,
-                    right    = parcel_crosswalk_df,
+                    right    = rtp2025_parcel_crosswalk_df,
                     how      = "left",
                     left_on  = "parcel_id",
                     right_on = "PARCEL_ID",
@@ -134,37 +144,46 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
             if rtp == "RTP2021":
-                zoning_column = None
+                # if it's already here, remove -- we're adding from a single source
                 if 'fbpchcat' in parcel_df.columns:
-                    zoning_column = 'fbpchcat'
-                elif 'eirzoningmodcat' in parcel_df.columns:
-                    zoning_column = 'eirzoningmodcat'
-                else:
-                    logging.warning(f"'Neither 'fbpchcat' nor 'eirzoningmodcat' found in DataFrame for model run. Skipping this DataFrame.")
+                    parcel_df.drop(columns=['fbpchcat'], inplace=True)
 
-                if zoning_column:
-                    logging.debug("zoning_column {} unique values:\n{}".format(zoning_column, parcel_df[zoning_column].unique()))
-                    # Expand the zoning column into component parts
-                    parcel_zoning_df = parcel_df[zoning_column].str.extract(
-                        r'^(?P<gg_id>GG|NA)(?P<tra_id>tra1|tra2c|tra2b|tra2a|tra2|tra3a|tra3|NA)(?P<hra_id>HRA)?(?P<dis_id>DIS)?(?P<zone_remainder>.*)$')
-                    parcel_zoning_df[zoning_column] = parcel_df[zoning_column]
-                    logging.debug("parcel_zoning_df=\n{}".format(parcel_zoning_df.head(30)))
+                # join to get fbpchcat
+                parcel_df = pd.merge(
+                    left     = parcel_df,
+                    right    = rtp2021_geography_crosswalk_df,
+                    how      = "left",
+                    left_on  = "parcel_id",
+                    right_on = "PARCEL_ID",
+                    validate = "one_to_one"
+                )
 
-                    # check if any are missed: if zone_remainder contains 'HRA' or 'DIS
-                    zone_re_problem_df = parcel_zoning_df.loc[parcel_zoning_df.zone_remainder.str.contains("HRA|DIS", na=False, regex=True)]
-                    logging.debug("zone_re_problem_df nrows={} dataframe:\n{}".format(len(zone_re_problem_df), zone_re_problem_df))
+                assert('fbpchcat' in parcel_df.columns)
+                zoning_column = 'fbpchcat'
 
-                    # join it back to parcel_df
-                    parcel_df = pd.concat([parcel_df, parcel_zoning_df.drop(columns=[zoning_column])], axis='columns')
+                # todo: move this up so we do it only once
+                logging.debug("zoning_column {} unique values:\n{}".format(zoning_column, parcel_df[zoning_column].unique()))
+                # Expand the zoning column into component parts
+                parcel_zoning_df = parcel_df[zoning_column].str.extract(
+                    r'^(?P<gg_id>GG|NA)(?P<tra_id>tra1|tra2c|tra2b|tra2a|tra2|tra3a|tra3|NA)(?P<hra_id>HRA)?(?P<dis_id>DIS)?(?P<zone_remainder>.*)$')
+                parcel_zoning_df[zoning_column] = parcel_df[zoning_column]
+                logging.debug("parcel_zoning_df=\n{}".format(parcel_zoning_df.head(30)))
 
-                # Merging using the tract and geography crosswalks
-                parcel_df = parcel_df.merge(tract_crosswalk_df, on="parcel_id", how="left")
+                # check if any are missed: if zone_remainder contains 'HRA' or 'DIS
+                zone_re_problem_df = parcel_zoning_df.loc[parcel_zoning_df.zone_remainder.str.contains("HRA|DIS", na=False, regex=True)]
+                logging.debug("zone_re_problem_df nrows={} dataframe:\n{}".format(len(zone_re_problem_df), zone_re_problem_df))
+
+                # join it back to parcel_df
+                parcel_df = pd.concat([parcel_df, parcel_zoning_df.drop(columns=[zoning_column])], axis='columns')
+
+                # Merge the tract and coc crosswalks
+                parcel_df = parcel_df.merge(rtp2021_tract_crosswalk_df, on="parcel_id", how="left")
                 logging.debug("parcel_df after first merge with tract crosswalk:\n{}".format(parcel_df.head(30)))
 
-                parcel_df = parcel_df.merge(geography_crosswalk_df, on="tract_id", how="left")
+                parcel_df = parcel_df.merge(rtp2021_coc_flag_df, on="tract_id", how="left")
                 logging.debug("parcel_df after second merge with geography crosswalk:\n{}".format(parcel_df.head(30)))
 
-                parcel_df = parcel_df.merge(pda_crosswalk_df, on="parcel_id", how="left")
+                parcel_df = parcel_df.merge(rtp2021_pda_crosswalk_df, on="parcel_id", how="left")
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
                 # Retain only a subset of columns after merging
