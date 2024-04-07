@@ -28,12 +28,11 @@ import pandas as pd
 import metrics_utils
 
 import metrics_affordable
+import metrics_connected
+import metrics_diverse
 import metrics_growth
-#from metrics_connected import 
-from metrics_diverse import low_income_households_share
-#from metrics_healthy import
-from metrics_vibrant import jobs_housing_ratio
-
+import metrics_healthy
+import metrics_vibrant
 
 def main():
     pd.options.display.width = 500 # this goes to log file
@@ -45,7 +44,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('rtp', type=str, choices=['RTP2021','RTP2025'])
     parser.add_argument('--test', action='store_true', help='If passed, writes output to cwd instead of METRICS_OUTPUT_DIR')
-    parser.add_argument('--only', required=False, choices=['affordable','connected','diverse','growth','healthy'], 
+    parser.add_argument('--only', required=False, choices=['affordable','connected','diverse','growth','healthy','vibrant'], 
                         help='To only run one metric set')
 
     args = parser.parse_args()
@@ -124,8 +123,8 @@ def main():
     
             metrics_affordable.at_risk_housing_preserve_share(
                 SUMMARY_YEARS[-1], modelrun_alias, modelrun_id, OUTPUT_PATH, append_output)
+            
         #li_households_share_results = low_income_households_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
-        #job_housing_ratio_results = jobs_housing_ratio(geographic_summary_dfs[0], geographic_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
 
         if (args.only == None) or (args.only == 'growth'):
             metrics_growth.growth_patterns_county(
@@ -133,30 +132,12 @@ def main():
             metrics_growth.growth_patterns_geography(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
+        if (args.only == None) or (args.only == 'vibrant'):
+            metrics_vibrant.jobs_housing_ratio(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+
         append_output = True
         continue
-
-        # Save at risk preserved metric 
-        affordable_at_risk_preserved_metrics = run_metrics[run_metrics['metric_type'] == 'affordable_at_risk_preserv'].drop_duplicates(subset=['modelrun_id', 'modelrun_alias', 'area_alias', 'at_risk_preserv_pct'])
-        if not affordable_at_risk_preserved_metrics.empty:
-            filename = f"metrics_affordable2_{plan}_at_risk_housing_preserve_pct_{datetime.now().strftime('%Y_%m_%d')}.csv"
-            filepath = output_path / "Metrics" / filename
-            if filepath.is_file():
-                affordable_at_risk_preserved_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'at_risk_preserv_pct'], mode='a', header=False, index=False)
-            else:
-                affordable_at_risk_preserved_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'at_risk_preserv_pct'], mode='w', header=True, index=False)
-            logging.info(f"Saved presereved affordable metric results to {filepath}")
-
-        # Save vibrant metrics
-        vibrant_metrics = run_metrics[run_metrics['metric_type'] == 'vibrant']
-        if not vibrant_metrics.empty:
-            filename = f"metrics_vibrant1_{plan}_jobs_housing_ratio_{datetime.now().strftime('%Y_%m_%d')}.csv"
-            filepath = output_path / "Metrics" / filename
-            if filepath.is_file():
-                vibrant_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'county', 'jobs_housing_ratio'], mode='a', header=False, index=False)
-            else:
-                vibrant_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'county', 'jobs_housing_ratio'], mode='w', header=True, index=False)
-            logging.info(f"Saved vibrant metric results to {filepath}")
 
         # Save diverse metrics
         diverse_metrics = run_metrics[run_metrics['metric_type'] == 'diverse']
@@ -168,18 +149,6 @@ def main():
             else:
                 diverse_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area', 'Q1HH_share'], mode='w', header=True, index=False)
             logging.info(f"Saved diverse metric results to {filepath}")
-
-
-
-        growth_metrics = run_metrics[run_metrics['metric_type'] == 'growth_geography']
-        if not growth_metrics.empty:
-            filename = f"metrics_growthPattern_geography_{plan}_{datetime.now().strftime('%Y_%m_%d')}.csv"
-            filepath = output_path / "Metrics" / filename
-            if filepath.is_file():
-                growth_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_name', 'area_alias', 'TotHH', 'TotJobs', 'hh_share_of_growth', 'jobs_share_of_growth'], mode='a', header=False, index=False)
-            else:
-                growth_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_name', 'area_alias', 'TotHH', 'TotJobs', 'hh_share_of_growth', 'jobs_share_of_growth'], mode='w', header=True, index=False)
-            logging.info(f"Saved growth metric for geographies results to {filepath}")
 
 if __name__ == "__main__":
     main()
