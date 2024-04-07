@@ -102,6 +102,22 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_geography_crosswalk_df), GEOGRAPHY_CROSSWALK_FILE))
             logging.debug("  rtp2021_geography_crosswalk_df.head():\n{}".format(rtp2021_geography_crosswalk_df.head()))
 
+            # Expand fbpchcat into component parts
+            parcel_zoning_df = rtp2021_geography_crosswalk_df['fbpchcat'].str.extract(
+                r'^(?P<gg_id>GG|NA)(?P<tra_id>tra1|tra2c|tra2b|tra2a|tra2|tra3a|tra3|NA)(?P<hra_id>HRA)?(?P<dis_id>DIS)?(?P<zone_remainder>.*)$')
+            parcel_zoning_df['fbpchcat'] = rtp2021_geography_crosswalk_df['fbpchcat']
+            logging.debug("parcel_zoning_df=\n{}".format(parcel_zoning_df.head(30)))
+
+            # check if any are missed: if zone_remainder contains 'HRA' or 'DIS
+            zone_re_problem_df = parcel_zoning_df.loc[parcel_zoning_df.zone_remainder.str.contains("HRA|DIS", na=False, regex=True)]
+            logging.debug("zone_re_problem_df nrows={} dataframe:\n{}".format(len(zone_re_problem_df), zone_re_problem_df))
+
+            # join it back to rtp2021_geography_crosswalk_df
+            rtp2021_geography_crosswalk_df = pd.concat([rtp2021_geography_crosswalk_df,
+                                                        parcel_zoning_df.drop(columns=['fbpchcat'])], axis='columns')
+            logging.debug("  rtp2021_geography_crosswalk_df.head() after fbpchcat split:\n{}".format(
+                rtp2021_geography_crosswalk_df.head()))
+
         # define analysis years
         modelrun_data[2015] = {}
         modelrun_data[2050] = {}
@@ -148,7 +164,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                 if 'fbpchcat' in parcel_df.columns:
                     parcel_df.drop(columns=['fbpchcat'], inplace=True)
 
-                # join to get fbpchcat
+                # join to get fbpchcat and the zoning columns (gg_id, tra_id, hra_id, dis_id)
                 parcel_df = pd.merge(
                     left     = parcel_df,
                     right    = rtp2021_geography_crosswalk_df,
@@ -157,24 +173,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                     right_on = "PARCEL_ID",
                     validate = "one_to_one"
                 )
-
                 assert('fbpchcat' in parcel_df.columns)
-                zoning_column = 'fbpchcat'
-
-                # todo: move this up so we do it only once
-                logging.debug("zoning_column {} unique values:\n{}".format(zoning_column, parcel_df[zoning_column].unique()))
-                # Expand the zoning column into component parts
-                parcel_zoning_df = parcel_df[zoning_column].str.extract(
-                    r'^(?P<gg_id>GG|NA)(?P<tra_id>tra1|tra2c|tra2b|tra2a|tra2|tra3a|tra3|NA)(?P<hra_id>HRA)?(?P<dis_id>DIS)?(?P<zone_remainder>.*)$')
-                parcel_zoning_df[zoning_column] = parcel_df[zoning_column]
-                logging.debug("parcel_zoning_df=\n{}".format(parcel_zoning_df.head(30)))
-
-                # check if any are missed: if zone_remainder contains 'HRA' or 'DIS
-                zone_re_problem_df = parcel_zoning_df.loc[parcel_zoning_df.zone_remainder.str.contains("HRA|DIS", na=False, regex=True)]
-                logging.debug("zone_re_problem_df nrows={} dataframe:\n{}".format(len(zone_re_problem_df), zone_re_problem_df))
-
-                # join it back to parcel_df
-                parcel_df = pd.concat([parcel_df, parcel_zoning_df.drop(columns=[zoning_column])], axis='columns')
 
                 # Merge the tract and coc crosswalks
                 parcel_df = parcel_df.merge(rtp2021_tract_crosswalk_df, on="parcel_id", how="left")
@@ -187,7 +186,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
                 # Retain only a subset of columns after merging
-                columns_to_keep = ['parcel_id', 'tract_id', zoning_column, 
+                columns_to_keep = ['parcel_id', 'tract_id', 'fbpchcat', 
                                    'gg_id', 'tra_id', 'hra_id', 'dis_id',
                                    'hhq1', 'hhq2', 'hhq3', 'hhq4', 
                                    'tothh', 'totemp',
