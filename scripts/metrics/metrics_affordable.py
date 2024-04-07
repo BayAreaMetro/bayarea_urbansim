@@ -144,7 +144,7 @@ def deed_restricted_affordable_share(
     summary_wide_df['deed_restricted_pct_new_units'] = summary_wide_df['deed_restricted_prod_diff'] / summary_wide_df['residential_units_diff']
 
     # add modelrun_alias as first column
-    summary_wide_df.insert(0, 'modelrun_alias', modelrun_alias)
+    summary_wide_df.insert(0, 'modelrun_alias', f'{HORIZON_YEAR} {modelrun_alias}')
 
     # save this
     filename = "metrics_affordable2_newUnits_deed_restricted_pct.csv"
@@ -175,7 +175,7 @@ def at_risk_housing_preserve_share(
     - area = Region
     - at_risk_preserve_pct
     """
-    value = 0 if modelrun_alias in ["No Project"] else 1
+    value = None if modelrun_alias in ["No Project"] else 1
 
     results = [{
         'modelrun_id'          : modelrun_id,
