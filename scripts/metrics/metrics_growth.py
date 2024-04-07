@@ -3,7 +3,7 @@
 # ==============================
 import pandas as pd
 import logging
-from metrics_utils import map_area_to_alias 
+import metrics_utils
 
 def growth_patterns_county(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path, append_output):
     """
@@ -116,39 +116,16 @@ def growth_patterns_geography(rtp: str,
     """
     logging.info("Calculating growth_patterns_geography")
     
-    # Define area filters
-    if rtp == "RTP2021":
-        area_filters = {
-            'HRA'      : lambda df: df['hra_id'] == 'HRA',
-            'TRA'      : lambda df: df['tra_id'] != 'NA',  # note this is the string NA
-            'HRAandTRA': lambda df: (df['tra_id'] != 'NA') & (df['hra_id'] == 'HRA'),
-            'GG'       : lambda df: df['gg_id'] == 'GG',
-            'PDA'      : lambda df: pd.notna(df['pda_id_pba50_fb']),
-            'EPC'      : lambda df: df['coc_flag_pba2050'] == 1,
-            'Region'   : None
-    }
-    if rtp == "RTP2025":
-        area_filters = {
-            'HRA'      : lambda df: df['hra_id'] == 'HRA',
-            'TRA'      : lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
-            'HRAandTRA': lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
-            'GG'       : lambda df: df['gg_id'] == 'GG',
-            'PDA'      : lambda df: pd.notna(df['pda_id']), # this should be modified
-            'EPC'      : lambda df: df['epc_id'] == 'EPC',
-            'Region'   : None
-        }
-
-
     SUMMARY_YEARS = sorted(modelrun_data.keys())
 
     # Process each area filter and calculate growth patterns
     summary_dfs = []
     for year in SUMMARY_YEARS:
-        summary_list = [] # list of dicts
-        for area, filter_condition in area_filters.items():
+        summary_list = [] # list of dicts for this year
+        for area, filter_condition in metrics_utils.PARCEL_AREA_FILTERS[rtp].items():
             if callable(filter_condition):  # Check if the filter is a function]
-                df_area = modelrun_data[year]['parcel'][filter_condition(modelrun_data[year]['parcel'])]
-            else:
+                df_area = modelrun_data[year]['parcel'].loc[filter_condition(modelrun_data[year]['parcel'])]
+            elif filter_condition == None:
                 df_area = modelrun_data[year]['parcel']
             logging.debug("area={} df_area len={:,}".format(area, len(df_area)))
                 

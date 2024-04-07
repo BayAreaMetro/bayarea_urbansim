@@ -26,8 +26,9 @@ Functions:
 import argparse, datetime, logging, os, pathlib, sys
 import pandas as pd
 import metrics_utils
+
+import metrics_affordable
 import metrics_growth
-from metrics_affordable import deed_restricted_affordable_share , new_prod_deed_restricted_affordable_share, at_risk_housing_preserv_share
 #from metrics_connected import 
 from metrics_diverse import low_income_households_share
 #from metrics_healthy import
@@ -44,6 +45,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('rtp', type=str, choices=['RTP2021','RTP2025'])
     parser.add_argument('--test', action='store_true', help='If passed, writes output to cwd instead of METRICS_OUTPUT_DIR')
+    parser.add_argument('--only', required=False, choices=['affordable','connected','diverse','growth','healthy'], 
+                        help='To only run one metric set')
+
     args = parser.parse_args()
 
     # RTP2025 / PBA50+ settings
@@ -53,7 +57,7 @@ def main():
     else:
         BOX_DIR = pathlib.Path(f"C:/Users/{USERNAME}/Box")
     MODEL_RUNS_DIR     = pathlib.Path("M:/urban_modeling/baus/PBA50Plus/")
-    METRICS_DIR        = MODEL_RUNS_DIR / "Metrics"
+    METRICS_DIR        = MODEL_RUNS_DIR / "Metrics" # TODO: stop using this folder
     RUN_INVENTORY_FILE = METRICS_DIR / "PBA50Plus_model_run_inventory.csv"
     OUTPUT_PATH        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
     LOG_FILENAME       = "metrics_lu_standalone_{}.log" # loglevel
@@ -106,48 +110,31 @@ def main():
         # directory is relative to MODEL_RUNS_DIR
         run_directory_path = MODEL_RUNS_DIR / row['directory']
         modelrun_alias = row['alias']
-        modelrun_id = run_directory_path.parts[-1]
+        modelrun_id = row['directory']
 
         logging.info(f"Processing run modelrun_alias:[{modelrun_alias}] modelrun_id:[{modelrun_id}] run_directory_path:{run_directory_path}")
         
         # Load data for the current run
-        modelrun_data = metrics_utils.load_data_for_runs(args.rtp, METRICS_DIR, run_directory_path)
-        
-        # Calculate metrics for the current run
+        modelrun_data = metrics_utils.load_data_for_runs(args.rtp, METRICS_DIR, run_directory_path, modelrun_alias)
+        SUMMARY_YEARS = sorted(modelrun_data.keys())
 
-        #dr_share_results = deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
-        #new_prod_dr_share_results = new_prod_deed_restricted_affordable_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
-        #at_risk_preserv_share_results = at_risk_housing_preserv_share(modelrun_id, modelrun_alias, output_path)
+        if (args.only == None) or (args.only == 'affordable'):
+            metrics_affordable.deed_restricted_affordable_share(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+    
+            metrics_affordable.at_risk_housing_preserve_share(
+                SUMMARY_YEARS[-1], modelrun_alias, modelrun_id, OUTPUT_PATH, append_output)
         #li_households_share_results = low_income_households_share(core_summary_dfs[0], core_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
         #job_housing_ratio_results = jobs_housing_ratio(geographic_summary_dfs[0], geographic_summary_dfs[1], modelrun_id, modelrun_alias, plan, output_path)
-        metrics_growth.growth_patterns_county(
-            args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-        metrics_growth.growth_patterns_geography(
-            args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+
+        if (args.only == None) or (args.only == 'growth'):
+            metrics_growth.growth_patterns_county(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+            metrics_growth.growth_patterns_geography(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
         append_output = True
         continue
-        # Save affordable metrics
-        affordable_metrics = run_metrics[run_metrics['metric_type'] == 'affordable'].drop_duplicates(subset=['modelrun_id', 'modelrun_alias', 'area', 'deed_restricted_pct'])
-        if not affordable_metrics.empty:
-            filename = f"metrics_affordable2_{plan}_deed_restricted_pct_{datetime.now().strftime('%Y_%m_%d')}.csv"
-            filepath = output_path / "Metrics" / filename
-            if filepath.is_file():
-                affordable_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'area', 'deed_restricted_pct'], mode='a', header=False, index=False)
-            else:
-                affordable_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'area', 'deed_restricted_pct'], mode='w', header=True, index=False)
-            logging.info(f"Saved affordable metric results to {filepath}")
-
-        # Save new production deed-restricted affordable metrics
-        affordable_new_prod_metrics = run_metrics[run_metrics['metric_type'] == 'affordable_new_prod'].drop_duplicates(subset=['modelrun_id', 'modelrun_alias', 'area', 'deed_restricted_pct_newUnits'])
-        if not affordable_new_prod_metrics.empty:
-            filename = f"metrics_affordable2_{plan}_newUnits_deed_restricted_pct_{datetime.now().strftime('%Y_%m_%d')}.csv"
-            filepath = output_path / "Metrics" / filename
-            if filepath.is_file():
-                affordable_new_prod_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'area', 'deed_restricted_pct_newUnits'], mode='a', header=False, index=False)
-            else:
-                affordable_new_prod_metrics.to_csv(filepath, columns=['modelrun_id', 'modelrun_alias', 'area_alias', 'area', 'deed_restricted_pct_newUnits'], mode='w', header=True, index=False)
-            logging.info(f"Saved new production affordable metric results to {filepath}")
 
         # Save at risk preserved metric 
         affordable_at_risk_preserved_metrics = run_metrics[run_metrics['metric_type'] == 'affordable_at_risk_preserv'].drop_duplicates(subset=['modelrun_id', 'modelrun_alias', 'area_alias', 'at_risk_preserv_pct'])

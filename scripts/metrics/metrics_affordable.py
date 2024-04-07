@@ -4,216 +4,161 @@
 
 import logging
 import pandas as pd
-import numpy as np
-from metrics_utils import map_area_to_alias 
+import metrics_utils
 
-# Hard-coded numbers for off-model units from plan PBA50. Mark: We no longer use them for PBA50Plus metric calculations because:
-        # Preserved is integrated into the model input provided for H2 (i.e., the preserved units targets by geography combination) 
-        # Homeless is integrated into the model input provided for H4, similar to H2 above. 
-        # It is assumed that 'pipeline' units are already incorporated in the pipeline data.
-
-#offmodel_preserved = 40000
-#offmodel_homeless = 35000
-#offmodel_pipeline = 7572
+OFFMODEL = {
+    # Hard-coded numbers for off-model units from plan PBA50. 
+    'RTP2021':{
+        'PRESERVED': 40000,
+        'HOMELESS' : 35000,
+        'PIPELINE' : 7572
+    },
+    # Mark: We no longer use them for PBA50Plus metric calculations because:
+    #   Preserved is integrated into the model input provided for H2 (i.e., the preserved units targets by geography combination) 
+    #   Homeless is integrated into the model input provided for H4, similar to H2 above. 
+    #   It is assumed that 'pipeline' units are already incorporated in the pipeline data.
+    'RTP2025':{
+        'PRESERVED': 0,
+        'HOMELESS' : 0,
+        'PIPELINE' : 0
+    }
+}
 
 def deed_restricted_affordable_share(
-        parcel_geog_summary_initial: pd.DataFrame,
-        parcel_geog_summary_final: pd.DataFrame,
-        modelrun_id: str,
+        rtp: str,
         modelrun_alias: str,
-        plan: str,
-        output_path: str
-        ) -> pd.DataFrame:
+        modelrun_id: str,
+        modelrun_data: dict,
+        output_path: str,
+        append_output: bool
+    ):
     """
     Calculate the share of housing that is deed-restricted affordable at the regional level, 
     within Equity Priority Communities (EPC), and within High-Resource Areas (HRA)
     
     Parameters:
-    - parcel_geog_summary_initial (pd.DataFrame): DataFrame with columns ['hra_id', 'epc_id', 'parcel_id', 'residential_units', 'deed_restricted_units'].
-    - parcel_geog_summary_final (pd.DataFrame): DataFrame with columns ['hra_id', 'epc_id', 'parcel_id', 'residential_units', 'deed_restricted_units'].
-    - modelrun_id (str): The unique identifier for the model run.
-    - modelrun_alias (str): An alias name for the model run.
-    - plan (str): Indicates the plan type.
+    - rtp (str): RTP2021 or RTP2025.
+    - modelrun_alias (str): Alias for the model run, used for labeling output.
+    - modelrun_id (str): Identifier for the model run.
+    - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
     - output_path (str or Path): The directory path to save the output CSV file.
-    
-    Returns:
-    - result_dr_share (pd.DataFrame): DataFrame containing the share of housing that is deed-restricted affordable,
-        at the regional level and for EPCs and HRAs.
+    - append_output (bool): True if appending output; False if writing
+
+    Writes metrics_affordable2_deed_restricted_pct.csv to output_path, appending if append_output is True. Columns are:
+    - modelrun_id
+    - modelrun_alias
+    - deed_restricted_units
+    - preserved_units
+    - residential_units
+    - deed_restricted_pct: deed_restricted_units/residential_units
+
+    Also writes metrics_affordable2_newUnits_deed_restricted_pct.csv to output_path, appending if append_output is True. Columns are:
+    - modelrun_alias
+    - modelrun_id
+    - area
+    - [deed_restricted_units|preserved_units|residential_units]_[year]: types of units existing in the given year
+    - deed_restricted_produced: deed_restricted_units - preserved_units, since preserved aren't produced
+    - [deed_restricted_prod|residential_units]_diff: change in deed restricted/residential units
+    - deed_restricted_pct_new_units: what percent of residential units created were deed restricted
+
     """
+    logging.info("Calculating deed_restricted_affordable_share")
 
-    # Define area filters
-    if plan == "pba50":
-        area_filters = {'HRA': lambda df: df['hra_id'] == 1,
-                        'EPC': lambda df: df['coc_flag_pba2050'] == 1,
-                        'Region': None}
-    elif plan == "pba50plus":
-        area_filters = {'HRA': lambda df: df['hra_id'] == 'HRA',
-                        'EPC': lambda df: df['epc_id'] == 'EPC',
-                        'Region': None}
-    
-    def calculate_share_dr_units(df, area, year):
-        # Initialize variables
-        dr_units = res_units = 0
-        
-        # Apply specific logic based on area
-        if 'deed_restricted_units' in df.columns:
-            if area == 'Region':
-                if year == '2050':
-                    dr_units = df['deed_restricted_units'].sum() #+ offmodel_preserved + offmodel_homeless + offmodel_pipeline
-                    res_units = df['residential_units'].sum() #+ offmodel_homeless
-                else:
-                    dr_units = df['deed_restricted_units'].sum() - df['preserved_units'].sum()
-                    res_units = df['residential_units'].sum()
-            elif area == 'HRA':
-                if year == '2050':
-                    dr_units = df['deed_restricted_units'].sum()
-                    res_units = df['residential_units'].sum()
-                else:
-                    dr_units = df['deed_restricted_units'].sum() - df['preserved_units'].sum()
-                    res_units = df['residential_units'].sum()
-            elif area == 'EPC':
-                if year == '2050':
-                    dr_units = df['deed_restricted_units'].sum() #+ offmodel_preserved
-                    res_units = df['residential_units'].sum()
-                else:
-                    dr_units = df['deed_restricted_units'].sum() - df['preserved_units'].sum()
-                    res_units = df['residential_units'].sum()
-        else:
-            logging.warning(f"DataFrame for {area} in {year} does not contain 'deed_restricted_units'.")
-       
-        # Calculate the share
-        dr_units_share = round((dr_units / res_units), 3) if res_units > 0 else 0
-        
-        return {'modelrun_id': modelrun_id,
-                'modelrun_alias': f"{year} {modelrun_alias}",
-                'area_alias': map_area_to_alias(area),
-                'area': area,
-                'deed_restricted_pct': dr_units_share,
-                'metric_name': 'deed_restricted_affordable_share'}
+    SUMMARY_YEARS = sorted(modelrun_data.keys())
+    INITIAL_YEAR = SUMMARY_YEARS[0]
+    HORIZON_YEAR = SUMMARY_YEARS[-1]
 
-    results = []
-    years_data = {'initial': '2015' if plan == 'pba50' else '2020', 'final': '2050'}
-
-    for year_key, year in years_data.items():
-            df_to_use = parcel_geog_summary_initial if year_key == 'initial' else parcel_geog_summary_final
-            for area, filter_condition in area_filters.items():
-                if callable(filter_condition):
-                    df_area = df_to_use.loc[filter_condition(df_to_use)]
-                elif filter_condition is not None:
-                    condition = df_to_use[filter_condition] == area
-                    df_area = df_to_use[condition]
-                else:
-                    df_area = df_to_use
-        
-                if not isinstance(df_area, pd.DataFrame):
-                    logging.error(f"Expected df_area to be a DataFrame but got {type(df_area)}. Check the filtering logic.")
-                    continue  
-        
-                # Calculate the share and append to results
-                area_result = calculate_share_dr_units(df_area, area, year)
-                results.append(area_result)
-
-    # Create the results DataFrame
-    result_dr_units_share = pd.DataFrame(results)
-    result_dr_units_share['metric_type'] = 'affordable'
-        
-    return result_dr_units_share
-
-
-def new_prod_deed_restricted_affordable_share(
-        parcel_geog_summary_initial: pd.DataFrame,
-        parcel_geog_summary_final: pd.DataFrame,
-        modelrun_id: str,
-        modelrun_alias: str,
-        plan: str,
-        output_path: str
-    ) -> pd.DataFrame:
-    """
-    Calculate the share of new housing production that is deed-restricted affordable between initial and final year of the plan
-    at the regional level, within Equity Priority Communities (EPC), and within High-Resource Areas (HRA)
-    
-    Parameters:
-    - parcel_geog_summary_2020 (pd.DataFrame): DataFrame with columns ['hra_id', 'epc_id', 'parcel_id', 'residential_units', 'deed_restricted_units'].
-    - parcel_geog_summary_2050 (pd.DataFrame): DataFrame with columns ['hra_id', 'epc_id', 'parcel_id', 'residential_units', 'deed_restricted_units'].
-    
-    Returns:
-    - result_dr_share (pd.DataFrame): DataFrame containing the share of new housing production that is deed-restricted affordable,
-        at the regional level and for EPCs and HRAs.
-    """
-    # Define area filters
-    if plan == "pba50":
-        area_filters = {'HRA': lambda df: df['hra_id'] == 1,
-                        'EPC': lambda df: df['coc_flag_pba2050'] == 1,
-                        'Region': None}
-    elif plan == "pba50plus":
-        area_filters = {'HRA': lambda df: df['hra_id'] == 'HRA',
-                        'EPC': lambda df: df['epc_id'] == 'EPC',
-                        'Region': None}
-        
-    def calculate_share_new_dr_units(df_initial, df_final, area, year='2050'):
-        if area == 'Region':
-            preserved_units_initial = 0
-            preserved_units_final = df_final['preserved_units'].sum() #+ offmodel_preserved
-            deed_restricted_units_initial = df_initial['deed_restricted_units'].sum() - df_initial['preserved_units'].sum()
-            deed_restricted_units_final = df_final['deed_restricted_units'].sum() #+ offmodel_preserved + offmodel_homeless + offmodel_pipeline
-            total_units_initial = df_initial['residential_units'].sum()
-            total_units_final = df_final['residential_units'].sum() #+ offmodel_homeless
-        elif area == 'HRA':
-            preserved_units_initial = 0
-            preserved_units_final = df_final['preserved_units'].sum()
-            deed_restricted_units_initial = df_initial['deed_restricted_units'].sum() - df_initial['preserved_units'].sum()
-            deed_restricted_units_final = df_final['deed_restricted_units'].sum() 
-            total_units_initial = df_initial['residential_units'].sum()
-            total_units_final = df_final['residential_units'].sum()
-        elif area == 'EPC':
-            preserved_units_initial = 0
-            preserved_units_final = df_final['preserved_units'].sum() #+ offmodel_preserved
-            deed_restricted_units_initial = df_initial['deed_restricted_units'].sum() - df_initial['preserved_units'].sum()
-            deed_restricted_units_final = df_final['deed_restricted_units'].sum() #+ offmodel_preserved
-            total_units_initial = df_initial['residential_units'].sum()
-            total_units_final = df_final['residential_units'].sum()
-        
-        # Calculate differences and share
-        residential_units_diff = total_units_final - total_units_initial
-        deed_restricted_prod_total_initial = deed_restricted_units_initial - preserved_units_initial
-        deed_restricted_prod_total_final = deed_restricted_units_final - preserved_units_final 
-        deed_restricted_diff = deed_restricted_prod_total_final - deed_restricted_prod_total_initial
-        new_dr_units_share = round((deed_restricted_diff / residential_units_diff), 3) if residential_units_diff > 0 else 0
-    
-        return {'modelrun_id': modelrun_id,
-                'modelrun_alias': f"{year} {modelrun_alias}",
-                'area_alias': map_area_to_alias(area),
-                'area': area,
-                'deed_restricted_pct_newUnits': new_dr_units_share,
-                'metric_name': 'new_prod_deed_restricted_affordable_share'}
-    
-    results = []
-    
-    for area, filter_condition in area_filters.items():
-        df_initial = parcel_geog_summary_initial
-        df_final = parcel_geog_summary_final
-        if filter_condition is not None:
-            # If filter_condition is callable, apply it directly
+    summary_list = [] # list of dicts
+    for year in SUMMARY_YEARS:
+        for area in ['HRA','EPC','Region']:
+            filter_condition = metrics_utils.PARCEL_AREA_FILTERS[rtp][area]
             if callable(filter_condition):
-                df_initial = df_initial[filter_condition(df_initial)]
-                df_final = df_final[filter_condition(df_final)]
-            else:
-                logging.warning(f"Filter condition for {area} is not callable. Skipping filter.")
-        area_result = calculate_share_new_dr_units(df_initial, df_final, area)
-        results.append(area_result)
+                df_area = modelrun_data[year]['parcel'].loc[filter_condition(modelrun_data[year]['parcel'])]
+            elif filter_condition == None:
+                df_area = modelrun_data[year]['parcel']
+            logging.debug("area={} df_area len={:,}".format(area, len(df_area)))
+
+            deed_restricted_units = df_area['deed_restricted_units'].sum()
+            residential_units     = df_area['residential_units'].sum()
+            preserved_units       = df_area['preserved_units'].sum()
+            if area=='Region':
+                if year == HORIZON_YEAR:
+                    # RTP2021: assume additional deed restricted units created: preserved and pipeline
+                    deed_restricted_units = deed_restricted_units + OFFMODEL[rtp]['HOMELESS'] + \
+                         OFFMODEL[rtp]['PRESERVED'] + OFFMODEL[rtp]['PIPELINE']
+                    residential_units     = residential_units     + OFFMODEL[rtp]['HOMELESS']
+                    preserved_units       = preserved_units       + OFFMODEL[rtp]['PRESERVED']
+            # assume preserved units are all in EPC
+            if (area=="EPC") and (year==HORIZON_YEAR):
+                deed_restricted_units = deed_restricted_units + OFFMODEL[rtp]['PRESERVED']
+                preserved_units       = preserved_units       + OFFMODEL[rtp]['PRESERVED']
+
+            # note: Per original script, for PBA50, we need to subtract out preserved_units_2015, because urbansim adds preserved units 
+            # as a result of PBA strategies between 2010 and 2015. This is because  the strategy was not coded to be "smart" 
+            # and add units only after 2015 - source: Elly            
+            if year == INITIAL_YEAR:
+                deed_restricted_units = deed_restricted_units - preserved_units
+
+            summary_list.append({
+                'modelrun_id'             : modelrun_id,
+                'modelrun_alias'          : f"{year} {modelrun_alias}",
+                'year'                    : year,
+                'area'                    : area,
+                'deed_restricted_units'   : deed_restricted_units,
+                'preserved_units'         : preserved_units,
+                'residential_units'       : residential_units,
+                'deed_restricted_produced': deed_restricted_units - preserved_units,  # produced = not preserved
+                # share of all units
+                'deed_restricted_share_of_all_units' : (deed_restricted_units / residential_units) if residential_units > 0 else 0,
+            })
 
     # Create the results DataFrame
-    result_new_dr_units_share = pd.DataFrame(results)
-    result_new_dr_units_share['metric_type'] = 'affordable_new_prod'
-    
-    return result_new_dr_units_share 
+    summary_df = pd.DataFrame(summary_list)
+    logging.debug("summary_df:\n{}".format(summary_df))
 
+    filename = "metrics_affordable2_deed_restricted_pct.csv"
+    filepath = output_path / filename
 
-def at_risk_housing_preserv_share(
-        modelrun_id: str,
+    summary_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+    logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(summary_df), filepath))
+
+    # part two - new units
+    # Doing this with the same code because it depends on the above code, and repeating it doesn't make sense
+    summary_initial_df = summary_df.loc[summary_df.year == INITIAL_YEAR, ['modelrun_id','area','deed_restricted_units','preserved_units','residential_units','deed_restricted_produced']]
+    summary_horizon_df = summary_df.loc[summary_df.year == HORIZON_YEAR, ['modelrun_id','area','deed_restricted_units','preserved_units','residential_units','deed_restricted_produced']]
+    logging.debug("summary_initial_df:\n{}".format(summary_initial_df))
+    summary_wide_df = pd.merge(
+        left     = summary_initial_df,
+        right    = summary_horizon_df,
+        on       = ['modelrun_id','area'],
+        how      = 'left',
+        suffixes = [f'_{INITIAL_YEAR}',f'_{HORIZON_YEAR}'],
+        validate = 'one_to_one'
+    )
+    # growth in deed restricted units and residential units overall
+    summary_wide_df['deed_restricted_prod_diff'] = summary_wide_df[f'deed_restricted_produced_{HORIZON_YEAR}'] - \
+                                                   summary_wide_df[f'deed_restricted_produced_{INITIAL_YEAR}']
+    summary_wide_df['residential_units_diff']    = summary_wide_df[f'residential_units_{HORIZON_YEAR}'] - \
+                                                   summary_wide_df[f'residential_units_{INITIAL_YEAR}']
+    # hoe much of the residential unit growth is deed restricted?
+    summary_wide_df['deed_restricted_pct_new_units'] = summary_wide_df['deed_restricted_prod_diff'] / summary_wide_df['residential_units_diff']
+
+    # add modelrun_alias as first column
+    summary_wide_df.insert(0, 'modelrun_alias', modelrun_alias)
+
+    # save this
+    filename = "metrics_affordable2_newUnits_deed_restricted_pct.csv"
+    filepath = output_path / filename
+    summary_wide_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+    logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(summary_wide_df), filepath))
+
+def at_risk_housing_preserve_share(
+        horizon_year: int,
         modelrun_alias: str,
-        output_path: str
-    ) -> pd.DataFrame:
+        modelrun_id: str,
+        output_path: str,
+        append_output: bool
+    ):
     """
     Creates a DataFrame that indicates the percentage of at-risk preservation for a specific model run.
     Depending on the model run alias, this function will assign a value to the 'at_risk_preserv_pct' field:
@@ -224,19 +169,26 @@ def at_risk_housing_preserv_share(
     - modelrun_alias (str): The alias for the model run.
     - output_path (str): The file path where the resulting DataFrame will be saved.
     
-    Returns:
-    - pd.DataFrame: A DataFrame with the columns ['modelrun_id', 'modelrun_alias', 'area_alias', 'at_risk_preserv_pct', 'metric_type'].
+    Writes metrics_affordable2_at_risk_housing_preserve_pct.csv with columns:
+    - modelrun_alias
+    - modelrun_id
+    - area = Region
+    - at_risk_preserve_pct
     """
-    results = []
     value = 0 if modelrun_alias in ["No Project"] else 1
 
-    results.append({'modelrun_id': modelrun_id,
-                    'modelrun_alias': f"2050 {modelrun_alias}",
-                    'area_alias': 'Regionwide',
-                    'at_risk_preserv_pct': value})
+    results = [{
+        'modelrun_id'          : modelrun_id,
+        'modelrun_alias'       : f"{horizon_year} {modelrun_alias}",
+        'area'                 : 'Region',
+        'at_risk_preserve_pct' : value
+    }]
     
     # Convert the list of dictionaries into a pandas DataFrame
-    at_risk_preserved_share = pd.DataFrame(results)
-    at_risk_preserved_share['metric_type'] = 'affordable_at_risk_preserv'
+    at_risk_df = pd.DataFrame(results)
 
-    return at_risk_preserved_share
+    # write it
+    filename = "metrics_affordable2_at_risk_housing_preserve_pct.csv"
+    filepath = output_path / filename
+    at_risk_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+    logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(at_risk_df), filepath))

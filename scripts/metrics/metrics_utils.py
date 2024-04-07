@@ -7,10 +7,32 @@ parcel_crosswalk_df    = pd.DataFrame()
 geography_crosswalk_df = pd.DataFrame()
 tract_crosswalk_df     = pd.DataFrame()
 pda_crosswalk_df       = pd.DataFrame()
+
+PARCEL_AREA_FILTERS = {
+    'RTP2021': {
+            'HRA'      : lambda df: df['hra_id'] == 'HRA',
+            'TRA'      : lambda df: df['tra_id'] != 'NA',  # note this is the string NA
+            'HRAandTRA': lambda df: (df['tra_id'] != 'NA') & (df['hra_id'] == 'HRA'),
+            'GG'       : lambda df: df['gg_id'] == 'GG',
+            'PDA'      : lambda df: pd.notna(df['pda_id_pba50_fb']),
+            'EPC'      : lambda df: df['coc_flag_pba2050'] == 1,
+            'Region'   : None
+    },
+    'RTP2025': {
+            'HRA'      : lambda df: df['hra_id'] == 'HRA',
+            'TRA'      : lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
+            'HRAandTRA': lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
+            'GG'       : lambda df: df['gg_id'] == 'GG',
+            'PDA'      : lambda df: pd.notna(df['pda_id']), # this should be modified
+            'EPC'      : lambda df: df['epc_id'] == 'EPC',
+            'Region'   : None
+    }
+}
+
 # --------------------------------------
 # Data Loading Based on Model Run Plan
 # --------------------------------------
-def load_data_for_runs(rtp, METRICS_DIR, run_directory_path):
+def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     """
     Reads crosswalk data as well as core summary and geographic summary data for the given BAUS model run
     for both the base year and the horizon year (which varies based on the rtp)
@@ -21,6 +43,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path):
     - rtp (str): one of RTP2021 or RTP2025
     - METRICS_DIR (str): metrics directory for finding crosswalks
     - run_directory_path (pathlib.Path): path for model run output files
+    - modelrun_alias (str): alias for the model run. e.g. 'No Project', 'DBP, etc.
 
     Returns:
     - dict with year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
@@ -46,7 +69,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path):
         # define analysis years
         modelrun_data[2020]  = {}
         modelrun_data[2050]  = {}
-        core_summary_pattern = "core_summaries/*_parcel_summary_{}.csv"
+        parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
     elif rtp == "RTP2021":
         if len(geography_crosswalk_df) == 0:
@@ -72,7 +95,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path):
         # define analysis years
         modelrun_data[2015] = {}
         modelrun_data[2050] = {}
-        core_summary_pattern = "*_parcel_data_{}.csv"
+        parcel_pattern       = "*_parcel_data_{}.csv"
         geo_summary_pattern  = "*_county_summaries_{}.csv"
 
     else:
@@ -80,13 +103,23 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path):
     
     # Load parcels summaries
     for year in sorted(modelrun_data.keys()):
-        logging.debug("Looking for core summaries matching {}".format(core_summary_pattern.format(year)))
-        core_summary_file_list = run_directory_path.glob(core_summary_pattern.format(year))
-        for file in core_summary_file_list:
+        # handle RTP2021 hacks
+        if (rtp=="RTP2021") and (year == 2050) and (modelrun_alias=="No Project"):
+            # comment was: this is for no project (which does not have UBI) but had some post processing Affordable housing added
+            modified_parcel_pattern = parcel_pattern.replace(".csv", "_add_AH.csv")
+        elif (rtp=="RTP2021") and (year == 2050) and (modelrun_alias in ['EIR Alt 1','EIR Alt 2']):
+            modified_parcel_pattern = parcel_pattern.replace(".csv", "_no_UBI.csv")
+        else:
+            modified_parcel_pattern = parcel_pattern
+
+        logging.debug("Looking for parcel data matching {}".format(modified_parcel_pattern.format(year)))
+        parcel_file_list = run_directory_path.glob(modified_parcel_pattern.format(year))
+        for file in parcel_file_list:
             # TODO: consider adding usecols when all metrics are defined to increase the speed
             parcel_df = pd.read_csv(file) 
             logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
             logging.debug("Head:\n{}".format(parcel_df))
+            logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))
 
             if rtp=="RTP2025":
                 parcel_df = pd.merge(
@@ -115,7 +148,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path):
                     parcel_zoning_df = parcel_df[zoning_column].str.extract(
                         r'^(?P<gg_id>GG|NA)(?P<tra_id>tra1|tra2c|tra2b|tra2a|tra2|tra3a|tra3|NA)(?P<hra_id>HRA)?(?P<dis_id>DIS)?(?P<zone_remainder>.*)$')
                     parcel_zoning_df[zoning_column] = parcel_df[zoning_column]
-                    logging.debug("parcel_zoning_df=\n{}".format(parcel_zoning_df.head(500)))
+                    logging.debug("parcel_zoning_df=\n{}".format(parcel_zoning_df.head(30)))
 
                     # check if any are missed: if zone_remainder contains 'HRA' or 'DIS
                     zone_re_problem_df = parcel_zoning_df.loc[parcel_zoning_df.zone_remainder.str.contains("HRA|DIS", na=False, regex=True)]
