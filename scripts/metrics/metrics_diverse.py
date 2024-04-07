@@ -25,7 +25,7 @@ def low_income_households_share(
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
 
-    Writes metrics_diverse1_low_income_households_share.csv, appending if append_output is True. Columns are:
+    Writes metrics_diverse1_q1_hh_share.csv, appending if append_output is True. Columns are:
     """ 
     logging.info("Calculating low_income_households_share")
     
@@ -54,7 +54,7 @@ def low_income_households_share(
     # Create the results DataFrame
     hh_share_df = pd.DataFrame(summary_list)
 
-    filename = "metrics_diverse1_low_income_households_share.csv"
+    filename = "metrics_diverse1_q1_hh_share.csv"
     filepath = output_path / filename
 
     hh_share_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
