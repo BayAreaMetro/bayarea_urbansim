@@ -162,11 +162,11 @@ def gentrify_displacement_tracts(
             tract_summary_category1_df = tract_summary_df.loc[ tract_summary_df.tract_growth_geo == 1]
 
         # define area_categories2
-        area_categories2 = ['all', 'EPC', 'DispRisk'] if area_category1 == 'Region' else ['all', 'HRA','TRA']
+        area_categories2 = ['all_region', 'EPC', 'DispRisk'] if area_category1 == 'Region' else ['all_gg', 'HRA','TRA']
         for area_category2 in area_categories2:
 
             # filter to area_category2
-            if area_category2 == 'all':
+            if area_category2.startswith('all'):
                 tract_summary_category1_2_df = tract_summary_category1_df # no filter
             elif area_category2 == 'EPC':
                 tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.tract_epc == 1]
