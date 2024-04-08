@@ -56,9 +56,9 @@ def main():
     else:
         BOX_DIR = pathlib.Path(f"C:/Users/{USERNAME}/Box")
     MODEL_RUNS_DIR     = pathlib.Path("M:/urban_modeling/baus/PBA50Plus/")
-    METRICS_DIR        = MODEL_RUNS_DIR / "Metrics" # TODO: stop using this folder
-    RUN_INVENTORY_FILE = METRICS_DIR / "PBA50Plus_model_run_inventory.csv"
+    RUN_INVENTORY_FILE = MODEL_RUNS_DIR / "Metrics/PBA50Plus_model_run_inventory.csv"
     OUTPUT_PATH        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
+    METRICS_DIR        = OUTPUT_PATH
     LOG_FILENAME       = "metrics_lu_standalone_{}.log" # loglevel
 
     # this is for QAQC

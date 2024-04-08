@@ -103,6 +103,7 @@ def gentrify_displacement_tracts(
     logging.info("Calculating gentrify_displacement_tracts")
     
     SUMMARY_YEARS = sorted(modelrun_data.keys())
+
     INITIAL_YEAR = SUMMARY_YEARS[0]
     HORIZON_YEAR = SUMMARY_YEARS[-1]
 
@@ -110,7 +111,7 @@ def gentrify_displacement_tracts(
     for year in SUMMARY_YEARS:
         # summarize to tract_id and the tract-level variables
         tract_summary_year_df = modelrun_data[year]['parcel'].groupby([
-            'tract_id','coc_flag_pba2050', 'DispRisk', 'tract_hra', 'tract_growth_geo', 'tract_tra']).aggregate({
+            'tract_id','tract_epc','tract_DispRisk','tract_hra','tract_growth_geo','tract_tra']).aggregate({
                 'hhq1' :'sum',
                 'tothh':'sum',
             })
@@ -132,15 +133,18 @@ def gentrify_displacement_tracts(
     logging.debug('tract_summary_df:\n{}'.format(tract_summary_df))
     # displacement, defined as net loss of low income households in a census tract between the initial and horizon year
     tract_summary_df['displacement'] = False
-    tract_summary_df.loc[ tract_summary_df.hhq1_2050 < tract_summary_df.hhq1_2015, 'displacement' ] = True
+    tract_summary_df.loc[ tract_summary_df[f'hhq1_{HORIZON_YEAR}'] < tract_summary_df[f'hhq1_{INITIAL_YEAR}'], 
+                         'displacement' ] = True
     # gentrification, defined as over 10% drop in share of low income households in a census tract between 
     # the initial and horizon year
     tract_summary_df['gentrification'] = False
-    tract_summary_df.loc[ tract_summary_df.hhq1_share_2050/tract_summary_df.hhq1_share_2015 < 0.9, 'gentrification'] = True
+    tract_summary_df.loc[ tract_summary_df[f'hhq1_share_{HORIZON_YEAR}']/tract_summary_df[f'hhq1_share_{INITIAL_YEAR}'] < 0.9, 
+                         'gentrification'] = True
 
     # reset index. columns are now: 
-    #   tract_id  coc_flag_pba2050  DispRisk  tract_hra  tract_growth_geo  tract_tra
-    #   hhq1_2015  tothh_2015  hhq1_share_2015  hhq1_2050  tothh_2050  hhq1_share_2050
+    #   tract_id  tract_epc  tract_DispRisk  tract_hra  tract_growth_geo  tract_tra
+    #   hhq1_[initial_year]  tothh_[horizon_year]  hhq1_share_[initial_year]
+    #   hhq1_[horizon_year]  tothh_[horizon_year]  hhq1_share_[horizon_year]
     #   displacement  gentrification
     tract_summary_df.reset_index(drop=False, inplace=True)
     logging.debug('tract_summary_df:\n{}'.format(tract_summary_df))
@@ -165,9 +169,9 @@ def gentrify_displacement_tracts(
             if area_category2 == 'all':
                 tract_summary_category1_2_df = tract_summary_category1_df # no filter
             elif area_category2 == 'EPC':
-                tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.coc_flag_pba2050 == 1]
+                tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.tract_epc == 1]
             elif area_category2 == 'DispRisk':
-                tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.DispRisk == 1]
+                tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.tract_DispRisk == 1]
             elif area_category2 == 'HRA':
                 tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.tract_hra == 1]
             elif area_category2 == 'TRA':
