@@ -105,7 +105,7 @@ def growth_patterns_geography(rtp: str,
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
 
-    Writes metrics_growthPattern_county.csv to output_path, apeending if append_output is True. Columns are:
+    Writes metrics_growthPattern_geographies.csv to output_path, apeending if append_output is True. Columns are:
     - modelrun_id
     - modelrun_alias
     - area
@@ -169,7 +169,7 @@ def growth_patterns_geography(rtp: str,
                                'hh_growth','jobs_growth',
                                'hh_share_of_growth','jobs_share_of_growth']]
 
-    filename = "metrics_growthPattern_geography.csv"
+    filename = "metrics_growthPattern_geographies.csv"
     filepath = output_path / filename
 
     combined_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
