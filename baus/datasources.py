@@ -221,8 +221,8 @@ def initial_summary_year(run_setup):
 
 
 @orca.injectable()
-def interim_summary_year():
-    return 2035
+def interim_summary_years():
+    return [2025, 2035]
 
 
 @orca.injectable()
