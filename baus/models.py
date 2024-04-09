@@ -65,63 +65,72 @@ def elcm_simulate_ec5(jobs, buildings, aggregations):
 def gov_transit_elcm(jobs, households, buildings, parcels):
 
     # Jobs prep
-    jobs_df = jobs.to_frame(["building_id", "empsix"])
-    df = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], columns=['juris', 'zone_id'])
-    jobs_df["juris"] = df["juris"]
-    jobs_df["zone_id"] = df["zone_id"]
+    jobs_df = jobs.to_frame(["building_id", "empsix", "sector_id"])
+    # df = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], columns=['juris', 'zone_id','ec5_cat'])
+    #jobs_df["juris"] = df["juris"]
+    #jobs_df["zone_id"] = df["zone_id"]
 
     # Buildings prep
+    #buildings_df = buildings.to_frame()[['ec5_cat','vacant_job_spaces']]
+
     buildings_df = orca.merge_tables(target='buildings', tables=[buildings, parcels], 
-                                     columns=['juris', 'zone_id', 'general_type', 'vacant_job_spaces'])
+                                     columns=['juris', 'county', 'general_type', 'vacant_job_spaces','ec5_cat'])
 
-    buildings_df = buildings_df.rename(columns={'zone_id_x': 'zone_id', 'general_type_x': 'general_type'})
-
-
-    # We could do this out of step - just grabbing jobs not
-    # explicitly selected for relocation - and moving them anyway
-
-    # available_jobs = (jobs_df
-    # .query("empsix == '%s' and building_id == -1" % sector)
-    # )
-    
-    # Move candidates
-    moving_jobs_candidates = jobs_df.query('sector_id==91')
-
-    movers_n = len(moving_jobs)
-
-    half_n = int(movers_n / 2)
-    moving_jobs = moving_jobs_candidates.sample(half_n)
-
-    print(f'Number of NAICS 91 jobs moving: {half_n}')
-
-    # get locations
+    buildings_df = buildings_df.rename(columns={'county_x': 'county', 'general_type_x': 'general_type'})
 
     # Where to go? Buffers!
+    building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 0')
 
-    building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 10')
+    print('Building hosts in Transit Hubs:')
+    print(f'Building count: {len(building_hosts)}')
+    print(f'Building vacant job spaces: {building_hosts.vacant_job_spaces.sum()}')
 
-    print(f"{building_hosts.vacant_job_spaces.sum():,} job spaces  in {len(building_hosts)} buildings")
+    #emp_long_expand = emp_long.reindex(emp_long.index.repeat(emp_long.jobs))
 
-    # get half_n jobs
     # first - enumerate job spaces
-    location_options = building_hosts.repeat(building_hosts.vacant_job_spaces.clip(0))
-    print('location_options',location_options.head())
+    building_hosts_enum = building_hosts.index.repeat(building_hosts.vacant_job_spaces.clip(0))
 
-    # #hh_df = orca.merge_tables(target='households', tables=[households, buildings, parcels], columns=['juris', 'zone_id', 'county'])
+
+    # Move candidates
+    moving_jobs_candidates = jobs_df[jobs_df.sector_id.isin([91])]
+    
+    # get count
+    movers_n = len(moving_jobs_candidates)
+    
+    # Suppose we don't want all but just some - we could add logic for filtering later
+    GOVT_RELOCATION_RATE = .25 # this is over a five year period, so actually quite conservative
+
+    # How many movers?
+    relocating_n = int(movers_n * GOVT_RELOCATION_RATE)
 
     
-    # # location options are vacant job spaces in retail buildings - this will
-    # # overfill certain location because we don't have enough space
-    # building_subset = buildings_df[buildings_df.general_type == "Retail"]
-    # location_options = building_subset.juris.repeat(building_subset.vacant_job_spaces.clip(0))
+    # We consider these movers a ceiling of sorts - the buffers may not actually have that many job spaces
+    # We essentially just use the movers to "top them off" so to speak 
 
-    # # location options are vacant job spaces in retail buildings - this will
-    # # overfill certain location because we don't have enough space
-    # building_subset = buildings_df[buildings.general_type.isin(["Office", "School"])]
-    # location_options = building_subset.zone_id.repeat(building_subset.vacant_job_spaces.clip(0))
+    # note this overrides the normal relocation rate mechanism and asserts
+    # relocation - many of these will have an existing building assignment already 
+    
+    # Get the moving subset - while checking against target space capacity
+    if len(building_hosts_enum) > relocating_n:
+        # case where there is enough space for the relocating jobs
+        moving_jobs = moving_jobs_candidates.sample(relocating_n, replace=False)
+    else:
+        # case where space is in short supply - clip relocating jobs to building_hosts_enum length
+        moving_jobs = moving_jobs_candidates.sample(len(building_hosts_enum), replace=False)
+    
+        print(f'Number of NAICS 91 jobs moving: {len(moving_jobs):,}, clipped from {relocating_n:,}')
+
+    # Now we have the "visitors" - now sample the hosts.
+    
+    print(f"{building_hosts.vacant_job_spaces.sum():,} job spaces  in {len(building_hosts)} buildings")
+
+    
+    moving_jobs['building_id'] = np.random.choice(building_hosts_enum, size = len(moving_jobs))
+
+    # set jobs that are moving to the just assigned building_id
+    jobs.update_col_from_series("building_id", moving_jobs['building_id'])
 
 
-        
 
 @orca.step()
 def households_transition(households, household_controls, year, transition_relocation_settings):
@@ -259,14 +268,14 @@ def proportional_elcm(jobs, households, buildings, parcels, proportional_retail_
     # location options are vacant job spaces in retail buildings - this will
     # overfill certain location because we don't have enough space
     building_subset = buildings_df[buildings_df.general_type == "Retail"]
-    location_options = building_subset.juris.repeat(building_subset.vacant_job_spaces.clip(0))
+    building_hosts_enum = building_subset.juris.repeat(building_subset.vacant_job_spaces.clip(0))
 
     print("Running proportional jobs model for retail")
 
     # we now take the ratio of retail jobs to households as an input
     # that is manipulable by the modeler - this is stored in a csv per jurisdiction
     s = _proportional_jobs_model(juris_assumptions_df.minimum_forecast_retail_jobs_per_household,
-                                 "RETEMPN", "juris", hh_df, jobs_df, location_options)
+                                 "RETEMPN", "juris", hh_df, jobs_df, building_hosts_enum)
 
     jobs.update_col_from_series("building_id", s, cast=True)
 
@@ -306,11 +315,11 @@ def proportional_elcm(jobs, households, buildings, parcels, proportional_retail_
     # location options are vacant job spaces in retail buildings - this will
     # overfill certain location because we don't have enough space
     building_subset = buildings_df[buildings.general_type.isin(["Office", "School"])]
-    location_options = building_subset.zone_id.repeat(building_subset.vacant_job_spaces.clip(0))
+    building_hosts_enum = building_subset.zone_id.repeat(building_subset.vacant_job_spaces.clip(0))
 
     # now do the same thing for gov't jobs
     # computing jobs directly
-    s = _proportional_jobs_model(None, "OTHEMPN", "zone_id", hh_df, jobs_df, location_options, target_jobs=target_jobs)
+    s = _proportional_jobs_model(None, "OTHEMPN", "zone_id", hh_df, jobs_df, building_hosts_enum, target_jobs=target_jobs)
 
     jobs.update_col_from_series("building_id", s, cast=True)
 
