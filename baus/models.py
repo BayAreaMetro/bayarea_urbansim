@@ -62,19 +62,38 @@ def elcm_simulate_ec5(jobs, buildings, aggregations):
 
 # EC5 jobs-to-transit buffers assignment testing
 @orca.step()
-def gov_transit_elcm(jobs, households, buildings, parcels):
+def gov_transit_elcm(jobs, buildings, parcels):
+
+    """
+    This function assigns jobs in the NAICS 91 sector (Real Estate and Rental and Leasing) to vacant job spaces in transit hubs (ec5_cat='Transit_Hub').
+
+    Args:
+        jobs (orca.DataFrameWrapper(): A pandas DataFrame containing job data.
+        buildings (orca.DataFrameWrapper(): An orca DataFrameWrapper containing building data.
+        parcels (orca.DataFrameWrapper(): An orca DataFrameWrapper containing parcel data.
+
+    Returns:
+        None (updates jobs in-place)
+
+    Modifies:
+        jobs (pd.DataFrame): In-place modification of the jobs DataFrame to update building assignments.
+
+    """
+
+    GOVT_RELOCATION_RATE = .25 # this is over a five year period, so actually quite conservative
 
     # Jobs prep
     jobs_df = jobs.to_frame(["building_id", "empsix", "sector_id"])
-    # df = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], columns=['juris', 'zone_id','ec5_cat'])
-    #jobs_df["juris"] = df["juris"]
-    #jobs_df["zone_id"] = df["zone_id"]
+    jobs_buildings_df = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], 
+                    columns=["building_id", "empsix", "sector_id","ec5_cat"], 
+                    drop_intersection=True)
 
+    print('Jobs by ec5 category, before', jobs_buildings_df.groupby(['ec5_cat']).size())
+    
     # Buildings prep
-    #buildings_df = buildings.to_frame()[['ec5_cat','vacant_job_spaces']]
-
     buildings_df = orca.merge_tables(target='buildings', tables=[buildings, parcels], 
-                                     columns=['juris', 'county', 'general_type', 'vacant_job_spaces','ec5_cat'])
+                                     columns=['juris', 'county', 'general_type', 'vacant_job_spaces','ec5_cat'],
+                                     drop_intersection=True)
 
     buildings_df = buildings_df.rename(columns={'county_x': 'county', 'general_type_x': 'general_type'})
 
@@ -87,35 +106,36 @@ def gov_transit_elcm(jobs, households, buildings, parcels):
 
     #emp_long_expand = emp_long.reindex(emp_long.index.repeat(emp_long.jobs))
 
-    # first - enumerate job spaces
+    # first - enumerate job spaces - but index to building_id is retained
     building_hosts_enum = building_hosts.index.repeat(building_hosts.vacant_job_spaces.clip(0))
 
 
-    # Move candidates
+    # second - get Move candidates
     moving_jobs_candidates = jobs_df[jobs_df.sector_id.isin([91])]
     
-    # get count
-    movers_n = len(moving_jobs_candidates)
-    
     # Suppose we don't want all but just some - we could add logic for filtering later
-    GOVT_RELOCATION_RATE = .25 # this is over a five year period, so actually quite conservative
 
-    # How many movers?
-    relocating_n = int(movers_n * GOVT_RELOCATION_RATE)
-
-    
     # We consider these movers a ceiling of sorts - the buffers may not actually have that many job spaces
     # We essentially just use the movers to "top them off" so to speak 
 
     # note this overrides the normal relocation rate mechanism and asserts
     # relocation - many of these will have an existing building assignment already 
     
+    # get count of move candidates for NAICS 91
+    movers_n = len(moving_jobs_candidates)
+    
+    # Scale according to this relocation rate - how many movers?
+    relocating_n = int(movers_n * GOVT_RELOCATION_RATE)
+
     # Get the moving subset - while checking against target space capacity
+    
     if len(building_hosts_enum) > relocating_n:
         # case where there is enough space for the relocating jobs
         moving_jobs = moving_jobs_candidates.sample(relocating_n, replace=False)
     else:
-        # case where space is in short supply - clip relocating jobs to building_hosts_enum length
+        # Where we have too many jobs - to avoid overfilling - 
+        # clip relocating jobs to building_hosts_enum length - which means we top off - but not more -
+        # in the buffer areas
         moving_jobs = moving_jobs_candidates.sample(len(building_hosts_enum), replace=False)
     
         print(f'Number of NAICS 91 jobs moving: {len(moving_jobs):,}, clipped from {relocating_n:,}')
@@ -123,12 +143,17 @@ def gov_transit_elcm(jobs, households, buildings, parcels):
     # Now we have the "visitors" - now sample the hosts.
     
     print(f"{building_hosts.vacant_job_spaces.sum():,} job spaces  in {len(building_hosts)} buildings")
-
     
+    # for jobs randomly assign a building id from building_hosts_enum
     moving_jobs['building_id'] = np.random.choice(building_hosts_enum, size = len(moving_jobs))
 
     # set jobs that are moving to the just assigned building_id
     jobs.update_col_from_series("building_id", moving_jobs['building_id'])
+
+    jobs_buildings_df_new = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], 
+                    columns=["building_id", "empsix", "sector_id","ec5_cat"])
+
+    print('Jobs by ec5 category, after', jobs_buildings_df_new.groupby(['ec5_cat']).size())
 
 
 
