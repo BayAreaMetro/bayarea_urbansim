@@ -40,7 +40,7 @@ job_density_adj_office_only: False
 # MODEL ADJUSTERS
 emp_reloc_rates_adj_file: "employment_relocation_rates_overwrites.csv"
 employment_relocation_rates_adjusters: True
-sqft_per_job_adj_file: 
+sqft_per_job_adj_file: "sqft_per_job_adjusters_exogenous.csv"
 # must be set to false if sqft per job exogenous forces or telecommute are enabled
 sqft_per_job_adjusters: False
 cost_shifters: True
@@ -107,7 +107,7 @@ dev_pipeline_strategies:
 
 # GROWTH GEOGRAPHY INPUT FILE
 parcels_geography_file: "parcels_geography_2024_02_14.csv"
-parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]
+parcels_geography_cols: ['gg_id', 'pda_id', 'tra_id', 'hra_id', 'epc_id', 'dis_id', 'ppa_id']
 
 
 # ZONING STRATEGY
@@ -182,7 +182,7 @@ preservation_file:
 
 
 # TELECOMMUTE STRATEGY
-sqft_per_job_telecommute_file: 
+sqft_per_job_telecommute_file: "sqft_per_job_adjusters_exogenous.csv"
 # must be set to false if sqft per job adjusters or exogenous forces are enabled
 run_telecommute_strategy: False
 
