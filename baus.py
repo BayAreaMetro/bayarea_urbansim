@@ -465,12 +465,23 @@ except Exception as e:
     print(traceback.print_exc())
     tb = e.__traceback__
     
-    trace = traceback.extract_tb(tb=tb,limit=1)
+    traces = traceback.extract_tb(tb=tb) #,limit=1)
     error_type = type(e).__name__
     error_msg = str(e)
 
+    # collect the traceback 
+    error_msgs = []
+    for file_name, line_number, function_name, _ in traces:
+        this_trace = f'{pathlib.Path(file_name).name} - line {line_number}, func {function_name}'
+        error_msgs.append(this_trace)
+    # we care mostly about the triggering error - so in reverse order
+    error_msgs.reverse()
+    error_trace = '\n'.join(error_msgs)
+    print(error_trace)
+
     if SLACK and MODE == "simulation":
-        slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}, from {trace}'
+        slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}. Deets here:\n{error_trace}'
+        
         response = client.chat_postMessage(channel=slack_channel,
                                            thread_ts=init_response.data['ts'],
                                            text=slack_fail_message)
