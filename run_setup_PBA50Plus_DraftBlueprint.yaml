@@ -26,11 +26,11 @@ viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 
 
 # CORE CONFIGS
-elcm_spec_file: elcm.yaml
+elcm_spec_file: "elcm.yaml"
 
 
 # EXOGENOUS FORCES
-exog_sqft_per_job_adj_file: sqft_per_job_adjusters_exogenous.csv
+exog_sqft_per_job_adj_file: "sqft_per_job_adjusters_exogenous.csv"
 # must be set to false if sqft per job adjusters or telecommute strategy is enabled
 use_exogenous_sqft_per_job_adjusters: True
 # used for exogenous block to denote if exogenous adjusters should be applied to office only
@@ -38,7 +38,7 @@ job_density_adj_office_only: False
 
 
 # MODEL ADJUSTERS
-emp_reloc_rates_adj_file: employment_relocation_rates_overwrites.csv
+emp_reloc_rates_adj_file: "employment_relocation_rates_overwrites.csv"
 employment_relocation_rates_adjusters: True
 sqft_per_job_adj_file: 
 # must be set to false if sqft per job exogenous forces or telecommute are enabled

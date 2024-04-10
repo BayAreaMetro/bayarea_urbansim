@@ -47,17 +47,6 @@ def outputs_dir(run_setup):
 def viz_dir(run_setup):
     return os.path.join(run_setup['viz_dir'])
 
-@orca.injectable('sqft_per_job_adj_file', cache=True)
-def sqft_per_job_adj_file(run_setup):
-    
-    adj_file = run_setup['sqft_per_job_adj_file']
-    return adj_file
-
-@orca.injectable('exog_sqft_per_job_adj_file', cache=True)
-def exog_sqft_per_job_adj_file(run_setup):
-    
-    adj_file = run_setup['exog_sqft_per_job_adj_file']
-    return adj_file
 
 @orca.injectable('emp_reloc_rates_adj_file', cache=True)
 def emp_reloc_rates_adj_file(run_setup):
@@ -886,13 +875,18 @@ def superdistricts_geography():
 
 
 @orca.table(cache=True)
-def sqft_per_job_adjusters(): 
-    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("sqft_per_job_adj_file")), index_col="number")
+def sqft_per_job_adjusters(run_setup):
+    # Add if statement in case the file is not specified
+    if run_setup["sqft_per_job_adj_file"] is not None:
+        return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", run_setup["sqft_per_job_adj_file"]), index_col="number")
 
 
 @orca.table(cache=True)
-def exog_sqft_per_job_adjusters(): 
-    return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", orca.get_injectable("exog_sqft_per_job_adj_file")), index_col="number")
+def exog_sqft_per_job_adjusters(run_setup):
+    # Add if statement in case the file is not specified
+    if run_setup['exog_sqft_per_job_adj_file'] is not None:
+        return pd.read_csv(os.path.join(misc.configs_dir(), "adjusters", run_setup['exog_sqft_per_job_adj_file']), index_col="number")
+
 
 @orca.table(cache=True)
 def telecommute_sqft_per_job_adjusters(run_setup): 
