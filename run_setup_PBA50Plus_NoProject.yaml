@@ -31,7 +31,7 @@ elcm_spec_file: elcm.yaml
 
 # EXOGENOUS FORCES
 exog_sqft_per_job_adj_file: sqft_per_job_adjusters_exogenous.csv
-# must be set to false is sqft per job adjusters or telecommute strategy is enabled
+# must be set to false if sqft per job adjusters or telecommute strategy is enabled
 use_exogenous_sqft_per_job_adjusters: True
 # used for exogenous block to denote if exogenous adjusters should be applied to office only
 job_density_adj_office_only: False
@@ -62,8 +62,8 @@ use_pipeline_filters: False
 
 
 # ZONING FILES
-zoning_lookup_file: "2024_02_09_zoning_lookup_hybrid_he_pba50plus.csv"
-zoning_file: "2024_02_09_zoning_parcels_hybrid_he_pba50plus.csv"
+zoning_lookup_file: "2024_04_09_zoning_lookup_hybrid_he_MS_pba50plus.csv"
+zoning_file: "2024_04_09_zoning_parcels_hybrid_he_MS_pba50plus.csv"
 
 
 # SEA LEVEL RISE
@@ -98,7 +98,7 @@ run_sb_743_strategy: True
 
 # PLAN STRATEGIES
 
-#DEVELOPMENT PIPELINE STRATEGIES
+# DEVELOPMENT PIPELINE STRATEGIES
 dev_pipeline_strategies:
    #- "EC2_development_pipeline_entries.csv"
    #- "EC6_development_pipeline_entries.csv"
@@ -106,7 +106,7 @@ dev_pipeline_strategies:
 
 
 # GROWTH GEOGRAPHY INPUT FILE
-parcels_geography_file: "2021_02_25_parcels_geography.csv"
+parcels_geography_file: "parcels_geography_2024_02_14.csv"
 parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]
 
 
