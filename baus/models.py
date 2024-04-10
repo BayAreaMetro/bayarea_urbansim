@@ -62,7 +62,7 @@ def elcm_simulate_ec5(jobs, buildings, aggregations):
 
 # EC5 jobs-to-transit buffers assignment testing
 @orca.step()
-def gov_transit_elcm(jobs, buildings, parcels):
+def gov_transit_elcm(jobs, buildings, parcels, run_setup):
 
     """
     This function assigns jobs in the NAICS 91 sector (Real Estate and Rental and Leasing) to vacant job spaces in transit hubs (ec5_cat='Transit_Hub').
@@ -80,10 +80,13 @@ def gov_transit_elcm(jobs, buildings, parcels):
 
     """
 
-    GOVT_RELOCATION_RATE = .25 # this is over a five year period, so actually quite conservative
+    # We look for a rate in the yaml and fall back on a conservative .25 (since this is a five year rate)
+    GOVT_RELOCATION_RATE = run_setup.get('jobs_to_transit_strategy_random_reloc_rate',.25)
 
     # Jobs prep
     jobs_df = jobs.to_frame(["building_id", "empsix", "sector_id"])
+    
+    # this is used for a pre-allocation summary of jobs by ec5 transit category
     jobs_buildings_df = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], 
                     columns=["building_id", "empsix", "sector_id","ec5_cat"], 
                     drop_intersection=True)
@@ -104,8 +107,7 @@ def gov_transit_elcm(jobs, buildings, parcels):
     print(f'Building count: {len(building_hosts)}')
     print(f'Building vacant job spaces: {building_hosts.vacant_job_spaces.sum()}')
 
-    #emp_long_expand = emp_long.reindex(emp_long.index.repeat(emp_long.jobs))
-
+    
     # first - enumerate job spaces - but index to building_id is retained
     building_hosts_enum = building_hosts.index.repeat(building_hosts.vacant_job_spaces.clip(0))
 
@@ -150,6 +152,8 @@ def gov_transit_elcm(jobs, buildings, parcels):
     # set jobs that are moving to the just assigned building_id
     jobs.update_col_from_series("building_id", moving_jobs['building_id'])
 
+    # this is used for a post-allocation summary of jobs by ec5 transit category
+    # a bit inefficient, but we can't just update new building ids since ec5_cat comes through parcels
     jobs_buildings_df_new = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], 
                     columns=["building_id", "empsix", "sector_id","ec5_cat"])
 

@@ -272,12 +272,20 @@ def run_models(MODE):
 
                 "proportional_elcm",
                 "gov_transit_elcm",
-                #"elcm_simulate_ec5",
+                "elcm_simulate_ec5",
                 "elcm_simulate",  
 
                 "calculate_vmt_fees",
                 "calculate_jobs_housing_fees"]
 
+            if not run_setup["run_jobs_to_transit_strategy_elcm"]:
+                simulation_models.remove("elcm_simulate_ec5")
+                print('Removing `elcm_simulate_ec5`')
+
+            if not run_setup["run_jobs_to_transit_strategy_random"]:
+                simulation_models.remove("gov_transit_elcm")
+                print('Removing `gov_transit_elcm`')
+            
             if not run_setup["run_slr"]:
                 simulation_models.remove("slr_inundate")
                 simulation_models.remove("slr_remove_dev")
