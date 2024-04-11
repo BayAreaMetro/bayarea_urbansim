@@ -82,7 +82,7 @@ run_eq_mitigation: False
 
 # LOGSUMS
 # the logsum file suffix
-logsum_file: "PBA50_NP"
+logsum_file: "PBA50Plus_DBP_v03"
 # the travel model years of the logsums 
 logsum_year1: 2035
 logsum_year2: 2050
