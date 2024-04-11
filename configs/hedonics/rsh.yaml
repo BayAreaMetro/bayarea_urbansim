@@ -10,11 +10,9 @@ fit_filters:
 - price_per_sqft < 1500
 - redfin_sale_year > 2010
 - redfin_sale_year <= 2014
-- cml > 0
 - combo_logsum > 0
 
 predict_filters:
-- cml > 0
 - combo_logsum > 0
 
 model_expression: price_per_sqft ~ sqft_per_unit + residential_units_1500 + combo_logsum

@@ -566,64 +566,18 @@ def parcels_subzone():
 
 
 @orca.table(cache=False)
-def mandatory_accessibility(year, run_setup):
+def taz_logsums(year, run_setup):
 
     if year in run_setup['logsum_period1']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/mandatoryAccessibilities_{}_{}.csv").\
-                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
+                         "accessibility/travel_model/subzone_logsums_for_BAUS_{}_{}.csv").\
+                            format(run_setup["logsum_file"], run_setup['logsum_year1']))
     elif year in run_setup['logsum_period2']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/mandatoryAccessibilities_{}_{}.csv").\
-                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
-
-    df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
-    df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
-    df.loc[df.subzone == 2, 'subzone'] = 'b'  # long walk
-    df['taz_sub'] = df.taz.astype('str') + df.subzone
-
-    return df.set_index('taz_sub')
-
-
-@orca.table(cache=False)
-def non_mandatory_accessibility(year, run_setup):
-
-    if year in run_setup['logsum_period1']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/nonMandatoryAccessibilities_{}_{}.csv").\
-                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
-    elif year in run_setup['logsum_period2']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/nonmandatoryAccessibilities_{}_{}.csv").\
-                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
-
-    df.loc[df.subzone == 0, 'subzone'] = 'c'  # no walk
-    df.loc[df.subzone == 1, 'subzone'] = 'a'  # short walk
-    df.loc[df.subzone == 2, 'subzone'] = 'b'  # long walk
-    df['taz_sub'] = df.taz.astype('str') + df.subzone
-
-    return df.set_index('taz_sub')
-
-
-@orca.table(cache=False)
-def accessibilities_segmentation(year, run_setup):
-
-    if year in run_setup['logsum_period1']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/AccessibilityMarkets_{}_{}.csv").\
-                            format(run_setup['logsum_year1'], run_setup["logsum_file"]))
-    elif year in run_setup['logsum_period2']:
-        df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
-                         "accessibility/travel_model/AccessibilityMarkets_{}_{}.csv").\
-                            format(run_setup['logsum_year2'], run_setup["logsum_file"]))
-
-    df['AV'] = df['hasAV'].apply(lambda x: 'AV' if x == 1 else 'noAV')
-    df['label'] = (df['incQ_label'] + '_' + df['autoSuff_label'] + '_' + df['AV'])
-    df = df.groupby('label').sum()
-    df['prop'] = df['num_persons'] / df['num_persons'].sum()
-    df = df[['prop']].transpose().reset_index(drop=True)
-
-    return df
+                         "accessibility/travel_model/subzone_logsums_for_BAUS_{}_{}.csv").\
+                            format(run_setup["logsum_file"], run_setup['logsum_year1']))
+        
+    return df.set_index("taz_subzone")
 
 
 @orca.table(cache=True)
