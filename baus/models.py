@@ -85,36 +85,39 @@ def gov_transit_elcm(jobs, buildings, parcels, run_setup):
 
     # Jobs prep
     jobs_df = jobs.to_frame(["building_id", "empsix", "sector_id"])
-    
+    print(f'Beginning jobs: {jobs_df.shape[0]:,} of which {jobs_df.query("building_id==-1").shape[0]:,} dont have a building assignment')
+
     # this is used for a pre-allocation summary of jobs by ec5 transit category
+    # but not that useful for selection since it excludes unplaced jobs
     jobs_buildings_df = orca.merge_tables(target='jobs', tables=[jobs, buildings, parcels], 
-                    columns=["building_id", "empsix", "sector_id","ec5_cat"], 
+                    columns=["building_id", "empsix", "sector_id","county","ec5_cat"], 
                     drop_intersection=True)
 
-    print('Jobs by ec5 category, before', jobs_buildings_df.groupby(['ec5_cat']).size())
+    print('Jobs by ec5 category, county before\n', jobs_buildings_df.groupby(['county','ec5_cat']).size().unstack(1))
+    print('Jobs by ec5 category, before\n', jobs_buildings_df.groupby(['ec5_cat']).size())
     
     # Buildings prep
     buildings_df = orca.merge_tables(target='buildings', tables=[buildings, parcels], 
-                                     columns=['juris', 'county', 'general_type', 'vacant_job_spaces','ec5_cat'],
+                                     columns=['juris', 'county', 'general_type', 'job_spaces','vacant_job_spaces','ec5_cat'],
                                      drop_intersection=True)
 
-    buildings_df = buildings_df.rename(columns={'county_x': 'county', 'general_type_x': 'general_type'})
+    #buildings_df = buildings_df.rename(columns={'county_x': 'county', 'general_type_x': 'general_type'})
 
     # Where to go? Buffers!
-    building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 0')
+    building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 0 & general_type!="Residential"')
+
+    # first - enumerate job spaces - but index to building_id is retained
+    building_hosts_enum = building_hosts.index.repeat(building_hosts.vacant_job_spaces.clip(0))
 
     print('Building hosts in Transit Hubs:')
     print(f'Building count: {len(building_hosts)}')
     print(f'Building vacant job spaces: {building_hosts.vacant_job_spaces.sum()}')
 
     
-    # first - enumerate job spaces - but index to building_id is retained
-    building_hosts_enum = building_hosts.index.repeat(building_hosts.vacant_job_spaces.clip(0))
-
-
     # second - get Move candidates
     moving_jobs_candidates = jobs_df[jobs_df.sector_id.isin([91])]
-    
+    print('Move candidates, by placement status: ',
+            moving_jobs_candidates.groupby(moving_jobs_candidates.building_id!=-1).size())
     # Suppose we don't want all but just some - we could add logic for filtering later
 
     # We consider these movers a ceiling of sorts - the buffers may not actually have that many job spaces
@@ -147,7 +150,7 @@ def gov_transit_elcm(jobs, buildings, parcels, run_setup):
     print(f"{building_hosts.vacant_job_spaces.sum():,} job spaces  in {len(building_hosts)} buildings")
     
     # for jobs randomly assign a building id from building_hosts_enum
-    moving_jobs['building_id'] = np.random.choice(building_hosts_enum, size = len(moving_jobs))
+    moving_jobs['building_id'] = np.random.choice(building_hosts_enum, size = len(moving_jobs), replace=False)
 
     # set jobs that are moving to the just assigned building_id
     jobs.update_col_from_series("building_id", moving_jobs['building_id'])
