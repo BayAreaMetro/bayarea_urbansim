@@ -410,16 +410,6 @@ def residential_price(buildings, residential_units, developer_settings):
 
 
 @orca.column('buildings', cache=True, cache_scope='iteration')
-def cml(buildings, parcels):
-    return misc.reindex(parcels.cml, buildings.parcel_id)
-
-
-@orca.column('buildings', cache=True, cache_scope='iteration')
-def cnml(buildings, parcels):
-    return misc.reindex(parcels.cnml, buildings.parcel_id)
-
-
-@orca.column('buildings', cache=True, cache_scope='iteration')
 def combo_logsum(buildings, parcels):
     return misc.reindex(parcels.combo_logsum, buildings.parcel_id)
 
@@ -919,97 +909,12 @@ def subzone(parcels, parcels_subzone):
 
 
 @orca.column('parcels', cache=True, cache_scope='iteration')
-def cml(parcels, mandatory_accessibility,
-        accessibilities_segmentation):
-    mand_acc = mandatory_accessibility.local
-    acc_seg = accessibilities_segmentation.local
-    cols_to_sum = []
-    for col in mand_acc.columns[~mand_acc.columns.isin(['destChoiceAlt',
-                                                        'taz', 'subzone',
-                                                        'weighted_sum'])]:
-        if col in acc_seg.columns:
-            mand_acc[col] = ((mand_acc[col] - mand_acc[col].min()) /
-                             0.0134) * acc_seg.loc[0, col]
-            cols_to_sum.append(col)
-    mand_acc['weighted_sum'] = mand_acc[cols_to_sum].sum(axis=1)
-    df = misc.reindex(mand_acc.weighted_sum, parcels.subzone)
+def combo_logsum(parcels, taz_logsums):
+
+    taz_logsums = taz_logsums.to_frame()
+    df = misc.reindex(taz_logsums.combo_logsum, parcels.subzone)
+
     return df.reindex(parcels.index).fillna(-1)
-
-
-@orca.column('parcels', cache=True, cache_scope='iteration')
-def cnml(parcels, non_mandatory_accessibility,
-         accessibilities_segmentation):
-    nmand_acc = non_mandatory_accessibility.local
-    acc_seg = accessibilities_segmentation.local
-    cols_to_sum = []
-    for col in nmand_acc.columns[~nmand_acc.columns.isin(['destChoiceAlt',
-                                                          'taz', 'subzone',
-                                                          'weighted_sum'])]:
-        if col in acc_seg.columns:
-            nmand_acc[col] = ((nmand_acc[col] - nmand_acc[col].min()) /
-                              0.0175) * acc_seg.loc[0, col]
-            cols_to_sum.append(col)
-    nmand_acc['weighted_sum'] = nmand_acc[cols_to_sum].sum(axis=1)
-    df = misc.reindex(nmand_acc.weighted_sum, parcels.subzone)
-    return df.reindex(parcels.index).fillna(-1)
-
-
-@orca.column('parcels', cache=True, cache_scope='iteration')
-def combo_logsum(parcels):
-    df = parcels.to_frame(['cml', 'cnml'])
-    combo = df.cml + df.cnml
-    # since the logsum methodology in the travel model has changed,
-    # we need to shift the values to align with the ones used for estimation
-    combo = combo - 170
-    combo.loc[(combo <= 0)] = 1
-    return combo
-
-
-@orca.column('zones', cache=True, cache_scope='iteration')
-def zone_cml(year, mandatory_accessibility,
-             accessibilities_segmentation):
-    mand_acc = mandatory_accessibility.local
-    acc_seg = accessibilities_segmentation.local
-    mand_acc = mand_acc.groupby('taz').median()
-    cols_to_sum = []
-    for col in mand_acc.columns[~mand_acc.columns.isin(['destChoiceAlt',
-                                                        'taz', 'subzone',
-                                                        'weighted_sum'])]:
-        if col in acc_seg.columns:
-            mand_acc[col] = ((mand_acc[col] - mand_acc[col].min()) /
-                             0.0134) * acc_seg.loc[0, col]
-            cols_to_sum.append(col)
-        mand_acc['weighted_sum'] = mand_acc[cols_to_sum].sum(axis=1)
-    return mand_acc['weighted_sum']
-
-
-@orca.column('zones', cache=True, cache_scope='iteration')
-def zone_cnml(year, non_mandatory_accessibility,
-              accessibilities_segmentation):
-    nmand_acc = non_mandatory_accessibility.local
-    acc_seg = accessibilities_segmentation.local
-    nmand_acc = nmand_acc.groupby('taz').median()
-    cols_to_sum = []
-    for col in nmand_acc.columns[~nmand_acc.columns.isin(['destChoiceAlt',
-                                                          'taz', 'subzone',
-                                                          'weighted_sum'])]:
-        if col in acc_seg.columns:
-            nmand_acc[col] = ((nmand_acc[col] - nmand_acc[col].min()) /
-                              0.0175) * acc_seg.loc[0, col]
-            cols_to_sum.append(col)
-    nmand_acc['weighted_sum'] = nmand_acc[cols_to_sum].sum(axis=1)
-    return nmand_acc['weighted_sum']
-
-
-@orca.column('zones', cache=True, cache_scope='iteration')
-def zone_combo_logsum(zones):
-    df = zones.to_frame(['zone_cml', 'zone_cnml'])
-    combo = df.zone_cml + df.zone_cnml
-    # since the logsum methodology in the travel model has changed,
-    # we need to shift the values to align with the ones used for estimation
-    combo = combo - 170
-    combo.loc[(combo <= 0)] = 1
-    return combo
 
 
 @orca.column('zones')

@@ -39,7 +39,7 @@ def hazards_slr_summary(run_setup, run_name, year):
         unplaced_hh_tot = orca.get_injectable("unplaced_hh_tot")
         unplaced_hh_tot = unplaced_hh_tot.append(orca.get_injectable("hh_unplaced_slr"))
 
-    slr_summary["impacted_hh"] = unplaced_hh_tot.size
+    slr_summary["impacted_hh"] = len(unplaced_hh_tot)
     for quartile in [1, 2, 3, 4]:
         slr_summary["impacted_hhq"+str(quartile)] = (unplaced_hh_tot["base_income_quartile"] == quartile).sum()
 

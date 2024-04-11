@@ -9,7 +9,7 @@ run_name: "PBA50Plus_NoProject"
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_NP_InitialRun/outputs'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -82,7 +82,7 @@ run_eq_mitigation: False
 
 # LOGSUMS
 # the logsum file suffix
-logsum_file: "PBA50_NP"
+logsum_file: "PBA50Plus_NP_v03"
 # the travel model years of the logsums 
 logsum_year1: 2035
 logsum_year2: 2050
@@ -113,7 +113,7 @@ parcels_geography_cols: ['gg_id', 'pda_id', 'tra_id', 'hra_id', 'epc_id', 'dis_i
 # ZONING STRATEGY
 # if a scenario is run, it always has a zoningmods file, since
 # no project still uses it to apply a UGB
-zoning_mods_file: "zoning_mods_PBA50_NP.csv"
+zoning_mods_file: "zoning_mods_PBA50Plus_NP.csv"
 zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]
 
 

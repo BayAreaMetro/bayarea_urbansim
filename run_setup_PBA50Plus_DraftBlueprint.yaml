@@ -9,7 +9,7 @@ run_name: "PBA50Plus_DraftBlueprint"
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_DBP_InitialRun/outputs'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -82,7 +82,7 @@ run_eq_mitigation: False
 
 # LOGSUMS
 # the logsum file suffix
-logsum_file: "PBA50_NP"
+logsum_file: "PBA50Plus_DBP_v03"
 # the travel model years of the logsums 
 logsum_year1: 2035
 logsum_year2: 2050
