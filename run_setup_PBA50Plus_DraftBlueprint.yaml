@@ -5,11 +5,13 @@
 initial_summary_year: 2020
 
 # RUN NAME
-run_name: "PBA50Plus_DraftBlueprint"
+#run_name: PBA50Plus_all_w_ec5_elcm
+#run_name: PBA50Plus_all_w_ec5_random_p33
+run_name: PBA50Plus_Draft_Blueprint_v1a
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_DBP_InitialRun/outputs'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -26,21 +28,21 @@ viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 
 
 # CORE CONFIGS
-elcm_spec_file: "elcm.yaml"
+elcm_spec_file: elcm.yaml
 
 
 # EXOGENOUS FORCES
-exog_sqft_per_job_adj_file: "sqft_per_job_adjusters_exogenous.csv"
-# must be set to false if sqft per job adjusters or telecommute strategy is enabled
+exog_sqft_per_job_adj_file: sqft_per_job_adjusters_exogenous.csv
+# must be set to false is sqft per job adjusters or telecommute strategy is enabled
 use_exogenous_sqft_per_job_adjusters: True
 # used for exogenous block to denote if exogenous adjusters should be applied to office only
 job_density_adj_office_only: False
 
 
 # MODEL ADJUSTERS
-emp_reloc_rates_adj_file: "employment_relocation_rates_overwrites.csv"
+emp_reloc_rates_adj_file: employment_relocation_rates_overwrites.csv
 employment_relocation_rates_adjusters: True
-sqft_per_job_adj_file: "sqft_per_job_adjusters_exogenous.csv"
+sqft_per_job_adj_file: sqft_per_job_adjusters_exogenous.csv
 # must be set to false if sqft per job exogenous forces or telecommute are enabled
 sqft_per_job_adjusters: False
 cost_shifters: True
@@ -82,7 +84,8 @@ run_eq_mitigation: False
 
 # LOGSUMS
 # the logsum file suffix
-logsum_file: "PBA50Plus_DBP_v03"
+#logsum_file: "PBA50Plus_NP_v04"
+logsum_file: PBA50Plus_DBP_v03
 # the travel model years of the logsums 
 logsum_year1: 2035
 logsum_year2: 2050
@@ -91,12 +94,19 @@ logsum_period1: [2010, 2015, 2020, 2025]
 logsum_period2: [2030, 2035, 2040, 2045, 2050]
 
 
+
 # POLICY
 # SB-743 - permanently activated as now legislated policy
 run_sb_743_strategy: True
 
 
 # PLAN STRATEGIES
+
+run_office_bond_strategy: False
+# EC5 strategy
+run_jobs_to_transit_strategy_elcm: False     # either this
+run_jobs_to_transit_strategy_random: True # or this
+jobs_to_transit_strategy_random_reloc_rate: .33
 
 # DEVELOPMENT PIPELINE STRATEGIES
 dev_pipeline_strategies:
@@ -107,6 +117,8 @@ dev_pipeline_strategies:
 
 # GROWTH GEOGRAPHY INPUT FILE
 parcels_geography_file: "parcels_geography_2024_02_14.csv"
+#parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]
+#parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "hra_id","dis_id", "epc_id", "ppa_id", "cat_id"]
 parcels_geography_cols: ['gg_id', 'pda_id', 'tra_id', 'hra_id', 'epc_id', 'dis_id', 'ppa_id']
 
 
@@ -163,7 +175,7 @@ run_jobs_housing_fee_strategy: False
 
 
 # PROFITABILITY ADJUSTMENT STRATEGIES
-profit_adjustment_strategies_file: "profit_adjustment_strategies_PBA50_NP.yaml"
+profit_adjustment_strategies_file: "profit_adjustment_strategies_PBA50_FBP.yaml"
 run_ceqa_streamlining_strategy: False
 
 run_reduce_parking_requirements_strategy: False
@@ -181,7 +193,7 @@ preservation_file: "preservation_PBA50Plus_DBP.yaml"
 
 
 # TELECOMMUTE STRATEGY
-sqft_per_job_telecommute_file: "sqft_per_job_adjusters_exogenous.csv"
+sqft_per_job_telecommute_file: sqft_per_job_adjusters_exogenous.csv
 # must be set to false if sqft per job adjusters or exogenous forces are enabled
 run_telecommute_strategy: False
 
