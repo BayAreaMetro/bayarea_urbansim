@@ -103,26 +103,77 @@ def gentrify_displacement_tracts(
     logging.info("Calculating gentrify_displacement_tracts")
     
     SUMMARY_YEARS = sorted(modelrun_data.keys())
-
     INITIAL_YEAR = SUMMARY_YEARS[0]
     HORIZON_YEAR = SUMMARY_YEARS[-1]
 
-    tract_summary_df = None
-    for year in SUMMARY_YEARS:
-        # summarize to tract_id and the tract-level variables
-        tract_summary_year_df = modelrun_data[year]['parcel'].groupby([
-            'tract_id','tract_epc','tract_DispRisk','tract_hra','tract_growth_geo','tract_tra']).aggregate({
+    SUMMARIZATION_CATEGORIES = [
+        ('Region',          'all_region'), # Region != all_region for tableau aliasing 
+        ('Region',          'EPC'       ),
+        ('Region',          'DispRisk'  ),
+        ('GrowthGeography', 'all_gg'    ), # GrowthGeography != all_gg for tableau aliasing
+        ('GrowthGeography', 'HRA'       ),
+        ('GrowthGeography', 'TRA'       )
+    ]
+
+    CATEGORY_TO_RTP_TRACT_ID = {
+        # for RTP2021/PBA50, all tract lookups are relative to tract10
+        'RTP2021':{
+            'Region':           None,
+            'all_region':       'tract10',
+            'EPC':              'tract10_epc',
+            'DispRisk':         'tract10_DispRisk',
+            'GrowthGeography':  'tract10_growth_geo',
+            'all_gg':           None, # no additional filter
+            'HRA':              'tract10_hra',
+            'TRA':              'tract10_tra',
+        },
+        # for RTP2025/PBA50+, Displacement Risk is relative to tract10, others are relative to tract20
+        'RTP2025':{
+            'Region':           None,
+            'all_region':       'tract20',
+            'EPC':              'tract20_epc',
+            'DispRisk':         'tract10_DispRisk',
+            'GrowthGeography':  'tract20_growth_geo',
+            'all_gg':           None, # no additional filter
+            'HRA':              'tract20_hra',
+            'TRA':              'tract20_tra',
+        }
+    }
+    # figure out tract20 and tract10 keys
+    tract_keys = { 'tract10':set(['tract10']), 'tract20':set(['tract20'])}
+    for category_tuple in SUMMARIZATION_CATEGORIES:
+        for cat in category_tuple:
+            if CATEGORY_TO_RTP_TRACT_ID[rtp][cat] == None: continue
+            if CATEGORY_TO_RTP_TRACT_ID[rtp][cat].startswith('tract10'):
+                tract_keys['tract10'].add(CATEGORY_TO_RTP_TRACT_ID[rtp][cat])
+            if CATEGORY_TO_RTP_TRACT_ID[rtp][cat].startswith('tract20'):
+                tract_keys['tract20'].add(CATEGORY_TO_RTP_TRACT_ID[rtp][cat])
+    logging.debug(f"tract_keys={tract_keys}")
+
+    # store results here to build dataframe
+    summary_dict_list = []
+    for tract_id in tract_keys.keys():
+        if len(tract_keys[tract_id]) == 1: continue
+    
+        logging.debug(f"Processing tract_id {tract_id}; tract_keys={tract_keys[tract_id]}")
+
+        for year in SUMMARY_YEARS:
+            # summarize to tract_id and the tract-level variables
+            tract_summary_year_df = modelrun_data[year]['parcel'].groupby(
+                sorted(list(tract_keys[tract_id]))).aggregate({
                 'hhq1' :'sum',
                 'tothh':'sum',
             })
-        tract_summary_year_df['hhq1_share'] = tract_summary_year_df.hhq1 / tract_summary_year_df.tothh
-        logging.debug('tract_summary_year_df {:,} rows:\n{}'.format(len(tract_summary_year_df), tract_summary_year_df))
+            tract_summary_year_df['hhq1_share'] = tract_summary_year_df.hhq1 / tract_summary_year_df.tothh
+            logging.debug('tract_summary_year_df by {} {:,} rows:\n{}'.format(
+                tract_id, len(tract_summary_year_df), tract_summary_year_df))
 
-        if year == INITIAL_YEAR:
-            tract_summary_df = tract_summary_year_df
-        else: # merge
-            tract_summary_df = pd.merge(
-                left        = tract_summary_df,
+            # merge years
+            if year == INITIAL_YEAR:
+                multiyear_tract_summary_df = tract_summary_year_df
+            else: # merge
+                multiyear_tract_summary_df = pd.merge(
+                left        = multiyear_tract_summary_df,
                 right       = tract_summary_year_df,
                 how         = 'outer',
                 right_index = True,
@@ -130,68 +181,73 @@ def gentrify_displacement_tracts(
                 suffixes    = (f"_{INITIAL_YEAR}", f"_{HORIZON_YEAR}"),
                 validate    = 'one_to_one'
             )
-    logging.debug('tract_summary_df:\n{}'.format(tract_summary_df))
-    # displacement, defined as net loss of low income households in a census tract between the initial and horizon year
-    tract_summary_df['displacement'] = False
-    tract_summary_df.loc[ tract_summary_df[f'hhq1_{HORIZON_YEAR}'] < tract_summary_df[f'hhq1_{INITIAL_YEAR}'], 
+
+        # displacement, defined as net loss of low income households in a census tract between the initial and horizon year
+        multiyear_tract_summary_df['displacement'] = False
+        multiyear_tract_summary_df.loc[ multiyear_tract_summary_df[f'hhq1_{HORIZON_YEAR}'] < multiyear_tract_summary_df[f'hhq1_{INITIAL_YEAR}'], 
                          'displacement' ] = True
-    # gentrification, defined as over 10% drop in share of low income households in a census tract between 
-    # the initial and horizon year
-    tract_summary_df['gentrification'] = False
-    tract_summary_df.loc[ tract_summary_df[f'hhq1_share_{HORIZON_YEAR}']/tract_summary_df[f'hhq1_share_{INITIAL_YEAR}'] < 0.9, 
+        # gentrification, defined as over 10% drop in share of low income households in a census tract between 
+        # the initial and horizon year
+        multiyear_tract_summary_df['gentrification'] = False
+        multiyear_tract_summary_df.loc[ multiyear_tract_summary_df[f'hhq1_share_{HORIZON_YEAR}']/multiyear_tract_summary_df[f'hhq1_share_{INITIAL_YEAR}'] < 0.9, 
                          'gentrification'] = True
 
-    # reset index. columns are now: 
-    #   tract_id  tract_epc  tract_DispRisk  tract_hra  tract_growth_geo  tract_tra
-    #   hhq1_[initial_year]  tothh_[horizon_year]  hhq1_share_[initial_year]
-    #   hhq1_[horizon_year]  tothh_[horizon_year]  hhq1_share_[horizon_year]
-    #   displacement  gentrification
-    tract_summary_df.reset_index(drop=False, inplace=True)
-    logging.debug('tract_summary_df:\n{}'.format(tract_summary_df))
+        # reset index. columns are now: 
+        #   tract[10|20] [tract10|20 keys]
+        #   hhq1_[initial_year]  tothh_[horizon_year]  hhq1_share_[initial_year]
+        #   hhq1_[horizon_year]  tothh_[horizon_year]  hhq1_share_[horizon_year]
+        #   displacement  gentrification
+        multiyear_tract_summary_df.reset_index(drop=False, inplace=True)
+        logging.debug('multiyear_tract_summary_df:\n{}'.format(multiyear_tract_summary_df))
 
-    # a) region, EPC and HRA, and also 
-    # b) within growth geographies, within GG & HRA, and within GG and TRAs.
-    summary_dict_list = []
-    area_categories1 = ['Region','GrowthGeography']
-    for area_category1 in area_categories1:
+        # create the relevant results tally
+        for (cat1,cat2) in SUMMARIZATION_CATEGORIES:
 
-        # filter to area_category1
-        if area_category1 == 'Region':
-            tract_summary_category1_df = tract_summary_df
-        elif area_category1 == 'GrowthGeography':
-            tract_summary_category1_df = tract_summary_df.loc[ tract_summary_df.tract_growth_geo == 1]
+            cat1_tract_var = CATEGORY_TO_RTP_TRACT_ID[rtp][cat1]
+            cat2_tract_var = CATEGORY_TO_RTP_TRACT_ID[rtp][cat2]
+            logging.debug(f"Summarizing ({cat1},{cat2}); cat1_tract_var:{cat1_tract_var}  cat2_tract_var:{cat2_tract_var}")
+            # error if both not none and mismatching (e.g. can't summarize on tract10 and tract20 at the same time)
+            if cat1_tract_var and cat2_tract_var:
+                # logging.debug(f"{cat1_tract_var[:7]} == {cat2_tract_var[:7]}")
+                assert(cat1_tract_var[:7] == cat2_tract_var[:7])
+            # if this summary doesn't match with tract_id -- continue
+            # e.g. if tract_id==tract10 but this is a tract20 summary
+            if cat1_tract_var and cat1_tract_var.startswith(tract_id) == False: continue
+            if cat2_tract_var and cat2_tract_var.startswith(tract_id) == False: continue
 
-        # define area_categories2
-        area_categories2 = ['all_region', 'EPC', 'DispRisk'] if area_category1 == 'Region' else ['all_gg', 'HRA','TRA']
-        for area_category2 in area_categories2:
+            # filter to cat1
+            if cat1 == 'Region':
+                category_tract_summary_df = multiyear_tract_summary_df # no filter
+            elif cat1 == 'GrowthGeography':
+                category_tract_summary_df = multiyear_tract_summary_df.loc[ multiyear_tract_summary_df[cat1_tract_var] == 1]  # tract[10|20]_growth_geo == 1
+            else:
+                raise RuntimeError(f"cat1={cat1} not supported")
 
-            # filter to area_category2
-            if area_category2.startswith('all'):
-                tract_summary_category1_2_df = tract_summary_category1_df # no filter
-            elif area_category2 == 'EPC':
-                tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.tract_epc == 1]
-            elif area_category2 == 'DispRisk':
-                tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.tract_DispRisk == 1]
-            elif area_category2 == 'HRA':
-                tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.tract_hra == 1]
-            elif area_category2 == 'TRA':
-                tract_summary_category1_2_df = tract_summary_category1_df.loc[ tract_summary_category1_df.tract_tra == 1]
+            # filter to cat2
+            if cat2.startswith('all'):
+                pass # no filter
+            else:
+                category_tract_summary_df = category_tract_summary_df.loc[ category_tract_summary_df[cat2_tract_var] == 1]
+            
+            logging.debug(f"  category_tract_summary_df.head():\n{category_tract_summary_df.head()}")
+            # columns: 
 
-            # summarize and gentrification
+            # summarize displacement and gentrification
             summary_dict = {
-                'area_category1': area_category1,
-                'area_category2': area_category2,
+                'area_category1': cat1,
+                'area_category2': cat2,
             }
             for summarize_var in ['displacement','gentrification']:
-                summary_df = tract_summary_category1_2_df.groupby([summarize_var]).agg(
-                    tract_count     =pd.NamedAgg(column="tract_id",   aggfunc="count"),
+                summary_df = category_tract_summary_df.groupby([summarize_var]).agg(
+                    tract_count = pd.NamedAgg(column=tract_id, aggfunc="count"),
                 )
                 # this is a DataFrame with index named summarize_var, 1 column named 'tract_count'
                 # and 1-2 rows
+                logging.debug(f"  summary_df summarizing {tract_id}:\n{summary_df}")
                 tract_count_var = summary_df.loc[ True, 'tract_count']
                 tract_count_all = summary_df['tract_count'].sum()
-                logging.debug(f'summary_df for cat1={area_category1} cat2={area_category2}: ' \
-                              'tract_count_var={tract_count_var} tract_count_all={tract_count_all}')
+                logging.debug(f'  {summarize_var} for cat1={cat1} cat2={cat2}: ' \
+                              f'tract_count_var={tract_count_var} tract_count_all={tract_count_all}')
 
                 # save it to summary_dict
                 summary_dict[f'{summarize_var}_tracts'      ] = tract_count_var

@@ -4,7 +4,7 @@ from datetime import datetime
 
 # make global so we only read once
 rtp2025_geography_crosswalk_df = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra)
-rtp2025_taz_crosswalk_df       = pd.DataFrame() # parcel -> tract/taz
+rtp2025_tract_crosswalk_df     = pd.DataFrame() # parcel -> tract10 and tract20
 
 rtp2021_tract_crosswalk_df     = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA
 rtp2021_pda_crosswalk_df       = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
@@ -17,7 +17,7 @@ PARCEL_AREA_FILTERS = {
             'HRAandTRA': lambda df: (df['tra_id'] != 'NA') & (df['hra_id'] == 'HRA'),
             'GG'       : lambda df: df['gg_id'] == 'GG',
             'PDA'      : lambda df: pd.notna(df['pda_id_pba50_fb']),
-            'EPC'      : lambda df: df['tract_epc'] == 1,
+            'EPC'      : lambda df: df['tract10_epc'] == 1,
             'Region'   : None
     },
     'RTP2025': {
@@ -55,7 +55,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     """
     # make global so we only read once
     global rtp2025_geography_crosswalk_df
-    global rtp2025_taz_crosswalk_df
+    global rtp2025_tract_crosswalk_df
     global rtp2021_geography_crosswalk_df
     global rtp2021_tract_crosswalk_df
     global rtp2021_pda_crosswalk_df
@@ -70,93 +70,106 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
 
         # tract/taz
-        if len(rtp2025_taz_crosswalk_df) == 0:
-            TAZ_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tract_crosswalk.csv"
-            rtp2025_taz_crosswalk_df = pd.read_csv(TAZ_CROSSWALK_FILE, usecols=['parcel_id','zone_id','tract_id'])
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_taz_crosswalk_df), TAZ_CROSSWALK_FILE))
-            logging.info("  rtp2025_taz_crosswalk_df: {:,} tract_id values, {:,} zone_id values".format(
-                len(rtp2025_taz_crosswalk_df.tract_id.unique()),
-                len(rtp2025_taz_crosswalk_df.zone_id.unique())))
-            logging.debug("  rtp2025_taz_crosswalk_df.head():\n{}".format(rtp2025_taz_crosswalk_df.head()))
-            # Note that tracts don't map to only one zone_id; we'll need to deal with this later
-            tract_summary_df = rtp2025_taz_crosswalk_df.groupby(['tract_id']).agg(
-                taz_count     = pd.NamedAgg(column="zone_id",   aggfunc="nunique"),
-                parcel_count  = pd.NamedAgg(column="parcel_id", aggfunc="nunique")
-            )
-            logging.debug("tract_summary_df.describe():\n{}".format(tract_summary_df.describe()))
-            # rename for remaining
-            rtp2025_taz_crosswalk_df.rename(columns={'zone_id':'TAZ1454'}, inplace=True)
+        if len(rtp2025_tract_crosswalk_df) == 0:
+            # map to census 2010 tract and census 2020 tract
+            TRACT_CROSSWALK_FILE = "M:\\urban_modeling\\baus\BAUS Inputs\\basis_inputs\\crosswalks\\p10_census.csv"
+            rtp2025_tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE, usecols=['parcel_id','tract10','tract20'])
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_tract_crosswalk_df), TRACT_CROSSWALK_FILE))
+            logging.info("  len(rtp2025_tract_crosswalk_df.tract10.unique()): {:,}  parcels with null tract10: {:,}".format(
+                len(rtp2025_tract_crosswalk_df.tract10.unique()),
+                len(rtp2025_tract_crosswalk_df.loc[ pd.isnull(rtp2025_tract_crosswalk_df.tract10) ])))
+            logging.info("  len(rtp2025_tract_crosswalk_df.tract20.unique()): {:,}  parcels with null tract20: {:,}".format(
+                len(rtp2025_tract_crosswalk_df.tract20.unique()),
+                len(rtp2025_tract_crosswalk_df.loc[ pd.isnull(rtp2025_tract_crosswalk_df.tract20) ])))
+            # set nulls to -1 so type is int64. Note: smaller ints are too small
+            rtp2025_tract_crosswalk_df.fillna(-1, inplace=True)
+            rtp2025_tract_crosswalk_df = rtp2025_tract_crosswalk_df.astype('int64')
+            logging.debug("  rtp2025_tract_crosswalk_df.head():\n{}".format(rtp2025_tract_crosswalk_df.head()))
 
-            # taz-based lookups
-            TAZ_EPC_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "taz1454_epcPBA50plus_2024_02_23.csv"
-            taz_epc_df = pd.read_csv(TAZ_EPC_CROSSWALK_FILE, usecols=['TAZ1454','taz_epc'])
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(taz_epc_df), TAZ_EPC_CROSSWALK_FILE))
-            logging.debug("  taz_epc_df.head():\n{}".format(taz_epc_df.head()))
-            rtp2025_taz_crosswalk_df = pd.merge(
-                left     = rtp2025_taz_crosswalk_df,
-                right    = taz_epc_df,
-                on       = 'TAZ1454',
+            # tract-based lookups
+            TRACT_EPC_CROSSWALK_FILE = "https://raw.githubusercontent.com/BayAreaMetro/Spatial-Analysis-Mapping-Projects/master/Project-Documentation/Equity-Priority-Communities/Data/epc_acs2022.csv"
+            tract_epc_df = pd.read_csv(TRACT_EPC_CROSSWALK_FILE, usecols=['tract_geoid','epc_2050p'])
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_epc_df), TRACT_EPC_CROSSWALK_FILE))
+            # EPCs are defined with tract20 -> rename
+            tract_epc_df.rename(columns = {"tract_geoid":"tract20", "epc_2050p":"tract20_epc"}, inplace=True)
+            logging.info("  len(tract_epc_df.tract20.unique()): {:,}".format(len(tract_epc_df.tract20.unique())))
+            logging.debug("  tract_epc_df.head():\n{}".format(tract_epc_df.head()))
+            rtp2025_tract_crosswalk_df = pd.merge(
+                left     = rtp2025_tract_crosswalk_df,
+                right    = tract_epc_df,
+                on       = 'tract20',
                 how      = 'left',
                 validate = 'many_to_one'
             )
 
-            TAZ_GG_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "taz1454_ggPBA50plus_2024_02_23.csv"
-            taz_gg_df = pd.read_csv(TAZ_GG_CROSSWALK_FILE, usecols=['TAZ1454', 'growth_geo'])
-            taz_gg_df.rename(columns={'growth_geo':'taz_growth_geo'}, inplace=True)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(taz_gg_df), TAZ_GG_CROSSWALK_FILE))
-            logging.debug("  taz_gg_df.head():\n{}".format(taz_gg_df.head()))
-            rtp2025_taz_crosswalk_df = pd.merge(
-                left     = rtp2025_taz_crosswalk_df,
-                right    = taz_gg_df,
-                on       = 'TAZ1454',
+            TRACT_GG_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "tract20_ggPBA50plus_2024_02_29.csv"
+            tract_gg_df = pd.read_csv(TRACT_GG_CROSSWALK_FILE, usecols=['GEOID', 'growth_geo'])
+            tract_gg_df.rename(columns={'GEOID':'tract20', 'growth_geo':'tract20_growth_geo'}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_gg_df), TRACT_GG_CROSSWALK_FILE))
+            logging.debug("  tract_gg_df.head():\n{}".format(tract_gg_df.head()))
+            rtp2025_tract_crosswalk_df = pd.merge(
+                left     = rtp2025_tract_crosswalk_df,
+                right    = tract_gg_df,
+                on       = 'tract20',
                 how      = 'left',
                 validate = 'many_to_one'
             )
 
-            TAZ_TRA_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "taz1454_ggtraPBA50plus_2024_02_23.csv"
-            taz_tra_df = pd.read_csv(TAZ_TRA_CROSSWALK_FILE, usecols=['TAZ1454', 'gg_tra'])
-            taz_tra_df.rename(columns={'gg_tra':'taz_tra'}, inplace=True)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(taz_tra_df), TAZ_TRA_CROSSWALK_FILE))
-            logging.debug("  taz_tra_df.head():\n{}".format(taz_tra_df.head()))
-            rtp2025_taz_crosswalk_df = pd.merge(
-                left     = rtp2025_taz_crosswalk_df,
-                right    = taz_tra_df,
-                on       = 'TAZ1454',
+            TRACT_TRA_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "tract20_ggtraPBA50plus_2024_02_29.csv"
+            tract_tra_df = pd.read_csv(TRACT_TRA_CROSSWALK_FILE, usecols=['GEOID', 'gg_tra']) 
+            tract_tra_df.rename(columns={'GEOID':'tract20', 'gg_tra':'tract20_tra'}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_tra_df), TRACT_TRA_CROSSWALK_FILE))
+            logging.debug("  tract_tra_df.head():\n{}".format(tract_tra_df.head()))
+            rtp2025_tract_crosswalk_df = pd.merge(
+                left     = rtp2025_tract_crosswalk_df,
+                right    = tract_tra_df,
+                on       = 'tract20',
                 how      = 'left',
                 validate = 'many_to_one'
             )
 
-            TAZ_HRA_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "taz1454_hraPBA50plus_2024_02_23.csv"
-            taz_hra_df = pd.read_csv(TAZ_HRA_CROSSWALK_FILE, usecols=['TAZ1454','taz_hra'])
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(taz_hra_df), TAZ_HRA_CROSSWALK_FILE))
-            logging.debug("  taz_hra_df.head():\n{}".format(taz_hra_df.head()))
-            rtp2025_taz_crosswalk_df = pd.merge(
-                left     = rtp2025_taz_crosswalk_df,
-                right    = taz_hra_df,
-                on       = 'TAZ1454',
+            TRACT_HRA_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "tract20_hraPBA50plus_2024_02_29.csv"
+            tract_hra_df = pd.read_csv(TRACT_HRA_CROSSWALK_FILE, usecols=['GEOID','taz_hra'])  # odd that it's called taz_hra
+            tract_hra_df.rename(columns={'GEOID':'tract20', 'taz_hra':'tract20_hra'}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_hra_df), TRACT_HRA_CROSSWALK_FILE))
+            logging.debug("  tract_hra_df.head():\n{}".format(tract_hra_df.head()))
+            rtp2025_tract_crosswalk_df = pd.merge(
+                left     = rtp2025_tract_crosswalk_df,
+                right    = tract_hra_df,
+                on       = 'tract20',
                 how      = 'left',
                 validate = 'many_to_one'
             )
 
             # displacement risk - udp_file/udp_DR_df
+            # NOTE: these are 2010 tracts but we need them to be 2020 tracts
             TRACT_DISPLACEMENT_FILE = METRICS_DIR / "metrics_input_files" / "udp_2017results.csv"
             tract_displacement_df = pd.read_csv(TRACT_DISPLACEMENT_FILE, usecols=['Tract','DispRisk'])
-            tract_displacement_df.rename(columns={'Tract':'tract_id', 'DispRisk':'tract_DispRisk'}, inplace=True)
+            tract_displacement_df.rename(columns={'Tract':'tract10', 'DispRisk':'tract10_DispRisk'}, inplace=True)
+            # tract10 doesn't have state code; add it
+            tract_displacement_df['tract10'] = tract_displacement_df['tract10'].astype('int64')
+            tract_displacement_df.tract10 += 6000000000
             logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_displacement_df), TRACT_DISPLACEMENT_FILE))
             logging.debug("  tract_displacement_df.head():\n{}".format(tract_displacement_df.head()))
-            rtp2025_taz_crosswalk_df = pd.merge(
-                left     = rtp2025_taz_crosswalk_df,
+
+            rtp2025_tract_crosswalk_df = pd.merge(
+                left     = rtp2025_tract_crosswalk_df,
                 right    = tract_displacement_df,
-                on       = 'tract_id',
+                on       = 'tract10',
                 how      = 'left',
-                validate = 'many_to_one'
+                validate = 'many_to_one',
+                indicator=True
             )
-
+            logging.debug("rtp2025_tract_crosswalk_df._merge.value_counts():\n{}".format(
+                          rtp2025_tract_crosswalk_df._merge.value_counts()))
+            rtp2025_tract_crosswalk_df.drop(columns=['_merge'], inplace=True)
+            
             # fillna with zero and make int
-            rtp2025_taz_crosswalk_df.fillna(0, inplace=True)
-            rtp2025_taz_crosswalk_df = rtp2025_taz_crosswalk_df.astype(int)
+            rtp2025_tract_crosswalk_df.fillna(0, inplace=True)
 
-            logging.debug("final rtp2025_taz_crosswalk_df.head():\n{}".format(rtp2025_taz_crosswalk_df))
+            logging.debug("final rtp2025_tract_crosswalk_df.head():\n{}".format(rtp2025_tract_crosswalk_df))
+            logging.debug("final rtp2025_tract_crosswalk_df.dtypes():\n{}".format(rtp2025_tract_crosswalk_df.dtypes))
+            # columns are: parcel_id, tract10, tract20, tract20_epc, tract20_growth_geo, tract20_tra, tract20_hra, tract10_DispRisk
 
         # define analysis years
         modelrun_data[2020]  = {}
@@ -170,23 +183,24 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             # pba50_metrics.py called this parcel_tract_crosswalk_file/parcel_tract_crosswalk_df
             TRACT_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tract_crosswalk.csv"
             rtp2021_tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE, usecols=['parcel_id','tract_id'])
+            rtp2021_tract_crosswalk_df.rename(columns={'tract_id':'tract10'}, inplace=True) # rename for clarity
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_tract_crosswalk_df), TRACT_CROSSWALK_FILE))
-            logging.info("  rtp2021_tract_crosswalk_df.tract_id.unique count:{:,}".format(
-                len(rtp2021_tract_crosswalk_df.tract_id.unique())
+            logging.info("  rtp2021_tract_crosswalk_df.tract10.unique count:{:,}".format(
+                len(rtp2021_tract_crosswalk_df.tract10.unique())
             ))
             logging.debug("  rtp2021_tract_crosswalk_df.head():\n{}".format(rtp2021_tract_crosswalk_df.head()))
 
             # pba50_metrics.py called this coc_flag_file/coc_flag_df
             COC_FLAG_FILE = METRICS_DIR / "metrics_input_files" / "COCs_ACS2018_tbl_TEMP.csv"
             tract_coc_df = pd.read_csv(COC_FLAG_FILE, usecols=['tract_id','coc_flag_pba2050'])
-            tract_coc_df.rename(columns={'coc_flag_pba2050':'tract_epc'}, inplace=True)
+            tract_coc_df.rename(columns={'tract_id':'tract10', 'coc_flag_pba2050':'tract10_epc'}, inplace=True)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_coc_df), COC_FLAG_FILE))
             logging.debug("  tract_coc_df.head():\n{}".format(tract_coc_df.head()))
             # merge it into rtp2021_tract_crosswalk_df
             rtp2021_tract_crosswalk_df = pd.merge(
                 left     = rtp2021_tract_crosswalk_df,
                 right    = tract_coc_df,
-                on       = 'tract_id',
+                on       = 'tract10',
                 how      = 'left',
                 validate = 'many_to_one',
                 indicator= True
@@ -198,14 +212,14 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             # displacement risk - udp_file/udp_DR_df
             TRACT_DISPLACEMENT_FILE = METRICS_DIR / "metrics_input_files" / "udp_2017results.csv"
             tract_displacement_df = pd.read_csv(TRACT_DISPLACEMENT_FILE, usecols=['Tract','DispRisk'])
-            tract_displacement_df.rename(columns={'Tract':'tract_id', 'DispRisk':'tract_DispRisk'}, inplace=True)
+            tract_displacement_df.rename(columns={'Tract':'tract10', 'DispRisk':'tract10_DispRisk'}, inplace=True)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_displacement_df), TRACT_DISPLACEMENT_FILE))
             logging.debug("  tract_displacement_df.head():\n{}".format(tract_displacement_df.head()))
             # merge it into rtp2021_tract_crosswalk_df
             rtp2021_tract_crosswalk_df = pd.merge(
                 left     = rtp2021_tract_crosswalk_df,
                 right    = tract_displacement_df,
-                on       = 'tract_id',
+                on       = 'tract10',
                 how      = 'left',
                 validate = 'many_to_one',
                 indicator= True
@@ -219,14 +233,15 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             tract_hra_df = pd.read_csv(TRACT_HRA_FILE, usecols=['tract_id','hra','tra','growth_geo'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_hra_df), TRACT_HRA_FILE))
             # rename hra, tra, growth_geo to make it clear these are tract-baed
-            tract_hra_df.rename(columns={'hra':'tract_hra', 'tra':'tract_tra', 'growth_geo':'tract_growth_geo'}, inplace=True)
+            tract_hra_df.rename(columns={'tract_id':'tract10', 'hra':'tract10_hra', 'tra':'tract10_tra', 
+                                         'growth_geo':'tract10_growth_geo'}, inplace=True)
 
             logging.debug("  tract_hra_df.head():\n{}".format(tract_hra_df.head()))
             # merge it into rtp2021_tract_crosswalk_df
             rtp2021_tract_crosswalk_df = pd.merge(
                 left     = rtp2021_tract_crosswalk_df,
                 right    = tract_hra_df,
-                on       = 'tract_id',
+                on       = 'tract10',
                 how      = 'left',
                 validate = 'many_to_one',
                 indicator= True
@@ -240,7 +255,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             rtp2021_tract_crosswalk_df = rtp2021_tract_crosswalk_df.astype(int)
 
             logging.debug("final rtp2021_tract_crosswalk_df.head():\n{}".format(rtp2021_tract_crosswalk_df))
-            # columns are: parcel_id, tract_id, tract_epc, DispRisk, tract_hra, tract_growth_geo, tract_tra
+            # columns are: parcel_id, tract10, tract10_epc, tract10_DispRisk, tract10_hra, tract10_growth_geo, tract10_tra
 
         if len(rtp2021_pda_crosswalk_df) == 0:
             # pba50_metrics.py called this parcel_GG_newxwalk_file/parcel_GG_newxwalk_df
@@ -313,57 +328,29 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                     right_on = "PARCEL_ID",
                     validate = "one_to_one"
                 )
-                logging.debug("Head after merge with rtp2025_geography_crosswalk_df:\n{}".format(parcel_df))
+                logging.debug("Head after merge with rtp2025_geography_crosswalk_df:\n{}".format(parcel_df.head()))
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             
-                # add taz crosswalk for tract/taz lookups
-                # add geography crosswalk for zoning categories
+                # add tract lookup for tract categories
                 parcel_df = pd.merge(
                     left     = parcel_df,
-                    right    = rtp2025_taz_crosswalk_df,
+                    right    = rtp2025_tract_crosswalk_df,
                     how      = "left",
                     on       = "parcel_id",
                     validate = "one_to_one"
                 )
-                logging.debug("Head after merge with rtp2025_taz_crosswalk_df:\n{}".format(parcel_df))
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-
-                # TODO: Tracts classifications are needed for metrics_diverse.gentrify_displacement_tracts()
-                # TODO: I think the below logic doesn't work because it's using households, and it shouldn't change
-                # TODO: based on the output; it should be constant across all scenarios.
-                # TODO: I think this should be removed and the tract-level crosswalk should be made externally and just read.
-                # TODO: Flagged in Create tract-level crosswalks for epc, growth_geo, hra, tra
-                # TODO: https://app.asana.com/0/0/1207017785853508/f
-                # for RTP2025, we have taz_epc,taz_growth_geo,taz_tra,taz_hra and need to convert to tract versions
-                for taz_var in ['taz_epc','taz_growth_geo','taz_tra','taz_hra']:
-                    tract_var = taz_var.replace("taz_","tract_")
-                    logging.info(f"Converting {taz_var} to {tract_var}")
-                    tract_taz_df = parcel_df.groupby(['tract_id',taz_var]).agg(
-                        tothh = pd.NamedAgg(column="tothh", aggfunc="sum"),
-                    ).reset_index(drop=False)
-                    logging.debug("tract_taz_df.head(50):\n{}".format(tract_taz_df.head(50)))
-                    # cols: tract_id, taz_var, tothh
-                    idx = tract_taz_df.groupby('tract_id')['tothh'].idxmax()
-                    # idx: same length: tract/taz, value = index with max tothh
-                    logging.debug("idx.head(50):\n{}".format(idx.head(50)))
-                    # adds colun, tract_var, which is set to taz_var if tothh is bigger for this value, NaN otherwise
-                    tract_taz_df[tract_var] = tract_taz_df.loc[idx, taz_var]
-                    # summarize back to tract only - columns are now tract_id, tract_var
-                    tract_df = tract_taz_df.groupby('tract_id').agg({taz_var:'first'}).reset_index(drop=False)
-                    tract_df = tract_df.astype(int)
-                    tract_df.rename(columns={taz_var:tract_var},inplace=True)
-                    logging.debug("tract_df:\n{}".format(tract_df.head(50)))
-
-                    # merge back to parcel_df
-                    parcel_df = pd.merge(
-                        left     = parcel_df,
-                        right    = tract_df,
-                        on       = 'tract_id',
-                        how      = 'left',
-                        validate = 'many_to_one'
-                    )
-                logging.debug("After adding tract vars from taz vars, parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-
+                logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
+                # rtp2025_tract_crosswalk_df.columns should all be ints -- convert
+                cols_int64 = ['tract10','tract20']
+                cols_int   = ['tract20_epc','tract20_growth_geo','tract20_tra','tract20_hra','tract10_DispRisk']
+                fill_cols  = {col:-1 for col in cols_int64+cols_int}
+                logging.debug(fill_cols)
+                parcel_df.fillna(fill_cols, inplace=True)
+                parcel_df[cols_int64] = parcel_df[cols_int64].astype('int64')
+                parcel_df[cols_int] = parcel_df[cols_int].astype(int)
+                logging.debug("Head after int type conversion:\n{}".format(parcel_df.head()))
+                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
             if rtp == "RTP2021":
                 # if it's already here, remove -- we're adding from a single source
@@ -389,14 +376,14 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
                 # Retain only a subset of columns after merging
-                columns_to_keep = ['parcel_id', 'tract_id', 'fbpchcat', 
+                columns_to_keep = ['parcel_id', 'tract10', 'fbpchcat', 
                                    'gg_id', 'tra_id', 'hra_id', 'dis_id',
                                    'hhq1', 'hhq2', 'hhq3', 'hhq4', 
                                    'tothh', 'totemp',
                                    'deed_restricted_units', 'residential_units', 'preserved_units',
                                    'pda_id_pba50_fb',
                                    # tract-level columns
-                                   'tract_epc', 'tract_DispRisk', 'tract_hra', 'tract_growth_geo', 'tract_tra']
+                                   'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra']
                 parcel_df = parcel_df[columns_to_keep]
                 logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 
