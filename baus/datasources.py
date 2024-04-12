@@ -625,6 +625,10 @@ def get_dev_projects_table(parcels, run_setup):
 #         df = pipeline_filtering(df, filter_criteria)
 #         print('Records in pipeline table - post-filter: ',df.shape[0])
 
+    # geom_id got mangled at some point, so we refresh it via lookup from PARCEL_ID.
+    # TODO We should probably deprecate geom_id (which has no extra information over parcel_id) throughout BAUS
+    df['geom_id'] = parcel_id_to_geom_id(df['PARCEL_ID'])
+    
     df = reprocess_dev_projects(df)
 
     # Optionally - if flag set to use housing element pipeline, load that and append:
