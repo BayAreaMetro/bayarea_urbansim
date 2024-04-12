@@ -23,7 +23,7 @@ Functions:
 - calculate_metrics: Calculates metrics for each model run.
 - main: Orchestrates the workflow of the script.
 """
-import argparse, datetime, logging, os, pathlib, sys
+import argparse, datetime, logging, os, pathlib, sys, getpass
 import pandas as pd
 import metrics_utils
 
@@ -50,16 +50,25 @@ def main():
     args = parser.parse_args()
 
     # RTP2025 / PBA50+ settings
-    USERNAME = os.environ.get('USERNAME')
+    USERNAME = getpass.getuser()
+    HOME_DIR = pathlib.Path.home()
+    
+    # set the path for M: drive
+    # from OSX, M:/ may be mounted to /Volumes/Data/Models
+    M_DRIVE = "/Volumes/Data/Models" if os.name != "nt" else "M:/"
+
+
     if USERNAME.lower() in ['lzorn']:
         BOX_DIR = pathlib.Path("E:/Box")
     else:
-        BOX_DIR = pathlib.Path(f"C:/Users/{USERNAME}/Box")
-    MODEL_RUNS_DIR     = pathlib.Path("M:/urban_modeling/baus/PBA50Plus/")
+        BOX_DIR = HOME_DIR / 'Box'
+    
+    MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/")
     RUN_INVENTORY_FILE = MODEL_RUNS_DIR / "Metrics/PBA50Plus_model_run_inventory.csv"
     OUTPUT_PATH        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
     METRICS_DIR        = OUTPUT_PATH
-    LOG_FILENAME       = "metrics_lu_standalone_{}.log" # loglevel
+    LOG_FILENAME       = "metrics_lu_standalone{}.log" # loglevel
+
 
     # this is for QAQC
     if args.rtp == "RTP2021":

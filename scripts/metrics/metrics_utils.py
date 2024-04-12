@@ -1,6 +1,8 @@
 import pandas as pd
 import logging
 from datetime import datetime
+import pathlib
+import os
 
 # make global so we only read once
 rtp2025_geography_crosswalk_df = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra)
@@ -30,6 +32,10 @@ PARCEL_AREA_FILTERS = {
             'Region'   : None
     }
 }
+
+# set the path for M: drive
+# from OSX, M:/ may be mounted to /Volumes/Data/Models
+M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 
 # --------------------------------------
 # Data Loading Based on Model Run Plan
@@ -64,7 +70,8 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     modelrun_data = {}
     if rtp == "RTP2025":
         if len(rtp2025_geography_crosswalk_df) == 0:
-            PARCEL_CROSSWALK_FILE = "M:/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/parcels_geography_2024_02_14.csv"
+            PARCEL_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "parcels_geography_2024_02_14.csv"
+
             rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ugb_id'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
@@ -72,7 +79,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         # tract/taz
         if len(rtp2025_tract_crosswalk_df) == 0:
             # map to census 2010 tract and census 2020 tract
-            TRACT_CROSSWALK_FILE = "M:\\urban_modeling\\baus\BAUS Inputs\\basis_inputs\\crosswalks\\p10_census.csv"
+            TRACT_CROSSWALK_FILE = M_DRIVE / "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "p10_census.csv"
             rtp2025_tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE, usecols=['parcel_id','tract10','tract20'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_tract_crosswalk_df), TRACT_CROSSWALK_FILE))
             logging.info("  len(rtp2025_tract_crosswalk_df.tract10.unique()): {:,}  parcels with null tract10: {:,}".format(
