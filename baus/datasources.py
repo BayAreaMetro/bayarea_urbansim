@@ -787,7 +787,7 @@ def employment_controls_unstacked(run_setup):
 
 @orca.table(cache=True)
 def tm1_tm2_regional_controls():
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm1_tm2_regional_controls.csv"), index_col="year")
+    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "zone_forecasts/tm1_tm2_regional_controls_pba50p.csv"), index_col="year")
 
 
 @orca.table(cache=True)
