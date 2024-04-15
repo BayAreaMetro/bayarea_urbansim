@@ -8,6 +8,8 @@ import os
 rtp2025_geography_crosswalk_df = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra)
 rtp2025_tract_crosswalk_df     = pd.DataFrame() # parcel -> tract10 and tract20
 
+rtp2025_transit_service_df     = pd.DataFrame() # parcel -> transit service
+
 rtp2021_tract_crosswalk_df     = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA
 rtp2021_pda_crosswalk_df       = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
 rtp2021_geography_crosswalk_df = pd.DataFrame() # parcel -> parcel category (fbpchcat -> growth geog, hra, tra)
@@ -62,6 +64,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     # make global so we only read once
     global rtp2025_geography_crosswalk_df
     global rtp2025_tract_crosswalk_df
+    global rtp2025_transit_service_df
     global rtp2021_geography_crosswalk_df
     global rtp2021_tract_crosswalk_df
     global rtp2021_pda_crosswalk_df
@@ -75,6 +78,18 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ugb_id'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
+
+        # transit service areas
+        if len(rtp2025_transit_service_df) == 0:
+            import geopandas as gpd
+            PARCEL_TRANSITSERVICE_FILE = M_DRIVE / "Data" / "GIS layers" / "JobsHousingTransitProximity" / "update_2024" / "outputs" / "p10_topofix_classified.parquet"
+            rtp2025_transit_service_df = pd.read_parquet(PARCEL_TRANSITSERVICE_FILE)
+            transit_cols_keep = ['PARCEL_ID','area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
+            rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
+            logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
+            
+
 
         # tract/taz
         if len(rtp2025_tract_crosswalk_df) == 0:
@@ -320,7 +335,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         for file in parcel_file_list:
             parcel_df = pd.read_csv(
                 file, usecols=['parcel_id','deed_restricted_units','preserved_units','subsidized_units','residential_units','inclusionary_units',
-                               'hhq1','hhq2','hhq3','hhq4','tothh','totemp']) 
+                               'hhq1','hhq2','hhq3','hhq4','tothh','totemp',"RETEMPN", "MWTEMPN"]) 
             logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
             logging.debug("Head:\n{}".format(parcel_df))
             logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))
@@ -346,6 +361,18 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                     on       = "parcel_id",
                     validate = "one_to_one"
                 )
+
+                # add transit service area lookups
+                #logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
+                parcel_df = pd.merge(
+                    left     = parcel_df,
+                    right    = rtp2025_transit_service_df,
+                    how      = "left",
+                    left_on  = "parcel_id",
+                    right_on ="PARCEL_ID",
+                    validate = "one_to_one"
+                )
+                
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
                 logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
                 # rtp2025_tract_crosswalk_df.columns should all be ints -- convert
