@@ -9,6 +9,7 @@ rtp2025_geography_crosswalk_df = pd.DataFrame() # parcel -> zoning categories (e
 rtp2025_tract_crosswalk_df     = pd.DataFrame() # parcel -> tract10 and tract20
 
 rtp2025_transit_service_df     = pd.DataFrame() # parcel -> transit service
+rtp2025_taz_crosswalk_df       = pd.DataFrame() # taz1 -> epc
 
 rtp2021_tract_crosswalk_df     = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA
 rtp2021_pda_crosswalk_df       = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
@@ -44,10 +45,8 @@ M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.P
 # --------------------------------------
 def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     """
-    Reads crosswalk data as well as core summary and geographic summary data for the given BAUS model run
-    for both the base year and the horizon year (which varies based on the rtp)
-
-    DataFrames into two lists: one for core summaries and one for geographic summaries.
+    Reads crosswalk data as well as parcel data and county summary data for the given BAUS model run
+    for both the base year and the horizon year (which varies based on the rtp).
 
     Parameters:
     - rtp (str): one of RTP2021 or RTP2025
@@ -56,15 +55,19 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     - modelrun_alias (str): alias for the model run. e.g. 'No Project', 'DBP, etc.
 
     Returns:
-    - dict with year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
+    - dict with year -> {
+        "parcel" -> parcel DataFrame, 
+        "county" -> county DataFrame,
+        "TAZ1454"-> taz DataFrame (necessary for totpop)
+      }
     
-    Both lists include DataFrames for files that match the year-specific patterns, 
-    assuming files for both target years are present.
     """
     # make global so we only read once
     global rtp2025_geography_crosswalk_df
     global rtp2025_tract_crosswalk_df
     global rtp2025_transit_service_df
+    global rtp2025_taz_crosswalk_df
+
     global rtp2021_geography_crosswalk_df
     global rtp2021_tract_crosswalk_df
     global rtp2021_pda_crosswalk_df
@@ -91,7 +94,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             
 
 
-        # tract/taz
+        # tract
         if len(rtp2025_tract_crosswalk_df) == 0:
             # map to census 2010 tract and census 2020 tract
             TRACT_CROSSWALK_FILE = M_DRIVE / "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "p10_census.csv"
@@ -185,19 +188,28 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             logging.debug("rtp2025_tract_crosswalk_df._merge.value_counts():\n{}".format(
                           rtp2025_tract_crosswalk_df._merge.value_counts()))
             rtp2025_tract_crosswalk_df.drop(columns=['_merge'], inplace=True)
-            
-            # fillna with zero and make int
+                        
+            # fillna with zero
             rtp2025_tract_crosswalk_df.fillna(0, inplace=True)
 
             logging.debug("final rtp2025_tract_crosswalk_df.head():\n{}".format(rtp2025_tract_crosswalk_df))
             logging.debug("final rtp2025_tract_crosswalk_df.dtypes():\n{}".format(rtp2025_tract_crosswalk_df.dtypes))
             # columns are: parcel_id, tract10, tract20, tract20_epc, tract20_growth_geo, tract20_tra, tract20_hra, tract10_DispRisk
 
+        if len(rtp2025_taz_crosswalk_df) == 0:
+
+            # taz-based lookups
+            TAZ_EPC_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "taz1454_epcPBA50plus_2024_02_29.csv"
+            rtp2025_taz_crosswalk_df = pd.read_csv(TAZ_EPC_CROSSWALK_FILE, usecols=['TAZ1454','taz_epc'])
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_taz_crosswalk_df), TAZ_EPC_CROSSWALK_FILE))
+            logging.debug("  rtp2025_taz_crosswalk_df.head():\n{}".format(rtp2025_taz_crosswalk_df.head()))
+
         # define analysis years
         modelrun_data[2020]  = {}
         modelrun_data[2050]  = {}
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
+        taz1_summary_pattern = "travel_model_summaries/*_taz1_summary_{}.csv"
     elif rtp == "RTP2021":
         # these are all tract-based -- load into one dataframe
         if len(rtp2021_tract_crosswalk_df) == 0:
@@ -315,6 +327,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         modelrun_data[2050] = {}
         parcel_pattern       = "*_parcel_data_{}.csv"
         geo_summary_pattern  = "*_county_summaries_{}.csv"
+        taz1_summary_pattern = "*_taz_summaries_{}.csv"
 
     else:
         raise ValueError(f"Unrecognized plan: {rtp}")
@@ -424,7 +437,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
 
             modelrun_data[year]['parcel'] = parcel_df
 
-    # Load geographic summaries
+    # Load county summaries
     for year in sorted(modelrun_data.keys()):
         logging.debug("Looking for geographic summaries matching {}".format(geo_summary_pattern.format(year)))
         geo_summary_file_list = run_directory_path.glob(geo_summary_pattern.format(year))
@@ -433,6 +446,31 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             logging.info("  Read {:,} rows from geography summary {}".format(len(geo_summary_df), file))
             logging.debug("Head:\n{}".format(geo_summary_df))
             modelrun_data[year]['county'] = geo_summary_df
+
+    # Load taz summaries
+    # This is only necessary for RTP2025 / healthy.urban_park_acres()
+    if rtp == "RTP2025":
+        for year in sorted(modelrun_data.keys()):
+            logging.debug("Looking for taz1 summaries matching {}".format(taz1_summary_pattern.format(year)))
+            taz1_summary_file_list = list(run_directory_path.glob(taz1_summary_pattern.format(year)))
+
+            logging.debug(f"taz1_summary_file_list: {taz1_summary_file_list}")
+            for file in taz1_summary_file_list:
+                taz1_summary_df = pd.read_csv(file, usecols=['TAZ','COUNTY','TOTPOP'])
+                taz1_summary_df.rename(columns={'TAZ':'TAZ1454'}, inplace=True)
+                logging.info("  Read {:,} rows from taz summary {}".format(len(taz1_summary_df), file))
+                logging.debug("Head:\n{}".format(taz1_summary_df))
+
+                taz1_summary_df = pd.merge(
+                    left     = taz1_summary_df,
+                    right    = rtp2025_taz_crosswalk_df,
+                    on       = "TAZ1454",
+                    how      = "left",
+                    validate = "one_to_one"
+                )
+                logging.debug("Head:\n{}".format(taz1_summary_df))
+                modelrun_data[year]['TAZ1454'] = taz1_summary_df
+                # columns: TAZ1454, COUNTY, TOTPOP, taz_epc
 
     logging.debug("modelrun_data:\n{}".format(modelrun_data))
     return modelrun_data

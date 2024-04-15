@@ -27,3 +27,4 @@ run_setup.yaml
 # test mode: log files
 scripts/metrics/metrics_*.log
 scripts/metrics/metrics_*.csv
+scripts/metrics/metrics_*.xlsx

@@ -67,8 +67,7 @@ def main():
     RUN_INVENTORY_FILE = MODEL_RUNS_DIR / "Metrics/PBA50Plus_model_run_inventory.csv"
     OUTPUT_PATH        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
     METRICS_DIR        = OUTPUT_PATH
-    LOG_FILENAME       = "metrics_lu_standalone{}.log" # loglevel
-
+    LOG_FILENAME       = "metrics_lu_standalone_{}.log" # loglevel
 
     # this is for QAQC
     if args.rtp == "RTP2021":
@@ -149,10 +148,17 @@ def main():
         if (args.only == None) or (args.only == 'vibrant'):
             metrics_vibrant.jobs_housing_ratio(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-
+            
+        
         if (args.only == None) or (args.only == 'connected'):
             metrics_connected.transit_service_area_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+
+
+
+        if (args.only == None) or (args.only == 'healthy'):
+            metrics_healthy.urban_park_acres(
+                BOX_DIR, args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
         # output files are started; append henceforth
         append_output = True
