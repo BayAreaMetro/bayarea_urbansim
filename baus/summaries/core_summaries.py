@@ -143,7 +143,9 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     residential_units = residential_units.to_frame()
 
     zones['non_residential_sqft'] = buildings.groupby('zone_id').non_residential_sqft.sum()
+    zones['non_residential_sqft_office'] = buildings.query('building_type=="OF"').groupby('zone_id').non_residential_sqft.sum()
     zones['job_spaces'] = buildings.groupby('zone_id').job_spaces.sum()
+    zones['job_spaces_office'] = buildings.query('building_type=="OF"').groupby('zone_id').job_spaces.sum()
     
     zones['residential_units'] = buildings.groupby('zone_id').residential_units.sum()
     zones["deed_restricted_units"] = buildings.groupby('zone_id').deed_restricted_units.sum()
@@ -164,6 +166,16 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     zones['residential_vacancy'] = 1.0 - tothh / zones.residential_units.replace(0, 1)
     totjobs = jobs.zone_id.value_counts().reindex(zones.index).fillna(0)
     zones['non_residential_vacancy'] = 1.0 - totjobs / zones.job_spaces.replace(0, 1)
+
+    # office vacancy
+    # note that the rate is calculated using spaces, not square feet, consistent
+    # with how vacancy is calculated for non_residential_vacancy, leading to some 
+    # modest loss of precision
+    zones['non_residential_vacancy_office'] = (buildings.query('building_type=="OF"')
+                                                .groupby(['zone_id'])
+                                                .apply(lambda x: x['vacant_job_spaces'].sum().clip(0) /
+                                                x['job_spaces'].sum().clip(0))
+                                                )
 
     # PRICE VERSUS NONRES RENT
     zones['residential_price'] = residential_units.groupby('zone_id').unit_residential_price.quantile()
