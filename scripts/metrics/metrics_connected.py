@@ -22,8 +22,11 @@ def transit_service_area_share(
     logging.info(f"Calculating connected for {modelrun_alias} / {modelrun_id}")
     
     parcel_output = modelrun_data[2050]["parcel"]
+    # report shape of parcel_output df
+    len_parcels = len(parcel_output)
 
-    logging.debug('Cols of parcels 2050 in connected func', parcel_output.columns)
+    logging.debug('Cols of parcels 2050 in connected func', parcel_output.columns)    
+    logging.debug(f"Parcel output has {len_parcels:,} rows")
 
     
     # Add constant useful for groupby summaries across the whole region
@@ -60,10 +63,18 @@ def transit_service_area_share(
     # special case exception we can probably handle smoother
     transit_scenario = "cur" if int(year) in [2015,2020] else transit_scenario
 
-    # report shape of parcel_output df
-    len_parcels = len(parcel_output)
-    
-    logging.debug(f"Parcel output has {len_parcels:,} rows")
+        # Identify the passed scenario-specific columns (fbp no project, current)
+    # this returns different classifications for each - like the 5-way or 6-way service level (cat5, cat6)
+    # several may be returned depending on how many are in the crosswalk
+    # we summarize run data for each classification variable
+
+    transit_svcs_cols = parcel_output.filter(
+        regex=transit_scenario
+    ).columns.tolist()
+
+    logging.info(
+        f'Transit scenario specific classifier columns: {"; ".join(transit_svcs_cols)}'
+    )
 
     # Define columns containing values of interest - more could be added as long as it is present and numeric
     val_cols = ["totemp", "RETEMPN", "MWTEMPN", "tothh"]
@@ -102,19 +113,6 @@ def transit_service_area_share(
         )
 
         return grp_summary_shares
-
-    # Identify the passed scenario-specific columns (fbp no project, current)
-    # this returns different classifications for each - like the 5-way or 6-way service level (cat5, cat6)
-    # several may be returned depending on how many are in the crosswalk
-    # we summarize run data for each classification variable
-
-    transit_svcs_cols = parcel_output.filter(
-        regex=transit_scenario
-    ).columns.tolist()
-
-    logging.info(
-        f'Transit scenario specific classifier columns: {"; ".join(transit_svcs_cols)}'
-    )
 
     container = {}
 
