@@ -655,9 +655,17 @@ def get_dev_projects_table(parcels, run_setup):
 
     df = df.dropna(subset=['geom_id'])
 
-    cnts = df.geom_id.isin(parcels.geom_id).value_counts()
-    if False in cnts.index:
-        print("%d MISSING GEOMIDS!" % cnts.loc[False])
+    # Warn about and list records that fail to match on geom_id
+    geom_id_mismatch = ~df.geom_id.isin(parcels.geom_id)
+    if geom_id_mismatch.sum() > 0:
+        print(f"Warning: {geom_id_mismatch.sum()} of {len(df)} development "
+              + "pipeline records failed to match the parcels table on geom_id.")
+        print("Records with non-matching geom_ids:")
+        print(df[geom_id_mismatch])
+        # Raise an error if the mismatch is widespread
+        if geom_id_mismatch.sum() / len(df) > 0.01:
+            raise ValueError("More than 1% of development pipeline records "
+                             + "failed to match on geom_id.")
 
     df = df[df.geom_id.isin(parcels.geom_id)]
 
