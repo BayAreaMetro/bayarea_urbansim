@@ -9,27 +9,6 @@ import metrics_utils
 import pathlib
 from itertools import product
 
-# working_dir_path = pathlib.Path(
-#     m_drive, "Data", "GIS layers", "JobsHousingTransitProximity", "update_2024")
-
-
-# def transit_service_area_share(
-#                                 rtp: str,
-#                                 modelrun_alias: str, 
-#                                 modelrun_id: str, 
-#                                 modelrun_data: dict, 
-#                                 output_path: str,
-#                                 append_output: bool
-#                                 ):
-#     #print(locals() )
-#     logging.info("Calculating connected")
-#     logging.info('Cols of parcels 2050 in connected func', modelrun_data[2050]['parcel'].head().filter(regex='epc|hra'))
-
-#     parcel_output = modelrun_data[2050]["parcel"]
-
-
-#     SUMMARY_YEARS = sorted(modelrun_data.keys())
-#     return parcel_output.head()
 
 def transit_service_area_share(
                                 rtp: str,
@@ -304,7 +283,3 @@ def format_for_tableau(plan_metrics_df: pd.DataFrame,
     val_col = ["transitproximity_majorstop_shareof"]
 
     return metrics_tableau_schema[id_cols + id_extra_cols + val_col]
-
-
-
-
