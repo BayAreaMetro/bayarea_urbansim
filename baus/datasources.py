@@ -662,10 +662,10 @@ def get_dev_projects_table(parcels, run_setup):
               + "pipeline records failed to match the parcels table on geom_id.")
         print("Records with non-matching geom_ids:")
         print(df[geom_id_mismatch])
-        # Raise an error if the mismatch is widespread
-        if geom_id_mismatch.sum() / len(df) > 0.01:
-            raise ValueError("More than 1% of development pipeline records "
-                             + "failed to match on geom_id.")
+        # Raise an error if the mismatch is widespread (in terms of DU)
+        if df.loc[geom_id_mismatch, "residential_units"].sum() / df["residential_units"].sum() > 0.01:
+            raise ValueError("Development pipeline records representing more than 1% "
+                             + "of residential units failed to match on geom_id.")
 
     df = df[df.geom_id.isin(parcels.geom_id)]
 
