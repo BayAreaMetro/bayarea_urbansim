@@ -353,7 +353,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         for file in parcel_file_list:
             parcel_df = pd.read_csv(
                 file, usecols=['parcel_id','deed_restricted_units','preserved_units','subsidized_units','residential_units','inclusionary_units',
-                               'non_residential_sqft','hhq1','hhq2','hhq3','hhq4','tothh','totemp',"RETEMPN", "MWTEMPN"]) 
+                               'non_residential_sqft','hhq1','hhq2','hhq3','hhq4','tothh','totemp', "RETEMPN", "MWTEMPN", "OTHEMPN","HEREMPN","FPSEMPN"]) 
             logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
             logging.debug("Head:\n{}".format(parcel_df))
             logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))

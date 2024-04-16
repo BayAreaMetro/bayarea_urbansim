@@ -60,7 +60,8 @@ def transit_service_area_share(
     }
 
     # get the transit scenario to focus on (e.g., 'fbp' for final bluerprint)
-    transit_scenario = transit_scenario_mapping[modelrun_alias]
+    # we really need to have a distinct fbp/eir, etc designation from run id in the log
+    transit_scenario = transit_scenario_mapping.get(modelrun_alias,'fbp')
 
     # set transit_scenario to cur (existing stops buffers) 
     transit_scenario = "cur" if int(year) in [2015, 2020] else transit_scenario
@@ -79,7 +80,7 @@ def transit_service_area_share(
     )
 
     # Define columns containing values of interest - more could be added as long as it is present and numeric
-    val_cols = ["totemp", "RETEMPN", "MWTEMPN", "tothh"]
+    val_cols = ["totemp", "RETEMPN", "MWTEMPN","OTHEMPN","HEREMPN","FPSEMPN", "tothh"]
     agg_mapping = {col: 'sum' for col in val_cols}
 
     # Fill missing values and convert specific columns to integers for consistency
