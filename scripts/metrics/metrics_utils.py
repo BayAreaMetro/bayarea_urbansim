@@ -5,14 +5,14 @@ import pathlib
 import os
 
 # make global so we only read once
-rtp2025_geography_crosswalk_df  = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra)
+rtp2025_geography_crosswalk_df  = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra, ppa)
 rtp2025_tract_crosswalk_df      = pd.DataFrame() # parcel -> tract10 and tract20
 rtp2025_urban_area_crosswalk_df = pd.DataFrame() # parcel -> in 2020 urbanized area footprint
 
 rtp2025_transit_service_df      = pd.DataFrame() # parcel -> transit service
 rtp2025_taz_crosswalk_df        = pd.DataFrame() # taz1 -> epc
 
-rtp2021_tract_crosswalk_df      = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA
+rtp2021_tract_crosswalk_df      = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA, PPA
 rtp2021_pda_crosswalk_df        = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
 rtp2021_geography_crosswalk_df  = pd.DataFrame() # parcel -> parcel category (fbpchcat -> growth geog, hra, tra)
 
@@ -24,6 +24,7 @@ PARCEL_AREA_FILTERS = {
             'GG'       : lambda df: df['gg_id'] == 'GG',
             'PDA'      : lambda df: pd.notna(df['pda_id_pba50_fb']),
             'EPC'      : lambda df: df['tract10_epc'] == 1,
+            'PPA'      : lambda df: df['ppa_id'] == 'ppa',
             'Region'   : None
     },
     'RTP2025': {
@@ -33,6 +34,7 @@ PARCEL_AREA_FILTERS = {
             'GG'       : lambda df: df['gg_id'] == 'GG',
             'PDA'      : lambda df: pd.notna(df['pda_id']), # this should be modified
             'EPC'      : lambda df: df['epc_id'] == 'EPC',
+            'PPA'      : lambda df: df['ppa_id'] == 'PPA',
             'Region'   : None
     }
 }
@@ -79,7 +81,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     if rtp == "RTP2025":
         if len(rtp2025_geography_crosswalk_df) == 0:
             PARCEL_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "parcels_geography_2024_02_14.csv"
-            rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ugb_id'])
+            rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ppa_id','ugb_id'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
 
@@ -307,7 +309,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         if len(rtp2021_geography_crosswalk_df) == 0:
             # pba50_metrics.py called this "parcel_geography_file" - use it to get fbpchcat
             GEOGRAPHY_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "2021_02_25_parcels_geography.csv"
-            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID','fbpchcat'])
+            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID','fbpchcat','ppa_id'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_geography_crosswalk_df), GEOGRAPHY_CROSSWALK_FILE))
             logging.debug("  rtp2021_geography_crosswalk_df.head():\n{}".format(rtp2021_geography_crosswalk_df.head()))
 
@@ -317,7 +319,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             parcel_zoning_df['fbpchcat'] = rtp2021_geography_crosswalk_df['fbpchcat']
             logging.debug("parcel_zoning_df=\n{}".format(parcel_zoning_df.head(30)))
 
-            # check if any are missed: if zone_remainder contains 'HRA' or 'DIS
+            # check if any are missed: if zone_remainder contains 'HRA' or 'DIS'
             zone_re_problem_df = parcel_zoning_df.loc[parcel_zoning_df.zone_remainder.str.contains("HRA|DIS", na=False, regex=True)]
             logging.debug("zone_re_problem_df nrows={} dataframe:\n{}".format(len(zone_re_problem_df), zone_re_problem_df))
 
@@ -351,9 +353,12 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         logging.debug("Looking for parcel data matching {}".format(modified_parcel_pattern.format(year)))
         parcel_file_list = run_directory_path.glob(modified_parcel_pattern.format(year))
         for file in parcel_file_list:
-            parcel_df = pd.read_csv(
-                file, usecols=['parcel_id','deed_restricted_units','preserved_units','subsidized_units','residential_units','inclusionary_units',
-                               'non_residential_sqft','hhq1','hhq2','hhq3','hhq4','tothh','totemp', "RETEMPN", "MWTEMPN", "OTHEMPN","HEREMPN","FPSEMPN"]) 
+            # non_residential_sqft is not available in the RTP2021 parcel table
+            usecols = ['parcel_id','deed_restricted_units','preserved_units','subsidized_units','residential_units','inclusionary_units',
+                       'hhq1','hhq2','hhq3','hhq4','tothh','totemp', "RETEMPN", "MWTEMPN", "OTHEMPN","HEREMPN","FPSEMPN"]
+            if rtp == "RTP2025":
+                usecols.append('non_residential_sqft')
+            parcel_df = pd.read_csv(file, usecols=usecols)
             logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
             logging.debug("Head:\n{}".format(parcel_df))
             logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))
@@ -441,7 +446,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
 
                 # Retain only a subset of columns after merging
                 columns_to_keep = ['parcel_id', 'tract10', 'fbpchcat', 
-                                   'gg_id', 'tra_id', 'hra_id', 'dis_id',
+                                   'gg_id', 'tra_id', 'hra_id', 'dis_id', 'ppa_id',
                                    'hhq1', 'hhq2', 'hhq3', 'hhq4', 
                                    'tothh', 'totemp',
                                    'deed_restricted_units', 'residential_units', 'preserved_units',
