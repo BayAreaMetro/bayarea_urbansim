@@ -28,3 +28,4 @@ run_setup.yaml
 scripts/metrics/metrics_*.log
 scripts/metrics/metrics_*.csv
 scripts/metrics/metrics_*.xlsx
+.vscode/launch.json
