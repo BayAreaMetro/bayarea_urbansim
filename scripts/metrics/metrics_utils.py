@@ -5,15 +5,16 @@ import pathlib
 import os
 
 # make global so we only read once
-rtp2025_geography_crosswalk_df = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra)
-rtp2025_tract_crosswalk_df     = pd.DataFrame() # parcel -> tract10 and tract20
+rtp2025_geography_crosswalk_df  = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra)
+rtp2025_tract_crosswalk_df      = pd.DataFrame() # parcel -> tract10 and tract20
+rtp2025_urban_area_crosswalk_df = pd.DataFrame() # parcel -> in 2020 urbanized area footprint
 
-rtp2025_transit_service_df     = pd.DataFrame() # parcel -> transit service
-rtp2025_taz_crosswalk_df       = pd.DataFrame() # taz1 -> epc
+rtp2025_transit_service_df      = pd.DataFrame() # parcel -> transit service
+rtp2025_taz_crosswalk_df        = pd.DataFrame() # taz1 -> epc
 
-rtp2021_tract_crosswalk_df     = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA
-rtp2021_pda_crosswalk_df       = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
-rtp2021_geography_crosswalk_df = pd.DataFrame() # parcel -> parcel category (fbpchcat -> growth geog, hra, tra)
+rtp2021_tract_crosswalk_df      = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA
+rtp2021_pda_crosswalk_df        = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
+rtp2021_geography_crosswalk_df  = pd.DataFrame() # parcel -> parcel category (fbpchcat -> growth geog, hra, tra)
 
 PARCEL_AREA_FILTERS = {
     'RTP2021': {
@@ -65,6 +66,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     # make global so we only read once
     global rtp2025_geography_crosswalk_df
     global rtp2025_tract_crosswalk_df
+    global rtp2025_urban_area_crosswalk_df
     global rtp2025_transit_service_df
     global rtp2025_taz_crosswalk_df
 
@@ -77,10 +79,15 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
     if rtp == "RTP2025":
         if len(rtp2025_geography_crosswalk_df) == 0:
             PARCEL_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "parcels_geography_2024_02_14.csv"
-
-            rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ugb_id'])
+            rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ugb_id'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
+
+        if len(rtp2025_urban_area_crosswalk_df) == 0:
+            URBAN_AREA_CROSSWALK_FILE = "M:/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/p10_parcels_to_2020_urban_areas.csv"
+            rtp2025_urban_area_crosswalk_df = pd.read_csv(URBAN_AREA_CROSSWALK_FILE, usecols=['parcel_id', 'in_urban_area'])
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_urban_area_crosswalk_df), URBAN_AREA_CROSSWALK_FILE))
+            logging.debug("  rtp2025_urban_area_crosswalk_df.head():\n{}".format(rtp2025_urban_area_crosswalk_df.head()))
 
         # transit service areas
         if len(rtp2025_transit_service_df) == 0:
@@ -91,8 +98,6 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
             logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
-            
-
 
         # tract
         if len(rtp2025_tract_crosswalk_df) == 0:
@@ -348,7 +353,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
         for file in parcel_file_list:
             parcel_df = pd.read_csv(
                 file, usecols=['parcel_id','deed_restricted_units','preserved_units','subsidized_units','residential_units','inclusionary_units',
-                               'hhq1','hhq2','hhq3','hhq4','tothh','totemp',"RETEMPN", "MWTEMPN"]) 
+                               'non_residential_sqft','hhq1','hhq2','hhq3','hhq4','tothh','totemp',"RETEMPN", "MWTEMPN"]) 
             logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
             logging.debug("Head:\n{}".format(parcel_df))
             logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))
@@ -388,9 +393,21 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                 
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
                 logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
+
+                # add parcel lookup for 2020 urban area footprint
+                parcel_df = pd.merge(
+                    left     = parcel_df,
+                    right    = rtp2025_urban_area_crosswalk_df,
+                    how      = "left",
+                    on       = "parcel_id",
+                    validate = "one_to_one"
+                )
+                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+                logging.debug("Head after merge with rtp2025_urban_area_crosswalk_df:\n{}".format(parcel_df.head()))
+
                 # rtp2025_tract_crosswalk_df.columns should all be ints -- convert
                 cols_int64 = ['tract10','tract20']
-                cols_int   = ['tract20_epc','tract20_growth_geo','tract20_tra','tract20_hra','tract10_DispRisk']
+                cols_int   = ['tract20_epc','tract20_growth_geo','tract20_tra','tract20_hra','tract10_DispRisk','in_urban_area']
                 fill_cols  = {col:-1 for col in cols_int64+cols_int}
                 logging.debug(fill_cols)
                 parcel_df.fillna(fill_cols, inplace=True)

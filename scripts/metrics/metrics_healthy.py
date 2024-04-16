@@ -123,3 +123,90 @@ def urban_park_acres(
     excel_book.close()
     excel_app.quit()
     logging.info(f"Refreshed {DEST_WORKBOOK} with xlwings")
+
+
+def non_greenfield_development_share(
+        rtp: str,
+        modelrun_alias: str,
+        modelrun_id: str,
+        modelrun_data: dict,
+        run_directory_path: pathlib.Path,
+        output_path: pathlib.Path,
+        append_output: bool
+    ):
+    '''
+    Calculate and export the share of development that falls within the 2020 urban area footprint
+    (or is outside the urban area footprint but suitably low-density as to be rural in character).
+    
+    Parameters:
+    - rtp (str): RTP2021 or RTP2025.
+    - modelrun_alias (str): Alias for the model run, used for labeling output.
+    - modelrun_id (str): Identifier for the model run.
+    - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
+    - run_directory_path (Path): The directory path for this model run.
+    - output_path (Path): The directory path to save the output CSV file.
+    - append_output (bool): True if appending output; False if writing.
+    '''
+    logging.info("Calculating urban_park_acres")
+
+    # Guard clause: this metric is implemented for RTP2025 / PBA50+ only
+    if rtp != 'RTP2025':
+        logging.info("  RTP2021 is not supported - skipping")
+        return
+
+    # Define a potentially very impactful constant used to convert residential units to non-residential sqft and vice versa
+    SQFT_PER_UNIT = 1750  # close to the weighted average size of developer-model units in a recent BAUS run
+
+    # Read in and select new buildings post 2020
+    modelrun_name = modelrun_id.split('\\')[-1]  # Sometimes the modelrun_id is a whole file path
+    NEW_BUILDINGS_PATH = pathlib.Path(run_directory_path) / f'core_summaries/{modelrun_name}_new_buildings_summary.csv'
+    logging.info(f'  Reading new_buildings_summary from {NEW_BUILDINGS_PATH}...')
+    new_buildings = pd.read_csv(
+        NEW_BUILDINGS_PATH,
+        usecols=['parcel_id', 'year_built', 'building_sqft', 'residential_units'],
+        dtype={'parcel_id': int}
+    )
+    new_buildings = new_buildings[new_buildings['year_built'] > 2020]
+    logging.info(f'  {len(new_buildings)} buildings built after 2020')
+
+    # Some residential buildings (from the development pipeline) have no building_sqft);
+    # convert residential units to sqft equivalent so we can summarize "all development"
+    new_buildings.loc[new_buildings['building_sqft'] == 0, 'building_sqft'] = \
+        new_buildings.loc[new_buildings['building_sqft'] == 0, 'residential_units'] * SQFT_PER_UNIT
+    
+    # We are interested in development on any parcel:
+    # 1. outside the 2020 urban area footprint AND
+    # 2. greater than 1 DU-equivalent per acre in 2050
+    parcel_df = modelrun_data[2050]['parcel'].copy()
+    parcel_df['du_equiv_per_acre'] = (parcel_df['residential_units'] + (parcel_df['non_residential_sqft'] / SQFT_PER_UNIT)) \
+                                     / parcel_df['ACRES']
+    dense_greenfield_parcels = parcel_df.loc[
+        (parcel_df['du_equiv_per_acre'] > 1.0) & (parcel_df['in_urban_area'] == 0),
+        'parcel_id'
+    ]
+
+    # Calculate share of "all development" (in terms of building_sqft) that occurred on "dense greenfield parcels"
+    total_development = new_buildings['building_sqft'].sum()
+    dense_greenfield_development = new_buildings.loc[
+        new_buildings['parcel_id'].isin(dense_greenfield_parcels),
+        'building_sqft'
+    ].sum()
+    greenfield_development_pct = dense_greenfield_development / total_development
+
+    # Add metadata, format, and export to CSV
+    greenfield_development_df = pd.DataFrame({
+        'modelrun_id': modelrun_id,
+        'modelrun_alias': modelrun_alias,
+        'area_alias': 'Regionwide',
+        'area': 'all',
+        'development_in_urban_footprint_pct': f'{1 - greenfield_development_pct:.2f}'
+    }, index=[0])
+    out_file = pathlib.Path(output_path) / 'metrics_healthy2_development_in_urban_footprint.csv'
+    greenfield_development_df.to_csv(
+        out_file,
+        mode='a' if append_output else 'w',
+        header=False if append_output else True,
+        index=False,
+    )
+    logging.info(f"{'Appended' if append_output else 'Wrote'} {len(greenfield_development_df)} " \
+                 + f"line{'s' if len(greenfield_development_df) > 1 else ''} to {out_file}")

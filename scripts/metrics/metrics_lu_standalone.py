@@ -149,16 +149,16 @@ def main():
             metrics_vibrant.jobs_housing_ratio(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             
-        
         if (args.only == None) or (args.only == 'connected'):
             metrics_connected.transit_service_area_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
-
-
         if (args.only == None) or (args.only == 'healthy'):
             metrics_healthy.urban_park_acres(
                 BOX_DIR, args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+            metrics_healthy.non_greenfield_development_share(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path,
+                OUTPUT_PATH, append_output)
 
         # output files are started; append henceforth
         append_output = True
