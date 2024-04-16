@@ -348,7 +348,7 @@ def run_models(MODE):
 
                 "geographic_summary",
                 "geographic_growth_summary",
-
+                "parcel_transitions",
                 "taz1_summary",
                 "maz_marginals",
                 "maz_summary",
