@@ -25,7 +25,7 @@ def transit_service_area_share(
     # report shape of parcel_output df
     len_parcels = len(parcel_output)
 
-    logging.debug('Cols of parcels 2050 in connected func', parcel_output.columns)    
+    logging.debug('Cols of parcels 2050 in connected func: {}'.format(parcel_output.columns))
     logging.debug(f"Parcel output has {len_parcels:,} rows")
 
     
