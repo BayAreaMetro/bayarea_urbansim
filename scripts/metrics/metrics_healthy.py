@@ -199,7 +199,7 @@ def non_greenfield_development_share(
         'modelrun_alias': modelrun_alias,
         'area_alias': 'Regionwide',
         'area': 'all',
-        'development_in_urban_footprint_pct': f'{1 - greenfield_development_pct:.2f}'
+        'development_in_urban_footprint_pct': 1 - greenfield_development_pct
     }, index=[0])
     out_file = pathlib.Path(output_path) / 'metrics_healthy2_development_in_urban_footprint.csv'
     greenfield_development_df.to_csv(
