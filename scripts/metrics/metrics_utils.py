@@ -84,7 +84,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
 
         if len(rtp2025_urban_area_crosswalk_df) == 0:
-            URBAN_AREA_CROSSWALK_FILE = "M:/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/p10_parcels_to_2020_urban_areas.csv"
+            URBAN_AREA_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "p10_parcels_to_2020_urban_areas.csv"
             rtp2025_urban_area_crosswalk_df = pd.read_csv(URBAN_AREA_CROSSWALK_FILE, usecols=['parcel_id', 'in_urban_area'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_urban_area_crosswalk_df), URBAN_AREA_CROSSWALK_FILE))
             logging.debug("  rtp2025_urban_area_crosswalk_df.head():\n{}".format(rtp2025_urban_area_crosswalk_df.head()))

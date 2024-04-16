@@ -20,7 +20,9 @@ def transit_service_area_share(
                                 ):
 
     logging.info(f"Calculating connected for {modelrun_alias} / {modelrun_id}")
-    
+    logging.debug(f"Modelrun data years: {modelrun_data.keys()}")
+    logging.debug(f"Modelrun data 2050 datasets: {modelrun_data[2050].keys()}")
+
     parcel_output = modelrun_data[2050]["parcel"]
     # report shape of parcel_output df
     len_parcels = len(parcel_output)
@@ -60,10 +62,10 @@ def transit_service_area_share(
     # get the transit scenario to focus on (e.g., 'fbp' for final bluerprint)
     transit_scenario = transit_scenario_mapping[modelrun_alias]
 
-    # special case exception we can probably handle smoother
-    transit_scenario = "cur" if int(year) in [2015,2020] else transit_scenario
+    # set transit_scenario to cur (existing stops buffers) 
+    transit_scenario = "cur" if int(year) in [2015, 2020] else transit_scenario
 
-        # Identify the passed scenario-specific columns (fbp no project, current)
+    # Identify the passed scenario-specific columns (fbp no project, current)
     # this returns different classifications for each - like the 5-way or 6-way service level (cat5, cat6)
     # several may be returned depending on how many are in the crosswalk
     # we summarize run data for each classification variable
@@ -122,6 +124,10 @@ def transit_service_area_share(
 
     area_vars = {'region': "Region", 'tract20_epc': 'CoCs',
                  'tract20_hra': 'HRAs', 'area_type': 'area_type'}
+    
+    
+    parcel_output['tract20_hra'] = parcel_output['tract20_hra'].replace({0:'Not HRA',1:'HRAs'})
+    parcel_output['tract20_epc'] = parcel_output['tract20_epc'].replace({0:'Not EPC',1:'EPCs'})
 
     # loop through combinations of area types and transit service area classifications
     for combo in product(*[area_vars, transit_svcs_cols]):
