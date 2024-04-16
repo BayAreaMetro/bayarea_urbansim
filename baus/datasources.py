@@ -625,6 +625,10 @@ def get_dev_projects_table(parcels, run_setup):
 #         df = pipeline_filtering(df, filter_criteria)
 #         print('Records in pipeline table - post-filter: ',df.shape[0])
 
+    # geom_id got mangled at some point, so we refresh it via lookup from PARCEL_ID.
+    # TODO We should probably deprecate geom_id (which has no extra information over parcel_id) throughout BAUS
+    df['geom_id'] = parcel_id_to_geom_id(df['PARCEL_ID'])
+    
     df = reprocess_dev_projects(df)
 
     # Optionally - if flag set to use housing element pipeline, load that and append:
@@ -651,9 +655,17 @@ def get_dev_projects_table(parcels, run_setup):
 
     df = df.dropna(subset=['geom_id'])
 
-    cnts = df.geom_id.isin(parcels.geom_id).value_counts()
-    if False in cnts.index:
-        print("%d MISSING GEOMIDS!" % cnts.loc[False])
+    # Warn about and list records that fail to match on geom_id
+    geom_id_mismatch = ~df.geom_id.isin(parcels.geom_id)
+    if geom_id_mismatch.sum() > 0:
+        print(f"Warning: {geom_id_mismatch.sum()} of {len(df)} development "
+              + "pipeline records failed to match the parcels table on geom_id.")
+        print("Records with non-matching geom_ids:")
+        print(df[geom_id_mismatch])
+        # Raise an error if the mismatch is widespread (in terms of DU)
+        if df.loc[geom_id_mismatch, "residential_units"].sum() / df["residential_units"].sum() > 0.01:
+            raise ValueError("Development pipeline records representing more than 1% "
+                             + "of residential units failed to match on geom_id.")
 
     df = df[df.geom_id.isin(parcels.geom_id)]
 
@@ -954,23 +966,27 @@ def displacement_risk_tracts():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/equity/udp_2017results.csv"))
 
 
-# Urban Displacement Project census tracts
+# communities of concern census tracts
 @orca.table(cache=True)
 def coc_tracts():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/equity/COCs_ACS2018_tbl_TEMP.csv"))
 
 
-# Urban Displacement Project census tracts
+# buildings w earthquake codes
 @orca.table(cache=True)
 def buildings_w_eq_codes():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/buildings_w_earthquake_codes.csv"))
 
 
-# Urban Displacement Project census tracts
+# retrofit categories lookup
 @orca.table(cache=True)
 def eq_retrofit_lookup():
     return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/building_eq_categories.csv"))
 
+@orca.table(cache=True)
+def ec5_parcels(): 
+    ec5 = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/parcels_p10_x_ec5.csv"),index_col='parcel_id')
+    return ec5
 
 # this specifies the relationships between tables
 orca.broadcast('buildings', 'residential_units', cast_index=True, onto_on='building_id')

@@ -4,9 +4,9 @@ import pathlib
 import sys
 import time
 import traceback
-from baus import \
-    datasources, variables, models, subsidies, ual, slr, earthquake, \
-    utils, preprocessing
+from baus import (
+    datasources, variables, models, subsidies, ual, slr, earthquake, 
+    utils, preprocessing)
 from baus.tests import validation
 from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
@@ -271,11 +271,21 @@ def run_models(MODE):
                 "reconcile_placed_households",
 
                 "proportional_elcm",
+                "gov_transit_elcm",
+                "elcm_simulate_ec5",
                 "elcm_simulate",  
 
                 "calculate_vmt_fees",
                 "calculate_jobs_housing_fees"]
 
+            if not run_setup["run_jobs_to_transit_strategy_elcm"]:
+                simulation_models.remove("elcm_simulate_ec5")
+                print('Removing `elcm_simulate_ec5`')
+
+            if not run_setup["run_jobs_to_transit_strategy_random"]:
+                simulation_models.remove("gov_transit_elcm")
+                print('Removing `gov_transit_elcm`')
+            
             if not run_setup["run_slr"]:
                 simulation_models.remove("slr_inundate")
                 simulation_models.remove("slr_remove_dev")
@@ -338,7 +348,7 @@ def run_models(MODE):
 
                 "geographic_summary",
                 "geographic_growth_summary",
-
+                "parcel_transitions",
                 "taz1_summary",
                 "maz_marginals",
                 "maz_summary",

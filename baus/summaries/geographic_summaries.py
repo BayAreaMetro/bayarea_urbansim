@@ -5,6 +5,153 @@ import orca
 import pandas as pd
 from baus import datasources
 
+@orca.step()
+def parcel_transitions(parcels, year, initial_summary_year, final_year, run_name):
+    """
+    This function analyzes changes in building types at the parcel level between two dataframes.
+
+    Args:
+        buildings_start (pd.DataFrame): A pandas DataFrame containing building data at the starting time period (typically 2020).
+            This DataFrame is expected to have columns including 'parcel_id', 'building_type', 'residential_units',
+            and 'non_residential_sqft' (or similar column names).
+        buildings_end (pd.DataFrame): A pandas DataFrame containing building data at the ending time period (typically 2050).
+            This DataFrame is expected to have the same columns as buildings_start.
+
+    Returns:
+        pd.DataFrame: A new DataFrame containing information about building transitions between the two time periods.
+            The DataFrame includes columns like 'parcel_id', 'building_type_add' (building type added),
+            'building_type_demo' (building type demolished), 'transition_type' (a string describing the transition),
+            and potentially other columns depending on the input DataFrames.
+    """
+
+    
+    if year!=final_year:
+        print(f'Skipping redevelopment tallying for year {year}')
+        return
+    
+    print('Loading type mappings')
+    # get building types list
+    mapping = orca.get_injectable("mapping")
+    form_to_btype = mapping["form_to_btype"]
+    
+    # explode and generalize
+    building_type_to_general_type = pd.Series(form_to_btype).explode().reset_index(name='building_type')
+    building_type_to_general_type = building_type_to_general_type.set_index('building_type')['index']
+    
+    # recode a few items for a bit more detail
+    building_type_to_general_type.loc['HM']='residential-multi'
+    building_type_to_general_type.loc['HS']='residential-single'
+    building_type_to_general_type = building_type_to_general_type[building_type_to_general_type!='select_non_residential']
+
+    print('Loading buildings: ')
+    # get buildings - first and last year data
+    coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
+    
+    buildings_start_path = coresum_output_dir / f"{run_name}_building_summary_{initial_summary_year}.csv"
+    print(f'Loading {buildings_start_path}')
+    
+    buildings_start = pd.read_csv(buildings_start_path, 
+        index_col='building_id')
+    
+    buildings_end_path = coresum_output_dir / f"{run_name}_building_summary_{final_year}.csv"
+    print(f'Loading {buildings_end_path}')
+    
+    buildings_end = pd.read_csv(buildings_end_path, 
+        index_col='building_id')
+    
+    # assign generalized building type
+    buildings_start['building_type_gen'] = buildings_start['building_type'].map(building_type_to_general_type)
+    buildings_end['building_type_gen'] = buildings_end['building_type'].map(building_type_to_general_type)
+    
+    parcels_df = parcels.to_frame(['county','superdistrict','subregion'])
+    
+    # store new csv here
+    redev_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "redevelopment_summaries"
+    redev_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Assuming an average unit size of 1500 sq ft
+    AVG_UNIT_SIZE = 1500
+
+    # Find building ids added between the two time periods
+    building_additions_ix = buildings_end.index.difference(buildings_start.index)
+    building_additions = buildings_end.loc[building_additions_ix]
+    print(f'New buildings added between {initial_summary_year} and {final_year}: {building_additions_ix.shape[0]:,}')
+    print('buildings_additions coding: ', building_additions.groupby(['building_type_gen','building_type']).size())
+
+    # Find building ids removed (or demolished) between the two time periods
+    building_demolitions_ix = buildings_start.index.difference(buildings_end.index)
+    building_demolitions = buildings_start.loc[building_demolitions_ix]
+    print(f'Old buildings removed between {initial_summary_year} and {final_year}: {building_demolitions_ix.shape[0]:,}')
+    print('buildings_demolitions coding: ', building_demolitions.groupby(['building_type_gen','building_type']).size())
+
+    # Calculate total square footage for demolished buildings based on unit size and non-residential area
+    building_demolitions['residential_sqft'] = building_demolitions['residential_units'] * AVG_UNIT_SIZE
+    building_demolitions['building_sqft'] = building_demolitions['residential_sqft'] + \
+        building_demolitions['non_residential_sqft']
+
+    # Find the largest use type (by sqft) among demolished buildings on each parcel
+    building_demolitions_by_parcel = (
+        building_demolitions.groupby(['parcel_id', 'building_type_gen'])[
+            'building_sqft']
+        .sum()
+        .reset_index(1)
+        .groupby(['parcel_id'])
+        .first()
+    )
+
+    # Calculate total square footage for added buildings based on unit size and non-residential area
+    building_additions['residential_sqft'] = building_additions['residential_units'] * AVG_UNIT_SIZE
+    building_additions['building_sqft'] = building_additions['residential_sqft'] + \
+        building_additions['non_residential_sqft']
+
+    # this should be redundant since it was done on buildings_end but had persistent NaNs 
+    # remove after testing
+    building_additions['building_type_gen'] = building_additions.building_type.map(building_type_to_general_type)
+    print('buildings_additions coding: ', building_additions.groupby(['building_type_gen','building_type']).size())
+
+    # Find the largest use type (by sqft) among added buildings on each parcel
+    building_additions_by_parcel = (
+        building_additions.groupby(['parcel_id', 'building_type_gen'])['building_sqft']
+        .sum()
+        .reset_index(1)
+        .groupby(['parcel_id'])
+        .first()
+    )
+
+    # Merge DataFrames containing information about added and demolished buildings
+    # We keep the focus on buildings standing at the end year - some of them
+    # may not be associated with demolitions at all
+
+    joined = building_additions_by_parcel.merge(
+        building_demolitions_by_parcel,
+        left_index=True,
+        right_index=True,
+        suffixes=('_add', '_demo'),
+        how='left',
+    )
+
+    # Define a quick function to determine the transition type based on the
+    # entering / exiting buildings for a parcel. Just a tad too long for lambda.
+
+    def transition_state_string(row):
+        if row.building_type_gen_demo == row.building_type_gen_add:
+            return row.building_type_gen_demo
+        else:
+            return f'{row.building_type_gen_demo}->{row.building_type_gen_add}'
+
+    joined.building_type_gen_demo = joined.building_type_gen_demo.fillna('VAC')
+
+    # Apply the transition_state_string function (assumed to be defined elsewhere) to each row to determine the transition type
+    joined['transition_type'] = joined.apply(transition_state_string, axis=1)
+
+    for geography in ['county','superdistrict','subregion']:
+        # add a geo classifier to the df
+        joined[geography] = parcels_df[geography]
+    
+        out = joined.groupby([geography,'transition_type']).building_sqft_demo.sum().unstack('transition_type').fillna(0)
+        out_path = redev_output_dir / f"{run_name}_{geography}_redev_summary_growth.csv"
+        out.to_csv(out_path)
+
 
 @orca.step()
 def geographic_summary(parcels, households, jobs, buildings, year, superdistricts_geography,
