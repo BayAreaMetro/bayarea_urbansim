@@ -119,7 +119,8 @@ dev_pipeline_strategies:
 parcels_geography_file: "parcels_geography_2024_02_14.csv"
 #parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "sesit_id", "coc_id", "ppa_id", "cat_id"]
 #parcels_geography_cols: ["gg_id", "pda_id", "tra_id", "hra_id","dis_id", "epc_id", "ppa_id", "cat_id"]
-parcels_geography_cols: ['gg_id', 'pda_id', 'tra_id', 'hra_id', 'epc_id', 'dis_id', 'ppa_id']
+#parcels_geography_cols: ['gg_id', 'pda_id', 'tra_id', 'hra_id', 'epc_id', 'dis_id', 'ppa_id']
+parcels_geography_cols: ["gg_id", "exd_id", "pda_id", "tra_id", "hra_id", "epc_id", "dis_id", "ppa_id", "ugb_id"]
 
 
 # ZONING STRATEGY
