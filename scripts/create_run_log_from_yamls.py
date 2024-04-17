@@ -118,8 +118,8 @@ def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.Da
             # then get the time stamp from the log file
             ts_dict = get_timestamp_from_run_log(p_log_path)
 
-            this_dict['time_stamp_start'] = ts_dict['start']
-            this_dict['time_stamp_end'] = ts_dict['finish']
+            this_dict['time_stamp_start_log'] = ts_dict['start']
+            this_dict['time_stamp_end_log'] = ts_dict['finish']
 
             print(ts_dict['start'])
 
@@ -134,9 +134,20 @@ def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.Da
         dicts.append(this_dict)
     df = pd.DataFrame.from_records(dicts)
 
-    df['is_complete'] = df.time_stamp_start_pth.notna()
+    df['is_complete'] = df.time_stamp_end_log.notna()
 
     # Put meta columns up front
+
+    cols = ['yaml_path', 'is_complete', 'time_stamp_start_log',
+            'time_stamp_start_pth', 'time_stamp_end_log']
+    # ...keep the order of the rest of the columns
+    df = df[cols + [c for c in df.columns if c not in cols]]
+
+    # write the file to disk (box and M)
+    df.to_csv(m_out_path, index=False)
+    df.to_csv(box_out_path, index=False)
+
+
 
 if __name__ == "__main__":
 
@@ -157,6 +168,7 @@ if __name__ == "__main__":
         "Bay Area UrbanSim" / "PBA50plus Meta" / 'run_setup_tracker_autogen.csv'
 
     root_dir = M_DRIVE / "urban_modeling" / "baus" / "PBA50Plus" 
+
 
     # call the function
     build_run_log(root_dir, m_out_path, box_out_path)
