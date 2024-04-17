@@ -75,7 +75,7 @@ def transit_service_area_share(
         regex=transit_scenario
     ).columns.tolist()
 
-    logging.info(
+    logging.debug(
         f'Transit scenario specific classifier columns: {"; ".join(transit_svcs_cols)}'
     )
 
@@ -99,7 +99,7 @@ def transit_service_area_share(
                 agg_mapping
             )
         )
-        logging.info(
+        logging.debug(
             f'Summarizing parcels with respect to: {"; ".join(group_vars)}')
         logging.debug(f"{grp_summary.head()}")
 
@@ -223,9 +223,9 @@ def format_for_tableau(plan_metrics_df: pd.DataFrame,
     Returns:
         pd.DataFrame: The formatted DataFrame.
     """
-    logging.info(f"Formatting for Tableau")
-    logging.info(f"Query string: {qrystring}")
-    logging.info(f"Number of metrics: {len(plan_metrics_df)}")
+    logging.debug(f"Formatting for Tableau")
+    logging.debug(f"Query string: {qrystring}")
+    logging.debug(f"Number of metrics: {len(plan_metrics_df)}")
 
     tableau_column_map = { 'modelrun_id':'modelrun_id',
         "modelrun_alias": "modelrun_alias",
@@ -264,7 +264,7 @@ def format_for_tableau(plan_metrics_df: pd.DataFrame,
     # first, we subset away most of the categories
     plan_metrics_df_for_tableau = plan_metrics_df.query(qrystring)
 
-    logging.info(f'After filtering of output for tableau: {plan_metrics_df_for_tableau.head()}')
+    logging.debug(f'After filtering of output for tableau: {plan_metrics_df_for_tableau.head()}')
     
     # then we deal with the schema and domains
     metrics_tableau_schema = (
