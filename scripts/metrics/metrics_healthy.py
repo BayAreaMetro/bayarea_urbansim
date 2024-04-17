@@ -158,7 +158,13 @@ def non_greenfield_development_share(
     SQFT_PER_UNIT = 1750  # close to the weighted average size of developer-model units in a recent BAUS run
 
     # Read in and select new buildings post 2020
-    modelrun_name = modelrun_id.split('\\')[-1]  # Sometimes the modelrun_id is a whole file path
+    modelrun_name = modelrun_id
+    # Sometimes the modelrun_id is a whole file path
+    # Handle both forms of slashes in this field
+    if '\\' in modelrun_id:
+        modelrun_name = modelrun_id.split('\\')[-1]
+    if '/' in modelrun_id:
+        modelrun_name = modelrun_id.split('/')[-1]
     NEW_BUILDINGS_PATH = pathlib.Path(run_directory_path) / f'core_summaries/{modelrun_name}_new_buildings_summary.csv'
     logging.info(f'  Reading new_buildings_summary from {NEW_BUILDINGS_PATH}...')
     new_buildings = pd.read_csv(
