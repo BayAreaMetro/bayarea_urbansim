@@ -25,6 +25,13 @@ def jobs_housing_ratio(
     - output_path (str or Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing
     
+    Writes metrics_vibrant1_jobs_housing_ratio.csv to output_path, appending if append_output is True. Columns are:
+    - modelrun_id
+    - modelrun_alias
+    - county
+    - total_jobs
+    - total_households
+    - jobs_housing_ratio
 
     """
     logging.info("Calculating jobs_housing_ratio")
