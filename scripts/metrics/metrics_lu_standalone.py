@@ -140,10 +140,12 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             
         if (args.only == None) or (args.only == 'growth'):
+            # In doing this, gets the regional hh and jobs growth to pass to the county method
+            # so that the results are consistent.
+            regional_hh_jobs_dict = metrics_growth.growth_patterns_geography(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             metrics_growth.growth_patterns_county(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-            metrics_growth.growth_patterns_geography(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'vibrant'):
             metrics_vibrant.jobs_housing_ratio(
