@@ -44,11 +44,14 @@ def elcm_simulate(jobs, buildings, aggregations):
 
 
 @orca.step()
-def elcm_simulate_ec5(jobs, buildings, aggregations):
+def elcm_simulate_ec5(jobs, buildings, aggregations, year):
     """
     testing docstring documentation for automated documentation creation
     """
-    
+    if year<=2030:
+        # hold off until 2030 simulation
+        return
+
     #spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
     spec_path = os.path.join("location_choice",'elcm_ec5.yaml')
     
@@ -62,7 +65,7 @@ def elcm_simulate_ec5(jobs, buildings, aggregations):
 
 # EC5 jobs-to-transit buffers assignment testing
 @orca.step()
-def gov_transit_elcm(jobs, buildings, parcels, run_setup):
+def gov_transit_elcm(jobs, buildings, parcels, run_setup, year):
 
     """
     This function assigns jobs in the NAICS 91 sector (Real Estate and Rental and Leasing) to vacant job spaces in transit hubs (ec5_cat='Transit_Hub').
@@ -80,6 +83,9 @@ def gov_transit_elcm(jobs, buildings, parcels, run_setup):
 
     """
 
+    if year<=2030:
+        # hold off until 2030 simulation
+        return
     # We look for a rate in the yaml and fall back on a conservative .25 (since this is a five year rate)
     GOVT_RELOCATION_RATE = run_setup.get('jobs_to_transit_strategy_random_reloc_rate',.25)
 
