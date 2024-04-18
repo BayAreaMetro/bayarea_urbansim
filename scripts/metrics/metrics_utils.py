@@ -213,6 +213,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
 
         # define analysis years
         modelrun_data[2020]  = {}
+        modelrun_data[2025]  = {}  # for later interpolation to 2023
         modelrun_data[2050]  = {}
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
@@ -351,148 +352,166 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             modified_parcel_pattern = parcel_pattern
 
         logging.debug("Looking for parcel data matching {}".format(modified_parcel_pattern.format(year)))
-        parcel_file_list = run_directory_path.glob(modified_parcel_pattern.format(year))
-        for file in parcel_file_list:
-            # non_residential_sqft is not available in the RTP2021 parcel table
-            usecols = ['parcel_id','deed_restricted_units','preserved_units','subsidized_units','residential_units','inclusionary_units',
-                       'hhq1','hhq2','hhq3','hhq4','tothh','totemp', "RETEMPN", "MWTEMPN", "OTHEMPN","HEREMPN","FPSEMPN"]
-            if rtp == "RTP2025":
-                usecols.append('non_residential_sqft')
-            parcel_df = pd.read_csv(file, usecols=usecols)
-            logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
-            logging.debug("Head:\n{}".format(parcel_df))
-            logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))
+        file = next(run_directory_path.glob(modified_parcel_pattern.format(year)))
+        logging.debug(f"Found {file}")
+        # non_residential_sqft is not available in the RTP2021 parcel table
+        usecols = ['parcel_id','deed_restricted_units','preserved_units','subsidized_units','residential_units','inclusionary_units',
+                    'hhq1','hhq2','hhq3','hhq4','tothh','totemp', "RETEMPN", "MWTEMPN", "OTHEMPN","HEREMPN","FPSEMPN"]
+        if rtp == "RTP2025":
+            usecols.append('non_residential_sqft')
+        parcel_df = pd.read_csv(file, usecols=usecols)
+        logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
+        logging.debug("Head:\n{}".format(parcel_df))
+        logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))
 
-            if rtp=="RTP2025":
-                # add geography crosswalk for zoning categories
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2025_geography_crosswalk_df,
-                    how      = "left",
-                    left_on  = "parcel_id",
-                    right_on = "PARCEL_ID",
-                    validate = "one_to_one"
-                )
-                logging.debug("Head after merge with rtp2025_geography_crosswalk_df:\n{}".format(parcel_df.head()))
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+        if rtp == "RTP2025":
+            # add geography crosswalk for zoning categories
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = rtp2025_geography_crosswalk_df,
+                how      = "left",
+                left_on  = "parcel_id",
+                right_on = "PARCEL_ID",
+                validate = "one_to_one"
+            )
+            logging.debug("Head after merge with rtp2025_geography_crosswalk_df:\n{}".format(parcel_df.head()))
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+        
+            # add tract lookup for tract categories
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = rtp2025_tract_crosswalk_df,
+                how      = "left",
+                on       = "parcel_id",
+                validate = "one_to_one"
+            )
+
+            # add transit service area lookups
+            #logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = rtp2025_transit_service_df,
+                how      = "left",
+                left_on  = "parcel_id",
+                right_on ="PARCEL_ID",
+                validate = "one_to_one"
+            )
             
-                # add tract lookup for tract categories
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2025_tract_crosswalk_df,
-                    how      = "left",
-                    on       = "parcel_id",
-                    validate = "one_to_one"
-                )
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
 
-                # add transit service area lookups
-                #logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2025_transit_service_df,
-                    how      = "left",
-                    left_on  = "parcel_id",
-                    right_on ="PARCEL_ID",
-                    validate = "one_to_one"
-                )
-                
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-                logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
+            # add parcel lookup for 2020 urban area footprint
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = rtp2025_urban_area_crosswalk_df,
+                how      = "left",
+                on       = "parcel_id",
+                validate = "one_to_one"
+            )
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            logging.debug("Head after merge with rtp2025_urban_area_crosswalk_df:\n{}".format(parcel_df.head()))
 
-                # add parcel lookup for 2020 urban area footprint
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2025_urban_area_crosswalk_df,
-                    how      = "left",
-                    on       = "parcel_id",
-                    validate = "one_to_one"
-                )
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-                logging.debug("Head after merge with rtp2025_urban_area_crosswalk_df:\n{}".format(parcel_df.head()))
+            # rtp2025_tract_crosswalk_df.columns should all be ints -- convert
+            cols_int64 = ['tract10','tract20']
+            cols_int   = ['tract20_epc','tract20_growth_geo','tract20_tra','tract20_hra','tract10_DispRisk','in_urban_area']
+            fill_cols  = {col:-1 for col in cols_int64+cols_int}
+            logging.debug(fill_cols)
+            parcel_df.fillna(fill_cols, inplace=True)
+            parcel_df[cols_int64] = parcel_df[cols_int64].astype('int64')
+            parcel_df[cols_int] = parcel_df[cols_int].astype(int)
+            logging.debug("Head after int type conversion:\n{}".format(parcel_df.head()))
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
-                # rtp2025_tract_crosswalk_df.columns should all be ints -- convert
-                cols_int64 = ['tract10','tract20']
-                cols_int   = ['tract20_epc','tract20_growth_geo','tract20_tra','tract20_hra','tract10_DispRisk','in_urban_area']
-                fill_cols  = {col:-1 for col in cols_int64+cols_int}
-                logging.debug(fill_cols)
-                parcel_df.fillna(fill_cols, inplace=True)
-                parcel_df[cols_int64] = parcel_df[cols_int64].astype('int64')
-                parcel_df[cols_int] = parcel_df[cols_int].astype(int)
-                logging.debug("Head after int type conversion:\n{}".format(parcel_df.head()))
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+        if rtp == "RTP2021":
+            # if it's already here, remove -- we're adding from a single source
+            if 'fbpchcat' in parcel_df.columns:
+                parcel_df.drop(columns=['fbpchcat'], inplace=True)
 
-            if rtp == "RTP2021":
-                # if it's already here, remove -- we're adding from a single source
-                if 'fbpchcat' in parcel_df.columns:
-                    parcel_df.drop(columns=['fbpchcat'], inplace=True)
+            # join to get fbpchcat and the zoning columns (gg_id, tra_id, hra_id, dis_id)
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = rtp2021_geography_crosswalk_df,
+                how      = "left",
+                left_on  = "parcel_id",
+                right_on = "PARCEL_ID",
+                validate = "one_to_one"
+            )
+            assert('fbpchcat' in parcel_df.columns)
 
-                # join to get fbpchcat and the zoning columns (gg_id, tra_id, hra_id, dis_id)
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2021_geography_crosswalk_df,
-                    how      = "left",
-                    left_on  = "parcel_id",
-                    right_on = "PARCEL_ID",
-                    validate = "one_to_one"
-                )
-                assert('fbpchcat' in parcel_df.columns)
+            # Merge the tract and coc crosswalks
+            parcel_df = parcel_df.merge(rtp2021_tract_crosswalk_df, on="parcel_id", how="left")
+            logging.debug("parcel_df after first merge with tract crosswalk:\n{}".format(parcel_df.head(30)))
 
-                # Merge the tract and coc crosswalks
-                parcel_df = parcel_df.merge(rtp2021_tract_crosswalk_df, on="parcel_id", how="left")
-                logging.debug("parcel_df after first merge with tract crosswalk:\n{}".format(parcel_df.head(30)))
+            parcel_df = parcel_df.merge(rtp2021_pda_crosswalk_df, on="parcel_id", how="left")
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
-                parcel_df = parcel_df.merge(rtp2021_pda_crosswalk_df, on="parcel_id", how="left")
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            # Retain only a subset of columns after merging
+            columns_to_keep = ['parcel_id', 'tract10', 'fbpchcat', 
+                                'gg_id', 'tra_id', 'hra_id', 'dis_id', 'ppa_id',
+                                'hhq1', 'hhq2', 'hhq3', 'hhq4', 
+                                'tothh', 'totemp',
+                                'deed_restricted_units', 'residential_units', 'preserved_units',
+                                'pda_id_pba50_fb',
+                                # tract-level columns
+                                'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra']
+            parcel_df = parcel_df[columns_to_keep]
+            logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 
-                # Retain only a subset of columns after merging
-                columns_to_keep = ['parcel_id', 'tract10', 'fbpchcat', 
-                                   'gg_id', 'tra_id', 'hra_id', 'dis_id', 'ppa_id',
-                                   'hhq1', 'hhq2', 'hhq3', 'hhq4', 
-                                   'tothh', 'totemp',
-                                   'deed_restricted_units', 'residential_units', 'preserved_units',
-                                   'pda_id_pba50_fb',
-                                   # tract-level columns
-                                   'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra']
-                parcel_df = parcel_df[columns_to_keep]
-                logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
-
-
-            modelrun_data[year]['parcel'] = parcel_df
+        modelrun_data[year]['parcel'] = parcel_df
 
     # Load county summaries
     for year in sorted(modelrun_data.keys()):
         logging.debug("Looking for geographic summaries matching {}".format(geo_summary_pattern.format(year)))
-        geo_summary_file_list = run_directory_path.glob(geo_summary_pattern.format(year))
-        for file in geo_summary_file_list:
-            geo_summary_df = pd.read_csv(file)
-            logging.info("  Read {:,} rows from geography summary {}".format(len(geo_summary_df), file))
-            logging.debug("Head:\n{}".format(geo_summary_df))
-            modelrun_data[year]['county'] = geo_summary_df
+        file = next(run_directory_path.glob(geo_summary_pattern.format(year)))
+        logging.debug(f"Found {file}")
+        geo_summary_df = pd.read_csv(file)
+        logging.info("  Read {:,} rows from geography summary {}".format(len(geo_summary_df), file))
+        logging.debug("Head:\n{}".format(geo_summary_df))
+        modelrun_data[year]['county'] = geo_summary_df
 
     # Load taz summaries
     # This is only necessary for RTP2025 / healthy.urban_park_acres()
     if rtp == "RTP2025":
         for year in sorted(modelrun_data.keys()):
             logging.debug("Looking for taz1 summaries matching {}".format(taz1_summary_pattern.format(year)))
-            taz1_summary_file_list = list(run_directory_path.glob(taz1_summary_pattern.format(year)))
+            file = next(run_directory_path.glob(taz1_summary_pattern.format(year)))
+            logging.debug(f"Found {file}")
+            taz1_summary_df = pd.read_csv(file, usecols=['TAZ','COUNTY','TOTPOP'])
+            taz1_summary_df.rename(columns={'TAZ':'TAZ1454'}, inplace=True)
+            logging.info("  Read {:,} rows from taz summary {}".format(len(taz1_summary_df), file))
+            logging.debug("Head:\n{}".format(taz1_summary_df))
 
-            logging.debug(f"taz1_summary_file_list: {taz1_summary_file_list}")
-            for file in taz1_summary_file_list:
-                taz1_summary_df = pd.read_csv(file, usecols=['TAZ','COUNTY','TOTPOP'])
-                taz1_summary_df.rename(columns={'TAZ':'TAZ1454'}, inplace=True)
-                logging.info("  Read {:,} rows from taz summary {}".format(len(taz1_summary_df), file))
-                logging.debug("Head:\n{}".format(taz1_summary_df))
+            taz1_summary_df = pd.merge(
+                left     = taz1_summary_df,
+                right    = rtp2025_taz_crosswalk_df,
+                on       = "TAZ1454",
+                how      = "left",
+                validate = "one_to_one"
+            )
+            logging.debug("Head:\n{}".format(taz1_summary_df))
+            modelrun_data[year]['TAZ1454'] = taz1_summary_df
+            # columns: TAZ1454, COUNTY, TOTPOP, taz_epc
+    
+    # Interpolate to 2023 base year
+    if rtp == "RTP2025":
+        logging.info("Interpolating to 2023 base year")
+        modelrun_data[2023] = {}
+        for geog in modelrun_data[2020].keys():  # could get geog and 2020 df via .items() but I think this is clearer if more verbose
+            t1, t2 = 2020, 2025
+            df1 = modelrun_data[t1][geog]
+            df2 = modelrun_data[t2][geog]
 
-                taz1_summary_df = pd.merge(
-                    left     = taz1_summary_df,
-                    right    = rtp2025_taz_crosswalk_df,
-                    on       = "TAZ1454",
-                    how      = "left",
-                    validate = "one_to_one"
-                )
-                logging.debug("Head:\n{}".format(taz1_summary_df))
-                modelrun_data[year]['TAZ1454'] = taz1_summary_df
-                # columns: TAZ1454, COUNTY, TOTPOP, taz_epc
+            df = df1.copy()
+            for col in df.columns:
+                if pd.api.types.is_numeric_dtype(df[col]):
+                    # Long way to write 3/5 but maybe it'll pay off in future... :)
+                    df[col] = df1[col] + ((2023 - t1) / (t2 - t1))*(df2[col] - df1[col])
+
+            modelrun_data[2023][geog] = df
+        
+        logging.info("Deleting 2020 and 2025 data")
+        del modelrun_data[2020]
+        del modelrun_data[2025]
 
     logging.debug("modelrun_data:\n{}".format(modelrun_data))
     return modelrun_data

@@ -53,16 +53,8 @@ def urban_park_acres(
     sheet = workbook["Dashboard"]
     logging.debug(f"  dimensions:{sheet.dimensions}")
 
-    SUMMARY_YEARS = sorted(modelrun_data.keys())
-    # TODO: Right now we'll pretend 2020 data is really 2023
-    # TODO: See task: Make 2023 baseyear (rather than 2020), use NoProject run for it, and use it 
-    # TODO:           for all scenario initial year data
-    # TODO:           https://app.asana.com/0/0/1207031046044722/f
-    WORKSHEET_SUMMARY_YEARS = [2023 if year==2020 else year for year in SUMMARY_YEARS]
-
     # summarize by year
-    for year_idx in range(len(SUMMARY_YEARS)):
-        year = WORKSHEET_SUMMARY_YEARS[year_idx]
+    for year_idx, year in enumerate(sorted(modelrun_data.keys())):
         # and by Regionwide vs EPC
         for person_segment in ['', 'EPC ']:
 
@@ -89,7 +81,7 @@ def urban_park_acres(
                 continue
 
             # summarize the data for this
-            tazdata_df = modelrun_data[SUMMARY_YEARS[year_idx]]['TAZ1454']
+            tazdata_df = modelrun_data[year]['TAZ1454']
             if person_segment == 'EPC ':
                 tazdata_df = tazdata_df.loc[ tazdata_df.taz_epc == 1]
             
@@ -104,7 +96,7 @@ def urban_park_acres(
             for county_num in range(len(taz_county_summary_df)):
                 # get county name from col-2
                 county_name = sheet.cell(row_num+county_num+1, col_num + county_col_offset).value
-                # logging.debug(f"county_name={county_name}")
+                logging.debug(f"{county_name=} {row_num+county_num+1=} {col_num+county_col_offset=}")
                 # set the population
                 sheet.cell(row_num+county_num+1, col_num).value = taz_county_summary_df.loc[county_name, 'TOTPOP']
             # skip one row and fill in the modelrun_id
