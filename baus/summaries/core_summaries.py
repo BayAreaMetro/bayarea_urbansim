@@ -133,14 +133,20 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
                                    [parcels, buildings, households], columns=['zone_id', 'zone_id_x', 'base_income_quartile'])
     households["zone_id"] = households.zone_id_x
     
-    jobs = orca.merge_tables('jobs', [parcels, buildings, jobs], columns=['zone_id', 'zone_id_x', 'empsix'])
+    jobs = orca.merge_tables('jobs', [parcels, buildings, jobs],
+                         columns=['zone_id', 'zone_id_x', 'empsix', "ec5_cat"])
     jobs["zone_id"] = jobs.zone_id_x
+    jobs['is_transit_hub'] = (jobs.ec5_cat=="Transit_Hub").map({True:'job_in_transit_hub',False:'job_not_in_transit_hub'})
 
     parcels = parcels.to_frame()
     parcels = parcels.join(parcels_zoning_calculations.to_frame(), lsuffix='parcels')
 
     buildings = buildings.to_frame()
     residential_units = residential_units.to_frame()
+
+    # ADD JOBS BY TRANSIT ZONES
+    jobs_by_ec5 = jobs.groupby(['zone_id','is_transit_hub']).size().unstack(1).fillna(0).astype(int)
+    zones = zones.merge(jobs_by_ec5, how='left',left_index=True,right_index=True)
 
     zones['non_residential_sqft'] = buildings.groupby('zone_id').non_residential_sqft.sum()
     zones['non_residential_sqft_office'] = buildings.query('building_type=="OF"').groupby('zone_id').non_residential_sqft.sum()
