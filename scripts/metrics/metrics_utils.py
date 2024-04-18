@@ -22,8 +22,11 @@ PARCEL_AREA_FILTERS = {
             'TRA'      : lambda df: df['tra_id'] != 'NA',  # note this is the string NA
             'HRAandTRA': lambda df: (df['tra_id'] != 'NA') & (df['hra_id'] == 'HRA'),
             'GG'       : lambda df: df['gg_id'] == 'GG',
+            'nonGG'    : lambda df: df['gg_id'] != 'GG',
+            'GG_nonPDA': lambda df: (df['gg_id'] == 'GG') & (df['ppa_id'] != 'ppa'),
             'PDA'      : lambda df: pd.notna(df['pda_id_pba50_fb']),
             'EPC'      : lambda df: df['tract10_epc'] == 1,
+            'nonEPC'   : lambda df: df['tract10_epc'] != 1,
             'PPA'      : lambda df: df['ppa_id'] == 'ppa',
             'Region'   : None
     },
@@ -32,8 +35,11 @@ PARCEL_AREA_FILTERS = {
             'TRA'      : lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
             'HRAandTRA': lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
             'GG'       : lambda df: df['gg_id'] == 'GG',
-            'PDA'      : lambda df: pd.notna(df['pda_id']), # this should be modified
+            'nonGG'    : lambda df: df['gg_id'] != 'GG',
+            'GG_nonPDA': lambda df: (df['gg_id'] == 'GG') & (pd.isna(df['ppa_id'])),
+            'PDA'      : lambda df: pd.notna(df['pda_id']),
             'EPC'      : lambda df: df['epc_id'] == 'EPC',
+            'nonEPC'   : lambda df: df['epc_id'] != 'EPC',
             'PPA'      : lambda df: df['ppa_id'] == 'PPA',
             'Region'   : None
     }
