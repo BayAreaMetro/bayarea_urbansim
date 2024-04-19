@@ -458,6 +458,8 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                                 'tothh', 'totemp',
                                 'deed_restricted_units', 'residential_units', 'preserved_units',
                                 'pda_id_pba50_fb',
+                                # employment
+                                'MWTEMPN', 'RETEMPN', 'FPSEMPN', 'HEREMPN', 'OTHEMPN',
                                 # tract-level columns
                                 'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra']
             parcel_df = parcel_df[columns_to_keep]

@@ -19,6 +19,11 @@ def transit_service_area_share(
                                 append_output: bool
                                 ):
 
+    # TODO: this is broken for RTP2021
+    if rtp == "RTP2021":
+        logging.info(f'transit_service_area_share is broken for {rtp}')
+        return
+                 
     logging.info(f"Calculating connected for {modelrun_alias} / {modelrun_id}")
     logging.debug(f"Modelrun data years: {modelrun_data.keys()}")
     logging.debug(f"Modelrun data 2050 datasets: {modelrun_data[2050].keys()}")
@@ -76,7 +81,7 @@ def transit_service_area_share(
     ).columns.tolist()
 
     logging.debug(
-        f'Transit scenario specific classifier columns: {"; ".join(transit_svcs_cols)}'
+        f'Transit scenario specific for {transit_scenario=} classifier columns: {"; ".join(transit_svcs_cols)}'
     )
 
     # Define columns containing values of interest - more could be added as long as it is present and numeric
@@ -123,12 +128,17 @@ def transit_service_area_share(
     # is distributed by transit service area (e.g. cat5, cat6, etc.): what share of households
     # live in major transit areas? what share of jobs live in major transit areas?
 
-    area_vars = {'region': "Region", 'tract20_epc': 'CoCs',
-                 'tract20_hra': 'HRAs', 'area_type': 'area_type'}
-    
-    
-    parcel_output['tract20_hra'] = parcel_output['tract20_hra'].replace({0:'Not HRA',1:'HRAs'})
-    parcel_output['tract20_epc'] = parcel_output['tract20_epc'].replace({0:'Not EPC',1:'EPCs'})
+    if rtp=="RTP2021":
+        # RTP2021 was tract10-based
+        area_vars = {'region': "Region", 'tract10_epc': 'CoCs',
+                    'tract10_hra': 'HRAs', 'area_type': 'area_type'}
+        parcel_output['tract10_hra'] = parcel_output['tract10_hra'].replace({0:'Not HRA',1:'HRAs'})
+        parcel_output['tract10_epc'] = parcel_output['tract10_epc'].replace({0:'Not EPC',1:'EPCs'})
+    if rtp=="RTP2025":
+        area_vars = {'region': "Region", 'tract20_epc': 'CoCs',
+                    'tract20_hra': 'HRAs', 'area_type': 'area_type'}
+        parcel_output['tract20_hra'] = parcel_output['tract20_hra'].replace({0:'Not HRA',1:'HRAs'})
+        parcel_output['tract20_epc'] = parcel_output['tract20_epc'].replace({0:'Not EPC',1:'EPCs'})
 
     # loop through combinations of area types and transit service area classifications
     for combo in product(*[area_vars, transit_svcs_cols]):
