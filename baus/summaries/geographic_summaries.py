@@ -110,6 +110,7 @@ def parcel_transitions(parcels, year, initial_summary_year, final_year, run_name
     print('buildings_additions coding: ', building_additions.groupby(['building_type_gen','building_type']).size())
 
     # Find the largest use type (by sqft) among added buildings on each parcel
+    # actually we are just getting the first one - nlargest was uncomfortably slow here.
     building_additions_by_parcel = (
         building_additions.groupby(['parcel_id', 'building_type_gen'])['building_sqft']
         .sum()
@@ -165,11 +166,14 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
         columns=['juris', 'superdistrict', 'county', 'subregion', 'base_income_quartile',])
 
     jobs_df = orca.merge_tables('jobs', [parcels, buildings, jobs],
-        columns=['juris', 'superdistrict', 'county', 'subregion', 'empsix'])
+        columns=['juris', 'superdistrict', 'county', 'subregion', 'empsix', 'ec5_cat'])
 
     buildings_df = orca.merge_tables('buildings', [parcels, buildings],
         columns=['juris', 'superdistrict', 'county', 'subregion', 'building_type', 
-                 'residential_units', 'deed_restricted_units', 'non_residential_sqft'])
+                 'residential_units', 'deed_restricted_units', 'non_residential_sqft','job_spaces'])
+
+    jobs_df['is_transit_hub'] = (jobs_df.ec5_cat=="Transit_Hub").map({True:'job_in_transit_hub',False:'job_not_in_transit_hub'})
+    
 
     #### summarize regional results ####
     region = pd.DataFrame(index=['region'])
@@ -203,6 +207,11 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
     for geography in geographies:
 
         # remove rows with null geography- seen with "county"
+        
+        # TODO: we should start with the raw buildings frame - so we don't
+        # end up increasingly reducing the frame if there are NAs
+        # in an early loop carrying through to later loops.
+
         buildings_df = buildings_df[~pd.isna(buildings_df[geography])]
         households_df = households_df[~pd.isna(households_df[geography])]
         jobs_df = jobs_df[~pd.isna(jobs_df[geography])]
@@ -231,10 +240,16 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
         summary_table['totemp'] = jobs_df.groupby(geography).size()
         for empsix in ['AGREMPN', 'MWTEMPN', 'RETEMPN', 'FPSEMPN', 'HEREMPN', 'OTHEMPN']:
             summary_table[empsix] = jobs_df[jobs_df.empsix == empsix].groupby(geography).size()
+        summary_table['transit_hub_jobs'] = jobs_df.query('ec5_cat=="Transit_Hub" ').groupby(geography).size()
+    
 
         # non-residential buildings
         summary_table['non_residential_sqft'] = buildings_df.groupby(geography)['non_residential_sqft'].sum().round(0)
+        summary_table['non_residential_sqft_office'] = buildings_df.query('building_type=="OF"').groupby(geography)['non_residential_sqft'].sum().round(0)
+        summary_table['job_spaces'] = buildings_df.groupby(geography)['job_spaces'].sum().round(0)
+        summary_table['job_spaces_office'] = buildings_df.query('building_type=="OF"').groupby(geography)['job_spaces'].sum().round(0)
    
+
         summary_table.index.name = geography
         summary_table = summary_table.sort_index()
         summary_table.fillna(0).to_csv(geosum_output_dir / f"{run_name}_{geography}_summary_{year}.csv")
