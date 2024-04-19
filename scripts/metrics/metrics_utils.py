@@ -75,7 +75,7 @@ def load_data_for_runs(
     - dict with year -> {
         "parcel" -> parcel DataFrame, 
         "county" -> county DataFrame,
-        "TAZ1454"-> taz DataFrame (necessary for totpop)
+        "TAZ1454"-> taz DataFrame (necessary for totpop, which is only tabulated for TAZs)
       }
     
     """
@@ -98,6 +98,9 @@ def load_data_for_runs(
             rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ppa_id','ugb_id'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
+            logging.debug(f"  rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)}")
+            logging.debug(f"  {len(rtp2025_geography_crosswalk_df.loc[pd.isna(rtp2025_geography_crosswalk_df.ppa_id)])=}")
+            logging.debug(f"  rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)}")
 
         if len(rtp2025_urban_area_crosswalk_df) == 0:
             URBAN_AREA_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "p10_parcels_to_2020_urban_areas.csv"
@@ -490,12 +493,14 @@ def load_data_for_runs(
 
     # Load taz summaries
     # This is only necessary for RTP2025 / healthy.urban_park_acres()
+    #         and superdistrict-based jobs/housing summaries
     if rtp == "RTP2025":
         for year in sorted(modelrun_data.keys()):
             logging.debug("Looking for taz1 summaries matching {}".format(taz1_summary_pattern.format(year)))
             file = next(run_directory_path.glob(taz1_summary_pattern.format(year)))
             logging.debug(f"Found {file}")
-            taz1_summary_df = pd.read_csv(file, usecols=['TAZ','COUNTY','TOTPOP'])
+            taz1_summary_df = pd.read_csv(file, usecols=['TAZ','COUNTY','SD','TOTHH','TOTEMP','TOTPOP'],
+                                          dtype={'SD':str}) # consider SD as a string
             taz1_summary_df.rename(columns={'TAZ':'TAZ1454'}, inplace=True)
             logging.info("  Read {:,} rows from taz summary {}".format(len(taz1_summary_df), file))
             logging.debug("Head:\n{}".format(taz1_summary_df))
