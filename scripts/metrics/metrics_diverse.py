@@ -148,7 +148,7 @@ def gentrify_displacement_tracts(
                 tract_keys['tract10'].add(CATEGORY_TO_RTP_TRACT_ID[rtp][cat])
             if CATEGORY_TO_RTP_TRACT_ID[rtp][cat].startswith('tract20'):
                 tract_keys['tract20'].add(CATEGORY_TO_RTP_TRACT_ID[rtp][cat])
-    logging.debug(f"tract_keys={tract_keys}")
+    logging.debug(f"{tract_keys=}")
 
     # store results here to build dataframe
     summary_dict_list = []
@@ -183,14 +183,12 @@ def gentrify_displacement_tracts(
             )
 
         # displacement, defined as net loss of low income households in a census tract between the initial and horizon year
-        multiyear_tract_summary_df['displacement'] = False
-        multiyear_tract_summary_df.loc[ multiyear_tract_summary_df[f'hhq1_{HORIZON_YEAR}'] < multiyear_tract_summary_df[f'hhq1_{INITIAL_YEAR}'], 
-                         'displacement' ] = True
+        multiyear_tract_summary_df['displacement'] = (
+            multiyear_tract_summary_df[f'hhq1_{HORIZON_YEAR}'] < multiyear_tract_summary_df[f'hhq1_{INITIAL_YEAR}']).fillna(False)
         # gentrification, defined as over 10% drop in share of low income households in a census tract between 
         # the initial and horizon year
-        multiyear_tract_summary_df['gentrification'] = False
-        multiyear_tract_summary_df.loc[ multiyear_tract_summary_df[f'hhq1_share_{HORIZON_YEAR}']/multiyear_tract_summary_df[f'hhq1_share_{INITIAL_YEAR}'] < 0.9, 
-                         'gentrification'] = True
+        multiyear_tract_summary_df['gentrification'] = (
+            multiyear_tract_summary_df[f'hhq1_share_{HORIZON_YEAR}']/multiyear_tract_summary_df[f'hhq1_share_{INITIAL_YEAR}'] < 0.9).fillna(False)
 
         # reset index. columns are now: 
         #   tract[10|20] [tract10|20 keys]
@@ -205,7 +203,7 @@ def gentrify_displacement_tracts(
 
             cat1_tract_var = CATEGORY_TO_RTP_TRACT_ID[rtp][cat1]
             cat2_tract_var = CATEGORY_TO_RTP_TRACT_ID[rtp][cat2]
-            logging.debug(f"Summarizing ({cat1},{cat2}); cat1_tract_var:{cat1_tract_var}  cat2_tract_var:{cat2_tract_var}")
+            logging.debug(f"Summarizing ({cat1},{cat2}); {cat1_tract_var=} {cat2_tract_var=}")
             # error if both not none and mismatching (e.g. can't summarize on tract10 and tract20 at the same time)
             if cat1_tract_var and cat2_tract_var:
                 # logging.debug(f"{cat1_tract_var[:7]} == {cat2_tract_var[:7]}")
@@ -219,39 +217,32 @@ def gentrify_displacement_tracts(
             if cat1 == 'Region':
                 category_tract_summary_df = multiyear_tract_summary_df # no filter
             elif cat1 == 'GrowthGeography':
-                category_tract_summary_df = multiyear_tract_summary_df.loc[ multiyear_tract_summary_df[cat1_tract_var] == 1]  # tract[10|20]_growth_geo == 1
+                category_tract_summary_df = multiyear_tract_summary_df.loc[multiyear_tract_summary_df[cat1_tract_var] == 1]  # tract[10|20]_growth_geo == 1
             else:
-                raise RuntimeError(f"cat1={cat1} not supported")
+                raise RuntimeError(f"{cat1=} not supported")
 
             # filter to cat2
             if cat2.startswith('all'):
                 pass # no filter
             else:
-                category_tract_summary_df = category_tract_summary_df.loc[ category_tract_summary_df[cat2_tract_var] == 1]
+                category_tract_summary_df = category_tract_summary_df.loc[category_tract_summary_df[cat2_tract_var] == 1]
             
             logging.debug(f"  category_tract_summary_df.head():\n{category_tract_summary_df.head()}")
             # columns: 
 
             # summarize displacement and gentrification
+            tract_count_all = len(category_tract_summary_df)
             summary_dict = {
                 'area_category1': cat1,
                 'area_category2': cat2,
+                'all_tracts': tract_count_all,
             }
             for summarize_var in ['displacement','gentrification']:
-                summary_df = category_tract_summary_df.groupby([summarize_var]).agg(
-                    tract_count = pd.NamedAgg(column=tract_id, aggfunc="count"),
-                )
-                # this is a DataFrame with index named summarize_var, 1 column named 'tract_count'
-                # and 1-2 rows
-                logging.debug(f"  summary_df summarizing {tract_id}:\n{summary_df}")
-                tract_count_var = summary_df.loc[ True, 'tract_count']
-                tract_count_all = summary_df['tract_count'].sum()
-                logging.debug(f'  {summarize_var} for cat1={cat1} cat2={cat2}: ' \
-                              f'tract_count_var={tract_count_var} tract_count_all={tract_count_all}')
+                tract_count_var = category_tract_summary_df[summarize_var].sum()  # sum coerces booleans to ints 0/1
+                logging.debug(f'  {summarize_var} for {cat1=} {cat2=}: {tract_count_var=} {tract_count_all=}')
 
                 # save it to summary_dict
                 summary_dict[f'{summarize_var}_tracts'      ] = tract_count_var
-                summary_dict['all_tracts'                   ] = tract_count_all # yes this is done twice but the result is the same
                 summary_dict[f'{summarize_var}_tracts_share'] = tract_count_var/tract_count_all
             # add to our list
             summary_dict_list.append(summary_dict)
