@@ -180,7 +180,7 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     zones['non_residential_vacancy_office'] = (buildings.query('building_type=="OF"')
                                                 .groupby(['zone_id'])
                                                 .apply(lambda x: x['vacant_job_spaces'].sum().clip(0) /
-                                                x['job_spaces'].sum().clip(0))
+                                                x['job_spaces'].sum().clip(1))
                                                 )
 
     # PRICE VERSUS NONRES RENT
