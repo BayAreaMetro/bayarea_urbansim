@@ -15,7 +15,8 @@ def jobs_housing_ratio(
         append_output: bool
     ):
     """
-    Calculate and export the jobs-to-housing ratio for the initial and final years for each county and the whole region.
+    Calculate and export the jobs-to-housing ratio for the initial and final years for each county/superdistrict and the whole region.
+    Currently, superdistrict is only implemented for RTP2025.
     
     Parameters:
     - rtp (str): RTP2021 or RTP2025.
@@ -25,60 +26,79 @@ def jobs_housing_ratio(
     - output_path (str or Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing
     
-    Writes metrics_vibrant1_jobs_housing_ratio.csv to output_path, appending if append_output is True. Columns are:
+    Writes metrics_vibrant1_jobs_housing_ratio_{county|superdistrict}.csv to output_path, appending if append_output is True. Columns are:
     - modelrun_id
     - modelrun_alias
-    - county
+    - county|superdistrict
     - total_jobs
     - total_households
     - jobs_housing_ratio
 
     """
     logging.info("Calculating jobs_housing_ratio")
-    RTP_COLUMNS = {
-        "RTP2021": ('TOTEMP', 'TOTHH', 'COUNTY_NAME'),
-        "RTP2025": ('totemp', 'tothh', 'county')
-    } 
-        
-    total_job_column, total_hh_column, county_column = RTP_COLUMNS[rtp]
 
     # Calculate ratios for initial and final years
     SUMMARY_YEARS = sorted(modelrun_data.keys())
 
-    all_ratios_df = pd.DataFrame()
-    for year in SUMMARY_YEARS:
-        summary_df = modelrun_data[year]["county"].groupby(county_column, as_index=False).agg(
-            total_households=(total_hh_column,  'sum'),
-            total_jobs      =(total_job_column, 'sum')
-        )
-        # add regional total
-        summary_df = pd.concat([summary_df, pd.DataFrame([{
-            county_column      :'Region', 
-            'total_households' :summary_df.total_households.sum(),
-            'total_jobs'       :summary_df.total_jobs.sum(),
-            }])
-        ])
+    # county summary only for RTP2021
+    SUMMARY_GEOGRAPHIES = ["county"]
+    # add in superdistrict for RTP2025
+    if rtp == "RTP2025":
+        SUMMARY_GEOGRAPHIES = ["county", "superdistrict"]
 
-        summary_df['jobs_housing_ratio'] = summary_df.total_jobs / summary_df.total_households
-        summary_df['year']               = year
-        summary_df['modelrun_id']        = modelrun_id
-        summary_df['modelrun_alias']     = f"{year} {modelrun_alias}"
-        logging.debug("summary_df:\n{}".format(summary_df))
-        all_ratios_df = pd.concat([all_ratios_df, summary_df])
-    
-    # Rename the county column to 'county' regardless of the original name
-    all_ratios_df.rename(columns={county_column:'county'}, inplace=True)
+    for summary_geography in SUMMARY_GEOGRAPHIES:
+        all_ratios_df = pd.DataFrame()
+        for year in SUMMARY_YEARS:
+            logging.info(f"  Summarizing for {year=} {summary_geography=}")
 
-    # Select and order the columns  
-    all_ratios_df = all_ratios_df[['modelrun_id', 'modelrun_alias', 'county', 
-                                   'total_jobs','total_households','jobs_housing_ratio']]
+            # copying is fine - these are little
+            if summary_geography == "county":
+                data_df = modelrun_data[year]["county"].copy()
+            else:
+                # superdistrict summaries will be from TAZ1454 table
+                data_df = modelrun_data[year]["TAZ1454"].copy()
 
-    # write it
-    filename = 'metrics_vibrant1_jobs_housing_ratio.csv'
-    filepath = output_path / filename
+            # standardize data columns to total_households, total_jobs
+            if 'totemp' in data_df.columns:
+                data_df.rename(columns={'totemp':'total_jobs', 'tothh':'total_households'}, inplace=True)
+            if 'TOTEMP' in data_df.columns:
+                data_df.rename(columns={'TOTEMP':'total_jobs', 'TOTHH':'total_households'}, inplace=True)
+            if 'COUNTY_NAME' in data_df.columns:
+                data_df.rename(columns={'COUNTY_NAME':'county'}, inplace=True)
+            if 'SD' in data_df.columns:
+                data_df.rename(columns={'SD':'superdistrict'}, inplace=True)
 
-    all_ratios_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
-    logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(all_ratios_df), filepath))
+            # for supderdistrict, we need to group_by
+            if summary_geography == "superdistrict":
+                summary_df = data_df.groupby('superdistrict', as_index=False).agg({'total_households':'sum', 'total_jobs':'sum'})
+            else:
+                summary_df = data_df
+
+            # add regional total
+            summary_df = pd.concat([summary_df, pd.DataFrame([{
+                    summary_geography      :'Region', 
+                    'total_households' :summary_df.total_households.sum(),
+                    'total_jobs'       :summary_df.total_jobs.sum(),
+                }])
+            ])
+
+            summary_df['jobs_housing_ratio'] = summary_df.total_jobs / summary_df.total_households
+            summary_df['year']               = year
+            summary_df['modelrun_id']        = modelrun_id
+            summary_df['modelrun_alias']     = f"{year} {modelrun_alias}"
+            logging.debug("summary_df:\n{}".format(summary_df))
+            all_ratios_df = pd.concat([all_ratios_df, summary_df])
+
+        # Select and order the columns  
+        all_ratios_df = all_ratios_df[['modelrun_id', 'modelrun_alias', summary_geography, 
+                                       'total_jobs','total_households','jobs_housing_ratio']]
+
+        # write it
+        filename = f'metrics_vibrant1_jobs_housing_ratio_{summary_geography}.csv'
+        filepath = output_path / filename
+
+        all_ratios_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+        logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(all_ratios_df), filepath))
 
 
 def ppa_job_growth(

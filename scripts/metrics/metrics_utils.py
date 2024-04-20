@@ -52,22 +52,30 @@ M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.P
 # --------------------------------------
 # Data Loading Based on Model Run Plan
 # --------------------------------------
-def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
+def load_data_for_runs(
+        rtp: str,
+        METRICS_DIR: pathlib.Path,
+        run_directory_path: pathlib.Path,
+        modelrun_alias: str,
+        skip_base_year: bool = False
+    ):
     """
     Reads crosswalk data as well as parcel data and county summary data for the given BAUS model run
     for both the base year and the horizon year (which varies based on the rtp).
 
     Parameters:
     - rtp (str): one of RTP2021 or RTP2025
-    - METRICS_DIR (str): metrics directory for finding crosswalks
+    - METRICS_DIR (pathlib.Path): metrics directory for finding crosswalks
     - run_directory_path (pathlib.Path): path for model run output files
     - modelrun_alias (str): alias for the model run. e.g. 'No Project', 'DBP, etc.
+    - skip_base_year (bool): whether to skip reading 2020/2025 data because we're going
+      to reuse previously ingested No Project base year data
 
     Returns:
     - dict with year -> {
         "parcel" -> parcel DataFrame, 
         "county" -> county DataFrame,
-        "TAZ1454"-> taz DataFrame (necessary for totpop)
+        "TAZ1454"-> taz DataFrame (necessary for totpop, which is only tabulated for TAZs)
       }
     
     """
@@ -90,6 +98,9 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ppa_id','ugb_id'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
+            logging.debug(f"  rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)}")
+            logging.debug(f"  {len(rtp2025_geography_crosswalk_df.loc[pd.isna(rtp2025_geography_crosswalk_df.ppa_id)])=}")
+            logging.debug(f"  rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)}")
 
         if len(rtp2025_urban_area_crosswalk_df) == 0:
             URBAN_AREA_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "p10_parcels_to_2020_urban_areas.csv"
@@ -218,8 +229,11 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             logging.debug("  rtp2025_taz_crosswalk_df.head():\n{}".format(rtp2025_taz_crosswalk_df.head()))
 
         # define analysis years
-        modelrun_data[2020]  = {}
-        modelrun_data[2025]  = {}  # for later interpolation to 2023
+        if skip_base_year:
+            logging.info("Skipping 2020 and 2025 data because we're reusing the No Project base year data")
+        else:
+            modelrun_data[2020] = {}
+            modelrun_data[2025] = {}  # for later interpolation to 2023
         modelrun_data[2050]  = {}
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
@@ -508,12 +522,14 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
 
     # Load taz summaries
     # This is only necessary for RTP2025 / healthy.urban_park_acres()
+    #         and superdistrict-based jobs/housing summaries
     if rtp == "RTP2025":
         for year in sorted(modelrun_data.keys()):
             logging.debug("Looking for taz1 summaries matching {}".format(taz1_summary_pattern.format(year)))
             file = next(run_directory_path.glob(taz1_summary_pattern.format(year)))
             logging.debug(f"Found {file}")
-            taz1_summary_df = pd.read_csv(file, usecols=['TAZ','COUNTY','TOTPOP'])
+            taz1_summary_df = pd.read_csv(file, usecols=['TAZ','COUNTY','SD','TOTHH','TOTEMP','TOTPOP'],
+                                          dtype={'SD':str}) # consider SD as a string
             taz1_summary_df.rename(columns={'TAZ':'TAZ1454'}, inplace=True)
             logging.info("  Read {:,} rows from taz summary {}".format(len(taz1_summary_df), file))
             logging.debug("Head:\n{}".format(taz1_summary_df))
@@ -530,7 +546,7 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             # columns: TAZ1454, COUNTY, TOTPOP, taz_epc
     
     # Interpolate to 2023 base year
-    if rtp == "RTP2025":
+    if (rtp == "RTP2025") and not skip_base_year:
         logging.info("Interpolating to 2023 base year")
         modelrun_data[2023] = {}
         for geog in modelrun_data[2020].keys():  # could get geog and 2020 df via .items() but I think this is clearer if more verbose
