@@ -246,14 +246,29 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
         # non-residential buildings
         summary_table['non_residential_sqft'] = buildings_df.groupby(geography)['non_residential_sqft'].sum().round(0)
         summary_table['non_residential_sqft_office'] = buildings_df.query('building_type=="OF"').groupby(geography)['non_residential_sqft'].sum().round(0)
+        
         summary_table['job_spaces'] = buildings_df.groupby(geography)['job_spaces'].sum().round(0)
+        summary_table['job_spaces_vacant'] = buildings_df.groupby(geography)['vacant_job_spaces'].sum().round(0)
+        
         summary_table['job_spaces_office'] = buildings_df.query('building_type=="OF"').groupby(geography)['job_spaces'].sum().round(0)
-   
+        summary_table['job_spaces_office_vacant'] = buildings_df.query('building_type=="OF"').groupby(geography)['vacant_job_spaces'].sum().round(0)
+        
+        summary_table['job_spaces_vacant_pct'] = summary_table['job_spaces_vacant'] / summary_table['job_spaces'].clip(1)
+        summary_table['job_spaces_office_vacant_pct']= summary_table['job_spaces_office_vacant'] / summary_table['job_spaces_office'].clip(1)
 
         summary_table.index.name = geography
         summary_table = summary_table.sort_index()
         summary_table.fillna(0).to_csv(geosum_output_dir / f"{run_name}_{geography}_summary_{year}.csv")
 
+# office vacancy
+    # note that the rate is calculated using spaces, not square feet, consistent
+    # with how vacancy is calculated for non_residential_vacancy, leading to some 
+    # modest loss of precision
+    # zones['non_residential_vacancy_office'] = (buildings.query('building_type=="OF"')
+    #                                             .groupby(['zone_id'])
+    #                                             .apply(lambda x: x['vacant_job_spaces'].sum().clip(0) /
+    #                                             x['job_spaces'].sum().clip(0))
+    #                                             )
 
 @orca.step()
 def geographic_growth_summary(year, final_year, initial_summary_year, run_name):
