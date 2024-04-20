@@ -134,7 +134,11 @@ def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.Da
         dicts.append(this_dict)
     df = pd.DataFrame.from_records(dicts)
 
+    # add a column to flag whether the run was completed from endtime stamp
     df['is_complete'] = df.time_stamp_end_log.notna()
+
+    # filter out incomplete runs
+    df = df[df.is_complete]
 
     # Put meta columns up front
 

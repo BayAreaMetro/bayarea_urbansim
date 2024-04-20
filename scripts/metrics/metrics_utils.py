@@ -305,6 +305,17 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             logging.debug("final rtp2021_tract_crosswalk_df.head():\n{}".format(rtp2021_tract_crosswalk_df))
             # columns are: parcel_id, tract10, tract10_epc, tract10_DispRisk, tract10_hra, tract10_growth_geo, tract10_tra
 
+        # transit service areas # works for both RTP2021 and RTP2025
+        if len(rtp2025_transit_service_df) == 0:
+            import geopandas as gpd
+            PARCEL_TRANSITSERVICE_FILE = M_DRIVE / "Data" / "GIS layers" / "JobsHousingTransitProximity" / "update_2024" / "outputs" / "p10_topofix_classified.parquet"
+            rtp2025_transit_service_df = pd.read_parquet(PARCEL_TRANSITSERVICE_FILE)
+            transit_cols_keep = ['PARCEL_ID','area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
+            rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
+            logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
+
+
         if len(rtp2021_pda_crosswalk_df) == 0:
             # pba50_metrics.py called this parcel_GG_newxwalk_file/parcel_GG_newxwalk_df
             PDA_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tra_hra_pda_fbp_20210816.csv"
@@ -444,6 +455,21 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
             )
             assert('fbpchcat' in parcel_df.columns)
 
+            # add transit service area lookups
+            #logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = rtp2025_transit_service_df,
+                how      = "left",
+                left_on  = "parcel_id",
+                right_on ="PARCEL_ID",
+                validate = "one_to_one"
+            )
+            
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
+
+
             # Merge the tract and coc crosswalks
             parcel_df = parcel_df.merge(rtp2021_tract_crosswalk_df, on="parcel_id", how="left")
             logging.debug("parcel_df after first merge with tract crosswalk:\n{}".format(parcel_df.head(30)))
@@ -461,7 +487,10 @@ def load_data_for_runs(rtp, METRICS_DIR, run_directory_path, modelrun_alias):
                                 # employment
                                 'MWTEMPN', 'RETEMPN', 'FPSEMPN', 'HEREMPN', 'OTHEMPN',
                                 # tract-level columns
-                                'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra']
+                                'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra',
+                                # transit-related columns
+                                'area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
+            
             parcel_df = parcel_df[columns_to_keep]
             logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 

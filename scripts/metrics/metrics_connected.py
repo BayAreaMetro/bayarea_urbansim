@@ -19,11 +19,9 @@ def transit_service_area_share(
                                 append_output: bool
                                 ):
 
-    # TODO: this is broken for RTP2021
-    if rtp == "RTP2021":
-        logging.info(f'transit_service_area_share is broken for {rtp}')
-        return
                  
+    # TODO: we need a 2015 / 2020 / 2023 as well
+    year = 2050
     logging.info(f"Calculating connected for {modelrun_alias} / {modelrun_id}")
     logging.debug(f"Modelrun data years: {modelrun_data.keys()}")
     logging.debug(f"Modelrun data 2050 datasets: {modelrun_data[2050].keys()}")
@@ -36,13 +34,10 @@ def transit_service_area_share(
     logging.debug(f"Parcel output has {len_parcels:,} rows")
 
     
-    # Add constant useful for groupby summaries across the whole region
-    parcel_output['region'] = 'Region'
     
     #SUMMARY_YEARS = sorted(modelrun_data.keys())
     #print(SUMMARY_YEARS)
-    # TODO: we need a 2015 / 2020 as well - just one though.
-    year = 2050
+
 
     # The transit_scenario_mapping relates the run type to which transit stop buffer universe is appropriate
     # e.g. final blueprint simulation runs should be matched with similar scenario transit stops / headways.
@@ -140,6 +135,10 @@ def transit_service_area_share(
         parcel_output['tract20_hra'] = parcel_output['tract20_hra'].replace({0:'Not HRA',1:'HRAs'})
         parcel_output['tract20_epc'] = parcel_output['tract20_epc'].replace({0:'Not EPC',1:'EPCs'})
 
+    
+    # Add constant useful for groupby summaries across the whole region
+    parcel_output['region'] = 'Region'
+    
     # loop through combinations of area types and transit service area classifications
     for combo in product(*[area_vars, transit_svcs_cols]):
 
@@ -178,14 +177,14 @@ def transit_service_area_share(
     )
     logging.debug(f"head for (long) {container_df.head()}")
 
-    # recode a value so it works readily when concatenating / comparing with the old version
+    # recode a value so it works readily when concatenating / comparing with the PBA50 performance report version
     transit_service_simplification_map = {
         "Major_Transit_Stop_only": "majorstop"}
     container_df.service_level_detail = container_df.service_level_detail.replace(
         transit_service_simplification_map
     )
 
-    # match the format from 
+    # match the format from  rtp2021 input files to tableau. kind of hacky.
     container_df["name"] = container_df.apply(
         lambda x: f'transitproximity_{x.service_level_detail.lower().replace("_only","")}_shareof_{x["variable"].replace("EMPN", "EMPNjobs")}_{str(x.area_detail)}',
         axis=1,
@@ -206,6 +205,7 @@ def transit_service_area_share(
     # detailed version, without limiting to major stops but all headway categories
     qry_string_cat5_detail = 'transit_grouping.str.contains("cat5$") '
     
+    # look through the two query strings and filter the larger frame as appropriate - a basic and a detailed one
     for det, qrystr in {'basic':qry_string_cat5_basic,'detail':qry_string_cat5_detail}.items():
 
         updated_metrics_tableau_schema = format_for_tableau(
