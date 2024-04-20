@@ -170,7 +170,8 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
 
     buildings_df = orca.merge_tables('buildings', [parcels, buildings],
         columns=['juris', 'superdistrict', 'county', 'subregion', 'building_type', 
-                 'residential_units', 'deed_restricted_units', 'non_residential_sqft','job_spaces'])
+                 'residential_units', 'deed_restricted_units', 'non_residential_sqft','job_spaces',
+                 'vacant_job_spaces'])
 
     jobs_df['is_transit_hub'] = (jobs_df.ec5_cat=="Transit_Hub").map({True:'job_in_transit_hub',False:'job_not_in_transit_hub'})
     
