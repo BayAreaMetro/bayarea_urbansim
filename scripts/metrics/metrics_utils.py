@@ -23,7 +23,7 @@ PARCEL_AREA_FILTERS = {
             'HRAandTRA': lambda df: (df['tra_id'] != 'NA') & (df['hra_id'] == 'HRA'),
             'GG'       : lambda df: df['gg_id'] == 'GG',
             'nonGG'    : lambda df: df['gg_id'] != 'GG',
-            'GG_nonPDA': lambda df: (df['gg_id'] == 'GG') & (df['ppa_id'] != 'ppa'),
+            'GG_nonPDA': lambda df: (df['gg_id'] == 'GG') & (pd.isna(df['pda_id_pba50_fb'])),
             'PDA'      : lambda df: pd.notna(df['pda_id_pba50_fb']),
             'EPC'      : lambda df: df['tract10_epc'] == 1,
             'nonEPC'   : lambda df: df['tract10_epc'] != 1,
