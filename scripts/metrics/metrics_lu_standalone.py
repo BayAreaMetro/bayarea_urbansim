@@ -43,9 +43,11 @@ def main():
         description = USAGE,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('rtp', type=str, choices=['RTP2021','RTP2025'])
+    parser.add_argument('--no_interpolate', action='store_true', help='If passed, do not interpolate to 2023 for PBA50+ base year. '
+                        + "Useful for calculating metrics for older model runs that didn't write 2025 tables.")
     parser.add_argument('--use_distinct_initial_year_data', action='store_true',
-                        help="If passed, uses each model run's data for RTP2025 initial year (2023) metrics. "
-                        + "If not passed, uses the No Project run's 2023 data for all model runs. Ignored for RTP2021.")
+                        help="If passed, uses each model run's data for RTP2025 initial year metrics. "
+                        + "If not passed, uses the No Project run's initial year data for all model runs. Ignored for RTP2021.")
     parser.add_argument('--test', action='store_true', help='If passed, writes output to cwd instead of METRICS_OUTPUT_DIR')
     parser.add_argument('--only', required=False, choices=['affordable','connected','diverse','growth','healthy','vibrant'], 
                         help='To only run one metric set')
@@ -118,7 +120,7 @@ def main():
         args.use_distinct_initial_year_data = True
         logging.info("use_distinct_initial_year_data is ignored because RTP != 'RTP2025'")
     if not args.use_distinct_initial_year_data:
-        logging.info("Preparing to use RTP2025 No Project initial year (2023) data for all model runs")
+        logging.info("Preparing to use RTP2025 No Project initial year data for all model runs")
         if "No Project" not in model_runs_df['alias'].values:
             raise ValueError('model_runs_df must contain exactly one record with alias "No Project"')
         # Sort model_runs_df so the No Project run is first
@@ -138,13 +140,15 @@ def main():
         logging.info(f"Processing run modelrun_alias:[{modelrun_alias}] modelrun_id:[{modelrun_id}] run_directory_path:{run_directory_path}")
         
         # Load data for the current run
-        modelrun_data = metrics_utils.load_data_for_runs(args.rtp, METRICS_DIR, run_directory_path, modelrun_alias, skip_base_year)
+        modelrun_data = metrics_utils.load_data_for_runs(args.rtp, METRICS_DIR, run_directory_path, modelrun_alias,
+                                                         args.no_interpolate, skip_base_year)
         if not args.use_distinct_initial_year_data:
             if np_modelrun_data is None:
                 np_modelrun_data = modelrun_data.copy()
                 skip_base_year = True
             else:
-                modelrun_data[2023] = np_modelrun_data[2023].copy()
+                INITIAL_YEAR = sorted(np_modelrun_data.keys())[0]
+                modelrun_data[INITIAL_YEAR] = np_modelrun_data[INITIAL_YEAR].copy()
         SUMMARY_YEARS = sorted(modelrun_data.keys())
 
         if (args.only == None) or (args.only == 'affordable'):

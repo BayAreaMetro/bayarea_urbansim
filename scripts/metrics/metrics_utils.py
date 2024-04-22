@@ -57,6 +57,7 @@ def load_data_for_runs(
         METRICS_DIR: pathlib.Path,
         run_directory_path: pathlib.Path,
         modelrun_alias: str,
+        no_interpolate: bool = False,
         skip_base_year: bool = False
     ):
     """
@@ -68,6 +69,8 @@ def load_data_for_runs(
     - METRICS_DIR (pathlib.Path): metrics directory for finding crosswalks
     - run_directory_path (pathlib.Path): path for model run output files
     - modelrun_alias (str): alias for the model run. e.g. 'No Project', 'DBP, etc.
+    - no_interpolate (bool): if True, don't read 2025 data and interpolate to 2023.
+      No effect for RTP2021.
     - skip_base_year (bool): whether to skip reading 2020/2025 data because we're going
       to reuse previously ingested No Project base year data
 
@@ -230,10 +233,11 @@ def load_data_for_runs(
 
         # define analysis years
         if skip_base_year:
-            logging.info("Skipping 2020 and 2025 data because we're reusing the No Project base year data")
+            logging.info(f"Skipping 2020 {'' if no_interpolate else 'and 2025 '}data because we're reusing the No Project base year data")
         else:
             modelrun_data[2020] = {}
-            modelrun_data[2025] = {}  # for later interpolation to 2023
+            if not no_interpolate:
+                modelrun_data[2025] = {}  # for later interpolation to 2023
         modelrun_data[2050]  = {}
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
@@ -546,7 +550,7 @@ def load_data_for_runs(
             # columns: TAZ1454, COUNTY, TOTPOP, taz_epc
     
     # Interpolate to 2023 base year
-    if (rtp == "RTP2025") and not skip_base_year:
+    if (rtp == "RTP2025") and (not no_interpolate) and (not skip_base_year):
         logging.info("Interpolating to 2023 base year")
         modelrun_data[2023] = {}
         for geog in modelrun_data[2020].keys():  # could get geog and 2020 df via .items() but I think this is clearer if more verbose
