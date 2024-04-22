@@ -198,6 +198,16 @@ def gentrify_displacement_tracts(
         multiyear_tract_summary_df.reset_index(drop=False, inplace=True)
         logging.debug('multiyear_tract_summary_df:\n{}'.format(multiyear_tract_summary_df))
 
+        # for debugging
+        # add columns
+        multiyear_tract_summary_df.insert(0, 'modelrun_id', modelrun_id)
+        multiyear_tract_summary_df.insert(0, 'modelrun_alias', f'{HORIZON_YEAR} {modelrun_alias}')
+
+        filename = f"debug_gentrify_displacment_{rtp}_{tract_id}.csv"
+        filepath = output_path / filename
+        multiyear_tract_summary_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+        logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(multiyear_tract_summary_df), filepath))
+
         # create the relevant results tally
         for (cat1,cat2) in SUMMARIZATION_CATEGORIES:
 
