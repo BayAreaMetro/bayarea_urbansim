@@ -136,6 +136,9 @@ def gdp_growth(
     def remi_loader(**kwargs):
         years = range(2020, 2051, 5)
 
+        first_year = (kwargs['process_args']['firstyear'])
+        last_year = (kwargs['process_args']['lastyear'])
+
         remi_econ_raw = pd.read_excel(**kwargs['xl_args'])
 
         df = remi_econ_raw.set_index(['Category'])[years]
@@ -145,7 +148,7 @@ def gdp_growth(
 
         gdp_per_capita = df.loc['Gross Domestic Product'] / df.loc['Population']
 
-        gdp_growth = gdp_per_capita.loc[2020] / gdp_per_capita.loc[2050]
+        gdp_growth = gdp_per_capita.loc[first_year] / gdp_per_capita.loc[last_year]
         return gdp_growth
 
     # set up a dict with key processing args for the two RTP variants
