@@ -177,7 +177,9 @@ def main():
             metrics_vibrant.jobs_housing_ratio(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             metrics_vibrant.ppa_job_growth(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, METRICS_DIR, OUTPUT_PATH, append_output)
+            metrics_vibrant.gdp_growth(
+                args.rtp, modelrun_alias, modelrun_id, BOX_DIR, OUTPUT_PATH, append_output)
             
         if (args.only == None) or (args.only == 'connected'):
             metrics_connected.transit_service_area_share(

@@ -101,11 +101,92 @@ def jobs_housing_ratio(
         logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(all_ratios_df), filepath))
 
 
+
+def gdp_growth(
+        rtp: str,
+        modelrun_alias: str,
+        modelrun_id: str,
+        box_path: str,
+        output_path: str,
+        append_output: bool
+    ):
+    """
+    Function calculates GDP from REMI data. There is no variation across scenarios for his metric.
+    
+    Parameters:
+    - rtp (str): RTP2021 or RTP2025.
+    - modelrun_alias (str): Alias for the model run, used for labeling output.
+    - modelrun_id (str): Identifier for the model run.
+    - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame}
+    - metrics_path (str or Path): The directory path to the metrics_input_files directory.
+    - output_path (str or Path): The directory path to save the output CSV file.
+    - append_output (bool): True if appending output; False if writing
+    """
+
+    logging.info("Calculating GDP per capita growth from REMI data")
+
+
+    rtp2021_remi_path = box_path / 'Modeling and Surveys' / 'Regional Modeling' / \
+        'Regional Forecast PBA50' / 'REMI_raw_output' / \
+        'economy' / 'R6H2C_COVID_cross_rev2' / 'Summary.xlsx'
+
+    rtp2025_remi_path = box_path / 'Modeling and Surveys' / 'Regional Modeling' / 'Regional Forecast PBA50 Plus Update' / \
+        'REMI_raw_output' / 'economy' / 'REMI31_NC1_RC1_FBP' / 'B5 summary.xlsx'
+
+    def remi_loader(**kwargs):
+        years = range(2020, 2051, 5)
+
+        remi_econ_raw = pd.read_excel(**kwargs['xl_args'])
+
+        df = remi_econ_raw.set_index(['Category'])[years]
+
+        # fixed, in 2009 dollars - that's fine since we are reporting on ratios
+        # as long as income is reported in fixed dollars
+
+        gdp_per_capita = df.loc['Gross Domestic Product'] / df.loc['Population']
+
+        gdp_growth = gdp_per_capita.loc[2020] / gdp_per_capita.loc[2050]
+        return gdp_growth
+
+    # set up a dict with key processing args for the two RTP variants
+    remi_load_params = {'RTP2021': {'xl_args': {'io': rtp2021_remi_path, 'skiprows': 5}, 
+                                    'process_args': {'firstyear': 2015, 'lastyear': 2050}},
+                        'RTP2025': {'xl_args': {'io': rtp2025_remi_path, 'skiprows': 4}, 
+                                    'process_args': {'firstyear': 2020, 'lastyear': 2050}}
+                    }
+    
+    # returns a scalar 
+    gdp_growth = remi_loader(**remi_load_params[rtp])
+
+    # Add metadata, format, and finally export to CSV
+    # TODO: Should relabel here and in tableau so there is no year in the label
+    gdp_growth_df = pd.DataFrame({
+        'modelrun_id': modelrun_id,
+        'modelrun_alias': modelrun_alias,
+        'grp_per_capita_2020$': gdp_growth,
+        'name': 'Regionwide'
+    }, index=[0])
+    
+    out_file = output_path / 'metrics_vibrant2_grp_percapita_growth.csv'
+    
+    gdp_growth_df.to_csv(
+        out_file,
+        mode='a' if append_output else 'w',
+        header=False if append_output else True,
+        index=False,
+    )
+
+    logging.info(f"{'Appended' if append_output else 'Wrote'} {len(gdp_growth_df)} " \
+                 + f"line{'s' if len(gdp_growth_df) > 1 else ''} to {out_file}")
+
+        
+
 def ppa_job_growth(
         rtp: str,
         modelrun_alias: str,
         modelrun_id: str,
         modelrun_data: dict,
+        metrics_path: str,
         output_path: str,
         append_output: bool
     ):
@@ -117,9 +198,50 @@ def ppa_job_growth(
     - modelrun_alias (str): Alias for the model run, used for labeling output.
     - modelrun_id (str): Identifier for the model run.
     - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame}
+    - metrics_path (str or Path): The directory path to the metrics_input_files directory.
     - output_path (str or Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing
     """
+    
+    logging.info("Getting jobs by wage level")
+
+    jobs_file = metrics_path / "metrics_input_files" / "emp_by_ind11_pba2050plus.csv"
+    wage_file = metrics_path / "metrics_input_files" / "jobs_wagelevel.csv"
+    
+    jobsdata = pd.read_csv(jobs_file, index_col=0)
+    wagedata = pd.read_csv(wage_file, index_col=0).wage_level
+
+    # Add wage level column to jobs data
+    jobsdata['job_cat'] = wagedata
+    # Slight string edit for presentation purposes  
+    jobsdata['job_cat'] = jobsdata['job_cat'].add('-Wage Industries')
+
+    jobs_by_wagelevel = jobsdata.groupby('job_cat').sum()
+    
+
+    jobs_by_wagelevel_growth_2020_2050 = jobs_by_wagelevel['2050'] / jobs_by_wagelevel['2020']
+    jobs_by_wagelevel_growth_2020_2050.name = 'Jobs Growth'
+
+    jobsdata['job_cat'] = wagedata
+    jobsdata['job_cat'] = jobsdata['job_cat'].add('-Wage Industries')
+
+    jobs_by_wagelevel = jobsdata.groupby('job_cat').sum()
+
+    jobs_by_wagelevel = pd.concat([jobs_by_wagelevel,
+            pd.concat([jobs_by_wagelevel.sum(numeric_only=True)], keys=['All Jobs']).unstack(1)], axis=0)
+    
+    jobs_by_wagelevel.index = jobs_by_wagelevel.index.set_names('job_cat')
+
+    jobs_by_wagelevel_growth_2020_2050 = (jobs_by_wagelevel['2050'] / jobs_by_wagelevel['2020'])-1
+    jobs_by_wagelevel_growth_2020_2050.name = 'jobgrowth'
+    jobs_by_wagelevel_growth_2020_2050 = jobs_by_wagelevel_growth_2020_2050.reset_index()
+
+    jobs_by_wagelevel_growth_2020_2050[[
+        'modelrun_id', 'modelrun_alias']] = modelrun_id, modelrun_alias
+    
+    # save for later - we will concat with ppa jobs in a bit
+
+    
     logging.info("Calculating ppa_job_growth")
 
     # Identify initial and final year based on keys in modelrun_data
@@ -139,12 +261,16 @@ def ppa_job_growth(
     job_growth_pct = (final_year_jobs - initial_year_jobs) / initial_year_jobs
 
     # Add metadata, format, and export to CSV
-    job_growth_df = pd.DataFrame({
+    job_growth_ppa = pd.DataFrame({
         'modelrun_id': modelrun_id,
         'modelrun_alias': modelrun_alias,
         'job_cat': 'PPA',
         'jobgrowth': job_growth_pct
     }, index=[0])
+
+    # Concatenate with jobs by wage level growth
+    job_growth_df = pd.concat([job_growth_ppa, jobs_by_wagelevel_growth_2020_2050])
+
     out_file = output_path / 'metrics_vibrant2_ppa_job_growth.csv'
     job_growth_df.to_csv(
         out_file,
@@ -152,5 +278,8 @@ def ppa_job_growth(
         header=False if append_output else True,
         index=False,
     )
+
     logging.info(f"{'Appended' if append_output else 'Wrote'} {len(job_growth_df)} " \
                  + f"line{'s' if len(job_growth_df) > 1 else ''} to {out_file}")
+
+
