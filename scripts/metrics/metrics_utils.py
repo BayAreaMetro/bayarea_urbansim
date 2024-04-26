@@ -215,7 +215,7 @@ def load_data_for_runs(
             logging.debug("rtp2025_tract_crosswalk_df._merge.value_counts():\n{}".format(
                           rtp2025_tract_crosswalk_df._merge.value_counts()))
             rtp2025_tract_crosswalk_df.drop(columns=['_merge'], inplace=True)
-                        
+
             # fillna with zero
             rtp2025_tract_crosswalk_df.fillna(0, inplace=True)
 
@@ -242,6 +242,8 @@ def load_data_for_runs(
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
         taz1_summary_pattern = "travel_model_summaries/*_taz1_summary_{}.csv"
+        taz1_interim_summary_pattern = "core_summaries/*_interim_zone_output_{}.csv"
+
     elif rtp == "RTP2021":
         # these are all tract-based -- load into one dataframe
         if len(rtp2021_tract_crosswalk_df) == 0:
@@ -274,7 +276,7 @@ def load_data_for_runs(
             logging.debug("rtp2021_tract_crosswalk_df merged with COC: {:,} rows, _merge=\n{}".format(
                 len(rtp2021_tract_crosswalk_df), rtp2021_tract_crosswalk_df._merge.value_counts()))
             rtp2021_tract_crosswalk_df.drop(columns=['_merge'], inplace=True)
-            
+
             # displacement risk - udp_file/udp_DR_df
             TRACT_DISPLACEMENT_FILE = METRICS_DIR / "metrics_input_files" / "udp_2017results.csv"
             tract_displacement_df = pd.read_csv(TRACT_DISPLACEMENT_FILE, usecols=['Tract','DispRisk'])
@@ -333,7 +335,6 @@ def load_data_for_runs(
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
             logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
 
-
         if len(rtp2021_pda_crosswalk_df) == 0:
             # pba50_metrics.py called this parcel_GG_newxwalk_file/parcel_GG_newxwalk_df
             PDA_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "parcel_tra_hra_pda_fbp_20210816.csv"
@@ -341,7 +342,7 @@ def load_data_for_runs(
             rtp2021_pda_crosswalk_df.rename(columns={'PARCEL_ID':'parcel_id'}, inplace=True)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_pda_crosswalk_df), PDA_CROSSWALK_FILE))
             logging.debug("  rtp2021_pda_crosswalk_df.head():\n{}".format(rtp2021_pda_crosswalk_df.head()))
-        
+
         if len(rtp2021_geography_crosswalk_df) == 0:
             # pba50_metrics.py called this "parcel_geography_file" - use it to get fbpchcat
             GEOGRAPHY_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "2021_02_25_parcels_geography.csv"
@@ -374,7 +375,7 @@ def load_data_for_runs(
 
     else:
         raise ValueError(f"Unrecognized plan: {rtp}")
-    
+
     # Load parcels summaries
     for year in sorted(modelrun_data.keys()):
         # handle RTP2021 hacks
@@ -411,7 +412,7 @@ def load_data_for_runs(
             )
             logging.debug("Head after merge with rtp2025_geography_crosswalk_df:\n{}".format(parcel_df.head()))
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-        
+
             # add tract lookup for tract categories
             parcel_df = pd.merge(
                 left     = parcel_df,
@@ -422,7 +423,7 @@ def load_data_for_runs(
             )
 
             # add transit service area lookups
-            #logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
+            # logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
             parcel_df = pd.merge(
                 left     = parcel_df,
                 right    = rtp2025_transit_service_df,
@@ -431,7 +432,7 @@ def load_data_for_runs(
                 right_on ="PARCEL_ID",
                 validate = "one_to_one"
             )
-            
+
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
 
@@ -474,7 +475,7 @@ def load_data_for_runs(
             assert('fbpchcat' in parcel_df.columns)
 
             # add transit service area lookups
-            #logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
+            # logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
             parcel_df = pd.merge(
                 left     = parcel_df,
                 right    = rtp2025_transit_service_df,
@@ -483,10 +484,9 @@ def load_data_for_runs(
                 right_on ="PARCEL_ID",
                 validate = "one_to_one"
             )
-            
+
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
-
 
             # Merge the tract and coc crosswalks
             parcel_df = parcel_df.merge(rtp2021_tract_crosswalk_df, on="parcel_id", how="left")
@@ -508,7 +508,7 @@ def load_data_for_runs(
                                 'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra',
                                 # transit-related columns
                                 'area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
-            
+
             parcel_df = parcel_df[columns_to_keep]
             logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 
@@ -538,6 +538,46 @@ def load_data_for_runs(
             logging.info("  Read {:,} rows from taz summary {}".format(len(taz1_summary_df), file))
             logging.debug("Head:\n{}".format(taz1_summary_df))
 
+            # there is a second TAZ level summary data with more variables than those used by
+            # the tm, including building derived data such as sqft. We need office spaces and jobs and vacancy.
+            # However, these variables were added recently.
+
+            logging.debug("Looking for taz interim summaries matching {}".format(taz1_interim_summary_pattern.format(year)))
+            file = next(run_directory_path.glob(taz1_interim_summary_pattern.format(year)))
+            logging.debug(f"Found {file}")
+            taz1_interim_summary_df = pd.read_csv(file)
+            taz1_interim_summary_df.rename(columns={'TAZ':'TAZ1454'}, inplace=True)
+            
+            # check
+            taz_interim_cols = [
+                #"TAZ",
+                "non_residential_sqft",
+                "non_residential_sqft_office",
+                "job_spaces",
+                "job_spaces_office",
+                "non_residential_vacancy",
+                "non_residential_vacancy_office"
+                
+            ]
+            taz_interim_keep_cols = [x for x in taz_interim_cols if x in taz1_interim_summary_df.columns ]
+            if len(taz1_interim_summary_df)>0:
+                logging.debug("Columns in taz1_interim_summary_df: {}".format(taz1_interim_summary_df.columns))
+                logging.debug("Columns to keep: {}".format(taz_interim_keep_cols))
+                #assert(all(x in taz1_interim_summary_df.columns for x in taz_interim_cols))
+                taz1_interim_summary_df = taz1_interim_summary_df[['TAZ1454']+taz_interim_keep_cols]
+
+                logging.info("  Read {:,} rows from taz interim summary {}".format(len(taz1_interim_summary_df), file))
+                logging.debug("Head:\n{}".format(taz1_interim_summary_df))
+
+                # then combine with the first TAZ level summary data
+                taz1_summary_df = pd.merge(
+                    left   = taz1_summary_df,
+                    right  = taz1_interim_summary_df,
+                    on       = "TAZ1454",
+                    how      = "left",
+                    validate = "one_to_one"
+                )
+
             taz1_summary_df = pd.merge(
                 left     = taz1_summary_df,
                 right    = rtp2025_taz_crosswalk_df,
@@ -547,8 +587,7 @@ def load_data_for_runs(
             )
             logging.debug("Head:\n{}".format(taz1_summary_df))
             modelrun_data[year]['TAZ1454'] = taz1_summary_df
-            # columns: TAZ1454, COUNTY, TOTPOP, taz_epc
-    
+
     # Interpolate to 2023 base year
     if (rtp == "RTP2025") and (not no_interpolate) and (not skip_base_year):
         logging.info("Interpolating to 2023 base year")
@@ -565,11 +604,10 @@ def load_data_for_runs(
                     df[col] = df1[col] + ((2023 - t1) / (t2 - t1))*(df2[col] - df1[col])
 
             modelrun_data[2023][geog] = df
-        
+
         logging.info("Deleting 2020 and 2025 data")
         del modelrun_data[2020]
         del modelrun_data[2025]
 
     logging.debug("modelrun_data:\n{}".format(modelrun_data))
     return modelrun_data
-

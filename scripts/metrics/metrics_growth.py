@@ -137,7 +137,7 @@ def growth_patterns_geography(rtp: str,
     }
     """
     logging.info("Calculating growth_patterns_geography")
-    
+
     SUMMARY_YEARS = sorted(modelrun_data.keys())
 
     # Process each area filter and calculate growth patterns
@@ -151,7 +151,7 @@ def growth_patterns_geography(rtp: str,
             elif filter_condition == None:
                 df_area = modelrun_data[year]['parcel']
             logging.debug("area={} df_area len={:,}".format(area, len(df_area)))
-                
+
             summary_list.append({
                 'modelrun_alias'  : f"{year} {modelrun_alias}",
                 'area'            : area,
@@ -165,7 +165,7 @@ def growth_patterns_geography(rtp: str,
                     'total_jobs'      : df_area['totemp'].sum()
                 }
         summary_dfs.append( pd.DataFrame(summary_list))
-    
+
     # join summary initial to summary final
     summary_final = pd.merge(
         left  = summary_dfs[1],
@@ -205,3 +205,504 @@ def growth_patterns_geography(rtp: str,
     logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(combined_df), filepath))
 
     return return_dict
+
+
+def office_vacancy_bldg(
+    rtp: str,
+    modelrun_alias: str,
+    modelrun_id: str,
+    modelrun_data: dict,
+    run_directory_path: str,
+    box_dir: str,
+    m_drive: str,
+    metrics_dir: str,
+    output_path: str,
+    append_output: bool,
+):
+    """
+    Calculates office space vacancy rates at different geographic levels.
+
+    Parameters:
+    - rtp (str): RTP2021 or RTP2025.
+    - modelrun_alias (str): Alias for the model run, used for labeling output.
+    - modelrun_id (str): Identifier for the model run.
+    - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
+    - run_directory_path (str): Path to the run directory.
+    - box_dir (str): Path to the Box directory.
+    - m_drive (str): Path to the M drive.
+    - metrics_dir (str): Path to the metrics directory.
+    - output_path (str): File path for saving the output results
+    - append_output (bool): True if appending output; False if writing
+
+    """
+    logging.info("Calculating office space")
+
+    # Guard clause: this metric is implemented for RTP2025 / PBA50+ only
+    if rtp != "RTP2025":
+        logging.info("  RTP2021 is not supported - skipping")
+        return
+
+    import geopandas as gpd
+
+    OFFICE_SQFT_PER_JOB = 355
+
+    bayareafips = {
+        "06001": "Alameda",
+        "06013": "Contra Costa",
+        "06041": "Marin",
+        "06055": "Napa",
+        "06075": "San Francisco",
+        "06081": "San Mateo",
+        "06085": "Santa Clara",
+        "06097": "Sonoma",
+        "06095": "Solano",
+    }
+    SUMMARY_YEARS = sorted(modelrun_data.keys())
+
+    # get TAZs - they have a mapping to superdistricts
+    ZONE_PATH = (
+        box_dir
+        / "Modeling and Surveys"
+        / "Urban Modeling"
+        / "Spatial"
+        / "Zones"
+        / "TAZ1454"
+        / "zones1454.shp"
+    )
+    taz1454 = gpd.read_file(ZONE_PATH)
+    logging.info(f"  Reading TAZs from {ZONE_PATH}...")
+    taz_x_sd = taz1454.set_index("taz1454").superdistr
+
+    # get parcels to TAZ crosswalk file
+    TAZ_CROSSWALK_FILE = (
+        m_drive
+        / "urban_modeling"
+        / "baus"
+        / "BAUS Inputs"
+        / "basis_inputs"
+        / "crosswalks"
+        / "2020_08_17_parcel_to_taz1454sub.csv"
+    )
+
+    parcel_to_taz_xwalk = pd.read_csv(TAZ_CROSSWALK_FILE, index_col="PARCEL_ID")
+    parcel_to_taz_xwalk["county"] = parcel_to_taz_xwalk.manual_county.map(
+        lambda x: f"06{x:03d}"
+    ).map(bayareafips)
+
+    logging.info(f"  Reading parcel_to_taz1454sub from {TAZ_CROSSWALK_FILE}...")
+
+    parcel_x_zone = parcel_to_taz_xwalk.ZONE_ID
+    parcel_x_sd = parcel_x_zone.map(taz_x_sd)
+    parcel_x_county = parcel_to_taz_xwalk.county
+
+    def building_loader(year):
+        # Read in buildings
+        modelrun_name = modelrun_id
+        # Sometimes the modelrun_id is a whole file path
+        # Handle both forms of slashes in this field
+        if "\\" in modelrun_id:
+            modelrun_name = modelrun_id.split("\\")[-1]
+        if "/" in modelrun_id:
+            modelrun_name = modelrun_id.split("/")[-1]
+
+        BUILDINGS_PATH = (
+            run_directory_path
+            / f"core_summaries/{modelrun_name}_building_summary_{year}.csv"
+        )
+        logging.info(f"  Reading buildings_output_summary from {BUILDINGS_PATH}...")
+
+        buildings_output = pd.read_csv(
+            BUILDINGS_PATH,
+            usecols=[
+                "parcel_id",
+                "year_built",
+                "non_residential_sqft",
+                "building_type",
+                "job_spaces",
+            ],
+            dtype={"parcel_id": int},
+        )
+        return buildings_output
+
+    # store data from loops over year and geography
+    summary_dict = {}
+
+    # this loop goes over year and gets buildings and parcel data, including interpolating buildings to 2023 if that is the received year
+
+    for year in SUMMARY_YEARS:
+
+        logging.info(f"  Processing {year}...")
+
+        if year==2023:
+
+            # interpolation per DL's approach
+            y1, y2 = 2020, 2025
+            b1 = building_loader(y1)
+            try:
+                b2 = building_loader(y2)
+            except FileNotFoundError:
+                logging.debug("  Building summary file not found for year %d" % y2)
+
+                b2 = b1 
+            logging.info(f"  Interpolating buildings {y1} and {y2} to {year}...")
+            df = b1.copy()
+
+            for col in df.columns:
+                if pd.api.types.is_numeric_dtype(df[col]) and col!='parcel_id':
+
+                    # Long way to write 3/5 but maybe it'll pay off in future... :)
+                    df[col] = b1[col] + ((2023 - y1) / (y2 - y1))*(b2[col] - b1[col])
+
+            # return the interpolated version
+            buildings_output = df
+
+        else:
+            # get either 2020 single year, or 2050 single year
+            buildings_output = building_loader(year)
+
+        # get parcels
+        parcel_output = modelrun_data[year]["parcel"]
+        parcel_output["zone_id"] = parcel_output["parcel_id"].map(parcel_x_zone)
+        parcel_output["superdistrict"] = parcel_output["parcel_id"].map(parcel_x_sd)
+        parcel_output["county"] = parcel_output["parcel_id"].map(parcel_x_county)
+
+        # quick if redundant recoding
+        parcel_output['jobs'] = parcel_output.totemp
+        
+        # assign job spaces - all types - from buildings back to parcels
+        parcel_output["job_spaces"] = parcel_output.parcel_id.map(
+            buildings_output.groupby("parcel_id")["job_spaces"].sum()
+        )
+        parcel_output["job_spaces"].fillna(0, inplace=True)
+
+        # subset buildings to office / mixed office
+        buildings_output = buildings_output[
+            buildings_output["building_type"].isin(["OF", "ME"])
+        ]
+        logging.info(f"  {len(buildings_output)} office buildings")
+
+        buildings_output["zone_id"] = buildings_output["parcel_id"].map(parcel_x_zone)
+        buildings_output["superdistrict"] = buildings_output["parcel_id"].map(
+            parcel_x_sd
+        )
+
+        # add job spaces - now from the buildings subsetted to office only
+        parcel_output["job_spaces_office"] = parcel_output.parcel_id.map(
+            buildings_output.groupby("parcel_id")["job_spaces"].sum()
+        )
+        parcel_output["job_spaces_office"].fillna(0, inplace=True)
+
+        # classify parcel by presence of office building
+
+        parcel_has_office_mask = parcel_output.job_spaces_office > 0
+
+        # we assume that a job on a parcel with an office building is an office job
+
+        parcel_output["jobs_office"] = parcel_output.totemp * parcel_has_office_mask
+        parcel_output["jobs_office"].fillna(0, inplace=True)
+
+        # calculate vacant job spaces - avoid negatives with clipping
+        parcel_output["job_spaces_office_vacant"] = (
+            parcel_output["job_spaces_office"] - parcel_output["jobs_office"]
+        ).clip(0)
+
+        # also get all-type job space vacant counts - avoid negatives with clipping
+        parcel_output["job_spaces_vacant"] = (
+            parcel_output["job_spaces"] - parcel_output["jobs"]
+        ).clip(0)
+
+        
+        # don't include percentages for the summaries
+        val_cols_summary = ['jobs_office','job_spaces_office','job_spaces_office_vacant',
+                    'jobs','job_spaces','job_spaces_vacant']
+
+        logging.info(
+            f'  Parcel office summary: {parcel_output[["job_spaces_office","jobs_office","job_spaces_office_vacant"]].sum()}'
+        )
+
+        # Process each area filter and get office inventory / vacancy
+        # This leverages the filters already set up elsewhere - but we could just
+        # pass a list of a few area columns and group by those, and collect the results
+
+        for area, filter_condition in metrics_utils.PARCEL_AREA_FILTERS[rtp].items():
+            logging.info(f"  Processing {area}...")
+            if callable(filter_condition):  # Check if the filter is a function]
+                df_area = parcel_output.loc[filter_condition(parcel_output)]
+            elif filter_condition == None:
+                df_area = parcel_output
+            logging.debug("area={} df_area len={:,}".format(area, len(df_area)))
+
+            # this_area_summary = pd.Series(
+            #     {
+            #         "modelrun_id": modelrun_id,
+            #         "modelrun_alias": f"{year} {modelrun_alias}",
+            #         #'area'                      : area,
+            #         "jobs_office": df_area["jobs_office"].sum(),
+            #         "job_spaces_office": df_area["job_spaces_office"].sum(),
+            #         "job_spaces_office_vacant": df_area[
+            #             "job_spaces_office_vacant"
+            #         ].sum(),
+            #     }
+            # )
+            
+            this_area_summary = pd.concat([df_area[val_cols_summary].sum()],
+                                          keys=[(modelrun_alias,modelrun_id)],
+                                          names=["modelrun_alias","modelrun_id"])
+
+            summary_dict[(year, area)] = this_area_summary
+
+        # combine yearly and area summaries in one df
+        area_summary_final = (
+            pd.concat(summary_dict, names=["year", "area"])
+            .unstack(4)
+            .reset_index()
+        )
+
+        def finalize_output(df):
+
+            df["job_spaces_office_vacant_percent"] = (
+                df["job_spaces_office_vacant"] / df["job_spaces_office"]
+            )
+            df["job_spaces_vacant_percent"] = (
+                df["job_spaces_vacant"] / df["job_spaces"]
+            )
+            df = df[
+                [
+                    "modelrun_id",
+                    "modelrun_alias",
+                    "area",
+                    "year",
+                    "jobs",
+                    "job_spaces",
+                    "job_spaces_vacant",
+                    "job_spaces_vacant_percent",
+                    "jobs_office",
+                    "job_spaces_office",
+                    "job_spaces_office_vacant",
+                    "job_spaces_office_vacant_percent",
+                ]
+            ]
+            return df
+
+        # do the last prep and formating
+        area_summary_final = finalize_output(area_summary_final)
+
+        logging.debug("area_summary_final:\n{}".format(area_summary_final))
+
+        filename = "metrics_growthPattern_office_data_buildings_by_misc_areas.csv"
+        filepath = output_path / filename
+
+        # write out the area_summary_final df
+        area_summary_final.to_csv(
+            filepath,
+            mode="a" if append_output else "w",
+            header=False if append_output else True,
+            index=False,
+        )
+        logging.info(
+            "{} {:,} lines to {}".format(
+                "Appended" if append_output else "Wrote", len(area_summary_final), filepath
+            )
+        )
+
+        # lastly, prepare county and sd level summaries as well
+        for geo in ["superdistrict", "county", "area_type"]:
+            geo_summary = pd.concat(
+                [
+                    parcel_output.groupby(geo)[
+                        ["jobs_office", "job_spaces_office", "job_spaces_office_vacant"]+\
+                            ["jobs", "job_spaces", "job_spaces_vacant"]
+                    ].sum()
+                ],
+                keys=[(modelrun_id, f"{year} {modelrun_alias}")],
+                names=["modelrun_id", "modelrun_alias", "area"],
+            )
+            geo_summary = geo_summary.reset_index()
+            geo_summary["year"] = year
+
+            # get vacancy and organize cols
+            geo_summary = finalize_output(geo_summary)
+            filename = f"metrics_growthPattern_office_data_buildings_{geo}.csv"
+            filepath = output_path / filename
+            logging.debug("geo_summary_final-{}:\n{}".format(geo, geo_summary))
+
+            geo_summary.to_csv(
+                filepath,
+                mode="a" if append_output else "w",
+                header=False if append_output else True,
+                index=False,
+            )
+            logging.info(
+                "{} {:,} lines to {}".format(
+                    "Appended" if append_output else "Wrote", len(geo_summary), filepath
+                )
+            )
+
+
+ # should be safe to remove this whole block - buildings come with job spaces so no need to roll our own here
+
+        ###############################################################
+        # should be safe to remove
+        # # load sqft per job adjusters
+        # ADJUSTERS_PATH = metrics_dir / "metrics_input_files" / "sqft_per_job_adjusters_exogenous.csv"
+
+        # logging.info(f'  Reading sqft_per_job_adjusters_exogenous from {ADJUSTERS_PATH}...')
+        # sqft_per_job_adjusters = pd.read_csv(ADJUSTERS_PATH,index_col=[0]).drop(['name'],axis=1)
+        # sqft_per_job = sqft_per_job_adjusters.mul(OFFICE_SQFT_PER_JOB)
+
+        # adjuster_col = 'sqft_per_job_factor_{}'
+
+        # this_sqft_per_job = sqft_per_job[adjuster_col.format(year)]
+
+        # buildings_output["sqft_per_job"] = buildings_output.superdistrict.map(
+        #    this_sqft_per_job
+        # )
+
+        # buildings_output["job_spaces_office"] = (
+        #     buildings_output["non_residential_sqft"] / buildings_output["sqft_per_job"]
+        # ).round(0)
+        # logging.info(f"  {len(buildings_output)} office buildings with job spaces")
+        # logging.info(
+        #     f'  {buildings_output[["job_spaces","job_spaces_office"]].sum()} job spaces'
+        # )
+        ###############################################################
+
+        # sum jobs to parcels - "job_spaces" here refer to office jobs since
+        # we applied a building type filter early
+
+
+def office_space_summary(
+        rtp: str,
+        modelrun_alias: str,
+        modelrun_id: str,
+        modelrun_data: dict,
+        output_path: str,
+        append_output: bool
+    ):
+    """
+    Calculates office space vacancy rates at different geographic levels from zone level data.
+    
+    Parameters:
+    - rtp (str): RTP2021 or RTP2025.
+    - modelrun_alias (str): Alias for the model run, used for labeling output.
+    - modelrun_id (str): Identifier for the model run.
+    - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
+    - output_path (str or Path): The directory path to save the output CSV file.
+    - append_output (bool): True if appending output; False if writing
+    
+    Writes metrics_vibrant1_office_space_data_{county|superdistrict}.csv to output_path, appending if append_output is True. Columns are:
+    - modelrun_id
+    - modelrun_alias
+    - county|superdistrict
+    - val_cols
+
+
+    """
+
+    # non-residential_vacancy : vacant job spaces as a share of total job spaces
+    # office vacancy: vacant office job spaces as a share of total office job spaces
+    # These are calculated as follows in the BAUS summary code:
+
+    # zones['non_residential_vacancy_office'] = (buildings.query('building_type=="OF"')
+    #                                         .groupby(['zone_id'])
+    #                                         .apply(lambda x: x['vacant_job_spaces'].sum().clip(0) /
+    #                                         x['job_spaces'].sum().clip(1))
+    #                                         )
+
+    # these are zone level data and for aggregation purposes we don't want percentages but instead the components of the fraction
+    # we have job_spaces_office, but not vacant_job_spaces_office. Given the above, we back that out by
+    # job_spaces_office_vacant = non_residential_vacancy_office * job_spaces_office
+
+
+    # Guard clause: this metric is implemented for RTP2025 / PBA50+ only
+    if rtp != 'RTP2025':
+        logging.info("  RTP2021 is not supported - skipping")
+        return
+
+    logging.info("Calculating office space summaries")
+
+    required_cols = ['job_spaces_office','job_spaces','non_residential_vacancy_office','non_residential_vacancy']
+
+    id_cols = [
+                "TAZ1454",
+                "COUNTY_NAME",
+                "SD"]
+
+
+    # Calculate ratios for initial and final years
+    SUMMARY_YEARS = sorted(modelrun_data.keys())
+
+    SUMMARY_GEOGRAPHIES = ["county", "superdistrict"]
+
+    for summary_geography in SUMMARY_GEOGRAPHIES:
+        output_dict = {}
+
+        
+        for year in SUMMARY_YEARS:
+            logging.info(f"  Summarizing for {year=} {summary_geography=}")
+
+            # superdistrict summaries will be from TAZ1454 table
+            data_df = modelrun_data[year]["TAZ1454"].copy()
+
+            if not all(x in data_df.columns for x in required_cols):
+                logging.info(f" Required columns {required_cols} not found in interim zoning data. Aborting for this run.")
+                return
+        
+            # jobs_office,job_spaces_office,job_spaces_office_vacant,job_spaces_office_vacant_percent
+            
+            # add vacant office space to the frame prior to summarizing
+            
+            # job_spaces_office_vacant = non_residential_vacancy_office * job_spaces_office
+            
+            data_df['job_spaces_office_vacant'] = (data_df['non_residential_vacancy_office'] * data_df['job_spaces_office']).round(0)
+            data_df['job_spaces_office_vacant_percent'] = (data_df['job_spaces_office_vacant'] / data_df['job_spaces_office'])
+            data_df['jobs_office'] = data_df['job_spaces_office'] - data_df['job_spaces_office_vacant']
+            
+            data_df['job_spaces_vacant'] = (data_df['non_residential_vacancy'] * data_df['job_spaces']).round(0)
+            data_df['job_spaces_vacant_percent'] = (data_df['job_spaces_vacant'] / data_df['job_spaces'])
+            data_df['jobs'] = data_df['job_spaces'] - data_df['job_spaces_vacant']
+
+            # remove the vacancy columns (in percentage terms)
+            #required_cols = [c for c in required_cols if 'vacancy' not in c]
+            #required_cols += ['job_spaces_office_vacant', 'job_spaces_vacant','jobs_office']
+            
+            data_df.rename(columns={'COUNTY_NAME':'county','COUNTY':'county','SD':'superdistrict'}, inplace=True)
+
+            # Select and order the columns
+            val_cols = ['jobs_office','job_spaces_office','job_spaces_office_vacant','job_spaces_office_vacant_percent',
+                    'jobs','job_spaces','job_spaces_vacant','job_spaces_vacant_percent',]
+        
+            # summarize the data by geo
+            data_summary = data_df.groupby(summary_geography)[val_cols].sum()
+            # add a regional summary
+            data_summary_reg = pd.concat([data_summary.sum()],keys=['Region'],names=[summary_geography]).unstack(1)
+
+            # combine the two
+            this_data_combo = pd.concat([data_summary, data_summary_reg],axis=0)
+            
+            output_dict[(year,summary_geography)] = this_data_combo
+            
+    
+        # collect the data into a single dataframe
+        all_data_combo = pd.concat(output_dict, names=['year','area']).reset_index()
+
+        # after summarizing by geography, we need to re-calculate percentages
+        all_data_combo['job_spaces_office_vacant_percent'] =all_data_combo['job_spaces_office_vacant'] /all_data_combo['job_spaces_office'] 
+        all_data_combo['job_spaces_vacant_percent'] =all_data_combo['job_spaces_vacant'] /all_data_combo['job_spaces'] 
+
+        # add the year and modelrun_id
+        
+        all_data_combo['year']               = year
+        all_data_combo['modelrun_id']        = modelrun_id
+        all_data_combo['modelrun_alias']     = f"{year} {modelrun_alias}"
+        logging.debug("interim zone all_data_combo:\n{}".format(all_data_combo))
+        
+        
+        all_data_combo = all_data_combo[['year','area','modelrun_id', 'modelrun_alias', summary_geography]+ val_cols]
+
+        # set filename and write it
+        filename = f'metrics_growthPattern_office_data_interim_{summary_geography}.csv'
+        filepath = output_path / filename
+
+        all_data_combo.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+        logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(all_data_combo), filepath))

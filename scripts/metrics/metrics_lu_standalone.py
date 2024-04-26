@@ -60,7 +60,7 @@ def main():
     
     # set the path for M: drive
     # from OSX, M:/ may be mounted to /Volumes/Data/Models
-    M_DRIVE = "/Volumes/Data/Models" if os.name != "nt" else "M:/"
+    M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else "M:/"
 
 
     if USERNAME.lower() in ['lzorn']:
@@ -172,6 +172,15 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             metrics_growth.growth_patterns_county(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, OUTPUT_PATH, append_output)
+            
+            # zone version
+            metrics_growth.office_space_summary(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+            
+            # building version
+            metrics_growth.office_vacancy_bldg(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path, BOX_DIR, M_DRIVE, METRICS_DIR, OUTPUT_PATH, append_output)
+            
 
         if (args.only == None) or (args.only == 'vibrant'):
             metrics_vibrant.jobs_housing_ratio(
