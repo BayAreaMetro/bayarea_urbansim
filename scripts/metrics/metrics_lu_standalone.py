@@ -174,12 +174,13 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, OUTPUT_PATH, append_output)
             
             # zone version
-            metrics_growth.office_space_summary(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+            # comment out when done testing
+            # metrics_growth.office_space_summary_zone(
+            #     args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             
-            # building version
-            metrics_growth.office_vacancy_bldg(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path, BOX_DIR, M_DRIVE, METRICS_DIR, OUTPUT_PATH, append_output)
+            # # building version
+            # metrics_growth.office_space_summary_bldg(
+            #     args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path, BOX_DIR, M_DRIVE, METRICS_DIR, OUTPUT_PATH, append_output)
             
 
         if (args.only == None) or (args.only == 'vibrant'):
