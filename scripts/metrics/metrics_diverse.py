@@ -203,7 +203,7 @@ def gentrify_displacement_tracts(
         multiyear_tract_summary_df.insert(0, 'modelrun_id', modelrun_id)
         multiyear_tract_summary_df.insert(0, 'modelrun_alias', f'{HORIZON_YEAR} {modelrun_alias}')
 
-        filename = f"debug_gentrify_displacment_{rtp}_{tract_id}.csv"
+        filename = f"debug_gentrify_displacment_{tract_id}.csv"
         filepath = output_path / filename
         multiyear_tract_summary_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
         logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(multiyear_tract_summary_df), filepath))
