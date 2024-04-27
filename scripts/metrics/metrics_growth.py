@@ -234,6 +234,21 @@ def office_vacancy_bldg(
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
 
+    Writes metrics_growthPattern_office_data_buildings{by_misc_areas|area_type|county|superdistrict}.csv to output_path, appending if append_output is True. Columns are:
+    
+    - year
+    - area
+    - modelrun_id
+    - modelrun_alias
+    - jobs_office
+	- job_spaces_office
+	- job_spaces_office_vacant
+	- job_spaces_office_vacant_percent
+	- jobs
+	- job_spaces
+	- job_spaces_vacant
+	- job_spaces_vacant_percent
+
     """
     logging.info("Calculating office space")
 
@@ -291,9 +306,37 @@ def office_vacancy_bldg(
 
     logging.info(f"  Reading parcel_to_taz1454sub from {TAZ_CROSSWALK_FILE}...")
 
+    # convenience series for crosswalking
     parcel_x_zone = parcel_to_taz_xwalk.ZONE_ID
     parcel_x_sd = parcel_x_zone.map(taz_x_sd)
     parcel_x_county = parcel_to_taz_xwalk.county
+
+    # Define convenience function for finalizing the df before outputting, to be run on different summary levels
+    def finalize_output(df):
+
+        df["job_spaces_office_vacant_percent"] = (
+            df["job_spaces_office_vacant"] / df["job_spaces_office"]
+        )
+        df["job_spaces_vacant_percent"] = (
+            df["job_spaces_vacant"] / df["job_spaces"]
+        )
+        df = df[
+            [
+                "modelrun_id",
+                "modelrun_alias",
+                "area",
+                "year",
+                "jobs",
+                "job_spaces",
+                "job_spaces_vacant",
+                "job_spaces_vacant_percent",
+                "jobs_office",
+                "job_spaces_office",
+                "job_spaces_office_vacant",
+                "job_spaces_office_vacant_percent",
+            ]
+        ]
+        return df
 
     def building_loader(year):
         # Read in buildings
@@ -315,7 +358,7 @@ def office_vacancy_bldg(
             BUILDINGS_PATH,
             usecols=[
                 "parcel_id",
-                "year_built",
+                #"year_built",
                 "non_residential_sqft",
                 "building_type",
                 "job_spaces",
@@ -458,31 +501,6 @@ def office_vacancy_bldg(
             .reset_index()
         )
 
-        def finalize_output(df):
-
-            df["job_spaces_office_vacant_percent"] = (
-                df["job_spaces_office_vacant"] / df["job_spaces_office"]
-            )
-            df["job_spaces_vacant_percent"] = (
-                df["job_spaces_vacant"] / df["job_spaces"]
-            )
-            df = df[
-                [
-                    "modelrun_id",
-                    "modelrun_alias",
-                    "area",
-                    "year",
-                    "jobs",
-                    "job_spaces",
-                    "job_spaces_vacant",
-                    "job_spaces_vacant_percent",
-                    "jobs_office",
-                    "job_spaces_office",
-                    "job_spaces_office_vacant",
-                    "job_spaces_office_vacant_percent",
-                ]
-            ]
-            return df
 
         # do the last prep and formating
         area_summary_final = finalize_output(area_summary_final)
@@ -539,38 +557,6 @@ def office_vacancy_bldg(
             )
 
 
- # should be safe to remove this whole block - buildings come with job spaces so no need to roll our own here
-
-        ###############################################################
-        # should be safe to remove
-        # # load sqft per job adjusters
-        # ADJUSTERS_PATH = metrics_dir / "metrics_input_files" / "sqft_per_job_adjusters_exogenous.csv"
-
-        # logging.info(f'  Reading sqft_per_job_adjusters_exogenous from {ADJUSTERS_PATH}...')
-        # sqft_per_job_adjusters = pd.read_csv(ADJUSTERS_PATH,index_col=[0]).drop(['name'],axis=1)
-        # sqft_per_job = sqft_per_job_adjusters.mul(OFFICE_SQFT_PER_JOB)
-
-        # adjuster_col = 'sqft_per_job_factor_{}'
-
-        # this_sqft_per_job = sqft_per_job[adjuster_col.format(year)]
-
-        # buildings_output["sqft_per_job"] = buildings_output.superdistrict.map(
-        #    this_sqft_per_job
-        # )
-
-        # buildings_output["job_spaces_office"] = (
-        #     buildings_output["non_residential_sqft"] / buildings_output["sqft_per_job"]
-        # ).round(0)
-        # logging.info(f"  {len(buildings_output)} office buildings with job spaces")
-        # logging.info(
-        #     f'  {buildings_output[["job_spaces","job_spaces_office"]].sum()} job spaces'
-        # )
-        ###############################################################
-
-        # sum jobs to parcels - "job_spaces" here refer to office jobs since
-        # we applied a building type filter early
-
-
 def office_space_summary(
         rtp: str,
         modelrun_alias: str,
@@ -590,12 +576,20 @@ def office_space_summary(
     - output_path (str or Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing
     
-    Writes metrics_vibrant1_office_space_data_{county|superdistrict}.csv to output_path, appending if append_output is True. Columns are:
+    Writes metrics_growthPattern_office_space_data_{county|superdistrict}.csv to output_path, appending if append_output is True. Columns are:
+    - year
+    - area
     - modelrun_id
     - modelrun_alias
     - county|superdistrict
-    - val_cols
-
+    - jobs_office
+	- job_spaces_office
+	- job_spaces_office_vacant
+	- job_spaces_office_vacant_percent
+	- jobs
+	- job_spaces
+	- job_spaces_vacant
+	- job_spaces_vacant_percent
 
     """
 
@@ -647,17 +641,12 @@ def office_space_summary(
             if not all(x in data_df.columns for x in required_cols):
                 logging.info(f" Required columns {required_cols} not found in interim zoning data. Aborting for this run.")
                 return
-        
-            # jobs_office,job_spaces_office,job_spaces_office_vacant,job_spaces_office_vacant_percent
-            
-            # add vacant office space to the frame prior to summarizing
-            
-            # job_spaces_office_vacant = non_residential_vacancy_office * job_spaces_office
-            
+            # calculate the vacancy columns for office space
             data_df['job_spaces_office_vacant'] = (data_df['non_residential_vacancy_office'] * data_df['job_spaces_office']).round(0)
             data_df['job_spaces_office_vacant_percent'] = (data_df['job_spaces_office_vacant'] / data_df['job_spaces_office'])
             data_df['jobs_office'] = data_df['job_spaces_office'] - data_df['job_spaces_office_vacant']
             
+            # calculate the vacancy columns for non-residential space in general
             data_df['job_spaces_vacant'] = (data_df['non_residential_vacancy'] * data_df['job_spaces']).round(0)
             data_df['job_spaces_vacant_percent'] = (data_df['job_spaces_vacant'] / data_df['job_spaces'])
             data_df['jobs'] = data_df['job_spaces'] - data_df['job_spaces_vacant']
