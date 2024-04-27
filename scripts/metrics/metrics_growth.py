@@ -241,13 +241,13 @@ def office_vacancy_bldg(
     - modelrun_id
     - modelrun_alias
     - jobs_office
-	- job_spaces_office
-	- job_spaces_office_vacant
-	- job_spaces_office_vacant_percent
-	- jobs
-	- job_spaces
-	- job_spaces_vacant
-	- job_spaces_vacant_percent
+    - job_spaces_office
+    - job_spaces_office_vacant
+    - job_spaces_office_vacant_percent
+    - jobs
+    - job_spaces
+    - job_spaces_vacant
+    - job_spaces_vacant_percent
 
     """
     logging.info("Calculating office space")
