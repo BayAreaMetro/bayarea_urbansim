@@ -282,27 +282,45 @@ def housing_cost_share_of_income(
     # For each housing_type, this asserts distribution to quartiles
     # Note: select horizon_project varient for horizon_year, non-NoProject scenario
     # TODO: What's the source for this?
-    HOUSING_TYPE_SHARE_OF_QUARTILE = [ #    default             horizon_project
-        # quartile      housing_type        housing_type_share  housing_type_share
-        ('Quartile1',   'deed-restricted',  1.0,                0.668693),
-        ('Quartile2',   'deed-restricted',  0.0,                0.331307),
-        ('Quartile3',   'deed-restricted',  0.0,                0.0),
-        ('Quartile4',   'deed-restricted',  0.0,                0.0),
-        #                                   default             horizon_project
-        # quartile      housing_type        housing_type_share  housing_type_share
-        ('Quartile1',   'subsidized',       1.0,                1.0),
-        ('Quartile2',   'subsidized',       0.0,                0.0),
-        ('Quartile3',   'subsidized',       0.0,                0.0),
-        ('Quartile4',   'subsidized',       0.0,                0.0),
-        #                                   default             horizon_project
-        # quartile      housing_type        housing_type_share  housing_type_share
-        ('Quartile1',   'price-controlled', 0.4,                0.0),
-        ('Quartile2',   'price-controlled', 0.3,                0.6),
-        ('Quartile3',   'price-controlled', 0.3,                0.4),
-        ('Quartile4',   'price-controlled', 0.0,                0.0),
+    HOUSING_TYPE_SHARE_OF_QUARTILE = [ #                default             horizon_project
+        # tenure    quartile        housing_type        housing_type_share  housing_type_share
+        ('renter',  'Quartile1',    'deed-restricted',  1.0,                0.668693),
+        ('renter',  'Quartile2',    'deed-restricted',  0.0,                0.331307),
+        ('renter',  'Quartile3',    'deed-restricted',  0.0,                0.0),
+        ('renter',  'Quartile4',    'deed-restricted',  0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure    quartile        housing_type        housing_type_share  housing_type_share
+        ('owner',   'Quartile1',    'deed-restricted',  1.0,                1.0),
+        ('owner',   'Quartile2',    'deed-restricted',  0.0,                0.0),
+        ('owner',   'Quartile3',    'deed-restricted',  0.0,                0.0),
+        ('owner',   'Quartile4',    'deed-restricted',  0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure    quartile        housing_type        housing_type_share  housing_type_share
+        ('renter',  'Quartile1',    'subsidized',       1.0,                1.0),
+        ('renter',  'Quartile2',    'subsidized',       0.0,                0.0),
+        ('renter',  'Quartile3',    'subsidized',       0.0,                0.0),
+        ('renter',  'Quartile4',    'subsidized',       0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure     quartile        housing_type        housing_type_share  housing_type_share
+        ('owner',   'Quartile1',    'subsidized',       1.0,                1.0),
+        ('owner',   'Quartile2',    'subsidized',       0.0,                0.0),
+        ('owner',   'Quartile3',    'subsidized',       0.0,                0.0),
+        ('owner',   'Quartile4',    'subsidized',       0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure    quartile        housing_type        housing_type_share  housing_type_share
+        ('renter',  'Quartile1',    'price-controlled', 0.4,                0.0),
+        ('renter',  'Quartile2',    'price-controlled', 0.3,                0.6),
+        ('renter',  'Quartile3',    'price-controlled', 0.3,                0.4),
+        ('renter',  'Quartile4',    'price-controlled', 0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure     quartile        housing_type        housing_type_share  housing_type_share
+        ('owner',   'Quartile1',    'price-controlled', 0.4,                0.4),
+        ('owner',   'Quartile2',    'price-controlled', 0.3,                0.3),
+        ('owner',   'Quartile3',    'price-controlled', 0.3,                0.3),
+        ('owner',   'Quartile4',    'price-controlled', 0.0,                0.0),
     ]
     HOUSING_TYPE_SHARE_OF_QUARTILE_DF = pd.DataFrame(
-        columns=['quartile','housing_type','default_housing_type_share','horizon_project_housing_type_share'],
+        columns=['tenure','quartile','housing_type','default_housing_type_share','horizon_project_housing_type_share'],
         data=HOUSING_TYPE_SHARE_OF_QUARTILE
     )
     logging.debug(f"HOUSING_TYPE_SHARE_OF_QUARTILE_DF:\n{HOUSING_TYPE_SHARE_OF_QUARTILE_DF}")
@@ -504,7 +522,7 @@ def housing_cost_share_of_income(
         left  = housingtype_df,
         right = HOUSING_TYPE_SHARE_OF_QUARTILE_DF,
         how   = 'left',
-        on    = ['housing_type'],
+        on    = ['tenure','housing_type'],
     )
     # There are two housing_type_share columns: default_housing_type_share and horizon_project_housing_type_share
     # Select the appropriate one
@@ -719,3 +737,6 @@ def housing_cost_share_of_income(
     filepath = output_path / filename
     result_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
     logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(result_df), filepath))
+
+    if modelrun_alias=="FBP":
+        raise RuntimeError("Stopping here")
