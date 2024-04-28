@@ -737,6 +737,4 @@ def housing_cost_share_of_income(
     filepath = output_path / filename
     result_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
     logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(result_df), filepath))
-
-    if modelrun_alias=="FBP":
-        raise RuntimeError("Stopping here")
+    
