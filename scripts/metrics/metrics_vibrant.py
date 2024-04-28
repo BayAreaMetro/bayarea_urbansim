@@ -122,9 +122,10 @@ def gdp_growth(
     - output_path (str or Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing
     """
-
     logging.info("Calculating GDP per capita growth from REMI data")
-
+    if rtp == "RTP2021":
+        logging.info("  RTP2021 not supported. Skipping")
+        return
 
     rtp2021_remi_path = box_path / 'Modeling and Surveys' / 'Regional Modeling' / \
         'Regional Forecast PBA50' / 'REMI_raw_output' / \
@@ -205,8 +206,10 @@ def ppa_job_growth(
     - output_path (str or Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing
     """
-    
     logging.info("Getting jobs by wage level")
+    if rtp == "RTP2021":
+        logging.info("  RTP2021 not supported. Skipping")
+        return
 
     jobs_file = metrics_path / "metrics_input_files" / "emp_by_ind11_pba2050plus.csv"
     wage_file = metrics_path / "metrics_input_files" / "jobs_wagelevel.csv"
