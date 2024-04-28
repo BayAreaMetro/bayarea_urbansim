@@ -1,4 +1,4 @@
-USAGE="""
+USAGE = """
 This script loads data for various Bay Area UrbanSim model runs and calculates
 a set of metrics defined in the performance report related to land use
 
@@ -33,6 +33,7 @@ import metrics_diverse
 import metrics_growth
 import metrics_healthy
 import metrics_vibrant
+
 
 def main():
     pd.options.display.width = 500 # this goes to log file
@@ -70,10 +71,16 @@ def main():
     
     MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/")
     RUN_INVENTORY_FILE = MODEL_RUNS_DIR / "Metrics/PBA50Plus_model_run_inventory.csv"
-    OUTPUT_PATH        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
-    METRICS_DIR        = OUTPUT_PATH
-    LOG_FILENAME       = "metrics_lu_standalone_{}.log" # loglevel
-
+    OUTPUT_PATH = (
+        BOX_DIR
+        / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
+    )
+    METRICS_DIR = OUTPUT_PATH
+    LOG_FILENAME = "metrics_lu_standalone_{}_{}.log"  # loglevel
+    
+    # capture the value of any --only arg passed and add to log file name
+    log_only_arg = '' if args.only is None else args.only # add --only arg to log file name
+  
     # this is for QAQC
     if args.rtp == "RTP2021":
         METRICS_DIR        = BOX_DIR / "Horizon and Plan Bay Area 2050/Equity and Performance/7_Analysis/Metrics"
@@ -94,12 +101,12 @@ def main():
     ch.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p'))
     logger.addHandler(ch)
     ################## file handler - info
-    fh = logging.FileHandler(OUTPUT_PATH / LOG_FILENAME.format("info"), mode='w')
+    fh = logging.FileHandler(OUTPUT_PATH / LOG_FILENAME.format(log_only_arg,"info"), mode="w")
     fh.setLevel(logging.INFO)
     fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p'))
     logger.addHandler(fh)
     ################## file handler - debug
-    fh = logging.FileHandler(OUTPUT_PATH / LOG_FILENAME.format("debug"), mode='w')
+    fh = logging.FileHandler(OUTPUT_PATH / LOG_FILENAME.format(log_only_arg,"debug"), mode='w')
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p'))
     logger.addHandler(fh)
@@ -175,13 +182,28 @@ def main():
             
             # zone version
             # comment out when done testing
-            # metrics_growth.office_space_summary_zone(
-            #     args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-            
+            metrics_growth.office_space_summary_zone(
+                args.rtp,
+                modelrun_alias,
+                modelrun_id,
+                modelrun_data,
+                OUTPUT_PATH,
+                append_output,
+            )
+
             # # building version
-            # metrics_growth.office_space_summary_bldg(
-            #     args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path, BOX_DIR, M_DRIVE, METRICS_DIR, OUTPUT_PATH, append_output)
-            
+            metrics_growth.office_space_summary_bldg(
+                args.rtp,
+                modelrun_alias,
+                modelrun_id,
+                modelrun_data,
+                run_directory_path,
+                BOX_DIR,
+                M_DRIVE,
+                METRICS_DIR,
+                OUTPUT_PATH,
+                append_output,
+            )
 
         if (args.only == None) or (args.only == 'vibrant'):
             metrics_vibrant.jobs_housing_ratio(
@@ -204,6 +226,7 @@ def main():
 
         # output files are started; append henceforth
         append_output = True
+
 
 if __name__ == "__main__":
     main()
