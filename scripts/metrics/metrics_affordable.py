@@ -280,26 +280,29 @@ def housing_cost_share_of_income(
     logging.debug(f"TENURE_SHARE_OF_HOUSING_TYPE_DF:\n{TENURE_SHARE_OF_HOUSING_TYPE_DF}")
 
     # For each housing_type, this asserts distribution to quartiles
+    # Note: select horizon_project varient for horizon_year, non-NoProject scenario
     # TODO: What's the source for this?
-    HOUSING_TYPE_SHARE_OF_QUARTILE = [
-        # quartile      housing_type         housing_type_share
-        ('Quartile1',   'deed-restricted',   1.0),
-        ('Quartile2',   'deed-restricted',   0.0),
-        ('Quartile3',   'deed-restricted',   0.0),
-        ('Quartile4',   'deed-restricted',   0.0),
-        # quartile      housing_type         housing_type_share
-        ('Quartile1',   'subsidized',        1.0),
-        ('Quartile2',   'subsidized',        0.0),
-        ('Quartile3',   'subsidized',        0.0),
-        ('Quartile4',   'subsidized',        0.0),
-        # quartile      housing_type         housing_type_share
-        ('Quartile1',   'price-controlled',  0.4),
-        ('Quartile2',   'price-controlled',  0.3),
-        ('Quartile3',   'price-controlled',  0.3),
-        ('Quartile4',   'price-controlled',  0.0),
+    HOUSING_TYPE_SHARE_OF_QUARTILE = [ #    default             horizon_project
+        # quartile      housing_type        housing_type_share  housing_type_share
+        ('Quartile1',   'deed-restricted',  1.0,                0.668693),
+        ('Quartile2',   'deed-restricted',  0.0,                0.331307),
+        ('Quartile3',   'deed-restricted',  0.0,                0.0),
+        ('Quartile4',   'deed-restricted',  0.0,                0.0),
+        #                                   default             horizon_project
+        # quartile      housing_type        housing_type_share  housing_type_share
+        ('Quartile1',   'subsidized',       1.0,                1.0),
+        ('Quartile2',   'subsidized',       0.0,                0.0),
+        ('Quartile3',   'subsidized',       0.0,                0.0),
+        ('Quartile4',   'subsidized',       0.0,                0.0),
+        #                                   default             horizon_project
+        # quartile      housing_type        housing_type_share  housing_type_share
+        ('Quartile1',   'price-controlled', 0.4,                0.0),
+        ('Quartile2',   'price-controlled', 0.3,                0.6),
+        ('Quartile3',   'price-controlled', 0.3,                0.4),
+        ('Quartile4',   'price-controlled', 0.0,                0.0),
     ]
     HOUSING_TYPE_SHARE_OF_QUARTILE_DF = pd.DataFrame(
-        columns=['quartile','housing_type','housing_type_share'],
+        columns=['quartile','housing_type','default_housing_type_share','horizon_project_housing_type_share'],
         data=HOUSING_TYPE_SHARE_OF_QUARTILE
     )
     logging.debug(f"HOUSING_TYPE_SHARE_OF_QUARTILE_DF:\n{HOUSING_TYPE_SHARE_OF_QUARTILE_DF}")
@@ -402,6 +405,15 @@ def housing_cost_share_of_income(
         f'all households {year_horizon}':modelrun_data[year_horizon]['county'][['HHINCQ1','HHINCQ2','HHINCQ3','HHINCQ4']].sum(),
     }).reset_index(drop=False, names='quartile')
     household_count_df['quartile'] = household_count_df.quartile.str.replace('HHINCQ','Quartile')
+
+    if rtp=="RTP2021" and modelrun_alias != "No Project":
+        # The original script asserted these
+        # https://github.com/BayAreaMetro/regional_forecast/blob/cc4eade1bcdb9ae92a08556c7389257a54aefcaa/housing_income_share_metric/Share_Housing_Costs_Q1-4.R#L148
+        household_count_df.set_index('quartile', inplace=True)
+        household_count_df.at['Quartile1', f'all households {year_horizon}'] = 1009965
+        household_count_df.at['Quartile2', f'all households {year_horizon}'] =  920534
+        household_count_df.reset_index(drop=False, inplace=True)
+
     logging.debug(f"household_count_df:\n{household_count_df}")
     # move year to column
     household_count_df = pd.wide_to_long(
@@ -494,7 +506,15 @@ def housing_cost_share_of_income(
         how   = 'left',
         on    = ['housing_type'],
     )
+    # There are two housing_type_share columns: default_housing_type_share and horizon_project_housing_type_share
+    # Select the appropriate one
     logging.debug(f"housingtype_df with HOUSING_TYPE_SHARE_OF_QUARTILE_DF:\n{housingtype_df}")
+    housingtype_df['housing_type_share'] = housingtype_df.default_housing_type_share
+    # use this column for future project (e.g. non no-project)
+    if modelrun_alias != "No Project":
+        housingtype_df.loc[ housingtype_df.year == year_horizon, 
+                           'housing_type_share'] = housingtype_df.horizon_project_housing_type_share
+
     housingtype_df['households'] = housingtype_df.housing_type_share * housingtype_df.households
     housingtype_df.drop(columns=['housing_type_share'], inplace=False)
     housingtype_df = housingtype_df[['year','tenure','quartile','housing_type','households']]
