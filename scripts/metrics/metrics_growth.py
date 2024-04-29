@@ -437,7 +437,7 @@ def office_space_summary_bldg(
         parcel_output["job_spaces"] = parcel_output.parcel_id.map(
             buildings_output.groupby("parcel_id")["job_spaces"].sum()
         )
-        parcel_output["job_spaces"].fillna(0, inplace=True)
+        parcel_output["job_spaces"] = parcel_output["job_spaces"].fillna(0)
 
         # subset buildings to office / mixed office
         buildings_output = buildings_output[
@@ -449,7 +449,7 @@ def office_space_summary_bldg(
         parcel_output["job_spaces_office"] = parcel_output.parcel_id.map(
             buildings_output.groupby("parcel_id")["job_spaces"].sum()
         )
-        parcel_output["job_spaces_office"].fillna(0, inplace=True)
+        parcel_output["job_spaces_office"] = parcel_output["job_spaces_office"].fillna(0)
 
         # classify parcel by presence of office building
 
@@ -482,7 +482,7 @@ def office_space_summary_bldg(
             "job_spaces_vacant",
         ]
 
-        logging.info(
+        logging.debug(
             f'  Parcel office summary: {parcel_output[["job_spaces_office","jobs_office","job_spaces_office_vacant"]].sum()}'
         )
 
