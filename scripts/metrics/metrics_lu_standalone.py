@@ -76,10 +76,10 @@ def main():
         / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
     )
     METRICS_DIR = OUTPUT_PATH
-    LOG_FILENAME = "metrics_lu_standalone_{}_{}.log"  # loglevel
+    LOG_FILENAME = "metrics_lu_standalone_{}{}.log"  # loglevel
     
     # capture the value of any --only arg passed and add to log file name
-    log_only_arg = '' if args.only is None else args.only # add --only arg to log file name
+    log_only_arg = '' if args.only is None else args.only + "_" # add --only arg to log file name
   
     # this is for QAQC
     if args.rtp == "RTP2021":
