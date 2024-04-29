@@ -419,10 +419,10 @@ def housing_cost_share_of_income(
     # Create county sumary dataframe for initial and horizon year
     # with columns: quartile, all households {year_initial}, all households {year_horizon}
     household_count_df = pd.DataFrame({
-        f'all households {year_initial}':modelrun_data[year_initial]['county'][['HHINCQ1','HHINCQ2','HHINCQ3','HHINCQ4']].sum(),
-        f'all households {year_horizon}':modelrun_data[year_horizon]['county'][['HHINCQ1','HHINCQ2','HHINCQ3','HHINCQ4']].sum(),
+        f'all households {year_initial}':modelrun_data[year_initial]['county'][['hhincq1','hhincq2','hhincq3','hhincq4']].sum(),
+        f'all households {year_horizon}':modelrun_data[year_horizon]['county'][['hhincq1','hhincq2','hhincq3','hhincq4']].sum(),
     }).reset_index(drop=False, names='quartile')
-    household_count_df['quartile'] = household_count_df.quartile.str.replace('HHINCQ','Quartile')
+    household_count_df['quartile'] = household_count_df.quartile.str.replace('hhincq','Quartile')
 
     if rtp=="RTP2021" and modelrun_alias != "No Project":
         # The original script asserted these
