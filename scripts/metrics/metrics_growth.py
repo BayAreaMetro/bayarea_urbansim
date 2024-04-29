@@ -2,7 +2,7 @@
 # ====== Growth Metrics ========
 # ==============================
 import pandas as pd
-import logging
+import logging, pathlib
 import metrics_utils
 
 def growth_patterns_county(rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, output_path, append_output):
@@ -213,8 +213,8 @@ def office_space_summary_bldg(
     modelrun_id: str,
     modelrun_data: dict,
     run_directory_path: str,
-    box_dir: str,
-    m_drive: str,
+    box_dir: pathlib.Path,
+    m_drive: pathlib.Path,
     metrics_dir: str,
     output_path: str,
     append_output: bool,

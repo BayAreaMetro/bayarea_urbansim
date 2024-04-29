@@ -61,7 +61,7 @@ def main():
     
     # set the path for M: drive
     # from OSX, M:/ may be mounted to /Volumes/Data/Models
-    M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else "M:/"
+    M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 
 
     if USERNAME.lower() in ['lzorn']:
