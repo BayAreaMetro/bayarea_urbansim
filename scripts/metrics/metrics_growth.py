@@ -2,7 +2,7 @@
 # ====== Growth Metrics ========
 # ==============================
 import pandas as pd
-import logging
+import logging, pathlib
 import metrics_utils
 
 def growth_patterns_county(rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, output_path, append_output):
@@ -28,11 +28,6 @@ def growth_patterns_county(rtp, modelrun_alias, modelrun_id, modelrun_data, regi
     - [hh|jobs]_share_of_growth
     """
     logging.info("Calculating growth_patterns_county")
-    RTP_COLUMNS = {
-        "RTP2021": ('TOTEMP', 'TOTHH', 'COUNTY_NAME'),
-        "RTP2025": ('totemp', 'tothh', 'county')
-    }
-    total_job_column, total_hh_column, county_column = RTP_COLUMNS[rtp]
     
     # Calculate totals for initial and final years
     SUMMARY_YEARS = sorted(modelrun_data.keys())
@@ -43,16 +38,15 @@ def growth_patterns_county(rtp, modelrun_alias, modelrun_id, modelrun_data, regi
     for year in SUMMARY_YEARS:
         # add parcel total / county total for total_households, total_jobs 
         regional_hh_jobs_dict[year]['hh_county_over_parcel'] = \
-            regional_hh_jobs_dict[year]['total_households'] / modelrun_data[year]['county'][total_hh_column].sum()
+            regional_hh_jobs_dict[year]['total_households'] / modelrun_data[year]['county']['tothh'].sum()
         regional_hh_jobs_dict[year]['jobs_county_over_parcel'] = \
-            regional_hh_jobs_dict[year]['total_jobs'] / modelrun_data[year]['county'][total_job_column].sum()
+            regional_hh_jobs_dict[year]['total_jobs'] / modelrun_data[year]['county']['totemp'].sum()
 
         summary_dfs[year] = modelrun_data[year]["county"].copy()
         # rename columns to standardized version
         summary_dfs[year].rename(columns={
-            total_hh_column :'total_households',
-            total_job_column:'total_jobs',
-            county_column   :'county'}, inplace=True)
+            'tothh' :'total_households',
+            'totemp':'total_jobs'}, inplace=True)
         summary_dfs[year]['modelrun_alias'] = f"{year} {modelrun_alias}"
         logging.debug("summary_dfs[year]:\n{}".format(summary_dfs[year]))
 
@@ -213,8 +207,8 @@ def office_space_summary_bldg(
     modelrun_id: str,
     modelrun_data: dict,
     run_directory_path: str,
-    box_dir: str,
-    m_drive: str,
+    box_dir: pathlib.Path,
+    m_drive: pathlib.Path,
     metrics_dir: str,
     output_path: str,
     append_output: bool,
@@ -437,7 +431,7 @@ def office_space_summary_bldg(
         parcel_output["job_spaces"] = parcel_output.parcel_id.map(
             buildings_output.groupby("parcel_id")["job_spaces"].sum()
         )
-        parcel_output["job_spaces"].fillna(0, inplace=True)
+        parcel_output["job_spaces"] = parcel_output["job_spaces"].fillna(0)
 
         # subset buildings to office / mixed office
         buildings_output = buildings_output[
@@ -449,7 +443,7 @@ def office_space_summary_bldg(
         parcel_output["job_spaces_office"] = parcel_output.parcel_id.map(
             buildings_output.groupby("parcel_id")["job_spaces"].sum()
         )
-        parcel_output["job_spaces_office"].fillna(0, inplace=True)
+        parcel_output["job_spaces_office"] = parcel_output["job_spaces_office"].fillna(0)
 
         # classify parcel by presence of office building
 
@@ -482,7 +476,7 @@ def office_space_summary_bldg(
             "job_spaces_vacant",
         ]
 
-        logging.info(
+        logging.debug(
             f'  Parcel office summary: {parcel_output[["job_spaces_office","jobs_office","job_spaces_office_vacant"]].sum()}'
         )
 

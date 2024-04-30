@@ -63,8 +63,6 @@ def jobs_housing_ratio(
                 data_df.rename(columns={'totemp':'total_jobs', 'tothh':'total_households'}, inplace=True)
             if 'TOTEMP' in data_df.columns:
                 data_df.rename(columns={'TOTEMP':'total_jobs', 'TOTHH':'total_households'}, inplace=True)
-            if 'COUNTY_NAME' in data_df.columns:
-                data_df.rename(columns={'COUNTY_NAME':'county'}, inplace=True)
             if 'SD' in data_df.columns:
                 data_df.rename(columns={'SD':'superdistrict'}, inplace=True)
 

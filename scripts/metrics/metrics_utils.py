@@ -524,6 +524,19 @@ def load_data_for_runs(
         logging.debug("Head:\n{}".format(geo_summary_df))
         modelrun_data[year]['county'] = geo_summary_df
 
+        if rtp=="RTP2021":
+            # rename some columns to be consistent with RTP2025
+            modelrun_data[year]['county'].rename(columns={
+                'COUNTY_NAME'   :'county',
+                'HHINCQ1'       :'hhincq1',
+                'HHINCQ2'       :'hhincq2',
+                'HHINCQ3'       :'hhincq3',
+                'HHINCQ4'       :'hhincq4',
+                'TOTEMP'        :'totemp',
+                'TOTHH'         :'tothh',
+            }, inplace=True)
+            logging.debug(f"{modelrun_data[year]['county'].head()=}")
+
     # Load taz summaries
     # This is only necessary for RTP2025 / healthy.urban_park_acres()
     #         and superdistrict-based jobs/housing summaries

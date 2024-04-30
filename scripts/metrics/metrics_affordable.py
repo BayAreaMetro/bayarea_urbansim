@@ -231,10 +231,6 @@ def housing_cost_share_of_income(
     """
     logging.info("Calculating housing_cost_as_share_of_income")
 
-    if rtp=="RTP2025":
-        logging.info("  Not implemented yet")
-        return
-
     SUMMARY_YEARS = sorted(modelrun_data.keys())
     year_initial = SUMMARY_YEARS[0]
     year_horizon = SUMMARY_YEARS[-1]
@@ -282,27 +278,45 @@ def housing_cost_share_of_income(
     # For each housing_type, this asserts distribution to quartiles
     # Note: select horizon_project varient for horizon_year, non-NoProject scenario
     # TODO: What's the source for this?
-    HOUSING_TYPE_SHARE_OF_QUARTILE = [ #    default             horizon_project
-        # quartile      housing_type        housing_type_share  housing_type_share
-        ('Quartile1',   'deed-restricted',  1.0,                0.668693),
-        ('Quartile2',   'deed-restricted',  0.0,                0.331307),
-        ('Quartile3',   'deed-restricted',  0.0,                0.0),
-        ('Quartile4',   'deed-restricted',  0.0,                0.0),
-        #                                   default             horizon_project
-        # quartile      housing_type        housing_type_share  housing_type_share
-        ('Quartile1',   'subsidized',       1.0,                1.0),
-        ('Quartile2',   'subsidized',       0.0,                0.0),
-        ('Quartile3',   'subsidized',       0.0,                0.0),
-        ('Quartile4',   'subsidized',       0.0,                0.0),
-        #                                   default             horizon_project
-        # quartile      housing_type        housing_type_share  housing_type_share
-        ('Quartile1',   'price-controlled', 0.4,                0.0),
-        ('Quartile2',   'price-controlled', 0.3,                0.6),
-        ('Quartile3',   'price-controlled', 0.3,                0.4),
-        ('Quartile4',   'price-controlled', 0.0,                0.0),
+    HOUSING_TYPE_SHARE_OF_QUARTILE = [ #                default             horizon_project
+        # tenure    quartile        housing_type        housing_type_share  housing_type_share
+        ('renter',  'Quartile1',    'deed-restricted',  1.0,                0.668693),
+        ('renter',  'Quartile2',    'deed-restricted',  0.0,                0.331307),
+        ('renter',  'Quartile3',    'deed-restricted',  0.0,                0.0),
+        ('renter',  'Quartile4',    'deed-restricted',  0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure    quartile        housing_type        housing_type_share  housing_type_share
+        ('owner',   'Quartile1',    'deed-restricted',  1.0,                1.0),
+        ('owner',   'Quartile2',    'deed-restricted',  0.0,                0.0),
+        ('owner',   'Quartile3',    'deed-restricted',  0.0,                0.0),
+        ('owner',   'Quartile4',    'deed-restricted',  0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure    quartile        housing_type        housing_type_share  housing_type_share
+        ('renter',  'Quartile1',    'subsidized',       1.0,                1.0),
+        ('renter',  'Quartile2',    'subsidized',       0.0,                0.0),
+        ('renter',  'Quartile3',    'subsidized',       0.0,                0.0),
+        ('renter',  'Quartile4',    'subsidized',       0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure     quartile        housing_type        housing_type_share  housing_type_share
+        ('owner',   'Quartile1',    'subsidized',       1.0,                1.0),
+        ('owner',   'Quartile2',    'subsidized',       0.0,                0.0),
+        ('owner',   'Quartile3',    'subsidized',       0.0,                0.0),
+        ('owner',   'Quartile4',    'subsidized',       0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure    quartile        housing_type        housing_type_share  housing_type_share
+        ('renter',  'Quartile1',    'price-controlled', 0.4,                0.0),
+        ('renter',  'Quartile2',    'price-controlled', 0.3,                0.6),
+        ('renter',  'Quartile3',    'price-controlled', 0.3,                0.4),
+        ('renter',  'Quartile4',    'price-controlled', 0.0,                0.0),
+        #                                               default             horizon_project
+        # tenure     quartile        housing_type        housing_type_share  housing_type_share
+        ('owner',   'Quartile1',    'price-controlled', 0.4,                0.4),
+        ('owner',   'Quartile2',    'price-controlled', 0.3,                0.3),
+        ('owner',   'Quartile3',    'price-controlled', 0.3,                0.3),
+        ('owner',   'Quartile4',    'price-controlled', 0.0,                0.0),
     ]
     HOUSING_TYPE_SHARE_OF_QUARTILE_DF = pd.DataFrame(
-        columns=['quartile','housing_type','default_housing_type_share','horizon_project_housing_type_share'],
+        columns=['tenure','quartile','housing_type','default_housing_type_share','horizon_project_housing_type_share'],
         data=HOUSING_TYPE_SHARE_OF_QUARTILE
     )
     logging.debug(f"HOUSING_TYPE_SHARE_OF_QUARTILE_DF:\n{HOUSING_TYPE_SHARE_OF_QUARTILE_DF}")
@@ -330,6 +344,11 @@ def housing_cost_share_of_income(
     )
     logging.debug(f"SHARE_OF_INCOME_SPENT_ON_HOUSING_DF:\n{SHARE_OF_INCOME_SPENT_ON_HOUSING_DF}")
 
+    # TODO: This is from regional_forecast\housing_income_share_metric\scenario_specific_parameters.csv
+    # TODO: What is it based upon?
+    AVG_HU_PRICE_RATIO_HORIZON_TO_INITIAL = 0.8427
+    logging.debug(f"{AVG_HU_PRICE_RATIO_HORIZON_TO_INITIAL=}")
+
     # Assume price-controlled share_income = MARKET_RATE_TO_PRICE_CONTROL_SHARE_INCOME x (market-rate share_income)
     MARKET_RATE_TO_PRICE_CONTROL_SHARE_INCOME = 0.857
 
@@ -351,16 +370,11 @@ def housing_cost_share_of_income(
         scenario_params_df.columns = scenario_params_df.columns.str.strip() # leading whitespace
         # scenario is index and  we only need subset of columns
         scenario_params_df.set_index('scenario', inplace=True)
-        scenario_params_df = scenario_params_df[['rdr_units_2050','odr_units_2050','total_rpc_units_2050','total_opc_units_2050','avg_hu_price_ratio_2050_to_2015']]
+        scenario_params_df = scenario_params_df[['rdr_units_2050','odr_units_2050','total_rpc_units_2050','total_opc_units_2050']]
         scenario_params_df = scenario_params_df.replace({' ':None}).astype('float')
         logging.info(f"  Read {len(scenario_params_df)=:,} lines from {SCENARIO_PARAMS_FILE}")
         logging.debug(f"\n{scenario_params_df}")
         logging.debug(f"\n{scenario_params_df.dtypes}")
-
-        # this one isn't like the others; pull it into it's own variable
-        avg_hu_price_ratio_2050_to_2015 = scenario_params_df.at[ BAUS_SCENARIO, 'avg_hu_price_ratio_2050_to_2015']
-        scenario_params_df.drop(columns=['avg_hu_price_ratio_2050_to_2015'], inplace=True)
-        logging.info(f"  Read {avg_hu_price_ratio_2050_to_2015=}")
 
         scenario_params_df = scenario_params_df.loc[BAUS_SCENARIO] # keep only this scenario
         # format this more usefully: convert single row to column
@@ -384,6 +398,43 @@ def housing_cost_share_of_income(
         # TODO: why is this 2019 and as recent as possible (2021)?
         PUMS_BASEYEAR_HOUSING_COST_FILE = REGIONAL_FORECAST_LEGACY_DIR + "ACS_PUMS_2019_Share_Income_Spent_on_Housing_by_Quartile.csv"
 
+        if modelrun_alias == "No Project":
+            BAUS_SCENARIO = "RTP2025_NP"
+        else:
+            BAUS_SCENARIO = "RTP2025_DBP"
+
+        # TODO: This is duplicate code because I think it should be removed
+        # TODO: Deed restricted unit counts should come from deed_restricted_affordable_share() results
+        # TODO: Price controlled unit count appears to be fixed at 144892 for all scenarios; what is this based upon?
+        SCENARIO_PARAMS_FILE =  REGIONAL_FORECAST_LEGACY_DIR + "scenario_specific_parameters.csv"
+        scenario_params_df = pd.read_csv(SCENARIO_PARAMS_FILE, na_values=['  '])
+        scenario_params_df.columns = scenario_params_df.columns.str.strip() # leading whitespace
+        # scenario is index and  we only need subset of columns
+        scenario_params_df.set_index('scenario', inplace=True)
+        scenario_params_df = scenario_params_df[['rdr_units_2050','odr_units_2050','total_rpc_units_2050','total_opc_units_2050']]
+        scenario_params_df = scenario_params_df.replace({' ':None}).astype('float')
+        logging.info(f"  Read {len(scenario_params_df)=:,} lines from {SCENARIO_PARAMS_FILE}")
+        logging.debug(f"\n{scenario_params_df}")
+        logging.debug(f"\n{scenario_params_df.dtypes}")
+
+        scenario_params_df = scenario_params_df.loc[BAUS_SCENARIO] # keep only this scenario
+        # format this more usefully: convert single row to column
+        scenario_params_df = pd.DataFrame(scenario_params_df.transpose())
+        scenario_params_df.columns = ['BAUS_households'] # rename that column
+        scenario_params_df.index = scenario_params_df.index.str.replace('total_','') #index is original column names
+        scenario_params_df.index = scenario_params_df.index.str.replace('_units_2050','')
+        scenario_params_df['year'] = 2050
+        scenario_params_df['tenure'] = scenario_params_df.index.str[0]
+        scenario_params_df['housing_type'] = scenario_params_df.index.str[1:]
+        # recode
+        scenario_params_df.replace({
+            'tenure':{'o':'owner','r':'renter'},
+            'housing_type':{'dr':'deed-restricted', 'pc':'price-controlled'}
+        }, inplace=True)
+        scenario_params_df.reset_index(drop=True, inplace=True)
+        logging.debug(f"\n{scenario_params_df}")
+        logging.debug(f"\n{scenario_params_df.dtypes}")
+
     pums_baseyear_housing_cost_df = pd.read_csv(PUMS_BASEYEAR_HOUSING_COST_FILE)
     pums_baseyear_housing_cost_df['tenure'] = pums_baseyear_housing_cost_df.tenure.str.lower()
     pums_baseyear_housing_cost_df['tenure'] = pums_baseyear_housing_cost_df['tenure'].replace({'total':'all_tenures'})
@@ -401,10 +452,10 @@ def housing_cost_share_of_income(
     # Create county sumary dataframe for initial and horizon year
     # with columns: quartile, all households {year_initial}, all households {year_horizon}
     household_count_df = pd.DataFrame({
-        f'all households {year_initial}':modelrun_data[year_initial]['county'][['HHINCQ1','HHINCQ2','HHINCQ3','HHINCQ4']].sum(),
-        f'all households {year_horizon}':modelrun_data[year_horizon]['county'][['HHINCQ1','HHINCQ2','HHINCQ3','HHINCQ4']].sum(),
+        f'all households {year_initial}':modelrun_data[year_initial]['county'][['hhincq1','hhincq2','hhincq3','hhincq4']].sum(),
+        f'all households {year_horizon}':modelrun_data[year_horizon]['county'][['hhincq1','hhincq2','hhincq3','hhincq4']].sum(),
     }).reset_index(drop=False, names='quartile')
-    household_count_df['quartile'] = household_count_df.quartile.str.replace('HHINCQ','Quartile')
+    household_count_df['quartile'] = household_count_df.quartile.str.replace('hhincq','Quartile')
 
     if rtp=="RTP2021" and modelrun_alias != "No Project":
         # The original script asserted these
@@ -504,7 +555,7 @@ def housing_cost_share_of_income(
         left  = housingtype_df,
         right = HOUSING_TYPE_SHARE_OF_QUARTILE_DF,
         how   = 'left',
-        on    = ['housing_type'],
+        on    = ['tenure','housing_type'],
     )
     # There are two housing_type_share columns: default_housing_type_share and horizon_project_housing_type_share
     # Select the appropriate one
@@ -616,10 +667,10 @@ def housing_cost_share_of_income(
 
     # for horizon year, factor up price-controlled share for renters
     horizon_share_spent_df.loc[ (horizon_share_spent_df.tenure == 'renter'), 'share_income price-controlled'] = \
-        horizon_share_spent_df['share_income price-controlled'] * avg_hu_price_ratio_2050_to_2015
+        horizon_share_spent_df['share_income price-controlled'] * AVG_HU_PRICE_RATIO_HORIZON_TO_INITIAL
     # for horizon year, factor up market-rate share for everyone
     horizon_share_spent_df['share_income market-rate'] = \
-        horizon_share_spent_df['share_income market-rate'] * avg_hu_price_ratio_2050_to_2015
+        horizon_share_spent_df['share_income market-rate'] * AVG_HU_PRICE_RATIO_HORIZON_TO_INITIAL
     logging.debug(f"horizon_share_spent_df:\n{horizon_share_spent_df}")
 
     # put year_horizon shares with year_horizon household counts
@@ -719,3 +770,4 @@ def housing_cost_share_of_income(
     filepath = output_path / filename
     result_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
     logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(result_df), filepath))
+    
