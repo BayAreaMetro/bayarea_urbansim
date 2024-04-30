@@ -269,3 +269,132 @@ def gentrify_displacement_tracts(
     filepath = output_path / filename
     summary_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
     logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(summary_df), filepath))
+
+
+
+def lowinc_homeownership_share(
+            rtp: str,
+            modelrun_alias: str,
+            modelrun_id: str,
+            m_path: str,
+            box_path: str,
+            output_path: str,
+            append_output: bool
+        ) -> pd.DataFrame:
+    """
+    Calculates the future share of low-income households owning a home in the Bay Area.
+
+    This function retrieves data from various sources and applies assumptions from RTP2021
+    to estimate the future ownership rate for low-income households.
+
+    Args:
+        rtp: RTP scenario name (string)
+        modelrun_alias: Model run alias (string)
+        modelrun_id: Model run ID (string)
+        m_path: Path to model data directory (string)
+        box_path: Path to box drive (string)
+        output_path: Path to save the output (string)
+        append_output: Flag indicating if output should be appended (bool)
+
+    Writes the file: metrics_diverse1_lowincome_homeownership.csv to output_path, 
+    appending if append_output is True. Columns are:
+    - modelrun_id
+    - modelrun_alias
+    - Home Ownership Rate _ Low Income
+    - name
+    """
+
+    import pathlib
+
+
+    def pct(x): return x / x.sum()
+
+
+    UNIT_SUPPORT_CONSTANT = 100000
+
+    unit_support_contant_dbp_s = pd.Series(UNIT_SUPPORT_CONSTANT, index=['DBP'])
+    unit_support_contant_dbp_s.index = unit_support_contant_dbp_s.index.set_names(
+        'variant')
+
+    unit_support_contant_np_s = pd.Series(0, index=['NP'])
+    unit_support_contant_np_s.index = unit_support_contant_np_s.index.set_names(
+        'variant')
+
+    logging.info("   Creating unit support Series from constant...")
+    unit_support_contant_s = pd.concat(
+        [unit_support_contant_np_s, unit_support_contant_dbp_s])
+
+    # Control totals
+    logging.info("   Reading control totals data...")
+
+    control_totals_path_dbp = m_path / 'urban_modeling' / 'baus' / 'BAUS Inputs' / \
+        'regional_controls'/'household_controls_PBA50Plus_DBP_UBI2030.csv'
+    control_totals_path_np = m_path / 'urban_modeling'/'baus'/'BAUS Inputs' / \
+        'regional_controls'/'household_controls_PBA50Plus_np.csv'
+
+    reg_forecast_hh_ubi = pd.read_csv(
+        control_totals_path_dbp, index_col=0)
+    reg_forecast_hh_ubi_q1 = reg_forecast_hh_ubi.q1_households
+
+    reg_forecast_hh_np = pd.read_csv(
+        control_totals_path_np, index_col=0)
+    reg_forecast_hh_np_q1 = reg_forecast_hh_np.q1_households
+
+    logging.info(f"   DBP has {reg_forecast_hh_dbp_q1[2050]} households in 2050")
+    logging.info(f"   NP has {reg_forecast_hh_np_q1[2050]} households in 2050")
+
+
+    # Income by tenure from PUMS
+    logging.info("   Reading income by tenure data from PUMS...")
+
+    tenure_by_income_path = box_path / 'Plan Bay Area 2050+' / 'Performance and Equity ' / 'Plan Performance' / \
+        'Equity_Performance_Metrics' / ' Draft_Blueprint' / 'metrics_input_files' / \
+        'pums_2019_2021_tenure_by_1999_income_quartile.csv'
+    tenure_by_income = pd.read_csv(
+        tenure_by_income_path, index_col=[0, 1, 2, 3]).WGTP
+
+    logging.debug("   Calculating household tenure by income percentage...")
+
+    # we do mean here, omitting the year dimension - so we average 2019, 2021 observations
+    hh_ten_by_inc_pct = (tenure_by_income
+                        .groupby(level=['ten', 'incvar_vintage', 'hinc00_cat']).mean(
+                        )
+                        .groupby(level=['incvar_vintage', 'hinc00_cat'], group_keys=False)
+                        .apply(pct))
+
+    logging.info(f'   head of tenure by income {hh_ten_by_inc_pct.head()}')
+    baseyear_q1_ownership_share = hh_ten_by_inc_pct.loc['own', 'hinc99', 'HHINCQ1']
+    logging.info(f'   just the relevant q1 ownership share {baseyear_q1_ownership_share:.2f}')
+
+    # combine controls in one series
+    controls_q1 = pd.concat([reg_forecast_hh_np_q1, reg_forecast_hh_ubi_q1], keys=[
+                            'NP', 'DBP'], names=['variant', 'year'])
+
+    # multiplying with ownership share for q1
+    future_q1_ownership_households = controls_q1.mul(
+        baseyear_q1_ownership_share).round(0).astype(int)
+
+    logging.info(f'   head of ownership share {baseyear_q1_ownership_share.head()}')
+
+    future_q1_ownership_households_w_support = future_q1_ownership_households.add(
+        unit_support_contant_s)  # .loc[:,2050]
+    logging.info(f'   head of ownership share after adding {UNIT_SUPPORT_CONSTANT} units:\n{future_q1_ownership_households_w_support.head()}')
+
+    result = future_q1_ownership_households_w_support.div(controls_q1).round(3)
+    logging.info(f'   head of the resulting shares {output.dropna().head()}')
+
+    # collect results with relevant identifiers
+    results = [{
+        'modelrun_id': modelrun_id,
+        'modelrun_alias': f"2050 {modelrun_alias}",
+        'Home Ownership Rate _ Low Income': result,
+        'name': : 'Regionwide'}]
+
+    results_df = pd.DataFrame(results)
+
+    # save this
+    filename = "metrics_diverse1_lowincome_homeownership.csv"
+    filepath = output_path / filename
+    results_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+    logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(results_df), filepath))
+

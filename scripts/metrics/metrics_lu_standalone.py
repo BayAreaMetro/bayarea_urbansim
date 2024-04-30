@@ -61,7 +61,7 @@ def main():
     
     # set the path for M: drive
     # from OSX, M:/ may be mounted to /Volumes/Data/Models
-    M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else "M:/"
+    M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 
 
     if USERNAME.lower() in ['lzorn']:
@@ -174,6 +174,11 @@ def main():
 
             metrics_diverse.low_income_households_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+            
+            # commented out until tested
+            #metrics_diverse.lowinc_homeownership_share(
+            #        args.rtp, modelrun_alias, modelrun_id, M_DRIVE, BOX_DIR, OUTPUT_PATH, append_output)
+            
             
         if (args.only == None) or (args.only == 'growth'):
             # In doing this, gets the regional hh and jobs growth to pass to the county method
