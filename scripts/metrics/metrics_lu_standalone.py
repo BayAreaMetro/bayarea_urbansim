@@ -120,6 +120,9 @@ def main():
     # Load the model runs inventory
     # expect columns "directory" and "scenario_group"
     model_runs_df = pd.read_csv(RUN_INVENTORY_FILE, low_memory=False)
+    
+    # only keep runs with a use=True flag
+    model_runs_df = model_runs_df.query("use == True")
     logging.info("model_runs_df:\n{}".format(model_runs_df))
 
     # Set up for reuse of RTP2025 No Project base year data
@@ -176,8 +179,8 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             
             # commented out until tested
-            #metrics_diverse.lowinc_homeownership_share(
-            #        args.rtp, modelrun_alias, modelrun_id, M_DRIVE, BOX_DIR, OUTPUT_PATH, append_output)
+            metrics_diverse.lowinc_homeownership_share(
+                   args.rtp, modelrun_alias, modelrun_id, M_DRIVE, BOX_DIR, OUTPUT_PATH, append_output)
             
             
         if (args.only == None) or (args.only == 'growth'):
