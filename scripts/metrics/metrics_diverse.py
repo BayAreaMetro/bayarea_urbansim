@@ -3,7 +3,7 @@
 # ==============================
 
 import pandas as pd
-import logging
+import logging, pathlib
 import metrics_utils
 
 def low_income_households_share(
@@ -101,7 +101,7 @@ def gentrify_displacement_tracts(
     - all_tracts
     """
     logging.info("Calculating gentrify_displacement_tracts")
-    
+
     SUMMARY_YEARS = sorted(modelrun_data.keys())
     INITIAL_YEAR = SUMMARY_YEARS[0]
     HORIZON_YEAR = SUMMARY_YEARS[-1]
@@ -154,7 +154,7 @@ def gentrify_displacement_tracts(
     summary_dict_list = []
     for tract_id in tract_keys.keys():
         if len(tract_keys[tract_id]) == 1: continue
-    
+
         logging.debug(f"Processing tract_id {tract_id}; tract_keys={tract_keys[tract_id]}")
 
         for year in SUMMARY_YEARS:
@@ -185,12 +185,16 @@ def gentrify_displacement_tracts(
         # displacement, defined as net loss of low income households in a census tract between the initial and horizon year
         multiyear_tract_summary_df['displacement'] = (
             multiyear_tract_summary_df[f'hhq1_{HORIZON_YEAR}'] < multiyear_tract_summary_df[f'hhq1_{INITIAL_YEAR}']).fillna(False)
-        # gentrification, defined as over 10% drop in share of low income households in a census tract between 
+        # gentrification, defined as over 10% drop in share of low income households in a census tract between
         # the initial and horizon year
         multiyear_tract_summary_df['gentrification'] = (
             multiyear_tract_summary_df[f'hhq1_share_{HORIZON_YEAR}']/multiyear_tract_summary_df[f'hhq1_share_{INITIAL_YEAR}'] < 0.9).fillna(False)
 
-        # reset index. columns are now: 
+        multiyear_tract_summary_df['lihh_change'] = (
+            multiyear_tract_summary_df[f'hhq1_{HORIZON_YEAR}'] - multiyear_tract_summary_df[f'hhq1_{INITIAL_YEAR}']).fillna(False)
+        
+        logging.debug('multiyear_tract_summary_df.lihh_change:\n{}'.format(multiyear_tract_summary_df.lihh_change.describe()))
+        # reset index. columns are now:
         #   tract[10|20] [tract10|20 keys]
         #   hhq1_[initial_year]  tothh_[horizon_year]  hhq1_share_[initial_year]
         #   hhq1_[horizon_year]  tothh_[horizon_year]  hhq1_share_[horizon_year]
@@ -236,9 +240,9 @@ def gentrify_displacement_tracts(
                 pass # no filter
             else:
                 category_tract_summary_df = category_tract_summary_df.loc[category_tract_summary_df[cat2_tract_var] == 1]
-            
+
             logging.debug(f"  category_tract_summary_df.head():\n{category_tract_summary_df.head()}")
-            # columns: 
+            # columns:
 
             # summarize displacement and gentrification
             tract_count_all = len(category_tract_summary_df)
@@ -271,13 +275,12 @@ def gentrify_displacement_tracts(
     logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(summary_df), filepath))
 
 
-
 def lowinc_homeownership_share(
             rtp: str,
             modelrun_alias: str,
             modelrun_id: str,
-            m_path: str,
-            box_path: str,
+            m_path: pathlib.Path,
+            box_path: pathlib.Path,
             output_path: str,
             append_output: bool
         ) -> pd.DataFrame:
@@ -285,14 +288,15 @@ def lowinc_homeownership_share(
     Calculates the future share of low-income households owning a home in the Bay Area.
 
     This function retrieves data from various sources and applies assumptions from RTP2021
-    to estimate the future ownership rate for low-income households.
+    to estimate the future ownership rate for low-income households. There is no variation
+    between DBP runs - this is based on regional data.
 
     Args:
         rtp: RTP scenario name (string)
         modelrun_alias: Model run alias (string)
         modelrun_id: Model run ID (string)
-        m_path: Path to model data directory (string)
-        box_path: Path to box drive (string)
+        m_path: Path to model data directory (Path or string)
+        box_path: Path to box drive (Path or string)
         output_path: Path to save the output (string)
         append_output: Flag indicating if output should be appended (bool)
 
@@ -304,12 +308,22 @@ def lowinc_homeownership_share(
     - name
     """
 
+    # TODO: consider if we should just have a dict for this - there is no variation between project runs - we could run once and lookup later.
     import pathlib
 
+    # relates RTP scenario to the variant shortname - getting the proper matching control total series
+    variant_mapping = {
+        'NoProject':'NP',
+        'NP':'NP',
+        'No Project':'NP',
+        'DBP':'DBP',
+        'Draft Blueprint':'DBP'
+     }
 
     def pct(x): return x / x.sum()
 
 
+    # this is the number of units assumed to switch from rental to ownership
     UNIT_SUPPORT_CONSTANT = 100000
 
     unit_support_contant_dbp_s = pd.Series(UNIT_SUPPORT_CONSTANT, index=['DBP'])
@@ -332,13 +346,18 @@ def lowinc_homeownership_share(
     control_totals_path_np = m_path / 'urban_modeling'/'baus'/'BAUS Inputs' / \
         'regional_controls'/'household_controls_PBA50Plus_np.csv'
 
-    reg_forecast_hh_ubi = pd.read_csv(
+    reg_forecast_hh_dbp = pd.read_csv(
         control_totals_path_dbp, index_col=0)
-    reg_forecast_hh_ubi_q1 = reg_forecast_hh_ubi.q1_households
+    reg_forecast_hh_dbp_q1 = reg_forecast_hh_dbp.q1_households
 
     reg_forecast_hh_np = pd.read_csv(
         control_totals_path_np, index_col=0)
     reg_forecast_hh_np_q1 = reg_forecast_hh_np.q1_households
+
+    # combine controls in one series
+    controls_q1 = pd.concat([reg_forecast_hh_np_q1, reg_forecast_hh_dbp_q1], keys=[
+                            'NP', 'DBP'], names=['variant', 'year'])
+
 
     logging.info(f"   DBP has {reg_forecast_hh_dbp_q1[2050]} households in 2050")
     logging.info(f"   NP has {reg_forecast_hh_np_q1[2050]} households in 2050")
@@ -347,8 +366,8 @@ def lowinc_homeownership_share(
     # Income by tenure from PUMS
     logging.info("   Reading income by tenure data from PUMS...")
 
-    tenure_by_income_path = box_path / 'Plan Bay Area 2050+' / 'Performance and Equity ' / 'Plan Performance' / \
-        'Equity_Performance_Metrics' / ' Draft_Blueprint' / 'metrics_input_files' / \
+    tenure_by_income_path = box_path / 'Plan Bay Area 2050+' / 'Performance and Equity' / 'Plan Performance' / \
+        'Equity_Performance_Metrics' / 'Draft_Blueprint' / 'metrics_input_files' / \
         'pums_2019_2021_tenure_by_1999_income_quartile.csv'
     tenure_by_income = pd.read_csv(
         tenure_by_income_path, index_col=[0, 1, 2, 3]).WGTP
@@ -366,35 +385,36 @@ def lowinc_homeownership_share(
     baseyear_q1_ownership_share = hh_ten_by_inc_pct.loc['own', 'hinc99', 'HHINCQ1']
     logging.info(f'   just the relevant q1 ownership share {baseyear_q1_ownership_share:.2f}')
 
-    # combine controls in one series
-    controls_q1 = pd.concat([reg_forecast_hh_np_q1, reg_forecast_hh_ubi_q1], keys=[
-                            'NP', 'DBP'], names=['variant', 'year'])
 
     # multiplying with ownership share for q1
     future_q1_ownership_households = controls_q1.mul(
         baseyear_q1_ownership_share).round(0).astype(int)
 
-    logging.info(f'   head of ownership share {baseyear_q1_ownership_share.head()}')
+    logging.info(f'   head of ownership share {baseyear_q1_ownership_share}')
 
     future_q1_ownership_households_w_support = future_q1_ownership_households.add(
         unit_support_contant_s)  # .loc[:,2050]
     logging.info(f'   head of ownership share after adding {UNIT_SUPPORT_CONSTANT} units:\n{future_q1_ownership_households_w_support.head()}')
 
-    result = future_q1_ownership_households_w_support.div(controls_q1).round(3)
-    logging.info(f'   head of the resulting shares {output.dropna().head()}')
+    result_combo = future_q1_ownership_households_w_support.div(controls_q1).round(3)
+    logging.info(f'   head of the resulting shares {result_combo.dropna().head()}')
+
+    # get the result share for just this modelrun (e.g. NP or DBP)
+    this_modelrun_alias = metrics_utils.classify_runid_alias(modelrun_alias)
+
+    this_result = result_combo[variant_mapping[this_modelrun_alias]][2050]
 
     # collect results with relevant identifiers
-    results = [{
+    results_df = [{
         'modelrun_id': modelrun_id,
         'modelrun_alias': f"2050 {modelrun_alias}",
-        'Home Ownership Rate _ Low Income': result,
-        'name': : 'Regionwide'}]
+        'Home Ownership Rate _ Low Income': this_result,
+        'name': 'Regionwide'}]
 
-    results_df = pd.DataFrame(results)
+    results_df = pd.DataFrame(results_df)
 
     # save this
     filename = "metrics_diverse1_lowincome_homeownership.csv"
     filepath = output_path / filename
     results_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
     logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(results_df), filepath))
-

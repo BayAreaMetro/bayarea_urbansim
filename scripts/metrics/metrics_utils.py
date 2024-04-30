@@ -49,6 +49,7 @@ PARCEL_AREA_FILTERS = {
 # from OSX, M:/ may be mounted to /Volumes/Data/Models
 M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 
+
 # --------------------------------------
 # Data Loading Based on Model Run Plan
 # --------------------------------------
@@ -397,7 +398,7 @@ def load_data_for_runs(
             usecols.append('non_residential_sqft')
         parcel_df = pd.read_csv(file, usecols=usecols)
         logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
-        logging.debug("Head:\n{}".format(parcel_df))
+        logging.debug("Head:\n{}".format(parcel_df.head()))
         logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))
 
         if rtp == "RTP2025":
@@ -560,7 +561,7 @@ def load_data_for_runs(
             logging.debug(f"Found {file}")
             taz1_interim_summary_df = pd.read_csv(file)
             taz1_interim_summary_df.rename(columns={'TAZ':'TAZ1454'}, inplace=True)
-            
+
             # check
             taz_interim_cols = [
                 #"TAZ",
@@ -576,7 +577,7 @@ def load_data_for_runs(
             if len(taz1_interim_summary_df)>0:
                 logging.debug("Columns in taz1_interim_summary_df: {}".format(taz1_interim_summary_df.columns))
                 logging.debug("Columns to keep: {}".format(taz_interim_keep_cols))
-                #assert(all(x in taz1_interim_summary_df.columns for x in taz_interim_cols))
+                # assert(all(x in taz1_interim_summary_df.columns for x in taz_interim_cols))
                 taz1_interim_summary_df = taz1_interim_summary_df[['TAZ1454']+taz_interim_keep_cols]
 
                 logging.info("  Read {:,} rows from taz interim summary {}".format(len(taz1_interim_summary_df), file))
@@ -624,3 +625,36 @@ def load_data_for_runs(
 
     logging.debug("modelrun_data:\n{}".format(modelrun_data))
     return modelrun_data
+
+
+def classify_runid_alias(runid_alias):
+
+    import re
+
+    """
+    The runid_alias strings capture the no project vs project distinction, but they
+    are sometimes padded with other stuff. This hack function classifies the runid_alias 
+    into one of four options:
+    - DBP, short for draft blueprint, and NP, for no project, FBP for final blueprint.
+    - Anything else is coded as unknown.
+
+    Args:
+        runid_alias: the run identifier from the run log
+
+    Returns:
+        A string, either "DBP" or "NP".
+    """
+    text = runid_alias.lower()  # Convert to lowercase for case-insensitive matching
+    if ("draft" in text and "blueprint" in text) or re.search(r"dbp", text):
+        return "DBP"
+    elif (
+        "no project" in text  # Capture all "No Project" variations
+        or "np" in text  # Capture "NP" at the beginning (e.g., NP_Final)
+        or text.startswith("no_")  # Capture variations starting with "no_"
+        or "noproject" in text
+    ):  # Explicit check for "noproject"
+        return "NP"
+    elif ("final" in text and "blueprint" in text) or re.search(r"fbp|final", text):
+        return "FBP"
+    else:
+        return "Unknown"  # Default to Unknown
