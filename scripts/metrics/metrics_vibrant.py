@@ -101,7 +101,6 @@ def jobs_housing_ratio(
         logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(all_ratios_df), filepath))
 
 
-
 def gdp_growth(
         rtp: str,
         modelrun_alias: str,
@@ -135,22 +134,33 @@ def gdp_growth(
         'REMI_raw_output' / 'economy' / 'REMI31_NC1_RC1_FBP' / 'B5 summary.xlsx'
 
     def remi_loader(**kwargs):
-        years = range(2020, 2051, 5)
+        years = range(2015, 2051, 5)
 
         first_year = (kwargs['process_args']['firstyear'])
         last_year = (kwargs['process_args']['lastyear'])
 
         remi_econ_raw = pd.read_excel(**kwargs['xl_args'])
 
-        df = remi_econ_raw.set_index(['Category'])[years]
+        df = remi_econ_raw.set_index(['Category']).filter(regex='\d{4}')  # [years]
 
         # fixed, in 2009 dollars - that's fine since we are reporting on ratios
         # as long as income is reported in fixed dollars
 
+        # get national price index
+
+        us_price_index = df.loc['PCE-Price Index']
+
+        # get scalar for getting from 2009 dollars to 2020 dollars
+        us_price_deflator_2020_vs_base_2009 = (
+            us_price_index / us_price_index.loc[2009]).loc[2020]
+
         gdp_per_capita = df.loc['Gross Domestic Product'] / df.loc['Population']
 
-        gdp_growth = gdp_per_capita.loc[first_year] / gdp_per_capita.loc[last_year]
-        return gdp_growth
+        # get start, end year values
+        gdp_per_capita_2020dol = gdp_per_capita.mul(
+            1e6).mul(us_price_deflator_2020_vs_base_2009)
+
+        return gdp_per_capita_2020dol.loc[[first_year,last_year]]
 
     # set up a dict with key processing args for the two RTP variants
     remi_load_params = {'RTP2021': {'xl_args': {'io': rtp2021_remi_path, 'skiprows': 5}, 
@@ -158,21 +168,31 @@ def gdp_growth(
                         'RTP2025': {'xl_args': {'io': rtp2025_remi_path, 'skiprows': 4}, 
                                     'process_args': {'firstyear': 2020, 'lastyear': 2050}}
                     }
+
+    # returns a series
+    gdp_levels = remi_loader(**remi_load_params[rtp])
+
+    fstyr = remi_load_params[rtp]["process_args"]["firstyear"]
+    lstyr = remi_load_params[rtp]["process_args"]["lastyear"]
     
-    # returns a scalar 
-    gdp_growth = remi_loader(**remi_load_params[rtp])
+    gdp_firstyear = gdp_levels.loc[fstyr]
+    gdp_lastyear = gdp_levels.loc[lstyr]
+
+    gdp_growth = gdp_lastyear / gdp_firstyear
 
     # Add metadata, format, and finally export to CSV
-    # TODO: Should relabel here and in tableau so there is no year in the label
+
     gdp_growth_df = pd.DataFrame({
         'modelrun_id': modelrun_id,
         'modelrun_alias': modelrun_alias,
-        'grp_per_capita_2020$': gdp_growth,
+        'grp_per_capita_growth': gdp_growth,
+        f'grp_per_capita_{fstyr}': gdp_firstyear,
+        f'grp_per_capita_{lstyr}': gdp_lastyear,
         'name': 'Regionwide'
     }, index=[0])
-    
+
     out_file = output_path / 'metrics_vibrant2_grp_percapita_growth.csv'
-    
+
     gdp_growth_df.to_csv(
         out_file,
         mode='a' if append_output else 'w',
@@ -183,7 +203,6 @@ def gdp_growth(
     logging.info(f"{'Appended' if append_output else 'Wrote'} {len(gdp_growth_df)} " \
                  + f"line{'s' if len(gdp_growth_df) > 1 else ''} to {out_file}")
 
-        
 
 def ppa_job_growth(
         rtp: str,
@@ -287,5 +306,3 @@ def ppa_job_growth(
 
     logging.info(f"{'Appended' if append_output else 'Wrote'} {len(job_growth_df)} " \
                  + f"line{'s' if len(job_growth_df) > 1 else ''} to {out_file}")
-
-
