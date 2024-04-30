@@ -108,7 +108,7 @@ def gdp_growth(
         append_output: bool
     ):
     """
-    Function calculates GDP from REMI data. There is no variation across scenarios for his metric.
+    Function calculates GDP from REMI data. There is no variation across scenarios for his metric. 
     
     Parameters:
     - rtp (str): RTP2021 or RTP2025.
@@ -119,6 +119,8 @@ def gdp_growth(
     - output_path (str or Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing
     """
+
+    # TODO: consider if we should just have a dict for this - there is no variation between project runs - we could run once and lookup later.
     logging.info("Calculating GDP per capita growth from REMI data")
     if rtp == "RTP2021":
         logging.info("  RTP2021 not supported. Skipping")
@@ -132,10 +134,10 @@ def gdp_growth(
         'REMI_raw_output' / 'economy' / 'REMI31_NC1_RC1_FBP' / 'B5 summary.xlsx'
 
     def remi_loader(**kwargs):
-        years = range(2015, 2051, 5)
-
+        
         first_year = (kwargs['process_args']['firstyear'])
         last_year = (kwargs['process_args']['lastyear'])
+        years = range(first_year, last_year, 5)
 
         remi_econ_raw = pd.read_excel(**kwargs['xl_args'])
 
@@ -148,7 +150,7 @@ def gdp_growth(
 
         us_price_index = df.loc['PCE-Price Index']
 
-        # get scalar for getting from 2009 dollars to 2020 dollars
+        # get scalar for getting from fixed 2009 dollars to 2020 dollars
         us_price_deflator_2020_vs_base_2009 = (
             us_price_index / us_price_index.loc[2009]).loc[2020]
 
