@@ -40,9 +40,9 @@ feasibility:
 # and are often dealt with using specific models (SDEM and possibly proportional jobs model)
 # which ignore this list
 static_parcels:
-  - 2489683204300 # ala fairgrounds 378337
-  - 7356107932570 # ala fairgrounds 378336
-  - 14880815967500 # mark said remove
+  - 2489683204304 # ala fairgrounds 378337
+  - 7356107932567 # ala fairgrounds 378336
+  - 14880815967518 # mark said remove
   - 11280465768398 # city hall
   - 2240580234395 # sf state
   - 7299494955245 # sj state
