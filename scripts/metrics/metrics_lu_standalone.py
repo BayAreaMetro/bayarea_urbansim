@@ -234,6 +234,8 @@ def main():
             metrics_healthy.non_greenfield_development_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path,
                 OUTPUT_PATH, append_output)
+            metrics_healthy.slr_protection(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
         # output files are started; append henceforth
         append_output = True
