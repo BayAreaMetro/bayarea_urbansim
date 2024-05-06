@@ -1,4 +1,5 @@
 import pandas as pd
+import geopandas as gpd
 import logging
 from datetime import datetime
 import pathlib
@@ -124,7 +125,6 @@ def load_data_for_runs(
 
         # transit service areas
         if len(rtp2025_transit_service_df) == 0:
-            import geopandas as gpd
             PARCEL_TRANSITSERVICE_FILE = M_DRIVE / "Data" / "GIS layers" / "JobsHousingTransitProximity" / "update_2024" / "outputs" / "p10_topofix_classified.parquet"
             rtp2025_transit_service_df = pd.read_parquet(PARCEL_TRANSITSERVICE_FILE)
             transit_cols_keep = ['PARCEL_ID','area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
@@ -350,7 +350,6 @@ def load_data_for_runs(
 
         # transit service areas # works for both RTP2021 and RTP2025
         if len(rtp2025_transit_service_df) == 0:
-            import geopandas as gpd
             PARCEL_TRANSITSERVICE_FILE = M_DRIVE / "Data" / "GIS layers" / "JobsHousingTransitProximity" / "update_2024" / "outputs" / "p10_topofix_classified.parquet"
             rtp2025_transit_service_df = pd.read_parquet(PARCEL_TRANSITSERVICE_FILE)
             transit_cols_keep = ['PARCEL_ID','area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
@@ -545,7 +544,7 @@ def load_data_for_runs(
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
 
-            # add parcel sea level rise inundation based on the Plan scenario
+            # add parcel sea level rise inundation *input* based on the scenario
             if "No Project" in modelrun_alias:
                 parcel_df = pd.merge(
                     left     = parcel_df,
@@ -556,7 +555,7 @@ def load_data_for_runs(
                 )
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
                 logging.debug("Head after merge with rtp2021_np_parcel_inundation_df:\n{}".format(parcel_df.head()))
-            elif ["FBP", "EIR Alt 1", "EIR Alt 2"] in modelrun_alias:
+            else:
                 parcel_df = pd.merge(
                     left     = parcel_df,
                     right    = rtp2021_fbp_parcel_inundation_df,

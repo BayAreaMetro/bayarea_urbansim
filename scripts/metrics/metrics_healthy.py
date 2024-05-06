@@ -165,7 +165,7 @@ def non_greenfield_development_share(
         dtype={'parcel_id': int}
     )
     new_buildings = new_buildings[new_buildings['year_built'] > 2020]
-    logging.info(f'  {len(new_buildings)} buildings built after 2020')
+    logging.debug(f'  {len(new_buildings)} buildings built after 2020')
 
     # Some residential buildings (from the development pipeline) have no building_sqft);
     # convert residential units to sqft equivalent so we can summarize "all development"
@@ -241,18 +241,18 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
     # households on SLR parcels - all parcels in the SLR input files 
     # that are inundated (or inundated then mitigated) in the forecast
     slr_households = df.loc[df.inundation.notnull()]['tothh'].sum()
-    logging.info("{} total SLR households".format(slr_households))
+    logging.debug("{} total SLR households".format(slr_households))
     # total households on SLR parcels that are protected
     protected_households = df.loc[df.inundation == 100]['tothh'].sum()
-    logging.info("{} total protected SLR households".format(protected_households))
+    logging.debug("{} total protected SLR households".format(protected_households))
     protected_households_pct =  [protected_households / slr_households]
-    logging.info("percent total protected households is {}".format(protected_households_pct))
+    logging.debug("percent total protected households is {}".format(protected_households_pct))
 
     # households on SLR parcels in COCs/EPCs
     geog = 'eir_coc_id' if rtp=="RTP2021" else 'epc_id'
     # total households on SLR parcels in geography
     slr_households_geog = df.loc[(df.inundation.notnull()) & (df[geog].notnull())]['tothh'].sum()
-    logging.info("{} EPC/COC SLR households".format(slr_households_geog))
+    logging.debug("{} EPC/COC SLR households".format(slr_households_geog))
     # total houeholds on SLR parcels in geography that are protected
     # in the case where no EPCs/COCs experience SLR, call them all "protected"
     if slr_households_geog == 0:
@@ -260,10 +260,10 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
     # otherwise calculate the percent protected normally
     elif slr_households_geog > 0:
         protected_households_geog = df.loc[df.inundation == 100 & df[geog].notnull()]['tothh'].sum()
-        logging.info("{} protected EPC/COC SLR households".format(protected_households_geog))
+        logging.debug("{} protected EPC/COC SLR households".format(protected_households_geog))
         protected_households_pct_geog = protected_households_geog / slr_households_geog
     protected_households_pct.append(protected_households_pct_geog)
-    logging.info("percent ECP/COC SLR protected households is {}".format(protected_households_pct_geog))
+    logging.debug("percent ECP/COC SLR protected households is {}".format(protected_households_pct_geog))
     
     df = pd.DataFrame({})
     df['area'] = ['all', 'COC' if rtp=='RTP2021' else 'EPC']

@@ -118,8 +118,9 @@ def main():
     # expect columns "directory" and "scenario_group"
     model_runs_df = pd.read_csv(RUN_INVENTORY_FILE, low_memory=False)
     
-    # only keep runs with a use=True flag
-    model_runs_df = model_runs_df.query("use == True")
+    # only keep runs with a use=True flag, if it exists
+    if "use" in model_runs_df.columns.tolist():
+        model_runs_df = model_runs_df.loc[ model_runs_df.use == True ]
     logging.info("model_runs_df:\n{}".format(model_runs_df))
 
     # Set up for reuse of RTP2025 No Project base year data

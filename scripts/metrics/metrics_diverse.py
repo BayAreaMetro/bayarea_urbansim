@@ -307,6 +307,10 @@ def lowinc_homeownership_share(
     - Home Ownership Rate _ Low Income
     - name
     """
+    logging.info("Calculating lowinc_homeownership_share")
+    if rtp == "RTP2021":
+        logging.info(f"   {rtp} not supported - skipping")
+        return
 
     # TODO: consider if we should just have a dict for this - there is no variation between project runs - we could run once and lookup later.
     import pathlib
@@ -334,12 +338,12 @@ def lowinc_homeownership_share(
     unit_support_contant_np_s.index = unit_support_contant_np_s.index.set_names(
         'variant')
 
-    logging.info("   Creating unit support Series from constant...")
+    logging.debug("   Creating unit support Series from constant...")
     unit_support_contant_s = pd.concat(
         [unit_support_contant_np_s, unit_support_contant_dbp_s])
 
     # Control totals
-    logging.info("   Reading control totals data...")
+    logging.debug("   Reading control totals data...")
 
     control_totals_path_dbp = m_path / 'urban_modeling' / 'baus' / 'BAUS Inputs' / \
         'regional_controls'/'household_controls_PBA50Plus_DBP_UBI2030.csv'
@@ -359,12 +363,12 @@ def lowinc_homeownership_share(
                             'NP', 'DBP'], names=['variant', 'year'])
 
 
-    logging.info(f"   DBP has {reg_forecast_hh_dbp_q1[2050]} households in 2050")
-    logging.info(f"   NP has {reg_forecast_hh_np_q1[2050]} households in 2050")
+    logging.debug(f"   DBP has {reg_forecast_hh_dbp_q1[2050]} households in 2050")
+    logging.debug(f"   NP has {reg_forecast_hh_np_q1[2050]} households in 2050")
 
 
     # Income by tenure from PUMS
-    logging.info("   Reading income by tenure data from PUMS...")
+    logging.debug("   Reading income by tenure data from PUMS...")
 
     tenure_by_income_path = box_path / 'Plan Bay Area 2050+' / 'Performance and Equity' / 'Plan Performance' / \
         'Equity_Performance_Metrics' / 'Draft_Blueprint' / 'metrics_input_files' / \
@@ -381,23 +385,23 @@ def lowinc_homeownership_share(
                         .groupby(level=['incvar_vintage', 'hinc00_cat'], group_keys=False)
                         .apply(pct))
 
-    logging.info(f'   head of tenure by income {hh_ten_by_inc_pct.head()}')
+    logging.debug(f'   head of tenure by income\n{hh_ten_by_inc_pct.head()}')
     baseyear_q1_ownership_share = hh_ten_by_inc_pct.loc['own', 'hinc99', 'HHINCQ1']
-    logging.info(f'   just the relevant q1 ownership share {baseyear_q1_ownership_share:.2f}')
+    logging.debug(f'   just the relevant q1 ownership share {baseyear_q1_ownership_share:.2f}')
 
 
     # multiplying with ownership share for q1
     future_q1_ownership_households = controls_q1.mul(
         baseyear_q1_ownership_share).round(0).astype(int)
 
-    logging.info(f'   head of ownership share {baseyear_q1_ownership_share}')
+    logging.debug(f'   head of ownership share {baseyear_q1_ownership_share}')
 
     future_q1_ownership_households_w_support = future_q1_ownership_households.add(
         unit_support_contant_s)  # .loc[:,2050]
-    logging.info(f'   head of ownership share after adding {UNIT_SUPPORT_CONSTANT} units:\n{future_q1_ownership_households_w_support.head()}')
+    logging.debug(f'   head of ownership share after adding {UNIT_SUPPORT_CONSTANT} units:\n{future_q1_ownership_households_w_support.head()}')
 
     result_combo = future_q1_ownership_households_w_support.div(controls_q1).round(3)
-    logging.info(f'   head of the resulting shares {result_combo.dropna().head()}')
+    logging.debug(f'   head of the resulting shares {result_combo.dropna().head()}')
 
     # get the result share for just this modelrun (e.g. NP or DBP)
     this_modelrun_alias = metrics_utils.classify_runid_alias(modelrun_alias)
