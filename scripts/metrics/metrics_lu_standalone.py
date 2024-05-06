@@ -70,13 +70,10 @@ def main():
         BOX_DIR = HOME_DIR / 'Box'
     
     MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/")
-    RUN_INVENTORY_FILE = MODEL_RUNS_DIR / "Metrics/PBA50Plus_model_run_inventory.csv"
-    OUTPUT_PATH = (
-        BOX_DIR
-        / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
-    )
-    METRICS_DIR = OUTPUT_PATH
-    LOG_FILENAME = "metrics_lu_standalone_{}{}.log"  # loglevel
+    METRICS_DIR        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
+    RUN_INVENTORY_FILE = METRICS_DIR / "metrics_input_files/PBA50Plus_model_run_inventory.csv"
+    OUTPUT_PATH        = METRICS_DIR
+    LOG_FILENAME       = "metrics_lu_standalone_{}{}.log"  # loglevel
     
     # capture the value of any --only arg passed and add to log file name
     log_only_arg = '' if args.only is None else args.only + "_" # add --only arg to log file name
