@@ -6,7 +6,7 @@ import pathlib
 import os
 
 # make global so we only read once
-rtp2025_geography_crosswalk_df  = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra, ppa)
+rtp2025_geography_crosswalk_df  = pd.DataFrame() # parcel -> zoning categories (epc, displacement, growth geog, hra, tra, ppa), jurisdiction
 rtp2025_tract_crosswalk_df      = pd.DataFrame() # parcel -> tract10 and tract20
 rtp2025_urban_area_crosswalk_df = pd.DataFrame() # parcel -> in 2020 urbanized area footprint
 
@@ -18,7 +18,7 @@ rtp2025_dbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea leve
 
 rtp2021_tract_crosswalk_df      = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA, PPA
 rtp2021_pda_crosswalk_df        = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
-rtp2021_geography_crosswalk_df  = pd.DataFrame() # parcel -> parcel category (fbpchcat -> growth geog, hra, tra)
+rtp2021_geography_crosswalk_df  = pd.DataFrame() # parcel -> parcel category (fbpchcat -> growth geog, hra, tra), jurisdiction
 
 rtp2021_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 rtp2021_fbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
@@ -110,12 +110,19 @@ def load_data_for_runs(
     if rtp == "RTP2025":
         if len(rtp2025_geography_crosswalk_df) == 0:
             PARCEL_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "parcels_geography_2024_02_14.csv"
-            rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ppa_id','ugb_id'])
+            rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ppa_id','ugb_id','juris'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
             logging.debug(f"  rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)}")
             logging.debug(f"  {len(rtp2025_geography_crosswalk_df.loc[pd.isna(rtp2025_geography_crosswalk_df.ppa_id)])=}")
             logging.debug(f"  rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)}")
+
+            # jurisdiction: standardize to Title Case, with spaces
+            rtp2025_geography_crosswalk_df.rename(columns={'juris':'jurisdiction'}, inplace=True)
+            rtp2025_geography_crosswalk_df['jurisdiction'] = rtp2025_geography_crosswalk_df.jurisdiction.str.replace("_"," ")
+            rtp2025_geography_crosswalk_df['jurisdiction'] = rtp2025_geography_crosswalk_df.jurisdiction.str.title()
+            rtp2025_geography_crosswalk_df['jurisdiction'] = rtp2025_geography_crosswalk_df.jurisdiction.str.replace("St ","St. ") # St. Helena
+            logging.debug(f"rtp2025_geography_crosswalk_df.jurisdiction.value_counts(dropna=False):\n{rtp2025_geography_crosswalk_df.jurisdiction.value_counts(dropna=False)}")
 
         if len(rtp2025_urban_area_crosswalk_df) == 0:
             URBAN_AREA_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "p10_parcels_to_2020_urban_areas.csv"
@@ -368,7 +375,7 @@ def load_data_for_runs(
         if len(rtp2021_geography_crosswalk_df) == 0:
             # pba50_metrics.py called this "parcel_geography_file" - use it to get fbpchcat
             GEOGRAPHY_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "2021_02_25_parcels_geography.csv"
-            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID','fbpchcat','ppa_id','eir_coc_id'])
+            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID','fbpchcat','ppa_id','eir_coc_id', 'juris_name_full'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_geography_crosswalk_df), GEOGRAPHY_CROSSWALK_FILE))
             logging.debug("  rtp2021_geography_crosswalk_df.head():\n{}".format(rtp2021_geography_crosswalk_df.head()))
 
@@ -387,6 +394,13 @@ def load_data_for_runs(
                                                         parcel_zoning_df.drop(columns=['fbpchcat'])], axis='columns')
             logging.debug("  rtp2021_geography_crosswalk_df.head() after fbpchcat split:\n{}".format(
                 rtp2021_geography_crosswalk_df.head()))
+            
+            # jurisdiction: standardize to Title Case, with spaces
+            rtp2021_geography_crosswalk_df.rename(columns={'juris_name_full':'jurisdiction'}, inplace=True)
+            rtp2021_geography_crosswalk_df['jurisdiction'] = rtp2021_geography_crosswalk_df.jurisdiction.str.replace("_"," ")
+            rtp2021_geography_crosswalk_df['jurisdiction'] = rtp2021_geography_crosswalk_df.jurisdiction.str.title()
+            rtp2021_geography_crosswalk_df['jurisdiction'] = rtp2021_geography_crosswalk_df.jurisdiction.str.replace("St ","St. ") # St. Helena
+            logging.debug(f"rtp2021_geography_crosswalk_df.jurisdiction.value_counts(dropna=False):\n{rtp2021_geography_crosswalk_df.jurisdiction.value_counts(dropna=False)}")
 
         if len(rtp2021_np_parcel_inundation_df) == 0:
             PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50_NP.csv"
@@ -575,7 +589,7 @@ def load_data_for_runs(
 
             # Retain only a subset of columns after merging
             columns_to_keep = ['parcel_id', 'tract10', 'fbpchcat', 
-                                'gg_id', 'tra_id', 'hra_id', 'dis_id', 'ppa_id', 'eir_coc_id',
+                                'gg_id', 'tra_id', 'hra_id', 'dis_id', 'ppa_id', 'eir_coc_id','jurisdiction',
                                 'hhq1', 'hhq2', 'hhq3', 'hhq4', 
                                 'tothh', 'totemp',
                                 'deed_restricted_units', 'residential_units', 'preserved_units',

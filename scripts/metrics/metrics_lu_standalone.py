@@ -186,7 +186,7 @@ def main():
             # so that the results are consistent.
             regional_hh_jobs_dict = metrics_growth.growth_patterns_geography(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-            metrics_growth.growth_patterns_county(
+            metrics_growth.growth_patterns_county_jurisdiction(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, OUTPUT_PATH, append_output)
             
             # zone version

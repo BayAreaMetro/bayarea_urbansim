@@ -5,10 +5,13 @@ import pandas as pd
 import logging, pathlib
 import metrics_utils
 
-def growth_patterns_county(rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, output_path, append_output):
+def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, output_path, append_output):
     """
-    Calculates the growth in total households and total jobs at the county level, 
-    between an initial and a final summary period, and assigns the share of growth in households and jobs to each county.
+    Calculates the growth in total households and total jobs at the county and jurisdiction level, 
+    between an initial and a final summary period, and assigns the share of growth in households and jobs to each county or jurisdiction.
+
+    For *county* summaries only, scales total households and jobs based on the input, regional_hh_jobs_dict, so that the summary
+    is consistent with the summary from growth_patterns_geography()
 
     Parameters:
     - rtp (str): RTP2021 or RTP2025.
@@ -19,85 +22,95 @@ def growth_patterns_county(rtp, modelrun_alias, modelrun_id, modelrun_data, regi
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
 
-    Writes metrics_growthPattern_county.csv to output_path, apeending if append_output is True. Columns are:
+    Writes metrics_growthPattern_[county,jurisdiction].csv to output_path, apeending if append_output is True. Columns are:
     - modelrun_id
     - modelrun_alias
-    - county
+    - [county|jurisdiction]
     - total_[households|jobs]
     - [hh|jobs]_growth
     - [hh|jobs]_share_of_growth
     """
-    logging.info("Calculating growth_patterns_county")
+    logging.info("Calculating growth_patterns_county_jurisdiction")
     
     # Calculate totals for initial and final years
     SUMMARY_YEARS = sorted(modelrun_data.keys())
     year_initial = SUMMARY_YEARS[0]
     year_horizon = SUMMARY_YEARS[-1]
 
-    summary_dfs = {}
-    for year in SUMMARY_YEARS:
-        # add parcel total / county total for total_households, total_jobs 
-        regional_hh_jobs_dict[year]['hh_county_over_parcel'] = \
-            regional_hh_jobs_dict[year]['total_households'] / modelrun_data[year]['county']['tothh'].sum()
-        regional_hh_jobs_dict[year]['jobs_county_over_parcel'] = \
-            regional_hh_jobs_dict[year]['total_jobs'] / modelrun_data[year]['county']['totemp'].sum()
+    for geography in ['county','jurisdiction']:
 
-        summary_dfs[year] = modelrun_data[year]["county"].copy()
-        # rename columns to standardized version
-        summary_dfs[year].rename(columns={
-            'tothh' :'total_households',
-            'totemp':'total_jobs'}, inplace=True)
-        summary_dfs[year]['modelrun_alias'] = f"{year} {modelrun_alias}"
-        logging.debug("summary_dfs[year]:\n{}".format(summary_dfs[year]))
+        summary_dfs = {}
+        for year in SUMMARY_YEARS:
 
-        # scale to regional_hh_jobs_dict so it's consistent with the results from growth_patterns_geography()
-        summary_dfs[year]['total_households'] = \
-            summary_dfs[year].total_households * regional_hh_jobs_dict[year]['hh_county_over_parcel']
-        summary_dfs[year]['total_jobs'] = \
-            summary_dfs[year].total_jobs * regional_hh_jobs_dict[year]['jobs_county_over_parcel']
-        logging.debug("summary_dfs[year]:\n{}".format(summary_dfs[year]))
+            if geography == "county":
+                # add parcel total / county total for total_households, total_jobs 
+                regional_hh_jobs_dict[year]['hh_county_over_parcel'] = \
+                    regional_hh_jobs_dict[year]['total_households'] / modelrun_data[year]['county']['tothh'].sum()
+                regional_hh_jobs_dict[year]['jobs_county_over_parcel'] = \
+                    regional_hh_jobs_dict[year]['total_jobs'] / modelrun_data[year]['county']['totemp'].sum()
 
-    logging.debug(f"regional_hh_jobs_dict: {regional_hh_jobs_dict}")
+                summary_dfs[year] = modelrun_data[year]["county"].copy()
+            elif geography == "jurisdiction":
+                # create jurisdiction summary via groupby
+                summary_dfs[year] = modelrun_data[year]["parcel"].groupby("jurisdiction").agg({'tothh':'sum','totemp':'sum'}).reset_index(drop=False)
 
-    # join summary initial to summary final
-    summary_final = pd.merge(
-        left  = summary_dfs[year_horizon],
-        right = summary_dfs[year_initial],
-        on    = 'county',
-        suffixes=('', '_initial')
-    )
+            # rename columns to standardized version
+            summary_dfs[year].rename(columns={
+                'tothh' :'total_households',
+                'totemp':'total_jobs'}, inplace=True)
+            summary_dfs[year]['modelrun_alias'] = f"{year} {modelrun_alias}"
+            logging.debug(f"{geography} summary_dfs[{year}]:\n{summary_dfs[year]}")
 
-    summary_final['hh_growth']   = summary_final['total_households'] - summary_final['total_households_initial']
-    summary_final['jobs_growth'] = summary_final['total_jobs']       - summary_final['total_jobs_initial']
-    logging.debug("summary_final:\n{}".format(summary_final))
+            if geography=="county":
+                # scale to regional_hh_jobs_dict so it's consistent with the results from growth_patterns_geography()
+                summary_dfs[year]['total_households'] = \
+                    summary_dfs[year].total_households * regional_hh_jobs_dict[year]['hh_county_over_parcel']
+                summary_dfs[year]['total_jobs'] = \
+                    summary_dfs[year].total_jobs * regional_hh_jobs_dict[year]['jobs_county_over_parcel']
+                logging.debug(f"summary_dfs[{year}]:\n{summary_dfs[year]}")
 
-    # Calculate the total growth in households and jobs across all counties
-    total_hh_growth   = summary_final['hh_growth'].sum()
-    total_jobs_growth = summary_final['jobs_growth'].sum()
+        if geography=="county":
+            logging.debug(f"regional_hh_jobs_dict: {regional_hh_jobs_dict}")
 
-    summary_final['hh_share_of_growth']   = summary_final['hh_growth'] / total_hh_growth
-    summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / total_jobs_growth
+        # join summary initial to summary final
+        summary_final = pd.merge(
+            left  = summary_dfs[year_horizon],
+            right = summary_dfs[year_initial],
+            on    = geography,
+            suffixes=('', '_initial')
+        )
 
-    # Drop initial totals columns as they're no longer needed
-    summary_final.drop(columns=['total_households_initial', 'total_jobs_initial'], inplace=True)
-    logging.debug("summary_final:\n{}".format(summary_final))
+        summary_final['hh_growth']   = summary_final['total_households'] - summary_final['total_households_initial']
+        summary_final['jobs_growth'] = summary_final['total_jobs']       - summary_final['total_jobs_initial']
+        logging.debug("summary_final:\n{}".format(summary_final))
 
-    # Concatenate the initial and final totals.
-    combined_df = pd.concat([summary_dfs[year_initial], summary_final], ignore_index=True)
-    combined_df['modelrun_id'] = modelrun_id
-    # Select and order the columns  
-    combined_df = combined_df[[
-        'modelrun_id', 'modelrun_alias', 'county', 
-        'total_households', 'total_jobs', 
-        'hh_growth', 'jobs_growth',
-        'hh_share_of_growth', 'jobs_share_of_growth']]
-    logging.debug("combined_df:\n{}".format(combined_df))
+        # Calculate the total growth in households and jobs across all counties/jurisdictions
+        total_hh_growth   = summary_final['hh_growth'].sum()
+        total_jobs_growth = summary_final['jobs_growth'].sum()
 
-    filename = "metrics_growthPattern_county.csv"
-    filepath = output_path / filename
+        summary_final['hh_share_of_growth']   = summary_final['hh_growth'] / total_hh_growth
+        summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / total_jobs_growth
 
-    combined_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
-    logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(combined_df), filepath))
+        # Drop initial totals columns as they're no longer needed
+        summary_final.drop(columns=['total_households_initial', 'total_jobs_initial'], inplace=True)
+        logging.debug("summary_final:\n{}".format(summary_final))
+
+        # Concatenate the initial and final totals.
+        combined_df = pd.concat([summary_dfs[year_initial], summary_final], ignore_index=True)
+        combined_df['modelrun_id'] = modelrun_id
+        # Select and order the columns  
+        combined_df = combined_df[[
+            'modelrun_id', 'modelrun_alias', geography, 
+            'total_households', 'total_jobs', 
+            'hh_growth', 'jobs_growth',
+            'hh_share_of_growth', 'jobs_share_of_growth']]
+        logging.debug("combined_df:\n{}".format(combined_df))
+
+        filename = f"metrics_growthPattern_{geography}.csv"
+        filepath = output_path / filename
+
+        combined_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+        logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(combined_df), filepath))
 
 def growth_patterns_geography(rtp: str,
                               modelrun_alias: str, 
@@ -140,7 +153,7 @@ def growth_patterns_geography(rtp: str,
     for year in SUMMARY_YEARS:
         summary_list = [] # list of dicts for this year
         for area, filter_condition in metrics_utils.PARCEL_AREA_FILTERS[rtp].items():
-            if callable(filter_condition):  # Check if the filter is a function]
+            if callable(filter_condition):  # Check if the filter is a function
                 df_area = modelrun_data[year]['parcel'].loc[filter_condition(modelrun_data[year]['parcel'])]
             elif filter_condition == None:
                 df_area = modelrun_data[year]['parcel']
@@ -199,7 +212,6 @@ def growth_patterns_geography(rtp: str,
     logging.info("{} {:,} lines to {}".format("Appended" if append_output else "Wrote", len(combined_df), filepath))
 
     return return_dict
-
 
 def office_space_summary_bldg(
     rtp: str,
