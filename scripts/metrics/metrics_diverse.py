@@ -373,6 +373,7 @@ def lowinc_homeownership_share(
     tenure_by_income_path = box_path / 'Plan Bay Area 2050+' / 'Performance and Equity' / 'Plan Performance' / \
         'Equity_Performance_Metrics' / 'Draft_Blueprint' / 'metrics_input_files' / \
         'pums_2019_2021_tenure_by_1999_income_quartile.csv'
+    
     tenure_by_income = pd.read_csv(
         tenure_by_income_path, index_col=[0, 1, 2, 3]).WGTP
 
@@ -404,9 +405,10 @@ def lowinc_homeownership_share(
     logging.debug(f'   head of the resulting shares {result_combo.dropna().head()}')
 
     # get the result share for just this modelrun (e.g. NP or DBP)
-    this_modelrun_alias = metrics_utils.classify_runid_alias(modelrun_alias)
+    #this_modelrun_alias = metrics_utils.classify_runid_alias(modelrun_alias)
+    
 
-    this_result = result_combo[variant_mapping[this_modelrun_alias]][2050]
+    this_result = result_combo[variant_mapping[modelrun_alias]][2050]
 
     # collect results with relevant identifiers
     results_df = [{
