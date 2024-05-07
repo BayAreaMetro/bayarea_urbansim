@@ -3,6 +3,7 @@ import geopandas as gpd
 import logging
 from datetime import datetime
 import pathlib
+import getpass
 import os
 
 # make global so we only read once
@@ -12,6 +13,7 @@ rtp2025_urban_area_crosswalk_df = pd.DataFrame() # parcel -> in 2020 urbanized a
 
 rtp2025_transit_service_df      = pd.DataFrame() # parcel -> transit service
 rtp2025_taz_crosswalk_df        = pd.DataFrame() # taz1 -> epc
+rtp2025_parcel_taz_crosswalk_df = pd.DataFrame() # parcel -> taz1
 
 rtp2025_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 rtp2025_dbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
@@ -55,7 +57,12 @@ PARCEL_AREA_FILTERS = {
 # set the path for M: drive
 # from OSX, M:/ may be mounted to /Volumes/Data/Models
 M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
-
+USERNAME = getpass.getuser()
+HOME_DIR = pathlib.Path.home()
+if USERNAME.lower() in ['lzorn']:
+    BOX_DIR = pathlib.Path("E:/Box")
+else:
+    BOX_DIR = HOME_DIR / 'Box'
 
 # --------------------------------------
 # Data Loading Based on Model Run Plan
@@ -96,6 +103,8 @@ def load_data_for_runs(
     global rtp2025_urban_area_crosswalk_df
     global rtp2025_transit_service_df
     global rtp2025_taz_crosswalk_df
+
+    global rtp2025_parcel_taz_crosswalk_df
     global rtp2025_np_parcel_inundation_df
     global rtp2025_dbp_parcel_inundation_df
 
@@ -130,11 +139,27 @@ def load_data_for_runs(
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_urban_area_crosswalk_df), URBAN_AREA_CROSSWALK_FILE))
             logging.debug("  rtp2025_urban_area_crosswalk_df.head():\n{}".format(rtp2025_urban_area_crosswalk_df.head()))
 
-        # transit service areas
+        # transit service areas (used through April 2024 - with n-category transit service areas including headway differentiation)
+        # We used with transit_service_area_share_v2().
+
+        # if len(rtp2025_transit_service_df) == 0:
+        #     import geopandas as gpd
+        #     PARCEL_TRANSITSERVICE_FILE = M_DRIVE / "Data" / "GIS layers" / "JobsHousingTransitProximity" / "update_2024" / "outputs" / "p10_topofix_classified.parquet"
+        #     rtp2025_transit_service_df = pd.read_parquet(PARCEL_TRANSITSERVICE_FILE)
+        #     transit_cols_keep = ['PARCEL_ID','area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
+        #     rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
+        #     logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
+        #     logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
+
+        # simpler version with binary 1/0 classification instead of headway differentiation. We use with transit_service_area_share_v2().
+        
         if len(rtp2025_transit_service_df) == 0:
-            PARCEL_TRANSITSERVICE_FILE = M_DRIVE / "Data" / "GIS layers" / "JobsHousingTransitProximity" / "update_2024" / "outputs" / "p10_topofix_classified.parquet"
-            rtp2025_transit_service_df = pd.read_parquet(PARCEL_TRANSITSERVICE_FILE)
-            transit_cols_keep = ['PARCEL_ID','area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
+            import geopandas as gpd
+            PARCEL_TRANSITSERVICE_FILE = BOX_DIR / 'Plan Bay Area 2050+' / 'Blueprint' / \
+                'Draft Blueprint Modeling and Metrics' / \
+                'transportation' / "p10_x_transit_area_identity.csv"
+            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE)
+            transit_cols_keep = ['parcel_id','cur','np', 'dbp']
             rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
             logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
@@ -241,6 +266,7 @@ def load_data_for_runs(
             logging.debug("final rtp2025_tract_crosswalk_df.dtypes():\n{}".format(rtp2025_tract_crosswalk_df.dtypes))
             # columns are: parcel_id, tract10, tract20, tract20_epc, tract20_growth_geo, tract20_tra, tract20_hra, tract10_DispRisk
 
+
         if len(rtp2025_taz_crosswalk_df) == 0:
 
             # taz-based lookups
@@ -249,6 +275,43 @@ def load_data_for_runs(
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_taz_crosswalk_df), TAZ_EPC_CROSSWALK_FILE))
             logging.debug("  rtp2025_taz_crosswalk_df.head():\n{}".format(rtp2025_taz_crosswalk_df.head()))
 
+        if len(rtp2025_parcel_taz_crosswalk_df)==0:
+
+            # parcels to taz crosswalk - we need this for the area_type (suburban/urban/rural) taz-based classification
+
+            PARCEL_TAZ_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "2020_08_17_parcel_to_taz1454sub.csv"
+            rtp2025_parcel_taz_crosswalk_df = pd.read_csv(PARCEL_TAZ_CROSSWALK_FILE, usecols=['PARCEL_ID', 'ZONE_ID'])
+            rtp2025_parcel_taz_crosswalk_df.columns = rtp2025_parcel_taz_crosswalk_df.columns.str.lower()
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_parcel_taz_crosswalk_df), PARCEL_TAZ_CROSSWALK_FILE))
+            logging.debug("  rtp2025_parcel_taz_crosswalk_df.head():\n{}".format(rtp2025_parcel_taz_crosswalk_df.head()))
+            
+            # taz-based lookups to area_type (urban/suburban/rural)
+            TAZ_AREATYPE_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "taz_urban_suburban.csv"
+            rtp2025_taz_areatype_crosswalk_df = pd.read_csv(TAZ_AREATYPE_CROSSWALK_FILE, usecols=['TAZ1454','area_type'])
+            logging.info("  Read {:,} rows from taz areatype crosswalk {}".format(len(rtp2025_taz_areatype_crosswalk_df), TAZ_AREATYPE_CROSSWALK_FILE))
+            logging.debug("  rtp2025_taz_areatype_crosswalk_df.head():\n{}".format(rtp2025_taz_areatype_crosswalk_df.head()))
+
+           
+            rtp2025_parcel_taz_crosswalk_df = pd.merge(
+                left     = rtp2025_parcel_taz_crosswalk_df,
+                right    = rtp2025_taz_areatype_crosswalk_df,
+                left_on  = 'zone_id',
+                right_on = 'TAZ1454',
+                how      = 'left',
+                validate = 'many_to_one',
+                indicator=True
+            )
+            logging.debug("rtp2025_parcel_taz_crosswalk_df._merge.value_counts():\n{}".format(
+                          rtp2025_parcel_taz_crosswalk_df._merge.value_counts()))
+            rtp2025_parcel_taz_crosswalk_df.drop(columns=['_merge'], inplace=True)
+
+            # fillna with zero
+            rtp2025_parcel_taz_crosswalk_df.fillna(0, inplace=True)
+
+            logging.debug("rtp2025_parcel_taz_crosswalk_df.head():\n{}".format(rtp2025_parcel_taz_crosswalk_df))
+            logging.debug("rtp2025_parcel_taz_crosswalk_df.dtypes():\n{}".format(rtp2025_parcel_taz_crosswalk_df.dtypes))
+            
+            
         if len(rtp2025_np_parcel_inundation_df) == 0:
             PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_NP.csv"
             rtp2025_np_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
@@ -355,11 +418,27 @@ def load_data_for_runs(
             logging.debug("final rtp2021_tract_crosswalk_df.head():\n{}".format(rtp2021_tract_crosswalk_df))
             # columns are: parcel_id, tract10, tract10_epc, tract10_DispRisk, tract10_hra, tract10_growth_geo, tract10_tra
 
-        # transit service areas # works for both RTP2021 and RTP2025
+        # transit service areas (used through April 2024 - with n-category transit service areas including headway differentiation)
+        # We used with transit_service_area_share_v2().
+
+        # if len(rtp2025_transit_service_df) == 0:
+        #     import geopandas as gpd
+        #     PARCEL_TRANSITSERVICE_FILE = M_DRIVE / "Data" / "GIS layers" / "JobsHousingTransitProximity" / "update_2024" / "outputs" / "p10_topofix_classified.parquet"
+        #     rtp2025_transit_service_df = pd.read_parquet(PARCEL_TRANSITSERVICE_FILE)
+        #     transit_cols_keep = ['PARCEL_ID','area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
+        #     rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
+        #     logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
+        #     logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
+
+        # simpler version with binary 1/0 classification instead of headway differentiation. We use with transit_service_area_share_v2().
+        
         if len(rtp2025_transit_service_df) == 0:
-            PARCEL_TRANSITSERVICE_FILE = M_DRIVE / "Data" / "GIS layers" / "JobsHousingTransitProximity" / "update_2024" / "outputs" / "p10_topofix_classified.parquet"
-            rtp2025_transit_service_df = pd.read_parquet(PARCEL_TRANSITSERVICE_FILE)
-            transit_cols_keep = ['PARCEL_ID','area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5']
+            import geopandas as gpd
+            PARCEL_TRANSITSERVICE_FILE = BOX_DIR / 'Plan Bay Area 2050+' / 'Blueprint' / \
+                'Draft Blueprint Modeling and Metrics' / \
+                'transportation' / "p10_x_transit_area_identity.csv"
+            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE)
+            transit_cols_keep = ['parcel_id','cur','np', 'dbp']
             rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
             logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
@@ -476,13 +555,27 @@ def load_data_for_runs(
                 left     = parcel_df,
                 right    = rtp2025_transit_service_df,
                 how      = "left",
-                left_on  = "parcel_id",
-                right_on ="PARCEL_ID",
+                on       = "parcel_id",
+                #right_on = "PARCEL_ID", # not needed with the current crosswalk
                 validate = "one_to_one"
             )
 
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-            logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
+            logging.debug("Head after merge with rtp2025_transit_service_df:\n{}".format(parcel_df.head()))
+
+            # add area_type (urban/suburban/rural) lookups
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = rtp2025_parcel_taz_crosswalk_df,
+                how      = "left",
+                on       = "parcel_id",
+                #right_on = "PARCEL_ID", # not needed with the current crosswalk
+                validate = "one_to_one"
+            )
+
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            logging.debug("Head after merge with rtp2025_parcel_taz_crosswalk_df:\n{}".format(parcel_df.head()))
+
 
             # add parcel lookup for 2020 urban area footprint
             parcel_df = pd.merge(
@@ -550,8 +643,8 @@ def load_data_for_runs(
                 left     = parcel_df,
                 right    = rtp2025_transit_service_df,
                 how      = "left",
-                left_on  = "parcel_id",
-                right_on ="PARCEL_ID",
+                on       = "parcel_id",
+                #right_on ="PARCEL_ID",
                 validate = "one_to_one"
             )
 
@@ -598,11 +691,16 @@ def load_data_for_runs(
                                 'MWTEMPN', 'RETEMPN', 'FPSEMPN', 'HEREMPN', 'OTHEMPN',
                                 # tract-level columns
                                 'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra',
+                                
                                 # transit-related columns
-                                'area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5',
+                                #'area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5',
+                                
+                                # use after may 3 2024
+                                'np','cur','dbp',
+                                
                                 # sea level rise column
                                 "inundation"]
-            
+
             parcel_df = parcel_df[columns_to_keep]
             logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 

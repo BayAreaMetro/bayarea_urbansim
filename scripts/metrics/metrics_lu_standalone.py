@@ -142,7 +142,10 @@ def main():
 
         # directory is relative to MODEL_RUNS_DIR
         run_directory_path = MODEL_RUNS_DIR / row['directory']
-        modelrun_alias = row['alias']
+        
+        # switch to 'variant' column which is less verbose with respect to "No Project [some detail]"
+        #modelrun_alias = row['alias']
+        modelrun_alias = row['variant']
         modelrun_id = row['directory']
 
         logging.info(f"Processing run modelrun_alias:[{modelrun_alias}] modelrun_id:[{modelrun_id}] run_directory_path:{run_directory_path}")
@@ -223,7 +226,7 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, BOX_DIR, OUTPUT_PATH, append_output)
             
         if (args.only == None) or (args.only == 'connected'):
-            metrics_connected.transit_service_area_share(
+            metrics_connected.transit_service_area_share_v2(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'healthy'):
