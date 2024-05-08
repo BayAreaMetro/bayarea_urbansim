@@ -589,7 +589,8 @@ def load_data_for_runs(
             logging.debug("Head after merge with rtp2025_urban_area_crosswalk_df:\n{}".format(parcel_df.head()))
 
             # add parcel sea level rise inundation based on the Plan scenario
-            if "No Project" in modelrun_alias:
+            this_modelrun_alias = classify_runid_alias(modelrun_alias)
+            if this_modelrun_alias == "NP":
                 parcel_df = pd.merge(
                     left     = parcel_df,
                     right    = rtp2025_np_parcel_inundation_df,
@@ -599,7 +600,7 @@ def load_data_for_runs(
                 )
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
                 logging.debug("Head after merge with rtp2025_np_parcel_inundation_df:\n{}".format(parcel_df.head()))
-            elif "DBP" in modelrun_alias:
+            elif this_modelrun_alias == "DBP":
                 parcel_df = pd.merge(
                     left     = parcel_df,
                     right    = rtp2025_dbp_parcel_inundation_df,
@@ -652,7 +653,8 @@ def load_data_for_runs(
             logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
 
             # add parcel sea level rise inundation *input* based on the scenario
-            if "No Project" in modelrun_alias:
+            this_modelrun_alias = classify_runid_alias(modelrun_alias)
+            if this_modelrun_alias == "NP":
                 parcel_df = pd.merge(
                     left     = parcel_df,
                     right    = rtp2021_np_parcel_inundation_df,
