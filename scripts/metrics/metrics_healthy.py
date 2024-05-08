@@ -259,7 +259,7 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
         protected_households_pct_geog = 1.0
     # otherwise calculate the percent protected normally
     elif slr_households_geog > 0:
-        protected_households_geog = df.loc[df.inundation == 100 & df[geog].notnull()]['tothh'].sum()
+        protected_households_geog = df.loc[(df.inundation == 100) & (df[geog].notnull())]['tothh'].sum()
         logging.debug("{} protected EPC/COC SLR households".format(protected_households_geog))
         protected_households_pct_geog = protected_households_geog / slr_households_geog
     protected_households_pct.append(protected_households_pct_geog)
