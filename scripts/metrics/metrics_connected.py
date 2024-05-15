@@ -554,7 +554,7 @@ def transit_service_area_share_v2(
 
         # adding county field from tract ids
         parcel_output['county'] = parcel_output.tract20.map(lambda x: f'{x:011.0f}').str.slice(0,5).map(bayareafips).fillna('MISSING')
-        logging.info(f'counts of parcel by county: {parcel_output['county'].value_counts()}')
+        logging.info(f'counts of parcel by county: {parcel_output["county"].value_counts()}')
         
         # Identify the passed scenario-specific columns (fbp no project, current)
         # this returns different classifications for each - like the 5-way or 6-way service level (cat5, cat6)
