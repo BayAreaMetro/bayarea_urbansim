@@ -78,8 +78,14 @@ def urban_park_acres(
                 if found_header_text: break
             
             if not found_header_text:
-                logging.info(f"  => Didn't find {header_text} -- skipping")
-                continue
+                if modelrun_alias in ["No Project","DBP"]:
+                    # this is a problem -- fail hard
+                    logging.fatal(f"urban_park_acres not updated for {modelrun_alias}")
+                    raise Exception(f"urban_park_acres not updated for {modelrun_alias}")
+                    raise("")
+                else:
+                    logging.info(f"  => Didn't find {header_text} -- skipping")
+                    continue
 
             # summarize the data for this
             tazdata_df = modelrun_data[year]['TAZ1454']
@@ -140,7 +146,7 @@ def non_greenfield_development_share(
     - output_path (Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing.
     '''
-    logging.info("Calculating urban_park_acres")
+    logging.info("Calculating non_greenfield_development_share")
 
     # Guard clause: this metric is implemented for RTP2025 / PBA50+ only
     if rtp != 'RTP2025':
