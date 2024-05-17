@@ -134,32 +134,38 @@ def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.Da
         dicts.append(this_dict)
     df = pd.DataFrame.from_records(dicts)
 
-    # add a column to flag whether the run was completed from endtime stamp
-    df['is_complete'] = df.time_stamp_end_log.notna()
+    
+    if len(df)>0:
+        
 
-    # filter out incomplete runs
-    df = df[df.is_complete]
+        # add a column to flag whether the run was completed from endtime stamp
+        df['is_complete'] = df.time_stamp_end_log.notna()
 
-    # Put meta columns up front
+        # filter out incomplete runs
+        df = df[df.is_complete]
 
-    cols = ['yaml_path', 'is_complete', 'time_stamp_start_log',
-            'time_stamp_start_pth', 'time_stamp_end_log']
-    # ...keep the order of the rest of the columns
-    df = df[cols + [c for c in df.columns if c not in cols]]
+        # Put meta columns up front
 
-    # write the file to disk (box and M)
-    df.to_csv(m_out_path, index=False)
-    df.to_csv(box_out_path, index=False)
+        cols = ['yaml_path', 'is_complete', 'time_stamp_start_log',
+                'time_stamp_start_pth', 'time_stamp_end_log']
+        # ...keep the order of the rest of the columns
+        df = df[cols + [c for c in df.columns if c not in cols]]
+
+        # write the file to disk (box and M)
+        df.to_csv(m_out_path, index=False)
+        df.to_csv(box_out_path, index=False)
+    else:
+        print('No runs found - check your file system / input path')
 
 
 
 if __name__ == "__main__":
 
     # PATHS 
-
+    
     # set the path for M: drive
     # from OSX, M:/ may be mounted to /Volumes/Data/Models
-    M_DRIVE = Path("/Volumes/Data/Models") if os.getlogin()=='aolsen' else Path("M:/")
+    M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
     HOME_DIR = pathlib.Path.home()
     BOX_DIR = HOME_DIR / 'Box' if not os.getlogin()=='lzorn' else Path("E:/Box")
 
