@@ -210,9 +210,6 @@ def main():
                 modelrun_id,
                 modelrun_data,
                 run_directory_path,
-                BOX_DIR,
-                M_DRIVE,
-                METRICS_DIR,
                 OUTPUT_PATH,
                 append_output,
             )

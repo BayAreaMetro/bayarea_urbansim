@@ -14,6 +14,7 @@ rtp2025_urban_area_crosswalk_df = pd.DataFrame() # parcel -> in 2020 urbanized a
 rtp2025_transit_service_df      = pd.DataFrame() # parcel -> transit service
 rtp2025_taz_crosswalk_df        = pd.DataFrame() # taz1 -> epc
 rtp2025_parcel_taz_crosswalk_df = pd.DataFrame() # parcel -> taz1
+parcel_taz_sd_crosswalk_df      = pd.DataFrame() # parcel -> taz1 and superdistrict
 
 rtp2025_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 rtp2025_dbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
@@ -105,6 +106,7 @@ def load_data_for_runs(
     global rtp2025_taz_crosswalk_df
 
     global rtp2025_parcel_taz_crosswalk_df
+    global parcel_taz_sd_crosswalk_df
     global rtp2025_np_parcel_inundation_df
     global rtp2025_dbp_parcel_inundation_df
 
@@ -114,11 +116,53 @@ def load_data_for_runs(
     global rtp2021_np_parcel_inundation_df
     global rtp2021_fbp_parcel_inundation_df
 
+    CROSSWALKS_DIR = M_DRIVE / "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks"
+
+    # Start by pre-canning a parcel_id to zone_id, county, and superdistrict crosswalk DF
+    # This crosswalk is the same for RTP2021 and RTP2025
+    if len(parcel_taz_sd_crosswalk_df) == 0:
+        bayareafips = {
+            "06001": "Alameda",
+            "06013": "Contra Costa",
+            "06041": "Marin",
+            "06055": "Napa",
+            "06075": "San Francisco",
+            "06081": "San Mateo",
+            "06085": "Santa Clara",
+            "06097": "Sonoma",
+            "06095": "Solano",
+        }
+
+        PARCEL_TAZ_CROSSWALK_FILE = CROSSWALKS_DIR / "2020_08_17_parcel_to_taz1454sub.csv"
+        parcel_taz_crosswalk_df = pd.read_csv(PARCEL_TAZ_CROSSWALK_FILE, usecols=['PARCEL_ID', 'ZONE_ID', 'manual_county'])
+        parcel_taz_crosswalk_df.columns = parcel_taz_crosswalk_df.columns.str.lower()
+        parcel_taz_crosswalk_df["county"] = parcel_taz_crosswalk_df['manual_county'].map(
+            lambda x: f"06{x:03d}"
+        ).map(bayareafips)
+        del parcel_taz_crosswalk_df['manual_county']
+        logging.info(f"  Read {len(parcel_taz_crosswalk_df):,} rows from crosswalk {PARCEL_TAZ_CROSSWALK_FILE}")
+        logging.debug(f"  parcel_taz_crosswalk_df.head():\n{parcel_taz_crosswalk_df.head()}")
+
+        TAZ_SD_CROSSWALK_FILE = CROSSWALKS_DIR / "taz_geography.csv"
+        taz_sd_crosswalk_df = pd.read_csv(TAZ_SD_CROSSWALK_FILE, usecols=['zone', 'superdistrict'])
+        taz_sd_crosswalk_df.rename(columns={"zone": "zone_id"}, inplace=True)
+        logging.info(f"  Read {len(taz_sd_crosswalk_df):,} rows from crosswalk {TAZ_SD_CROSSWALK_FILE}")
+        logging.debug(f"  taz_sd_crosswalk_df.head():\n{taz_sd_crosswalk_df.head()}")
+
+        parcel_taz_sd_crosswalk_df = pd.merge(
+            left     = parcel_taz_crosswalk_df,
+            right    = taz_sd_crosswalk_df,
+            on       = 'zone_id',
+            how      = 'left',
+            validate = 'many_to_one'
+        )
+
+
     # year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
     modelrun_data = {}
     if rtp == "RTP2025":
         if len(rtp2025_geography_crosswalk_df) == 0:
-            PARCEL_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "parcels_geography_2024_02_14.csv"
+            PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "parcels_geography_2024_02_14.csv"
             rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ppa_id','ugb_id','juris'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
@@ -134,7 +178,7 @@ def load_data_for_runs(
             logging.debug(f"rtp2025_geography_crosswalk_df.jurisdiction.value_counts(dropna=False):\n{rtp2025_geography_crosswalk_df.jurisdiction.value_counts(dropna=False)}")
 
         if len(rtp2025_urban_area_crosswalk_df) == 0:
-            URBAN_AREA_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "p10_parcels_to_2020_urban_areas.csv"
+            URBAN_AREA_CROSSWALK_FILE = CROSSWALKS_DIR / "p10_parcels_to_2020_urban_areas.csv"
             rtp2025_urban_area_crosswalk_df = pd.read_csv(URBAN_AREA_CROSSWALK_FILE, usecols=['parcel_id', 'in_urban_area'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_urban_area_crosswalk_df), URBAN_AREA_CROSSWALK_FILE))
             logging.debug("  rtp2025_urban_area_crosswalk_df.head():\n{}".format(rtp2025_urban_area_crosswalk_df.head()))
@@ -158,16 +202,14 @@ def load_data_for_runs(
             PARCEL_TRANSITSERVICE_FILE = BOX_DIR / 'Plan Bay Area 2050+' / 'Blueprint' / \
                 'Draft Blueprint Modeling and Metrics' / \
                 'transportation' / "p10_x_transit_area_identity.csv"
-            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE)
-            transit_cols_keep = ['parcel_id','cur','np', 'dbp']
-            rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
+            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE, usecols=['parcel_id','cur','np', 'dbp'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
             logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
 
         # tract
         if len(rtp2025_tract_crosswalk_df) == 0:
             # map to census 2010 tract and census 2020 tract
-            TRACT_CROSSWALK_FILE = M_DRIVE / "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "p10_census.csv"
+            TRACT_CROSSWALK_FILE = CROSSWALKS_DIR / "p10_census.csv"
             rtp2025_tract_crosswalk_df = pd.read_csv(TRACT_CROSSWALK_FILE, usecols=['parcel_id','tract10','tract20'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_tract_crosswalk_df), TRACT_CROSSWALK_FILE))
             logging.info("  len(rtp2025_tract_crosswalk_df.tract10.unique()): {:,}  parcels with null tract10: {:,}".format(
@@ -279,10 +321,8 @@ def load_data_for_runs(
 
             # parcels to taz crosswalk - we need this for the area_type (suburban/urban/rural) taz-based classification
 
-            PARCEL_TAZ_CROSSWALK_FILE = M_DRIVE /  "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks" / "2020_08_17_parcel_to_taz1454sub.csv"
-            rtp2025_parcel_taz_crosswalk_df = pd.read_csv(PARCEL_TAZ_CROSSWALK_FILE, usecols=['PARCEL_ID', 'ZONE_ID'])
-            rtp2025_parcel_taz_crosswalk_df.columns = rtp2025_parcel_taz_crosswalk_df.columns.str.lower()
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_parcel_taz_crosswalk_df), PARCEL_TAZ_CROSSWALK_FILE))
+            # Reuse our earlier, RTP-agnostic parcel-to-TAZ-and-SD crosswalk
+            rtp2025_parcel_taz_crosswalk_df = parcel_taz_sd_crosswalk_df.copy()
             logging.debug("  rtp2025_parcel_taz_crosswalk_df.head():\n{}".format(rtp2025_parcel_taz_crosswalk_df.head()))
             
             # taz-based lookups to area_type (urban/suburban/rural)
@@ -437,9 +477,7 @@ def load_data_for_runs(
             PARCEL_TRANSITSERVICE_FILE = BOX_DIR / 'Plan Bay Area 2050+' / 'Blueprint' / \
                 'Draft Blueprint Modeling and Metrics' / \
                 'transportation' / "p10_x_transit_area_identity.csv"
-            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE)
-            transit_cols_keep = ['parcel_id','cur','np', 'dbp']
-            rtp2025_transit_service_df = rtp2025_transit_service_df[transit_cols_keep]
+            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE, usecols=['parcel_id','cur','np', 'dbp'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
             logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
 
@@ -563,7 +601,7 @@ def load_data_for_runs(
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_transit_service_df:\n{}".format(parcel_df.head()))
 
-            # add area_type (urban/suburban/rural) lookups
+            # add area_type (urban/suburban/rural) and superdistrict lookups
             parcel_df = pd.merge(
                 left     = parcel_df,
                 right    = rtp2025_parcel_taz_crosswalk_df,
@@ -638,6 +676,15 @@ def load_data_for_runs(
             )
             assert('fbpchcat' in parcel_df.columns)
 
+            # add TAZ1454 and superdistrict columns
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = parcel_taz_sd_crosswalk_df,
+                how      = "left",
+                on       = "parcel_id",
+                validate = "one_to_one"
+            )
+
             # add transit service area lookups
             # logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
             parcel_df = pd.merge(
@@ -685,6 +732,7 @@ def load_data_for_runs(
             # Retain only a subset of columns after merging
             columns_to_keep = ['parcel_id', 'tract10', 'fbpchcat', 
                                 'gg_id', 'tra_id', 'hra_id', 'dis_id', 'ppa_id', 'eir_coc_id','jurisdiction',
+                                'zone_id', 'county', 'superdistrict',
                                 'hhq1', 'hhq2', 'hhq3', 'hhq4', 
                                 'tothh', 'totemp',
                                 'deed_restricted_units', 'residential_units', 'preserved_units',

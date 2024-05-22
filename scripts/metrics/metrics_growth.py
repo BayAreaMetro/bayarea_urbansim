@@ -7,8 +7,8 @@ import metrics_utils
 
 def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, output_path, append_output):
     """
-    Calculates the growth in total households and total jobs at the county and jurisdiction level, 
-    between an initial and a final summary period, and assigns the share of growth in households and jobs to each county or jurisdiction.
+    Calculates the growth in total households and total jobs at the county, jurisdiction, and superdistrict level, 
+    between an initial and a final summary period, and assigns the share of growth in households and jobs to each county/jurisdiction/SD.
 
     For *county* summaries only, scales total households and jobs based on the input, regional_hh_jobs_dict, so that the summary
     is consistent with the summary from growth_patterns_geography()
@@ -22,10 +22,10 @@ def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, modelr
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
 
-    Writes metrics_growthPattern_[county,jurisdiction].csv to output_path, apeending if append_output is True. Columns are:
+    Writes metrics_growthPattern_[county,jurisdiction|superdistrict].csv to output_path, apeending if append_output is True. Columns are:
     - modelrun_id
     - modelrun_alias
-    - [county|jurisdiction]
+    - [county|jurisdiction|superdistrict]
     - total_[households|jobs]
     - [hh|jobs]_growth
     - [hh|jobs]_share_of_growth
@@ -37,7 +37,7 @@ def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, modelr
     year_initial = SUMMARY_YEARS[0]
     year_horizon = SUMMARY_YEARS[-1]
 
-    for geography in ['county','jurisdiction']:
+    for geography in ['county', 'jurisdiction', 'superdistrict']:
 
         summary_dfs = {}
         for year in SUMMARY_YEARS:
@@ -50,9 +50,9 @@ def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, modelr
                     regional_hh_jobs_dict[year]['total_jobs'] / modelrun_data[year]['county']['totemp'].sum()
 
                 summary_dfs[year] = modelrun_data[year]["county"].copy()
-            elif geography == "jurisdiction":
-                # create jurisdiction summary via groupby
-                summary_dfs[year] = modelrun_data[year]["parcel"].groupby("jurisdiction").agg({'tothh':'sum','totemp':'sum'}).reset_index(drop=False)
+            else:
+                # create jurisdiction/superdistrict summary via groupby
+                summary_dfs[year] = modelrun_data[year]["parcel"].groupby(geography, as_index=False)[['tothh', 'totemp']].sum()
 
             # rename columns to standardized version
             summary_dfs[year].rename(columns={
@@ -219,9 +219,6 @@ def office_space_summary_bldg(
     modelrun_id: str,
     modelrun_data: dict,
     run_directory_path: str,
-    box_dir: pathlib.Path,
-    m_drive: pathlib.Path,
-    metrics_dir: str,
     output_path: str,
     append_output: bool,
 ):
@@ -234,9 +231,6 @@ def office_space_summary_bldg(
     - modelrun_id (str): Identifier for the model run.
     - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
     - run_directory_path (str): Path to the run directory.
-    - box_dir (str): Path to the Box directory.
-    - m_drive (str): Path to the M drive.
-    - metrics_dir (str): Path to the metrics directory.
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
 
@@ -263,59 +257,7 @@ def office_space_summary_bldg(
         logging.info("  RTP2021 is not supported - skipping")
         return
 
-    import geopandas as gpd
-
-    OFFICE_SQFT_PER_JOB = 355
-
-    bayareafips = {
-        "06001": "Alameda",
-        "06013": "Contra Costa",
-        "06041": "Marin",
-        "06055": "Napa",
-        "06075": "San Francisco",
-        "06081": "San Mateo",
-        "06085": "Santa Clara",
-        "06097": "Sonoma",
-        "06095": "Solano",
-    }
     SUMMARY_YEARS = sorted(modelrun_data.keys())
-
-    # get TAZs - they have a mapping to superdistricts
-    ZONE_PATH = (
-        box_dir
-        / "Modeling and Surveys"
-        / "Urban Modeling"
-        / "Spatial"
-        / "Zones"
-        / "TAZ1454"
-        / "zones1454.shp"
-    )
-    taz1454 = gpd.read_file(ZONE_PATH)
-    logging.info(f"  Reading TAZs from {ZONE_PATH}...")
-    taz_x_sd = taz1454.set_index("taz1454").superdistr
-
-    # get parcels to TAZ crosswalk file
-    TAZ_CROSSWALK_FILE = (
-        m_drive
-        / "urban_modeling"
-        / "baus"
-        / "BAUS Inputs"
-        / "basis_inputs"
-        / "crosswalks"
-        / "2020_08_17_parcel_to_taz1454sub.csv"
-    )
-
-    parcel_to_taz_xwalk = pd.read_csv(TAZ_CROSSWALK_FILE, index_col="PARCEL_ID")
-    parcel_to_taz_xwalk["county"] = parcel_to_taz_xwalk.manual_county.map(
-        lambda x: f"06{x:03d}"
-    ).map(bayareafips)
-
-    logging.info(f"  Reading parcel_to_taz1454sub from {TAZ_CROSSWALK_FILE}...")
-
-    # convenience series for crosswalking
-    parcel_x_zone = parcel_to_taz_xwalk.ZONE_ID
-    parcel_x_sd = parcel_x_zone.map(taz_x_sd)
-    parcel_x_county = parcel_to_taz_xwalk.county
 
     # Define convenience function for finalizing the df before outputting, to be run on different summary levels
     def finalize_output(df):
@@ -416,9 +358,6 @@ def office_space_summary_bldg(
 
         # get parcels
         parcel_output = modelrun_data[year]["parcel"]
-        parcel_output["zone_id"] = parcel_output["parcel_id"].map(parcel_x_zone)
-        parcel_output["superdistrict"] = parcel_output["parcel_id"].map(parcel_x_sd)
-        parcel_output["county"] = parcel_output["parcel_id"].map(parcel_x_county)
 
         logging.debug(
             "   Parcels have {} records without zone_id".format(
