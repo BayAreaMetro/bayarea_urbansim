@@ -23,3 +23,10 @@ configs/hlcm_owner_lowincome_no_unplaced.yaml
 site/*
 run_setup.yaml
 *.twbr
+
+# test mode: log files
+scripts/metrics/metrics_*.log
+scripts/metrics/metrics_*.csv
+scripts/metrics/debug_*.csv
+scripts/metrics/metrics_*.xlsx
+.vscode/launch.json
