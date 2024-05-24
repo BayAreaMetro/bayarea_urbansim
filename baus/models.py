@@ -11,7 +11,8 @@ import pandana.network as pdna
 from urbansim.developer import sqftproforma
 from urbansim.developer.developer import Developer as dev
 from urbansim.utils import misc, networks
-from urbansim_defaults import models, utils
+from urbansim_defaults import models #, utils
+from baus import urbansim_default_utils as utils # local slightly modified version of urbansim_defaults utils
 
 from baus import datasources, subsidies, variables
 from baus.utils import \
@@ -20,7 +21,7 @@ from baus.utils import \
 
 
 @orca.step()
-def elcm_simulate(jobs, buildings, aggregations):
+def elcm_simulate(jobs, buildings, aggregations, year, run_name, outputs_dir):
     """
     testing docstring documentation for automated documentation creation
     """
@@ -39,12 +40,23 @@ def elcm_simulate(jobs, buildings, aggregations):
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
                               "building_id", "job_spaces",
-                              "vacant_job_spaces", cast=True)
-    return elcm
+                              "vacant_job_spaces", cast=True,
+                              debug=True,
+                              run_name=run_name,
+                              year=year,
+                              outputs_dir=outputs_dir)
+    
+    # outputs_dir = os.path.join(outputs_dir,'debug')
+    # os.makedirs(outputs_dir,exist_ok=True)
+    
+    # out_path = os.path.join(outputs_dir,  f"{run_name}_{year}_DEBUG_elcm_probs.csv")
+    # elcm.to_csv(out_path)
+
+    
 
 
 @orca.step()
-def elcm_simulate_ec5(jobs, buildings, aggregations, year):
+def elcm_simulate_ec5(jobs, buildings, aggregations, year, run_name):
     """
     testing docstring documentation for automated documentation creation
     """
