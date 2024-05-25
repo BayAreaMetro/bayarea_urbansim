@@ -11,7 +11,8 @@ import pandana.network as pdna
 from urbansim.developer import sqftproforma
 from urbansim.developer.developer import Developer as dev
 from urbansim.utils import misc, networks
-from urbansim_defaults import models, utils
+from urbansim_defaults import models , utils
+from baus import urbansim_default_utils as utils_local # local slightly modified version of urbansim_defaults utils
 
 from baus import datasources, subsidies, variables
 from baus.utils import \
@@ -20,7 +21,7 @@ from baus.utils import \
 
 
 @orca.step()
-def elcm_simulate(jobs, buildings, aggregations):
+def elcm_simulate(jobs, buildings, aggregations, year, run_name, outputs_dir):
     """
     testing docstring documentation for automated documentation creation
     """
@@ -36,15 +37,22 @@ def elcm_simulate(jobs, buildings, aggregations):
     print('\tBuildings:',buildings.to_frame().shape[0])
     print('Office rents - before estimation', buildings.to_frame().query('building_type=="OF"').non_residential_rent.describe())
 
-    elcm = utils.lcm_simulate(spec_path, 
+    # temporary use of modified local version with different signature
+    # for debug / testing purposes
+    elcm = utils_local.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
                               "building_id", "job_spaces",
-                              "vacant_job_spaces", cast=True)
+                              "vacant_job_spaces", cast=True,
+                              debug=True,
+                              run_name=run_name,
+                              year=year,
+                              outputs_dir=outputs_dir)
     return elcm
+    
 
 
 @orca.step()
-def elcm_simulate_ec5(jobs, buildings, aggregations, year):
+def elcm_simulate_ec5(jobs, buildings, aggregations, year, run_name):
     """
     testing docstring documentation for automated documentation creation
     """
