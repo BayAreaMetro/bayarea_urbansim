@@ -13,7 +13,6 @@ from urbansim.developer import sqftproforma, developer
 from urbansim.utils import misc
 
 
-
 def check_nas(df):
     """
     Checks for nas and errors if they are found (also prints a report on how
