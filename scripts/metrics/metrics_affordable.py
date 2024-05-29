@@ -2,7 +2,7 @@
 # ===== Affordable Metrics =====
 # ==============================
 
-import logging
+import logging, pathlib
 import pandas as pd
 import metrics_utils
 
@@ -198,7 +198,8 @@ def housing_cost_share_of_income(
         modelrun_alias: str,
         modelrun_id: str,
         modelrun_data: dict,
-        output_path: str,
+        metrics_path: pathlib.Path,
+        output_path: pathlib.Path,
         append_output: bool  
     ):
     """ Calculates housing cost as a share of household income for income quartiles.
@@ -352,10 +353,11 @@ def housing_cost_share_of_income(
     # Assume price-controlled share_income = MARKET_RATE_TO_PRICE_CONTROL_SHARE_INCOME x (market-rate share_income)
     MARKET_RATE_TO_PRICE_CONTROL_SHARE_INCOME = 0.857
 
-    # root value
-    REGIONAL_FORECAST_LEGACY_DIR = "https://raw.githubusercontent.com/BayAreaMetro/regional_forecast/main/housing_income_share_metric/"
 
     if rtp == "RTP2021":
+        # root value
+        REGIONAL_FORECAST_LEGACY_DIR = "https://raw.githubusercontent.com/BayAreaMetro/regional_forecast/d4eb87f471c40b29b6ca3e3f088952fc5e046b48/housing_income_share_metric/"
+
         if modelrun_alias == "No Project":
             PUMS_BASEYEAR_HOUSING_COST_FILE = REGIONAL_FORECAST_LEGACY_DIR + "ACS_PUMS_2015_Share_Income_Spent_on_Housing_by_Quartile.csv"
             BAUS_SCENARIO = "s25"
@@ -396,7 +398,7 @@ def housing_cost_share_of_income(
 
     elif rtp == "RTP2025":
         # TODO: why is this 2019 and as recent as possible (2021)?
-        PUMS_BASEYEAR_HOUSING_COST_FILE = REGIONAL_FORECAST_LEGACY_DIR + "ACS_PUMS_2019_Share_Income_Spent_on_Housing_by_Quartile.csv"
+        PUMS_BASEYEAR_HOUSING_COST_FILE = metrics_path / "metrics_input_files" / "ACS_PUMS_2019_Share_Income_Spent_on_Housing_by_Quartile.csv"
 
         if modelrun_alias == "No Project":
             BAUS_SCENARIO = "RTP2025_NP"
@@ -406,7 +408,7 @@ def housing_cost_share_of_income(
         # TODO: This is duplicate code because I think it should be removed
         # TODO: Deed restricted unit counts should come from deed_restricted_affordable_share() results
         # TODO: Price controlled unit count appears to be fixed at 144892 for all scenarios; what is this based upon?
-        SCENARIO_PARAMS_FILE =  REGIONAL_FORECAST_LEGACY_DIR + "scenario_specific_parameters.csv"
+        SCENARIO_PARAMS_FILE =  metrics_path / "metrics_input_files" / "scenario_specific_parameters.csv"
         scenario_params_df = pd.read_csv(SCENARIO_PARAMS_FILE, na_values=['  '])
         scenario_params_df.columns = scenario_params_df.columns.str.strip() # leading whitespace
         # scenario is index and  we only need subset of columns

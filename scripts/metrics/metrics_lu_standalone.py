@@ -170,7 +170,7 @@ def main():
                 SUMMARY_YEARS[-1], modelrun_alias, modelrun_id, OUTPUT_PATH, append_output)
 
             metrics_affordable.housing_cost_share_of_income(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, METRICS_DIR, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'diverse'):
             metrics_diverse.gentrify_displacement_tracts(
