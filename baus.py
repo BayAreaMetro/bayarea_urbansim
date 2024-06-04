@@ -40,7 +40,7 @@ if SLACK:
 
 SET_RANDOM_SEED = True
 if SET_RANDOM_SEED:
-    np.random.seed(12)
+    np.random.seed(42)
 
 
 parser = argparse.ArgumentParser(description='Run UrbanSim models.')
