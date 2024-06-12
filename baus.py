@@ -333,6 +333,7 @@ def run_models(MODE):
 
             simulation_summary_models = [
 
+                "adjust_initial_summary_year_incomes",
                 "interim_zone_output",
                 "new_buildings_summary",
 
@@ -358,6 +359,9 @@ def run_models(MODE):
                 "taz1_growth_summary",
                 "maz_growth_summary",
             ]
+
+            if not run_setup['adjust_initial_summary_year_incomes']:
+                simulation_summary_models.remove("adjust_initial_summary_year_incomes")
 
             return simulation_summary_models
         
