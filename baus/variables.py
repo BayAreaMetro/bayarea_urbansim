@@ -216,11 +216,12 @@ def sqft_per_job(buildings,
         form_to_btype = mapping["form_to_btype"]
 
         # get non-res list, exclusive of office
+        office_like_types = ["OF" , "ME" ]
         nonres_list = form_to_btype['select_non_residential']
-        nonres_list = [i for i in nonres_list if i != "OF"]
+        nonres_list = [i for i in nonres_list if i not in office_like_types]
 
         # create building-level building type masks
-        office_mask = buildings.building_type == "OF"
+        office_mask = buildings.building_type.isin(office_like_types)
         other_nonres_mask = buildings.building_type.isin(nonres_list)
 
         print('\tOffice buildings alone')
