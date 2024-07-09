@@ -12,6 +12,7 @@ from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
     hazards_summaries, metrics, travel_model_summaries
 from baus.visualizer import push_model_files
+import baus.slack
 import numpy as np
 import pandas as pd
 import orca
@@ -37,6 +38,8 @@ if SLACK:
     from slack_sdk.errors import SlackApiError
     client = WebClient(token=os.environ["SLACK_TOKEN"])
     slack_channel = "#urbansim_sim_update"
+    orca.add_injectable('slack_client',client)
+    orca.add_injectable('slack_channel',slack_channel)
 
 SET_RANDOM_SEED = True
 if SET_RANDOM_SEED:
@@ -393,6 +396,7 @@ def run_models(MODE):
             baseyear_models.extend(get_baseyear_summary_models())
         if run_setup["run_metrics"]:
             baseyear_models.extend(get_baseyear_metrics_models())
+        if SLACK: baseyear_models.append('slack_simulation_status')
         orca.run(baseyear_models, iter_vars=[IN_YEAR])
 
         years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
@@ -403,6 +407,7 @@ def run_models(MODE):
             simulation_models.extend(get_simulation_metrics_models())
         if run_setup["run_simulation_validation"]:
             simulation_models.extend(get_simulation_validation_models())
+        if SLACK: simulation_models.append('slack_simulation_status')
         orca.run(simulation_models, iter_vars=years_to_run)
 
         if run_setup["run_visualizer"]:
@@ -446,28 +451,7 @@ print("pandas version: %s" % pd.__version__)
 print("SLACK: {}".format(SLACK))
 print("MODE: {}".format(MODE))
 
-if SLACK and MODE == "estimation":
-    slack_start_message = f'Starting estimation {run_name} on host {host}'
-    try:
-        # For first slack channel posting of a run, catch any auth errors
-        init_response = client.chat_postMessage(channel=slack_channel,
-                                                text=slack_start_message)
-    except SlackApiError as e:
-        assert e.response["ok"] is False
-        assert e.response["error"]  
-        print(f"Slack Channel Connection Error: {e.response['error']}")
-
-if SLACK and MODE == "simulation":
-    slack_start_message = f'Starting simulation {run_name} on host {host}\nOutput written to: {run_setup["outputs_dir"]}'
-    
-    try:
-        # For first slack channel posting of a run, catch any auth errors
-        init_response = client.chat_postMessage(channel=slack_channel,
-                                           text=slack_start_message)
-    except SlackApiError as e:
-        assert e.response["ok"] is False
-        assert e.response["error"]  
-        print(f"Slack Channel Connection Error: {e.response['error']}")
+if SLACK: baus.slack.slack_start(MODE, host, run_name, run_setup)
 
 try:
     run_models(MODE)
@@ -489,22 +473,10 @@ except Exception as e:
     error_trace = '\n'.join(error_msgs)
     print(error_trace)
 
-    if SLACK and MODE == "simulation":
-        slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}. Deets here:\n{error_trace}'
-        
-        response = client.chat_postMessage(channel=slack_channel,
-                                           thread_ts=init_response.data['ts'],
-                                           text=slack_fail_message)
-
-    else:
-        raise e
+    if SLACK: baus.slack_error(error_type, error_msg, error_trace)
+    
+    raise e
     sys.exit(0)
 
-if SLACK and MODE == "simulation":
-    slack_completion_message = f'Completed simulation {run_name} on host {host}'
-    response = client.chat_postMessage(channel=slack_channel,
-                                       thread_ts=init_response.data['ts'],
-                                       text=slack_completion_message)
-
-                                                                                            
+if SLACK: baus.slack.slack_complete(MODE, host, run_name)                                                                                      
 print("Finished", time.ctime())         
