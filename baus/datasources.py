@@ -24,7 +24,9 @@ import pathlib
 # this is similar to the code for settings in urbansim_defaults
 @orca.injectable('run_setup', cache=True)
 def run_setup():
-    with open("run_setup.yaml") as f:
+    run_setup_yaml = orca.get_injectable('run_setup_yaml')
+    print("run_setup(): reading {}".format(run_setup_yaml))
+    with open(run_setup_yaml) as f:
         return yaml.load(f)
 
 

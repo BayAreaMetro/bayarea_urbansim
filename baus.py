@@ -26,6 +26,7 @@ import pandana
 import shutil
 
 
+RUN_SETUP_YAML = "run_setup.yaml" # overriden by arg
 MODE = "simulation"
 EVERY_NTH_YEAR = 5
 IN_YEAR, OUT_YEAR = 2010, 2050
@@ -47,13 +48,16 @@ if SET_RANDOM_SEED:
 
 
 parser = argparse.ArgumentParser(description='Run UrbanSim models.')
-
+parser.add_argument('--run_setup_yaml', help='Specify run_setup.yaml file to use')
 parser.add_argument('--mode', action='store', dest='mode', help='which mode to run (see code for mode options)')
 parser.add_argument('-i', action='store_true', dest='interactive', help='enter interactive mode after imports')
 parser.add_argument('--set-random-seed', action='store_true', dest='set_random_seed', help='set a random seed for consistent stochastic output')
 parser.add_argument('--disable-slack', action='store_true', dest='no_slack', help='disable slack outputs')
 
 options = parser.parse_args()
+
+if options.run_setup_yaml:
+    RUN_SETUP_YAML = options.run_setup_yaml
 
 if options.interactive:
     INTERACT = True
@@ -67,6 +71,7 @@ if options.set_random_seed:
 if options.no_slack:
     SLACK = False
 
+orca.add_injectable("run_setup_yaml", RUN_SETUP_YAML)
 orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
 orca.add_injectable("base_year", IN_YEAR)
 orca.add_injectable("final_year", OUT_YEAR)
@@ -432,8 +437,8 @@ sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), 
 
 # Memorialize the run config with the outputs - goes by run name attribute
 
-print('***Copying run_setup.yaml to output directory')
-shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
+print('***Copying {} to output directory'.format(RUN_SETUP_YAML))
+shutil.copyfile(RUN_SETUP_YAML, os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
 print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
