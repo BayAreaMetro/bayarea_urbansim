@@ -31,7 +31,7 @@ def slack_complete(run_mode, host, run_name):
         import slack_sdk.errors
         slack_client = orca.get_injectable('slack_client')
         slack_channel = orca.get_injectable('slack_channel')
-        slack_init_response = slack_client.chat_postMessage(channel=slack_channel, text=slack_start_message)
+        slack_init_response = slack_client.chat_postMessage(channel=slack_channel, text=slack_completion_message)
         response = slack_client.chat_postMessage(channel=slack_channel,
                                        thread_ts=slack_init_response.data['ts'],
                                        text=slack_completion_message)
