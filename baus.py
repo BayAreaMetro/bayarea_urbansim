@@ -478,7 +478,7 @@ except Exception as e:
     error_trace = '\n'.join(error_msgs)
     print(error_trace)
 
-    if SLACK: baus.slack_error(error_type, error_msg, error_trace)
+    if SLACK: baus.slack.slack_error(error_type, error_msg, error_trace)
     
     raise e
     sys.exit(0)
