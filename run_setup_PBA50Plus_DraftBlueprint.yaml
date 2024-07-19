@@ -7,11 +7,25 @@ initial_summary_year: 2020
 # RUN NAME
 #run_name: PBA50Plus_all_w_ec5_elcm
 #run_name: PBA50Plus_all_w_ec5_random_p33
-run_name: PBA50Plus_Draft_Blueprint_v1a
+run_name: PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
+
+annotation: 
+   - Deed restriction fix
+   - H6 pipeline fix
+   - TM demog file fix
+   - updated 06b logsums
+   - office vacancy geo summary
+   - office includes ME (mixed office)
+   - has updated nodev sites with geom_id fixed (#0021f57)
+   - updated base zoning and lookups (4/30 version)
+
+reference_run: PBA50Plus_Draft_Blueprint_v6
+variant: DBP
+vintage: PBA2050Plus
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_DBP_InitialRun/outputs'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_DraftBlueprint'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -32,6 +46,7 @@ elcm_spec_file: elcm.yaml
 
 
 # EXOGENOUS FORCES
+#exog_sqft_per_job_adj_file: sqft_per_job_adjusters_costar_qcew_timevarying_base_2023_0p85_reduction_apr_sd.csv
 exog_sqft_per_job_adj_file: sqft_per_job_adjusters_exogenous.csv
 # must be set to false is sqft per job adjusters or telecommute strategy is enabled
 use_exogenous_sqft_per_job_adjusters: True
@@ -53,6 +68,7 @@ residential_vacancy_rate_mods: True
 
 
 # REGIONAL CONTROL FILES
+#household_controls_file: "household_controls_PBA50Plus_DBP_UBI2030_ALT2020.csv"
 household_controls_file: "household_controls_PBA50Plus_DBP_UBI2030.csv"
 employment_controls_file: "employment_controls_PBA50Plus_NP_DBP.csv"
 
@@ -62,10 +78,14 @@ development_pipeline_file: "development_pipeline_NP_2024-03-08.csv"
 use_housing_element_pipeline: False
 use_pipeline_filters: False
 
-
 # ZONING FILES
-zoning_lookup_file: "2024_04_09_zoning_lookup_hybrid_he_MS_pba50plus.csv"
-zoning_file: "2024_04_09_zoning_parcels_hybrid_he_MS_pba50plus.csv"
+#zoning_lookup_file: "2024_04_09_zoning_lookup_hybrid_he_MS_pba50plus.csv"
+#zoning_lookup_file: 2024_04_09_zoning_lookup_hybrid_he_MSClip_pba50plus.csv
+#zoning_file: "2024_04_09_zoning_parcels_hybrid_he_MS_pba50plus.csv"
+
+# updated versions from MS / DL April 30 2024
+zoning_file: zoning_parcels_2024-04-30.csv
+zoning_lookup_file: zoning_lookup_2024-04-30.csv
 
 
 # SEA LEVEL RISE
@@ -85,7 +105,8 @@ run_eq_mitigation: False
 # LOGSUMS
 # the logsum file suffix
 #logsum_file: "PBA50Plus_NP_v04"
-logsum_file: PBA50Plus_DBP_v03
+#logsum_file: PBA50Plus_DBP_v03
+logsum_file: PBA50Plus_DBP_06b
 # the travel model years of the logsums 
 logsum_year1: 2035
 logsum_year2: 2050
@@ -104,9 +125,9 @@ run_sb_743_strategy: True
 
 run_office_bond_strategy: False
 # EC5 strategy
-run_jobs_to_transit_strategy_elcm: False     # either this
-run_jobs_to_transit_strategy_random: True # or this
-jobs_to_transit_strategy_random_reloc_rate: .33
+run_jobs_to_transit_strategy_elcm: True     # either this
+run_jobs_to_transit_strategy_random: False # or this
+jobs_to_transit_strategy_random_reloc_rate: .25
 
 # DEVELOPMENT PIPELINE STRATEGIES
 dev_pipeline_strategies:
@@ -200,4 +221,4 @@ run_telecommute_strategy: False
 
 
 # ACCESSORY DWELLING UNIT POLICY
-run_adu_strategy: False
+run_adu_strategy: True
