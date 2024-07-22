@@ -1,6 +1,7 @@
 # a settings to not build the most dense building in any zone, even if zoning allows
 # it - reduces zoning to match the most dense building
-dont_build_most_dense_building: True
+dont_build_most_dense_building: False
+
 
 
 # this is really because we don't have limits right now for retail
