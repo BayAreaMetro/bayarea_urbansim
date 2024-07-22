@@ -13,6 +13,7 @@ from baus.summaries import \
     hazards_summaries, metrics, travel_model_summaries
 from baus.visualizer import push_model_files
 import baus.slack
+import baus.debug
 import numpy as np
 import pandas as pd
 import orca
@@ -28,9 +29,6 @@ import shutil
 
 RUN_SETUP_YAML = "run_setup.yaml" # overriden by arg
 MODE = "simulation"
-EVERY_NTH_YEAR = 5
-IN_YEAR, OUT_YEAR = 2010, 2050
-
 
 SLACK = "URBANSIM_SLACK" in os.environ
 if SLACK:
@@ -72,15 +70,19 @@ if options.no_slack:
     SLACK = False
 
 orca.add_injectable("run_setup_yaml", RUN_SETUP_YAML)
-orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
-orca.add_injectable("base_year", IN_YEAR)
-orca.add_injectable("final_year", OUT_YEAR)
 
 run_setup = orca.get_injectable("run_setup")
 run_name = orca.get_injectable("run_name")
 outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
 outputs_dir.mkdir(parents=True, exist_ok=True)
 
+BASE_YEAR = run_setup["base_year"]
+FINAL_YEAR = run_setup["final_year"]
+EVERY_NTH_YEAR = 5
+
+orca.add_injectable("base_year", BASE_YEAR)
+orca.add_injectable("final_year", FINAL_YEAR)
+orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
 
 def run_models(MODE):
 
@@ -402,9 +404,9 @@ def run_models(MODE):
         if run_setup["run_metrics"]:
             baseyear_models.extend(get_baseyear_metrics_models())
         if SLACK: baseyear_models.append('slack_simulation_status')
-        orca.run(baseyear_models, iter_vars=[IN_YEAR])
+        orca.run(baseyear_models, iter_vars=[BASE_YEAR])
 
-        years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
+        years_to_run = range(BASE_YEAR+EVERY_NTH_YEAR, FINAL_YEAR+1, EVERY_NTH_YEAR)
         simulation_models = get_simulation_models()
         if run_setup["run_summaries"]:
             simulation_models.extend(get_simulation_summary_models())
@@ -417,7 +419,7 @@ def run_models(MODE):
 
         if run_setup["run_visualizer"]:
             visualization_models = get_simulation_visualization_models()
-            orca.run(visualization_models, iter_vars=[OUT_YEAR])
+            orca.run(visualization_models, iter_vars=[FINAL_YEAR])
             
 
     elif MODE == "visualizer":
