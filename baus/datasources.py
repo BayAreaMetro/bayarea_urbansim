@@ -629,8 +629,6 @@ def get_dev_projects_table(parcels, run_setup):
     # TODO We should probably deprecate geom_id (which has no extra information over parcel_id) throughout BAUS
     df['geom_id'] = parcel_id_to_geom_id(df['PARCEL_ID'])
     
-    df = reprocess_dev_projects(df)
-
     # Optionally - if flag set to use housing element pipeline, load that and append:
     if run_setup.get('use_housing_element_pipeline',False):
         he_pipe = pd.read_csv(
@@ -653,6 +651,8 @@ def get_dev_projects_table(parcels, run_setup):
 
     orca.add_injectable("devproj_len", len(df))
 
+    # moved down to avoid clobbering "regular" pipeline projects with strategy projects
+    df = reprocess_dev_projects(df)
     df = df.dropna(subset=['geom_id'])
 
     # Warn about and list records that fail to match on geom_id
