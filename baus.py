@@ -27,6 +27,10 @@ import pandana
 import shutil
 
 
+# for log file
+pd.set_option('display.max_columns', 200)
+pd.set_option('display.width', 500)
+
 RUN_SETUP_YAML = "run_setup.yaml" # overriden by arg
 MODE = "simulation"
 
@@ -112,314 +116,273 @@ def run_models(MODE):
 
     elif MODE == "simulation":
 
-        def get_baseyear_models():
+        baseyear_models = [
+        
+            "slr_inundate",
+            "slr_remove_dev",
+            "eq_code_buildings",
+            "earthquake_demolish",
 
-            baseyear_models = [
-            
-                "slr_inundate",
-                "slr_remove_dev",
-                "eq_code_buildings",
-                "earthquake_demolish",
+            "neighborhood_vars",  
+            "regional_vars",  
 
-                "neighborhood_vars",  
-                "regional_vars",  
+            "rsh_simulate",   
+            "rrh_simulate", 
+            "nrh_simulate",
+            "assign_tenure_to_new_units",
 
-                "rsh_simulate",   
-                "rrh_simulate", 
-                "nrh_simulate",
-                "assign_tenure_to_new_units",
+            "household_relocation",
+            "households_transition",
 
-                "household_relocation",
-                "households_transition",
+            "reconcile_unplaced_households",
+            "jobs_transition",
 
-                "reconcile_unplaced_households",
-                "jobs_transition",
+            "hlcm_owner_lowincome_simulate",
+            "hlcm_renter_lowincome_simulate",
 
-                "hlcm_owner_lowincome_simulate",
-                "hlcm_renter_lowincome_simulate",
+            "hlcm_owner_simulate",
+            "hlcm_renter_simulate",
 
-                "hlcm_owner_simulate",
-                "hlcm_renter_simulate",
+            "hlcm_owner_simulate_no_unplaced",
+            "hlcm_owner_lowincome_simulate_no_unplaced",
+            "hlcm_renter_simulate_no_unplaced",
+            "hlcm_renter_lowincome_simulate_no_unplaced",
 
-                "hlcm_owner_simulate_no_unplaced",
-                "hlcm_owner_lowincome_simulate_no_unplaced",
-                "hlcm_renter_simulate_no_unplaced",
-                "hlcm_renter_lowincome_simulate_no_unplaced",
+            "reconcile_placed_households",
 
-                "reconcile_placed_households",
+            "elcm_simulate",
 
-                "elcm_simulate",
+            "price_vars"]
 
-                "price_vars"]
+        if not run_setup["run_slr"]:
+            baseyear_models.remove("slr_inundate")
+            baseyear_models.remove("slr_remove_dev")
 
-            if not run_setup["run_slr"]:
-                baseyear_models.remove("slr_inundate")
-                baseyear_models.remove("slr_remove_dev")
-
-            if not run_setup["run_eq"]:
-                baseyear_models.remove("eq_code_buildings")
-                baseyear_models.remove("earthquake_demolish")
-
-            return baseyear_models
+        if not run_setup["run_eq"]:
+            baseyear_models.remove("eq_code_buildings")
+            baseyear_models.remove("earthquake_demolish")
     
-        def get_baseyear_summary_models():
+        baseyear_summary_models = [
+            "simulation_validation",
 
-            baseyear_summary_models = [
+            "parcel_summary",
+            "building_summary",
 
-                "simulation_validation",
+            "hazards_slr_summary",
+            "hazards_eq_summary",
 
-                "parcel_summary",
-                "building_summary",
+            "deed_restricted_units_summary",
 
-                "hazards_slr_summary",
-                "hazards_eq_summary",
+            "geographic_summary",
 
-                "deed_restricted_units_summary",
-
-                "geographic_summary",
-
-                "taz1_summary",
-                "maz_marginals",
-                "maz_summary",
-                "taz2_marginals",
-                "county_marginals",
-                "region_marginals",
-            ]
-
-            return baseyear_summary_models
-
-        def get_baseyear_metrics():
+            "taz1_summary",
+            "maz_marginals",
+            "maz_summary",
+            "taz2_marginals",
+            "county_marginals",
+            "region_marginals",
+        ]
             
-            baseyear_metrics_models = [
-
-                "growth_geography_metrics",
-                "deed_restricted_units_metrics",
-                "household_income_metrics",
-                "equity_metrics",
-                "jobs_housing_metrics",
-                "jobs_metrics",
-                "slr_metrics",
-                "earthquake_metrics",
-                "greenfield_metrics",
-            ]
-
-            return baseyear_metrics_models
-    
-        def get_simulation_models():
-        
-            simulation_models = [
-
-                "slr_inundate",
-                "slr_remove_dev",
-                "eq_code_buildings",
-                "earthquake_demolish",
-
-                "neighborhood_vars",   
-                "regional_vars",      
-
-                "nrh_simulate",
-
-                "household_relocation",
-                "households_transition",
-
-                "reconcile_unplaced_households",
-
-                "jobs_relocation",
-                "jobs_transition",
-
-                "balance_rental_and_ownership_hedonics",
-
-                "price_vars",
-                "scheduled_development_events",
-
-                "preserve_affordable",
-
-                "lump_sum_accounts",
-                "subsidized_residential_developer_lump_sum_accts",
-
-
-                "office_lump_sum_accounts",
-                "subsidized_office_developer_lump_sum_accts",
-
-                "alt_feasibility",
-                "subsidized_residential_feasibility",
-                "subsidized_residential_developer_vmt",
-        #        "subsidized_residential_feasibility",
-        #        "subsidized_residential_developer_jobs_housing",
-
-                "residential_developer",
-                "developer_reprocess",
-                "retail_developer",
-
-                "office_developer",
-                "subsidized_office_developer_vmt",
-
-                "accessory_units_strategy",
-                "calculate_vmt_fees",
-
-                "remove_old_units",
-                "initialize_new_units",
-                "reconcile_unplaced_households",
-
-                "rsh_simulate",   
-                "rrh_simulate", 
-
-                "assign_tenure_to_new_units",
-
-                "hlcm_owner_lowincome_simulate",
-                "hlcm_renter_lowincome_simulate",
-
-                # the hlcms above could be moved above the developer again, 
-                # but we would have to run the hedonics and assign tenure to units twice
-                "hlcm_owner_simulate",
-                "hlcm_renter_simulate",
-                "hlcm_owner_simulate_no_unplaced",
-                "hlcm_owner_lowincome_simulate_no_unplaced",
-                "hlcm_renter_simulate_no_unplaced",
-                "hlcm_renter_lowincome_simulate_no_unplaced",
-
-                "reconcile_placed_households",
-
-                "proportional_elcm",
-                "gov_transit_elcm",
-                "elcm_simulate_ec5",
-                "elcm_simulate",  
-
-                "calculate_vmt_fees",
-                "calculate_jobs_housing_fees"]
-
-            if not run_setup["run_jobs_to_transit_strategy_elcm"]:
-                simulation_models.remove("elcm_simulate_ec5")
-                print('Removing `elcm_simulate_ec5`')
-
-            if not run_setup["run_jobs_to_transit_strategy_random"]:
-                simulation_models.remove("gov_transit_elcm")
-                print('Removing `gov_transit_elcm`')
+        baseyear_metrics_models = [
+            "growth_geography_metrics",
+            "deed_restricted_units_metrics",
+            "household_income_metrics",
+            "equity_metrics",
+            "jobs_housing_metrics",
+            "jobs_metrics",
+            "slr_metrics",
+            "earthquake_metrics",
+            "greenfield_metrics",
+        ]
             
-            if not run_setup["run_slr"]:
-                simulation_models.remove("slr_inundate")
-                simulation_models.remove("slr_remove_dev")
+        simulation_models = [
+            "slr_inundate",
+            "slr_remove_dev",
+            "eq_code_buildings",
+            "earthquake_demolish",
 
-            if not run_setup["run_eq"]:
-                simulation_models.remove("eq_code_buildings")
-                simulation_models.remove("earthquake_demolish")
+            "neighborhood_vars",   
+            "regional_vars",      
 
-            if not run_setup["run_housing_preservation_strategy"]:
-                simulation_models.remove("preserve_affordable")
+            "nrh_simulate",
 
-            if not run_setup["run_office_bond_strategy"]:
-                simulation_models.remove("office_lump_sum_accounts")
-                simulation_models.remove("subsidized_office_developer_lump_sum_accts")
+            "household_relocation",
+            "households_transition",
 
-            if not run_setup["run_adu_strategy"]:
-                simulation_models.remove("accessory_units_strategy")
+            "reconcile_unplaced_households",
 
-            if not run_setup["run_vmt_fee_com_for_com_strategy"]:
-                simulation_models.remove("calculate_vmt_fees")
-                simulation_models.remove("subsidized_office_developer_vmt")
-            if not run_setup["run_vmt_fee_com_for_res_strategy"] or run_setup["run_vmt_fee_res_for_res_strategy"]:
-                simulation_models.remove("calculate_vmt_fees")
-                simulation_models.remove("subsidized_residential_feasibility")
-                simulation_models.remove("subsidized_residential_developer_vmt")
+            "jobs_relocation",
+            "jobs_transition",
 
-            if not run_setup["run_jobs_housing_fee_strategy"]:
-                simulation_models.remove("calculate_jobs_housing_fees")
-            #    simulation_models.remove["subsidized_residential_feasibility"]
-            #    simulation_models.remove["subsidized_residential_developer_jobs_housing"]
+            "balance_rental_and_ownership_hedonics",
 
-            return simulation_models
+            "price_vars",
+            "scheduled_development_events",
+
+            "preserve_affordable",
+
+            "lump_sum_accounts",
+            "subsidized_residential_developer_lump_sum_accts",
+
+
+            "office_lump_sum_accounts",
+            "subsidized_office_developer_lump_sum_accts",
+
+            "alt_feasibility",
+            "subsidized_residential_feasibility",
+            "subsidized_residential_developer_vmt",
+        #    "subsidized_residential_feasibility",
+        #    "subsidized_residential_developer_jobs_housing",
+
+            "residential_developer",
+            "developer_reprocess",
+            "retail_developer",
+
+            "office_developer",
+            "subsidized_office_developer_vmt",
+
+            "accessory_units_strategy",
+            "calculate_vmt_fees",
+
+            "remove_old_units",
+            "initialize_new_units",
+            "reconcile_unplaced_households",
+
+            "rsh_simulate",   
+            "rrh_simulate", 
+
+            "assign_tenure_to_new_units",
+
+            "hlcm_owner_lowincome_simulate",
+            "hlcm_renter_lowincome_simulate",
+
+            # the hlcms above could be moved above the developer again, 
+            # but we would have to run the hedonics and assign tenure to units twice
+            "hlcm_owner_simulate",
+            "hlcm_renter_simulate",
+            "hlcm_owner_simulate_no_unplaced",
+            "hlcm_owner_lowincome_simulate_no_unplaced",
+            "hlcm_renter_simulate_no_unplaced",
+            "hlcm_renter_lowincome_simulate_no_unplaced",
+
+            "reconcile_placed_households",
+
+            "proportional_elcm",
+            "gov_transit_elcm",
+            "elcm_simulate_ec5",
+            "elcm_simulate",  
+
+            "calculate_vmt_fees",
+            "calculate_jobs_housing_fees",
+            "debug"
+        ]
+
+        if not run_setup["run_jobs_to_transit_strategy_elcm"]:
+            simulation_models.remove("elcm_simulate_ec5")
+            print('Removing `elcm_simulate_ec5`')
+
+        if not run_setup["run_jobs_to_transit_strategy_random"]:
+            simulation_models.remove("gov_transit_elcm")
+            print('Removing `gov_transit_elcm`')
         
+        if not run_setup["run_slr"]:
+            simulation_models.remove("slr_inundate")
+            simulation_models.remove("slr_remove_dev")
 
-        def get_simulation_validation_models():
+        if not run_setup["run_eq"]:
+            simulation_models.remove("eq_code_buildings")
+            simulation_models.remove("earthquake_demolish")
 
-            simulation_validation_models = [
-                "simulation_validation"
-            ]
+        if not run_setup["run_housing_preservation_strategy"]:
+            simulation_models.remove("preserve_affordable")
 
-            return simulation_validation_models
+        if not run_setup["run_office_bond_strategy"]:
+            simulation_models.remove("office_lump_sum_accounts")
+            simulation_models.remove("subsidized_office_developer_lump_sum_accts")
+
+        if not run_setup["run_adu_strategy"]:
+            simulation_models.remove("accessory_units_strategy")
+
+        if not run_setup["run_vmt_fee_com_for_com_strategy"]:
+            simulation_models.remove("calculate_vmt_fees")
+            simulation_models.remove("subsidized_office_developer_vmt")
+        if not run_setup["run_vmt_fee_com_for_res_strategy"] or run_setup["run_vmt_fee_res_for_res_strategy"]:
+            simulation_models.remove("calculate_vmt_fees")
+            simulation_models.remove("subsidized_residential_feasibility")
+            simulation_models.remove("subsidized_residential_developer_vmt")
+
+        if not run_setup["run_jobs_housing_fee_strategy"]:
+            simulation_models.remove("calculate_jobs_housing_fees")
+        #    simulation_models.remove["subsidized_residential_feasibility"]
+        #    simulation_models.remove["subsidized_residential_developer_jobs_housing"]        
+
+        simulation_validation_models = [
+            "simulation_validation"
+        ]
         
+        simulation_summary_models = [
+            "interim_zone_output",
+            "new_buildings_summary",
 
-        def get_simulation_summary_models():
+            "parcel_summary",
+            "parcel_growth_summary",
+            "building_summary",
 
-            simulation_summary_models = [
+            "hazards_slr_summary",
+            "hazards_eq_summary",
 
-                "interim_zone_output",
-                "new_buildings_summary",
+            "deed_restricted_units_summary",
+            "deed_restricted_units_growth_summary",
 
-                "parcel_summary",
-                "parcel_growth_summary",
-                "building_summary",
+            "geographic_summary",
+            "geographic_growth_summary",
+            "parcel_transitions",
+            "taz1_summary",
+            "maz_marginals",
+            "maz_summary",
+            "taz2_marginals",
+            "county_marginals",
+            "region_marginals",
+            "taz1_growth_summary",
+            "maz_growth_summary",
+        ]
+                    
+        simulation_metrics_models = [
+            "growth_geography_metrics",
+            "deed_restricted_units_metrics",
+            "household_income_metrics",
+            "equity_metrics",
+            "jobs_housing_metrics",
+            "jobs_metrics",
+            "slr_metrics",
+            "earthquake_metrics",
+            "greenfield_metrics",
+        ]
 
-                "hazards_slr_summary",
-                "hazards_eq_summary",
+        simulation_visualization_models = [
+            "copy_files_to_viz_loc",
+            "add_to_model_run_inventory_file"
+        ]
 
-                "deed_restricted_units_summary",
-                "deed_restricted_units_growth_summary",
-
-                "geographic_summary",
-                "geographic_growth_summary",
-                "parcel_transitions",
-                "taz1_summary",
-                "maz_marginals",
-                "maz_summary",
-                "taz2_marginals",
-                "county_marginals",
-                "region_marginals",
-                "taz1_growth_summary",
-                "maz_growth_summary",
-            ]
-
-            return simulation_summary_models
-        
-
-        def get_simulation_metrics():
-            
-            simulation_metrics_models = [
-
-                "growth_geography_metrics",
-                "deed_restricted_units_metrics",
-                "household_income_metrics",
-                "equity_metrics",
-                "jobs_housing_metrics",
-                "jobs_metrics",
-                "slr_metrics",
-                "earthquake_metrics",
-                "greenfield_metrics",
-            ]
-
-            return simulation_metrics_models
-        
-        def get_simulation_visualization_models():
-
-            simulation_visualization_models = [
-                "copy_files_to_viz_loc",
-                "add_to_model_run_inventory_file"
-            ]
-
-            return simulation_visualization_models
-
-        baseyear_models = get_baseyear_models()
         if run_setup["run_summaries"]:
-            baseyear_models.extend(get_baseyear_summary_models())
+            baseyear_models.extend(baseyear_summary_models)
         if run_setup["run_metrics"]:
-            baseyear_models.extend(get_baseyear_metrics_models())
+            baseyear_models.extend(baseyear_metrics_models)
         if SLACK: baseyear_models.append('slack_simulation_status')
         orca.run(baseyear_models, iter_vars=[BASE_YEAR])
 
         years_to_run = range(BASE_YEAR+EVERY_NTH_YEAR, FINAL_YEAR+1, EVERY_NTH_YEAR)
-        simulation_models = get_simulation_models()
         if run_setup["run_summaries"]:
-            simulation_models.extend(get_simulation_summary_models())
+            simulation_models.extend(simulation_summary_models)
         if run_setup["run_metrics"]:
-            simulation_models.extend(get_simulation_metrics_models())
+            simulation_models.extend(simulation_metrics_models)
         if run_setup["run_simulation_validation"]:
-            simulation_models.extend(get_simulation_validation_models())
+            simulation_models.extend(simulation_validation_models)
         if SLACK: simulation_models.append('slack_simulation_status')
         orca.run(simulation_models, iter_vars=years_to_run)
 
         if run_setup["run_visualizer"]:
-            visualization_models = get_simulation_visualization_models()
-            orca.run(visualization_models, iter_vars=[FINAL_YEAR])
+            orca.run(simulation_visualization_models, iter_vars=[FINAL_YEAR])
             
 
     elif MODE == "visualizer":

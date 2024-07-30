@@ -7,9 +7,8 @@ import traceback
 # and shouldn't be used in production runs
 
 @orca.step()
-def debug(year): # , nodes, parcels, buildings):
+def debug(year, nodes, parcels, buildings):
     print("year={}".format(year))
-    return
     # parcels and buildings are instances of a DataFrameWrapper
     # https://udst.github.io/orca/core.html#orca.orca.DataFrameWrapper
 
