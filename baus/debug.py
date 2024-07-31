@@ -12,16 +12,19 @@ def debug(year, nodes, parcels, buildings):
     # parcels and buildings are instances of a DataFrameWrapper
     # https://udst.github.io/orca/core.html#orca.orca.DataFrameWrapper
 
-    print("nodes.columns: {}".format(nodes.columns))
-    for node_col in nodes.columns:
+    nodes_columns = sorted(list(nodes.columns))
+    print("nodes.columns: {}".format(nodes_columns))
+    for node_col in nodes_columns:
         print("node_col {} type={}".format(node_col, nodes.column_type(node_col)))
 
-    print("parcels.columns: {}".format(parcels.columns))
-    for parcel_col in parcels.columns:
+    parcels_columns = sorted(list(parcels.columns))
+    print("parcels.columns: {}".format(parcels_columns))
+    for parcel_col in parcels_columns:
         print("parcel_col {} type={}".format(parcel_col, parcels.column_type(parcel_col)))
 
-    print("buildings.columns: {}".format(buildings.columns))
-    for building_col in buildings.columns:
+    buildings_columns = sorted(list(buildings.columns))
+    print("buildings.columns: {}".format(buildings_columns))
+    for building_col in buildings_columns:
         print("building_col {} type={}".format(building_col, buildings.column_type(building_col)))
 
     return
