@@ -602,7 +602,7 @@ def alt_feasibility(parcels, developer_settings,
 def residential_developer(feasibility, households, buildings, parcels, year,
                           developer_settings, summary, form_to_btype_func,
                           add_extra_columns_func, parcels_geography,
-                          limits_settings, final_year, run_setup):
+                          limits_settings, base_year, final_year, run_setup):
 
     kwargs = developer_settings['residential_developer']
 
@@ -635,15 +635,15 @@ def residential_developer(feasibility, households, buildings, parcels, year,
             # and development is lumpy
 
             current_total = parcels.total_residential_units[
-                (juris_name == juris) & (parcels.newest_building >= 2010)]\
+                (juris_name == juris) & (parcels.newest_building >= base_year)]\
                 .sum()
 
-            target = (year - 2010 + 1) * limit - current_total
+            target = (year - base_year + 1) * limit - current_total
             # make sure we don't overshoot the total development of the limit
             # for the horizon year - for instance, in Half Moon Bay we have
             # a very low limit and a single development in a far out year can
             # easily build over the limit for the total simulation
-            max_target = (final_year - 2010 + 1) * limit - current_total
+            max_target = (final_year - base_year + 1) * limit - current_total
 
             if target <= 0:
                 continue
