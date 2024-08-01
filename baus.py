@@ -82,6 +82,8 @@ outputs_dir.mkdir(parents=True, exist_ok=True)
 
 BASE_YEAR = run_setup["base_year"]
 FINAL_YEAR = run_setup["final_year"]
+# stop the simulation early for testing/debuggin
+STOP_YEAR = run_setup["stop_year"] if "stop_year" in run_setup else FINAL_YEAR
 EVERY_NTH_YEAR = 5
 
 orca.add_injectable("base_year", BASE_YEAR)
@@ -371,7 +373,7 @@ def run_models(MODE):
         if SLACK: baseyear_models.append('slack_simulation_status')
         orca.run(baseyear_models, iter_vars=[BASE_YEAR])
 
-        years_to_run = range(BASE_YEAR+EVERY_NTH_YEAR, FINAL_YEAR+1, EVERY_NTH_YEAR)
+        years_to_run = range(BASE_YEAR+EVERY_NTH_YEAR, STOP_YEAR+1, EVERY_NTH_YEAR)
         if run_setup["run_summaries"]:
             simulation_models.extend(simulation_summary_models)
         if run_setup["run_metrics"]:
@@ -382,7 +384,7 @@ def run_models(MODE):
         orca.run(simulation_models, iter_vars=years_to_run)
 
         if run_setup["run_visualizer"]:
-            orca.run(simulation_visualization_models, iter_vars=[FINAL_YEAR])
+            orca.run(simulation_visualization_models, iter_vars=[STOP_YEAR])
             
 
     elif MODE == "visualizer":

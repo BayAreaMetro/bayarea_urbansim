@@ -3,14 +3,15 @@
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
 base_year: 2010
-final_year: 2030
+final_year: 2050
+stop_year: 2030 # stop the simulation early for testing
 initial_summary_year: 2020
 
 # RUN NAME
 # reproducing PBA50Plus_DraftBlueprint.yaml
 # https://app.asana.com/0/1203879112191908/1207218106400778/f
 # originally named PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
-run_name: PBA50Plus_DraftBlueprint_end2030_v00
+run_name: PBA50Plus_DraftBlueprint_stop2030_v00
 
 annotation: 
    - Deed restriction fix
