@@ -3,6 +3,79 @@ from __future__ import print_function
 import pathlib
 import orca
 import pandas as pd
+import numpy as np
+
+
+@orca.step()
+def adjust_initial_summary_year_incomes(households, initial_summary_year_taz_controls, year, initial_summary_year):
+
+    if year != initial_summary_year:
+        return
+    
+    households = households.to_frame()
+    taz_controls = initial_summary_year_taz_controls.to_frame()
+
+    # first, update the household's household income categorical variable
+    for taz in initial_summary_year_taz_controls.index:
+        # select the tazdata for a taz
+        tazdata = taz_controls.iloc[taz]
+        # select all households in that taz
+        hhs_in_taz = households[households.zone_id == tazdata.ZONE].index
+
+        hhs_to_update = hhs_in_taz.copy()
+        for inc_quartile in [1, 2, 3, 4]:
+            # use the taz controls to calculate the proportion of households in an income quartile
+            prop = (tazdata['HHINCQ'+str(inc_quartile)]/tazdata['TOTHH'])
+            # use the total number of HHs in the TAZ to calculate the number of HHs that should be in the income group
+            if prop > 0:
+                hh_target = (len(hhs_in_taz) * prop).astype(int)
+                # randomly select households to assign to the income groups using the target number
+                hhs_for_inc_quartile = (np.random.choice(hhs_to_update, hh_target, replace=False))
+                # update households in the taz with their new income group
+                households.loc[households.household_id.isin(hhs_for_inc_quartile), 'base_income_quartile'] = inc_quartile
+                # remove the updated households from the set of households in the taz to be updated
+                hhs_to_update = hhs_to_update[~hhs_to_update.isin(hhs_for_inc_quartile)]
+
+    # second, update the continuous variable
+    # data from PUMS 2010 1-year data, with HINCP inflated to 1999 dollars and binned            
+    income_array = {
+        'sd':  {'HHINCQ1': 8365.99,
+                'HHINCQ2': 8691.1,
+                'HHINCQ3': 11496.26,
+                'HHINCQ4': 81914.8},
+        'avg': {'HHINCQ1': 15544.0,
+                'HHINCQ2': 44090.0,
+                'HHINCQ3': 78017.0,
+                'HHINCQ4': 171912.0}
+                }
+    
+    # turn to dataframe
+    income_deets = pd.DataFrame.from_dict(income_array)
+
+    # Loop through the four income groups, and for each generate an array 
+    # with the index of the households in that income group, where the incomes
+    # match the distributionn within that bin based on 2010 PUMS data.
+    
+    households_df_grouped = households.groupby('base_income_quartile')
+    updated_income = {}
+    for nme, dta in households_df_grouped:
+        this_group_hhs = pd.Series(
+            np.random.normal(
+                loc=income_deets.loc[nme].avg,
+                scale=income_deets.loc[nme].sd,
+                size=len(dta)
+                ), index=dta.index
+                )
+        updated_income[nme] = this_group_hhs
+    updated_income = pd.concat(updated_income)
+    updated_income.name = 'income'
+    
+    #TODO: consider updating just the records that were re-classified
+    # assign series to households df, to the income variable
+    households['income'] = updated_income.reset_index(0).income.sort_index()
+    
+    # save the final table of households with updated incomes
+    orca.add_table("households", households)
 
 
 @orca.step()
