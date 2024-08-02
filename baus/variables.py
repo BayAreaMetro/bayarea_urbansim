@@ -154,24 +154,7 @@ def vacant_res_units(buildings, households):
 
 
 @orca.column('buildings', cache=True)
-def sqft_per_job(buildings, building_sqft_per_job, superdistricts,
-                 taz_geography, year):
-    sqft_per_job = buildings.\
-        building_type.fillna("O").map(building_sqft_per_job)
-
-    # this factor changes all sqft per job according to which superdistrict
-    # the building is in - this is so denser areas can have lower sqft
-    # per job - this is a simple multiply so a number 1.1 increases the
-    # sqft per job by 10% and .9 decreases it by 10%
-    superdistrict = misc.reindex(
-        taz_geography.superdistrict, buildings.zone_id)
-    sqft_per_job = sqft_per_job * \
-        superdistrict.map(superdistricts['sqft_per_job_factor_{}'.format(year)])
-
-    return sqft_per_job
-
-@orca.column('buildings', cache=True)
-def sqft_per_job_new(buildings, 
+def sqft_per_job(buildings, 
                 building_sqft_per_job, 
                 sqft_per_job_adjusters, 
                 exog_sqft_per_job_adjusters,
@@ -802,29 +785,21 @@ def built_dua(parcels):
 @orca.column('parcels')
 def max_dua(parcels_zoning_calculations, parcels, zoning_adjusters):
     # first we combine the zoning columns
-    s1 = parcels_zoning_calculations.effective_max_dua * ~parcels.nodev
-
-    print('effective_max_dua after nodev applied:',s1.value_counts())
+    s = parcels_zoning_calculations.effective_max_dua * ~parcels.nodev
 
     # we had trouble with the zoning outside of the footprint
     # make sure we have rural zoning outside of the footprint
     s2 = parcels.urban_footprint.map({0: .01, 1: np.nan})
-    print("Urban Footprint Parcels",s2.value_counts())
-    s3 = pd.concat([s1, s2], axis=1).min(axis=1)
-    print('effective_max_dua after nodev, urban_footprint applied:',s3.value_counts())
+    s = pd.concat([s, s2], axis=1).min(axis=1)
 
     if zoning_adjusters["dont_build_most_dense_building"]:
         # in this case we shrink the zoning such that we don't built the
         # tallest building in a given zone
         # if there no building in the zone currently, we make the max_dua = 4
-        s4 = parcels.built_dua.groupby(parcels.zone_id).max()
-        s5 = misc.reindex(s4, parcels.zone_id).fillna(4)
-        s = pd.concat([s3, s5], axis=1).min(axis=1)
+        s2 = parcels.built_dua.groupby(parcels.zone_id).max()
+        s2 = misc.reindex(s2, parcels.zone_id).fillna(4)
+        s = pd.concat([s, s2], axis=1).min(axis=1)
 
-
-        temp_out = pd.concat([parcels_zoning_calculations.effective_max_dua,s2,s5,s],
-        keys=['effect_dua','urban_footprint','built_dua','dont_build_dense'],axis=1)
-        temp_out.to_csv('max_dua_debug_np_test.csv')
     return s
 
 
@@ -977,32 +952,19 @@ def effective_max_dua(zoning_existing, parcels):
 
     max_dua_from_height = max_far_from_height * 43560 / GROSS_AVE_UNIT_SIZE
 
-    print('Which source has the largest number of parcels?')
-    print(pd.concat([zoning_existing.max_dua, max_dua_from_far, max_dua_from_height], axis=1).idxmax(axis=1).value_counts())
-    
-    # go with the most conservative estimate
     s = pd.concat([zoning_existing.max_dua, max_dua_from_far, max_dua_from_height], axis=1).min(axis=1)
 
     # take the max dua IFF the upzone value is greater than the current value
     # i.e. don't let the upzoning operation accidentally downzone
-    
-    # ao: this makes no sense. if the upzone value is smaller than base, max would just return the base.
 
     strategy_max_dua = orca.get_table("zoning_strategy").dua_up
-    print(f'Parcels with upzoning: {strategy_max_dua.dropna().__len__():,}')
-    print(strategy_max_dua.dropna().describe())
 
-    s = pd.concat([s, 
-        strategy_max_dua
-        ], axis=1).max(axis=1)
+    s = pd.concat([s, strategy_max_dua], axis=1).max(axis=1)
 
     # take the min dua IFF the upzone value is less than the current value
     # i.e. don't let the downzoning operation accidentally upzone
 
     strategy_min_dua = orca.get_table("zoning_strategy").dua_down
-
-    print(f'Parcels with downzoning: {strategy_min_dua.dropna().__len__():,}')
-    print(strategy_min_dua.dropna().describe())
 
     s = pd.concat([
         s,
