@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import orca
+import pathlib
 import numpy as np
 import pandas as pd
 from urbansim_defaults import utils
@@ -35,10 +36,13 @@ def slr_inundate(slr_progression, slr_parcel_inundation, year, parcels):
 
 
 @orca.step()
-def slr_remove_dev(buildings, households, jobs):
+def slr_remove_dev(buildings, households, jobs, year):
 
     destroy_parcels = orca.get_table("destroy_parcels")
     slr_demolish = buildings.local[buildings.parcel_id.isin(destroy_parcels.index)]
+    diagnostic_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "_diagnostic"
+    diagnostic_output_dir.mkdir(parents=True, exist_ok=True)
+    slr_demolish.to_csv(diagnostic_output_dir / f"slr_demolish_{year}.csv")
     orca.add_table("slr_demolish", slr_demolish)
     
     # remove buildings from parcels

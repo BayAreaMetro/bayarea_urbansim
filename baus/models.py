@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 import sys
 import yaml
+import pathlib
 
 import numpy as np
 import pandas as pd
@@ -440,11 +441,23 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     else:
         demolish = demolish_events.to_frame().query("%d < year_built <= %d" % (year - years_per_iter, year))
     print("Demolishing/building %d buildings" % len(demolish))
+    diagnostic_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "_diagnostic"
+    diagnostic_output_dir.mkdir(parents=True, exist_ok=True)
+    demolish.to_csv(diagnostic_output_dir / f"demolish_{year}.csv")
 
     l1 = len(buildings)
+    buildings_before_remove = orca.get_table("buildings").to_frame()
+    buildings_before_remove.to_csv(diagnostic_output_dir / f"buildings_before_remove_{year}.csv")
     buildings = utils._remove_developed_buildings(buildings.to_frame(buildings.local_columns), demolish,
                                                   unplace_agents=["households", "jobs"])
+    buildings.to_csv(diagnostic_output_dir / f"buildings_after_remove_{year}.csv")
+    print('number of static_parcels before add: {}'.format(len(static_parcels)))
+    staticParcels_before = pd.DataFrame(static_parcels)
+    staticParcels_before.to_csv(diagnostic_output_dir / f"staticParcels_before_{year}.csv")
     orca.add_injectable('static_parcels', np.append(static_parcels, demolish.loc[demolish.action == 'build', 'parcel_id']))
+    print('number of static_parcels after add: {}'.format(len(static_parcels)))
+    staticParcels_after = pd.DataFrame(static_parcels)
+    staticParcels_after.to_csv(diagnostic_output_dir / f"staticParcels_after_{year}.csv")
     orca.add_table("buildings", buildings)
     buildings = orca.get_table("buildings")
     print("Demolished %d buildings" % (l1 - len(buildings)))
@@ -464,8 +477,12 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     if len(dps) == 0:
         return
 
+    buildings_before_schedule = orca.get_table("buildings")
+    buildings_before_schedule.to_csv(diagnostic_output_dir / f"buildings_before_scheduled_events_{year}.csv")
     new_buildings = utils.scheduled_development_events(buildings, dps, remove_developed_buildings=False,
                                                        unplace_agents=['households', 'jobs'])
+    buildings_after_schedule = orca.get_table("buildings")
+    buildings_after_schedule.to_csv(diagnostic_output_dir / f"buildings_after_scheduled_events_{year}.csv")
     new_buildings["form"] = new_buildings.building_type.map(mapping['building_type_map']).str.lower()
     new_buildings["job_spaces"] = new_buildings.non_residential_sqft / new_buildings.building_type.fillna("OF").map(building_sqft_per_job)
     new_buildings["job_spaces"] = new_buildings.job_spaces.fillna(0).astype('int')

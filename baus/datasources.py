@@ -651,9 +651,11 @@ def get_dev_projects_table(parcels, run_setup):
 
     orca.add_injectable("devproj_len", len(df))
 
+    print('before drop_na geom_id, {} rows'.format(len(df)))
+    df = df.dropna(subset=['geom_id'])
+    print('after drop_na geom_id, {} rows'.format(len(df)))
     # moved down to avoid clobbering "regular" pipeline projects with strategy projects
     df = reprocess_dev_projects(df)
-    df = df.dropna(subset=['geom_id'])
 
     # Warn about and list records that fail to match on geom_id
     geom_id_mismatch = ~df.geom_id.isin(parcels.geom_id)
