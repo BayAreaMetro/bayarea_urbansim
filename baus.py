@@ -371,9 +371,18 @@ def run_models(MODE):
         if run_setup["run_metrics"]:
             baseyear_models.extend(baseyear_metrics_models)
         if SLACK: baseyear_models.append('slack_simulation_status')
-        orca.run(baseyear_models, iter_vars=[BASE_YEAR])
 
-        years_to_run = range(BASE_YEAR+EVERY_NTH_YEAR, STOP_YEAR+1, EVERY_NTH_YEAR)
+        # 2010-based setup has a bunch of specialized baseyear models
+        # For 2020-based run, we'll stop doing that (if possible)
+        if BASE_YEAR==2010:
+            print("Running baseyear_models {} for years {}".format(baseyear_models,BASE_YEAR))
+            orca.run(baseyear_models, iter_vars=[BASE_YEAR])
+
+            years_to_run = range(BASE_YEAR+EVERY_NTH_YEAR, STOP_YEAR+1, EVERY_NTH_YEAR)
+        else:
+            # run normal set starting in 2020
+            years_to_run = range(BASE_YEAR, STOP_YEAR+1, EVERY_NTH_YEAR)
+
         if run_setup["run_summaries"]:
             simulation_models.extend(simulation_summary_models)
         if run_setup["run_metrics"]:
@@ -381,6 +390,8 @@ def run_models(MODE):
         if run_setup["run_simulation_validation"]:
             simulation_models.extend(simulation_validation_models)
         if SLACK: simulation_models.append('slack_simulation_status')
+
+        print("Running simulation_models {} for years {}".format(simulation_models,years_to_run))
         orca.run(simulation_models, iter_vars=years_to_run)
 
         if run_setup["run_visualizer"]:
