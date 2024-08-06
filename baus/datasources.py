@@ -27,7 +27,7 @@ def run_setup():
     run_setup_yaml = orca.get_injectable('run_setup_yaml')
     print("run_setup(): reading {}".format(run_setup_yaml))
     with open(run_setup_yaml) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('run_name', cache=True)
@@ -68,111 +68,111 @@ def elcm_spec_file(run_setup):
 @orca.injectable('paths', cache=True)
 def paths():
     with open(os.path.join(misc.configs_dir(), "paths.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('pipeline_filters', cache=True)
 def pipeline_filters():
     with open(os.path.join(misc.configs_dir(), "adjusters/pipeline_filters.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 @orca.injectable('accessibility_settings', cache=True)
 def accessibility_settings():
     with open(os.path.join(misc.configs_dir(), "accessibility/accessibility_settings.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('transition_relocation_settings', cache=True)
 def transition_relocation_settings():
     with open(os.path.join(misc.configs_dir(), "transition_relocation/transition_relocation_settings.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('profit_adjustment_strategies', cache=True)
 def profit_adjustment_strategies(run_setup):
     with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies", 
                            run_setup["profit_adjustment_strategies_file"])) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('account_strategies', cache=True)
 def account_strategies(run_setup):
     with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies", 
                            run_setup["account_strategies_file"])) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('development_caps', cache=True)
 def development_caps():
     with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/development_caps.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
     
     
 @orca.injectable('data_edits', cache=True)
 def data_edits():
     with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/edits/data_edits.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('development_caps_asserted', cache=True)
 def development_caps_asserted():
     with open(os.path.join(misc.configs_dir(), "adjusters/development_caps_asserted.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('zoning_adjusters', cache=True)
 def zoning_adjusters():
     with open(os.path.join(misc.configs_dir(), "adjusters/zoning_adjusters.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('development_caps_strategy', cache=True)
 def development_caps_strategy():
     with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/development_caps_strategy.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('inclusionary', cache=True)
 def inclusionary():
     with open(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/existing_policy/inclusionary.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('inclusionary_strategy', cache=True)
 def inclusionary_strategy(run_setup):
     with open(os.path.join(orca.get_injectable("inputs_dir"), "plan_strategies/",
                            run_setup["inclusionary_strategy_file"])) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('preservation', cache=True)
 def preservation(run_setup):
     with open(os.path.join(orca.get_injectable("inputs_dir"), 'plan_strategies/', run_setup["preservation_file"])) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('mapping', cache=True)
 def mapping():
     with open(os.path.join(misc.configs_dir(), "mapping.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('cost_shifters', cache=True)
 def cost_shifters():
     with open(os.path.join(misc.configs_dir(), "adjusters/cost_shifters.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('developer_settings', cache=True)
 def developer_settings():
     with open(os.path.join(misc.configs_dir(), "developer/developer_settings.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable('price_settings', cache=True)
 def price_settings():
     with open(os.path.join(misc.configs_dir(), "hedonics/price_settings.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 # now that there are new settings files, override the locations of certain
@@ -888,8 +888,12 @@ def zones(store):
 # SLR progression by year
 @orca.table(cache=True)
 def slr_progression(run_setup):
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/",
-                                    run_setup["slr_progression_file"]))
+    slr_progression_file = os.path.join(
+        orca.get_injectable("inputs_dir"),
+        "basis_inputs/hazards/",
+        run_setup["slr_progression_file"])
+    print("Reading {}".format(slr_progression_file))
+    return pd.read_csv(slr_progression_file)
 
 
 # SLR inundation levels for parcels
@@ -897,8 +901,12 @@ def slr_progression(run_setup):
 # or a committed projects + policy projects mitigation applied
 @orca.table(cache=True)
 def slr_parcel_inundation(run_setup):
-    return pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/", 
-                                    run_setup["slr_inundation_file"]), dtype={'parcel_id': np.int64}, index_col='parcel_id')
+    slr_parcel_inundation_file = os.path.join(
+        orca.get_injectable("inputs_dir"),
+        "basis_inputs/hazards/", 
+        run_setup["slr_inundation_file"])
+    print("Reading {}".format(slr_parcel_inundation_file))
+    return pd.read_csv(slr_parcel_inundation_file, dtype={'parcel_id': np.int64}, index_col='parcel_id')
 
 
 # census tracts for parcels, to assign earthquake probabilities
