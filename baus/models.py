@@ -476,7 +476,7 @@ def scheduled_development_events(buildings, development_projects, demolish_event
 
     if len(dps) == 0:
         return
-
+    dbs.to_csv(diagnostic_output_dir / f"scheduled_events_{year}.csv")
     buildings_before_schedule = orca.get_table("buildings")
     buildings_before_schedule.to_csv(diagnostic_output_dir / f"buildings_before_scheduled_events_{year}.csv")
     new_buildings = utils.scheduled_development_events(buildings, dps, remove_developed_buildings=False,
