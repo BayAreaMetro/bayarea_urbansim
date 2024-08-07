@@ -26,7 +26,7 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
         h5_path = (pathlib.Path(orca.get_injectable("inputs_dir")) 
             / "basis_inputs" 
             / "parcels_buildings_agents" 
-            / now.strftime("%Y_%m_%d") + "_bayarea_2020start.h5"
+            / now.strftime("%Y_%m_%d_bayarea_2020start.h5")
         )
         output_store = pd.HDFStore(h5_path, "w")
         print("Saving {}".format(h5_path))
@@ -52,10 +52,10 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
     ]
     for parcel_col in parcel_store_columns:
         print("parcel_col {} type={}".format(parcel_col, parcels.column_type(parcel_col)))
-    if output_store:
+    if output_store != None:
         parcel_store_df = parcels.to_frame(parcel_store_columns)
         print("parcel_store_df.dtypes:\n{}".format(parcel_store_df.dtypes))
-        output_store.put("parcels", parcel_store_df)
+        output_store["parcels"] = parcel_store_df
 
     buildings_columns = sorted(list(buildings.columns))
     print("buildings.columns: {}".format(buildings_columns))
@@ -81,10 +81,10 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
     ]
     for building_col in buildings_preproc_store_columns:
         print("building_col {} type={}".format(building_col, buildings.column_type(building_col)))
-    if output_store:
+    if output_store != None:
         buildings_store_df = buildings.to_frame(buildings_preproc_store_columns)
         print("buildings_store_df.dtypes:\n{}".format(buildings_store_df.dtypes))
-        output_store.put("buildings", buildings_store_df)
+        output_store["buildings"] = buildings_store_df
 
     # these are the columns in the original store
     households_preproc_store_columns = [
@@ -143,10 +143,10 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
     ]
     for household_col in households_preproc_store_columns:
         print("household_col {} type={}".format(household_col, households.column_type(household_col)))
-    if output_store:
+    if output_store != None:
         household_store_df = households.to_frame(households_preproc_store_columns)
         print("household_store_df.dtypes:\n{}".format(household_store_df.dtypes))
-        output_store.put("households", household_store_df)
+        output_store["households"] = household_store_df
     
     # these are the columns in the original store
     jobs_preproc_store_columns = [
@@ -157,10 +157,10 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
     ]
     for jobs_col in jobs_preproc_store_columns:
         print("jobs_col {} type={}".format(jobs_col, jobs.column_type(jobs_col)))
-    if output_store:
+    if output_store != None:
         jobs_store_df = jobs.to_frame(jobs_preproc_store_columns)
         print("jobs_store_df.dtypes:\n{}".format(jobs_store_df.dtypes))
-        output_store.put("jobs", jobs_store_df)
+        output_store["jobs"] = jobs_store_df
 
     # these are the columns in the original store
     zones_store_columns = [
@@ -171,10 +171,10 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
     ]
     for zones_col in zones_store_columns:
         print("zones_col {} type={}".format(zones_col, zones.column_type(zones_col)))
-    if output_store:
+    if output_store != None:
         zones_store_df = zones.to_frame(zones_store_columns)
         print("zones_store_df.dtypes:\n{}".format(zones_store_df.dtypes))
-        output_store.put("zones", zones_store_df)
+        output_store["zones"] = zones_store_df
 
     
     # close it
