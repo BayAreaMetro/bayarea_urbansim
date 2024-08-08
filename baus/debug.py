@@ -10,7 +10,7 @@ import pandas as pd
 # and shouldn't be used in production runs
 
 @orca.step()
-def debug(year, nodes, parcels, buildings, households, jobs, zones):
+def debug(year, nodes, parcels, buildings, residential_units, households, jobs, zones):
     print("year={}".format(year))
     # parcels and buildings are instances of a DataFrameWrapper
     # https://udst.github.io/orca/core.html#orca.orca.DataFrameWrapper
@@ -84,7 +84,23 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
     if output_store != None:
         buildings_store_df = buildings.to_frame(buildings_preproc_store_columns)
         print("buildings_store_df.dtypes:\n{}".format(buildings_store_df.dtypes))
-        output_store["buildings"] = buildings_store_df
+        output_store["buildings_preproc"] = buildings_store_df
+
+    residential_units_preproc_columns = [
+        'unit_residential_price',
+        'unit_residential_rent',
+        'num_units',
+        'building_id',
+        'unit_num',
+        'deed_restricted',
+        'tenure',
+    ]
+    for residential_unit_col in residential_units_preproc_columns:
+        print("residential_unit_col {} type={}".format(residential_unit_col, residential_units.column_type(residential_unit_col)))
+    if output_store != None:
+        residential_units_store_df = residential_units.to_frame(residential_units_preproc_columns)
+        print("residential_units_store_df.dtypes:\n{}".format(residential_units_store_df.dtypes))
+        output_store["residential_units_preproc"] = residential_units_store_df
 
     # these are the columns in the original store
     households_preproc_store_columns = [
@@ -146,7 +162,7 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
     if output_store != None:
         household_store_df = households.to_frame(households_preproc_store_columns)
         print("household_store_df.dtypes:\n{}".format(household_store_df.dtypes))
-        output_store["households"] = household_store_df
+        output_store["households_preproc"] = household_store_df
     
     # these are the columns in the original store
     jobs_preproc_store_columns = [
@@ -160,7 +176,7 @@ def debug(year, nodes, parcels, buildings, households, jobs, zones):
     if output_store != None:
         jobs_store_df = jobs.to_frame(jobs_preproc_store_columns)
         print("jobs_store_df.dtypes:\n{}".format(jobs_store_df.dtypes))
-        output_store["jobs"] = jobs_store_df
+        output_store["jobs_preproc"] = jobs_store_df
 
     # these are the columns in the original store
     zones_store_columns = [
