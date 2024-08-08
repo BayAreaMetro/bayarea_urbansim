@@ -442,6 +442,8 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     print("Demolishing/building %d buildings" % len(demolish))
 
     l1 = len(buildings)
+    # the following function has `demolish` as an input, but it is not removing the buildings in the 'demolish' table,
+    # instead, it removes existing buildings on parcels to be occupied by buildings in 'demolish'   
     buildings = utils._remove_developed_buildings(buildings.to_frame(buildings.local_columns), demolish,
                                                   unplace_agents=["households", "jobs"])
     orca.add_injectable('static_parcels', np.append(static_parcels, demolish.loc[demolish.action == 'build', 'parcel_id']))
