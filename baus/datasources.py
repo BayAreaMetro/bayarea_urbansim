@@ -222,8 +222,13 @@ def final_year():
 
 
 @orca.injectable(cache=True)
-def store(run_name):
-    h5_path = os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/parcels_buildings_agents/2015_09_01_bayarea_v3.h5")
+def store(base_year):
+    if base_year == 2020:
+        h5_path = pathlib.Path(orca.get_injectable("inputs_dir")) / "basis_inputs" / "parcels_buildings_agents" / "2024_08_09_bayarea_2020start.h5"
+    else:
+        h5_path = pathlib.Path(orca.get_injectable("inputs_dir")) / "basis_inputs" / "parcels_buildings_agents" / "2015_09_01_bayarea_v3.h5"
+
+    print("store({}): Reading {}".format(base_year, h5_path))
     return pd.HDFStore(h5_path, mode='r')
 
 
