@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import logging
 import pathlib
 import sys
 import time
@@ -198,6 +199,7 @@ def run_models(MODE):
         ]
             
         simulation_models = [
+            "debug",
             "slr_inundate",
             "slr_remove_dev",
             "eq_code_buildings",
@@ -276,7 +278,6 @@ def run_models(MODE):
 
             "calculate_vmt_fees",
             "calculate_jobs_housing_fees",
-            "debug"
         ]
 
         if not run_setup["run_jobs_to_transit_strategy_elcm"]:
@@ -408,7 +409,11 @@ def run_models(MODE):
     else:
         raise "Invalid mode"
 
-
+# urbansim has logging module code...
+# logging_filename = pathlib.Path(orca.get_injectable("outputs_dir")) / f"{run_name}_debug.log"
+# urbansim.utils.logutil.log_to_file(str(logging_filename), level=logging.DEBUG)
+# urbansim.utils.logutil.log_to_stream(level=logging.DEBUG)
+# urbansim.utils.logutil.set_log_level(level=logging.DEBUG)
 
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
