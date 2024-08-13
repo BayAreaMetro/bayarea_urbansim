@@ -10,7 +10,7 @@ import pandas as pd
 # and shouldn't be used in production runs
 
 @orca.step()
-def debug(year, nodes, parcels, buildings, residential_units, households, jobs, zones):
+def debug(base_year, year, nodes, parcels, buildings, residential_units, households, jobs, zones):
     print("year={}".format(year))
     # parcels and buildings are instances of a DataFrameWrapper
     # https://udst.github.io/orca/core.html#orca.orca.DataFrameWrapper
@@ -21,7 +21,8 @@ def debug(year, nodes, parcels, buildings, residential_units, households, jobs, 
         print("node_col {} type={}".format(node_col, nodes.column_type(node_col)))
 
     output_store = None
-    if year == 2020:
+    # create the 2020 input file for 2020 start (assuming this is not a 2020 start)
+    if (year == 2020) and (base_year != 2020):
         now = datetime.datetime.now()
         h5_path = (pathlib.Path(orca.get_injectable("inputs_dir")) 
             / "basis_inputs" 
@@ -29,7 +30,7 @@ def debug(year, nodes, parcels, buildings, residential_units, households, jobs, 
             / now.strftime("%Y_%m_%d_bayarea_2020start.h5")
         )
         output_store = pd.HDFStore(h5_path, "w")
-        print("Saving {}".format(h5_path))
+        print("Creating {}".format(h5_path))
 
     parcels_columns = sorted(list(parcels.columns))
     print("parcels.columns: {}".format(parcels_columns))
@@ -102,6 +103,9 @@ def debug(year, nodes, parcels, buildings, residential_units, households, jobs, 
         print("residential_units_store_df.dtypes:\n{}".format(residential_units_store_df.dtypes))
         output_store["residential_units_preproc"] = residential_units_store_df
 
+    households_columns = sorted(list(households.columns))
+    print("households.columns: {}".format(households_columns))
+    print("household_col {} type={}".format('node_id', households.column_type('node_id')))
     # these are the columns in the original store
     households_preproc_store_columns = [
         'base_income_octile',
