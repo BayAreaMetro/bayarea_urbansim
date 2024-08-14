@@ -167,7 +167,7 @@ def load_data_for_runs(
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
             logging.debug(f"  rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)}")
-            logging.debug(f"  {len(rtp2025_geography_crosswalk_df.loc[pd.isna(rtp2025_geography_crosswalk_df.ppa_id)])=}")
+            # logging.debug(f"  {len(rtp2025_geography_crosswalk_df.loc[pd.isna(rtp2025_geography_crosswalk_df.ppa_id)])=}")
             logging.debug(f"  rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)}")
 
             # jurisdiction: standardize to Title Case, with spaces
@@ -777,7 +777,7 @@ def load_data_for_runs(
                 'TOTEMP'        :'totemp',
                 'TOTHH'         :'tothh',
             }, inplace=True)
-            logging.debug(f"{modelrun_data[year]['county'].head()=}")
+            logging.debug(f"{modelrun_data[year]['county'].head()}")
 
     # Load taz summaries
     # This is only necessary for RTP2025 / healthy.urban_park_acres()
