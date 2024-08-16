@@ -753,13 +753,10 @@ def built_far(parcels):
 # actual columns start here
 @orca.column('parcels')
 def max_far(parcels_zoning_calculations, parcels, zoning_adjusters):
-    # first we combine the zoning columns
-    s = parcels_zoning_calculations.effective_max_far * ~parcels.nodev
 
     # we had trouble with the zoning outside of the footprint
     # make sure we have rural zoning outside of the footprint
-    s2 = parcels.urban_footprint.map({0: 0, 1: np.nan})
-    s = pd.concat([s, s2], axis=1).min(axis=1)
+    s = parcels.urban_footprint.map({0: 0, 1: np.nan})
 
     if zoning_adjusters["dont_build_most_dense_building"]:
         # in this case we shrink the zoning such that we don't built the
@@ -768,6 +765,12 @@ def max_far(parcels_zoning_calculations, parcels, zoning_adjusters):
         s2 = parcels.built_far.groupby(parcels.zone_id).max()
         s2 = misc.reindex(s2, parcels.zone_id).fillna(.2)
         s = pd.concat([s, s2], axis=1).min(axis=1)
+
+    # then we combine the zoning columns
+    s2 = parcels_zoning_calculations.effective_max_far * ~parcels.nodev
+    s = pd.concat([s, s2], axis=1).max(axis=1)
+
+    s = s * ~parcels.nodev
 
     return s
 
@@ -784,13 +787,10 @@ def built_dua(parcels):
 
 @orca.column('parcels')
 def max_dua(parcels_zoning_calculations, parcels, zoning_adjusters):
-    # first we combine the zoning columns
-    s = parcels_zoning_calculations.effective_max_dua * ~parcels.nodev
 
     # we had trouble with the zoning outside of the footprint
     # make sure we have rural zoning outside of the footprint
-    s2 = parcels.urban_footprint.map({0: .01, 1: np.nan})
-    s = pd.concat([s, s2], axis=1).min(axis=1)
+    s = parcels.urban_footprint.map({0: .01, 1: np.nan})
 
     if zoning_adjusters["dont_build_most_dense_building"]:
         # in this case we shrink the zoning such that we don't built the
@@ -799,6 +799,12 @@ def max_dua(parcels_zoning_calculations, parcels, zoning_adjusters):
         s2 = parcels.built_dua.groupby(parcels.zone_id).max()
         s2 = misc.reindex(s2, parcels.zone_id).fillna(4)
         s = pd.concat([s, s2], axis=1).min(axis=1)
+
+    # then we combine with the zoning columns
+    s2 = parcels_zoning_calculations.effective_max_dua
+    s = pd.concat([s, s2], axis=1).max(axis=1)
+
+    s = s * ~parcels.nodev
 
     return s
 
