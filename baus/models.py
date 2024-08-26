@@ -1147,7 +1147,8 @@ def regional_vars(net):
     nodes = networks.from_yaml(net["drive"], "accessibility/regional_vars.yaml")
     nodes = nodes.fillna(0)
 
-    nodes2 = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "accessibility/pandana/regional_poi_distances.csv"),
+    # load regional_poi_distances_v2, updated May 2024 to address the `stanford` accessibility truncation
+    nodes2 = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "accessibility/pandana/regional_poi_distances_v2.csv"),
                          index_col="tmnode_id")
     nodes = pd.concat([nodes, nodes2], axis=1)
 
@@ -1178,7 +1179,7 @@ def regional_pois(accessibility_settings, landmarks):
     df = pd.DataFrame(cols)
     print(df.describe())
     df.index.name = "tmnode_id"
-    df.to_csv('regional_poi_distances.csv')
+    df.to_csv('regional_poi_distances_v2.csv')
 
 
 @orca.step()
