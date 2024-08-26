@@ -222,7 +222,6 @@ def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
 
     # explodes relevant buildings to fully enumerated vacant job spaces
     vacant_units_enum = vacant_units.index.repeat(vacant_units)
-
     units = locations_df.loc[vacant_units_enum].reset_index()
 
     
@@ -352,5 +351,53 @@ def lcm_simulate(cfg, choosers, buildings, join_tbls, out_fname,
     
     choice_probs_wide_by_segment.to_csv(probs_out_path)
     locations_df.to_csv(locations_out_path)
+
+
+    # lastly - get probabilities not just for vacant units but for all units.
+    # limited choosers, all units
+    available_units_enum = available_units.index.repeat(available_units)
+    units = locations_df.loc[available_units_enum].reset_index()
+
+    choosers = choosers_df
+    this_model = yaml_to_class(cfg)
+    chosen_units, dbg = this_model.predict_from_cfg(choosers=movers, alternatives=units, 
+                                                 cfgname=cfg, 
+                                                 alternative_ratio=alternative_ratio,
+                                                 debug=debug)
+
+
+    choice_probs = dbg.probabilities(movers,units) 
+    choice_probs_wide = pd.concat(choice_probs).unstack(0)
+    choice_probs_wide_by_segment = choice_probs_wide.groupby(level=1).sum()
+
+    #outputs_dir = os.path.join(outputs_dir,'debug')
+    #os.makedirs(outputs_dir,exist_ok=True)
+    
+    probs_out_path = os.path.join(outputs_dir,  f"{run_name}_{year}_DEBUG_elcm_probs_select_choosers_all_units.csv")
+    #locations_out_path = os.path.join(outputs_dir,  f"{run_name}_{year}_DEBUG_locations.csv")
+    
+    choice_probs_wide_by_segment.to_csv(probs_out_path)
+    locations_df.to_csv(locations_out_path)
+
+    # all choosers, all units
+    chosen_units, dbg = this_model.predict_from_cfg(choosers=choosers_df, alternatives=units, 
+                                                 cfgname=cfg, 
+                                                 alternative_ratio=alternative_ratio,
+                                                 debug=debug)
+
+
+    choice_probs = dbg.probabilities(choosers,units) 
+    choice_probs_wide = pd.concat(choice_probs).unstack(0)
+    choice_probs_wide_by_segment = choice_probs_wide.groupby(level=1).sum()
+
+    #outputs_dir = os.path.join(outputs_dir,'debug')
+    #os.makedirs(outputs_dir,exist_ok=True)
+    
+    probs_out_path = os.path.join(outputs_dir,  f"{run_name}_{year}_DEBUG_elcm_probs_all_choosers_all_units.csv")
+    #locations_out_path = os.path.join(outputs_dir,  f"{run_name}_{year}_DEBUG_locations.csv")
+    
+    choice_probs_wide_by_segment.to_csv(probs_out_path)
+    locations_df.to_csv(locations_out_path)
+
     return chosen_units
 
