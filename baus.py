@@ -112,6 +112,8 @@ def run_models(MODE):
                 "earthquake_demolish",
 
                 "neighborhood_vars",  
+                # run to regenerate pois - but not necessary every time
+                #"regional_pois",  
                 "regional_vars",  
 
                 "rsh_simulate",   
