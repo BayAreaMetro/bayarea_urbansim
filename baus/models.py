@@ -44,7 +44,7 @@ def elcm_simulate(jobs, buildings, aggregations):
 
 
 @orca.step()
-def elcm_simulate_ec5(jobs, buildings, aggregations, year):
+def elcm_simulate_ec5(jobs, buildings, aggregations, year,run_setup):
     """
     testing docstring documentation for automated documentation creation
     """
@@ -53,7 +53,7 @@ def elcm_simulate_ec5(jobs, buildings, aggregations, year):
         return
 
     #spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
-    spec_path = os.path.join("location_choice",'elcm_ec5.yaml')
+    spec_path = os.path.join("location_choice",run_setup.get('ec5_spec_file','elcm_ec5.yaml'))
     
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
