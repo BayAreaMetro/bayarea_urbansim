@@ -8,11 +8,11 @@ import html
 import os
 
 # CONSTANTS
-ASANA_PERSONAL_ACCESS_TOKEN = os.getenv('ASANA_TOKEN', '1/5562004120483:5715b236a451d6e78c5c77c551c0a1be')
-WORKSPACE_ID = os.getenv('WORKSPACE_ID', '11860278793487')
-URBAN_MODELING_PROJECT_ID = os.getenv('URBAN_MODELING_PROJECT_ID', '385259290425521')
-PBA50_PROJECT_ID = os.getenv('PBA50_PROJECT_ID','1203879112191908')
-ASSIGNEE_EMAIL = 'aolsen@bayareametro.gov'
+ASANA_PERSONAL_ACCESS_TOKEN = os.getenv('ASANA_TOKEN')
+WORKSPACE_ID = os.getenv('WORKSPACE_ID')
+URBAN_MODELING_PROJECT_ID = os.getenv('URBAN_MODELING_PROJECT_ID')
+PBA50_PROJECT_ID = os.getenv('PBA50_PROJECT_ID')
+ASSIGNEE_EMAIL = f'{os.getlogin()}@bayareametro.gov'
 
 # Set up Asana client object
 client = asana.Client.access_token(ASANA_PERSONAL_ACCESS_TOKEN)
@@ -84,8 +84,26 @@ def generate_html_list(items):
     html_list += "</ul>"
     return header+html_list
 
+def get_or_create_section(client, project_id, section_name):
+    """Check if a section exists in the project, and create it if not."""
+    try:
+        sections = client.sections.get_sections_for_project(project_id)
+        for section in sections:
+            if section['name'].lower() == section_name.lower():
+                logger.info(f"Section '{section_name}' already exists with ID: {section['gid']}")
+                return section['gid']
+
+        # Section not found, create it
+        new_section = client.sections.create_section_for_project(project_id, {'name': section_name})
+        logger.info(f"Section '{section_name}' created with ID: {new_section['gid']}")
+        return new_section['gid']
+
+    except Exception as e:
+        logger.error(f"Error checking or creating section '{section_name}': {e}")
+        raise
+
 def create_asana_task_from_yaml(yaml_path, task_name, section_name):
-    """Main function to create an Asana task based on a YAML file."""
+    """Main function to create an Asana task based on the BAUS YAML run_setup file."""
     setup = yaml_loader(yaml_path)
     description = generate_description_from_yaml(setup)
 
@@ -105,21 +123,3 @@ def create_asana_task_from_yaml(yaml_path, task_name, section_name):
         raise
 
     return task_handle
-
-def get_or_create_section(client, project_id, section_name):
-    """Check if a section exists in the project, and create it if not."""
-    try:
-        sections = client.sections.get_sections_for_project(project_id)
-        for section in sections:
-            if section['name'].lower() == section_name.lower():
-                logger.info(f"Section '{section_name}' already exists with ID: {section['gid']}")
-                return section['gid']
-
-        # Section not found, create it
-        new_section = client.sections.create_section_for_project(project_id, {'name': section_name})
-        logger.info(f"Section '{section_name}' created with ID: {new_section['gid']}")
-        return new_section['gid']
-
-    except Exception as e:
-        logger.error(f"Error checking or creating section '{section_name}': {e}")
-        raise
