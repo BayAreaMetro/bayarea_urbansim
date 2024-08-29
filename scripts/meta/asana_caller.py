@@ -20,6 +20,7 @@ def main():
         default='/Volumes/Data/Models/urban_modeling/baus/PBA50Plus/PBA50Plus_FinalBlueprint/PBA50Plus_Final_Blueprint_v00/run_setup_PBA50Plus_Final_Blueprint_v00.yaml',
         help='Path to the YAML file with simulation setup details'
     )
+    # TODO: the use case is limited for having this set when we use the yaml - but it could still be useful
     parser.add_argument(
         '-t','--task_name', 
         default='Example Task X',
@@ -42,10 +43,13 @@ def main():
     logger.info(f"Task Name: {args.task_name}")
     logger.info(f"Section Name: {args.section_name}")
 
+    # Grab run_name from the yaml directly
+    # TODO: task_name argument should be really be optional with no default - if passed, use instead of yaml name
     run_name = f"BAUS Run: {pathlib.Path(args.yaml_path).name.replace('run_setup_', '').split('.')[0]}"
 
     # Call the function to create the Asana task
     try:
+        # currently just overriding the --task_name arg and placing run_name from the yaml directly
         task_handle = create_asana_task_from_yaml(args.yaml_path, run_name, args.section_name)
         logger.info(f"Task created successfully with ID: {task_handle['gid']}")
     except Exception as e:
