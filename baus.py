@@ -8,6 +8,7 @@ from baus import (
     datasources, variables, models, subsidies, ual, slr, earthquake, 
     utils, preprocessing)
 from baus.tests import validation
+from scripts.meta.asana_utils import create_asana_task_from_yaml
 from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
     hazards_summaries, metrics, travel_model_summaries
@@ -28,6 +29,8 @@ import shutil
 MODE = "simulation"
 EVERY_NTH_YEAR = 5
 IN_YEAR, OUT_YEAR = 2010, 2050
+
+ASANA_SECTION_NAME = 'Final Blueprint Runs'
 
 
 SLACK = "URBANSIM_SLACK" in os.environ
@@ -73,6 +76,8 @@ run_name = orca.get_injectable("run_name")
 outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
 outputs_dir.mkdir(parents=True, exist_ok=True)
 
+# We can do this before the shutil copy step and just use the native run_setup.yaml in the same dir as baus.py
+task_handle = create_asana_task_from_yaml('run_setup.yaml', run_name, ASANA_SECTION_NAME)
 
 def run_models(MODE):
 
@@ -425,10 +430,6 @@ def run_models(MODE):
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
 
-# Memorialize the run config with the outputs - goes by run name attribute
-
-print('***Copying run_setup.yaml to output directory')
-shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
 print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
