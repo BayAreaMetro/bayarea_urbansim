@@ -8,6 +8,7 @@ from baus import (
     datasources, variables, models, subsidies, ual, slr, earthquake, 
     utils, preprocessing)
 from baus.tests import validation
+from scripts.meta import asana_utils
 from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
     hazards_summaries, metrics, travel_model_summaries
