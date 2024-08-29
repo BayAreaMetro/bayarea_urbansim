@@ -9,6 +9,7 @@ from baus import (
     utils, preprocessing)
 from baus.tests import validation
 from scripts.meta.asana_utils import create_asana_task_from_yaml
+
 from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
     hazards_summaries, metrics, travel_model_summaries
@@ -430,6 +431,10 @@ def run_models(MODE):
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
 
+# Memorialize the run config with the outputs - goes by run name attribute
+
+print('***Copying run_setup.yaml to output directory')
+shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
 print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
