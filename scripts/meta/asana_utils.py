@@ -123,3 +123,23 @@ def create_asana_task_from_yaml(yaml_path, task_name, section_name):
         raise
 
     return task_handle
+
+def add_comment_to_task(task_gid, comment):
+    try:
+        comment_payload = {
+            'text': comment
+        }
+        client.tasks.add_comment(task_gid, comment_payload)
+        logger.info(f"Comment added to task with ID: {task_gid}")
+    except Exception as e:
+        logger.error(f"Error adding comment to task '{task_gid}': {e}")
+        raise
+
+
+def mark_task_as_complete(task_gid):
+    try:
+        client.tasks.update(task_gid, {'completed': True})
+        logger.info(f"Task with ID: {task_gid} marked as completed.")
+    except Exception as e:
+        logger.error(f"Error marking task '{task_gid}' as completed: {e}")
+        raise

@@ -8,7 +8,10 @@ from baus import (
     datasources, variables, models, subsidies, ual, slr, earthquake, 
     utils, preprocessing)
 from baus.tests import validation
-from scripts.meta.asana_utils import create_asana_task_from_yaml
+from scripts.meta.asana_utils import (
+    create_asana_task_from_yaml,
+    add_comment_to_task, 
+    mark_task_as_complete)
 
 from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
@@ -76,9 +79,6 @@ run_setup = orca.get_injectable("run_setup")
 run_name = orca.get_injectable("run_name")
 outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
 outputs_dir.mkdir(parents=True, exist_ok=True)
-
-# We can do this before the shutil copy step and just use the native run_setup.yaml in the same dir as baus.py
-task_handle = create_asana_task_from_yaml('run_setup.yaml', run_name, ASANA_SECTION_NAME)
 
 def run_models(MODE):
 
@@ -451,6 +451,10 @@ print("pandas version: %s" % pd.__version__)
 
 print("SLACK: {}".format(SLACK))
 print("MODE: {}".format(MODE))
+# We can do this before the shutil copy step and just use the native run_setup.yaml in the same dir as baus.py
+task_handle = create_asana_task_from_yaml('run_setup.yaml', run_name, ASANA_SECTION_NAME)
+print(f"Creating asana run task with URL: {task_handle['permalink_url']}")
+
 
 if SLACK and MODE == "estimation":
     slack_start_message = f'Starting estimation {run_name} on host {host}'
@@ -470,6 +474,12 @@ if SLACK and MODE == "simulation":
         # For first slack channel posting of a run, catch any auth errors
         init_response = client.chat_postMessage(channel=slack_channel,
                                            text=slack_start_message)
+
+        asana_msg = f"Creating asana run task with URL: {task_handle['permalink_url']}"
+        response = client.chat_postMessage(channel=slack_channel,
+                                    thread_ts=init_response.data['ts'],
+                                    text=asana_msg)
+
     except SlackApiError as e:
         assert e.response["ok"] is False
         assert e.response["error"]  
@@ -511,6 +521,23 @@ if SLACK and MODE == "simulation":
     response = client.chat_postMessage(channel=slack_channel,
                                        thread_ts=init_response.data['ts'],
                                        text=slack_completion_message)
+
+    
+    task_gid = task_handle['gid']
+
+    # Add a comment
+    add_comment_to_task(task_gid, "Simulation completed successfully.")
+
+    # Mark the task as completed
+    mark_task_as_complete(task_gid)
+
+    response = client.chat_postMessage(channel=slack_channel,
+                                       thread_ts=init_response.data['ts'],
+                                       text='Check asana for details.')
+
+
+    
+
 
                                                                                             
 print("Finished", time.ctime())         
