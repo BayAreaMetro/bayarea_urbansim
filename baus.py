@@ -434,10 +434,6 @@ def run_models(MODE):
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
 
-# Memorialize the run config with the outputs - goes by run name attribute
-
-print('***Copying run_setup.yaml to output directory')
-shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
 print("Current Branch : ", CURRENT_BRANCH)
@@ -454,9 +450,19 @@ print("pandas version: %s" % pd.__version__)
 
 print("SLACK: {}".format(SLACK))
 print("MODE: {}".format(MODE))
+
 # We can do this before the shutil copy step and just use the native run_setup.yaml in the same dir as baus.py
 task_handle = create_asana_task_from_yaml('run_setup.yaml', run_name, ASANA_SECTION_NAME)
+
+# Get task identifer for later comment posting 
+task_gid = task_handle['gid']
+
 print(f"Creating asana run task with URL: {task_handle['permalink_url']}")
+
+# Memorialize the run config with the outputs - goes by run name attribute
+
+print('***Copying run_setup.yaml to output directory')
+shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 
 if SLACK and MODE == "estimation":
@@ -515,6 +521,10 @@ except Exception as e:
                                            thread_ts=init_response.data['ts'],
                                            text=slack_fail_message)
 
+        # Add a fail comment
+        add_comment_to_task(task_gid, slack_fail_message)
+
+
     else:
         raise e
     sys.exit(0)
@@ -526,8 +536,6 @@ if SLACK and MODE == "simulation":
                                        text=slack_completion_message)
 
     
-    task_gid = task_handle['gid']
-
     # Add a comment
     add_comment_to_task(task_gid, "Simulation completed successfully.")
 
