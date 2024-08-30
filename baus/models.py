@@ -68,7 +68,7 @@ def elcm_simulate_ec5(jobs, buildings, aggregations, year,run_setup):
 def gov_transit_elcm(jobs, buildings, parcels, run_setup, year):
 
     """
-    This function assigns jobs in the NAICS 91 sector (Real Estate and Rental and Leasing) to vacant job spaces in transit hubs (ec5_cat='Transit_Hub').
+    This function assigns jobs in the NAICS 91 sector (Govt / public admin) to vacant job spaces in transit hubs (ec5_cat='Transit_Hub').
 
     Args:
         jobs (orca.DataFrameWrapper(): A pandas DataFrame containing job data.
@@ -110,7 +110,8 @@ def gov_transit_elcm(jobs, buildings, parcels, run_setup, year):
     #buildings_df = buildings_df.rename(columns={'county_x': 'county', 'general_type_x': 'general_type'})
 
     # Where to go? Buffers!
-    building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 0 & general_type!="Residential"')
+    #building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 0 & general_type!="Residential"')
+    building_hosts = buildings_df.query("ec5_cat.isin(['Transit_Hub', 'Transit_Hub_Low_Emp', 'Transit_Hub_Very_Low_Emp']) & vacant_job_spaces > 0 & general_type!='Residential'")
 
     # first - enumerate job spaces - but index to building_id is retained
     building_hosts_enum = building_hosts.index.repeat(building_hosts.vacant_job_spaces.clip(0))
@@ -121,7 +122,7 @@ def gov_transit_elcm(jobs, buildings, parcels, run_setup, year):
 
     
     # second - get Move candidates
-    moving_jobs_candidates = jobs_df[jobs_df.sector_id.isin([91])]
+    moving_jobs_candidates = jobs_df[~jobs_df.sector_id.isin([11,21,48,49,31,32,33])]
     print('Move candidates, by placement status: ',
             moving_jobs_candidates.groupby(moving_jobs_candidates.building_id!=-1).size())
     # Suppose we don't want all but just some - we could add logic for filtering later
