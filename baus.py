@@ -434,6 +434,10 @@ def run_models(MODE):
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
 
+# Memorialize the run config with the outputs - goes by run name attribute
+
+print('***Copying run_setup.yaml to output directory')
+shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
 print("Current Branch : ", CURRENT_BRANCH)
