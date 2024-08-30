@@ -111,8 +111,11 @@ def gov_transit_elcm(jobs, buildings, parcels, run_setup, year):
 
     # Where to go? Buffers!
     #building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 0 & general_type!="Residential"')
-    building_hosts = buildings_df.query("ec5_cat.isin(['Transit_Hub', 'Transit_Hub_Low_Emp', 'Transit_Hub_Very_Low_Emp']) & vacant_job_spaces > 0 & general_type!='Residential'")
-
+    building_hosts = buildings_df.loc[(buildings_df.ec5_cat.isin(['Transit_Hub', 'Transit_Hub_Low_Emp', 'Transit_Hub_Very_Low_Emp']))
+                    & (buildings_df.vacant_job_spaces > 0)
+                    & (buildings_df.general_type != 'Residential')
+                    ]
+    
     # first - enumerate job spaces - but index to building_id is retained
     building_hosts_enum = building_hosts.index.repeat(building_hosts.vacant_job_spaces.clip(0))
 
