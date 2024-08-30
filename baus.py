@@ -34,6 +34,9 @@ MODE = "simulation"
 EVERY_NTH_YEAR = 5
 IN_YEAR, OUT_YEAR = 2010, 2050
 
+CURRENT_BRANCH = os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip()
+CURRENT_COMMIT = os.popen('git rev-parse HEAD').read().rstrip()
+
 ASANA_SECTION_NAME = 'Final Blueprint Runs'
 
 
@@ -431,14 +434,10 @@ def run_models(MODE):
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
 
-# Memorialize the run config with the outputs - goes by run name attribute
-
-print('***Copying run_setup.yaml to output directory')
-shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
-print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
-print("Current Commit : ", os.popen('git rev-parse HEAD').read().rstrip())
+print("Current Branch : ", CURRENT_BRANCH)
+print("Current Commit : ",  CURRENT_COMMIT)
 print("Set Random Seed : ", SET_RANDOM_SEED)
 print("python version: %s" % sys.version.split('|')[0])
 print("urbansim version: %s" % urbansim.__version__)
