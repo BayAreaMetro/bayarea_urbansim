@@ -33,9 +33,6 @@ IN_YEAR, OUT_YEAR = 2010, 2050
 CURRENT_BRANCH = os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip()
 CURRENT_COMMIT = os.popen('git rev-parse HEAD').read().rstrip()
 
-ASANA_SECTION_NAME = 'Final Blueprint Runs'
-
-
 SLACK = "URBANSIM_SLACK" in os.environ
 if SLACK:
     host = socket.gethostname()
@@ -79,6 +76,9 @@ if options.use_asana:
     create_asana_task_from_yaml,
     add_comment_to_task, 
     mark_task_as_complete)
+    ASANA_SECTION_NAME = 'Final Blueprint Runs'
+else:
+    ASANA = False
 
 orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
 orca.add_injectable("base_year", IN_YEAR)
