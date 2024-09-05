@@ -250,8 +250,9 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
     geog_name = 'eir_coc_id' if rtp=="RTP2021" else 'epc_id'
 
     # SLR parcels - all parcels in the SLR input files that are inundated or mitigated
-    slr_area = [df.inundation.isin([12,24,10,20,100]), (df.inundation.isin([12,24,10,20,100]) & (df[geog_name].notnull()))]
-    slr_protected_area = [df.inundation == 100, (df.inundation == 100) & (df[geog_name].notnull())]
+    slr_area = [((df.slr_nodev == True) | (df.slr_mitigation == True)), 
+                (((df.slr_nodev == True) | (df.slr_mitigation == True)) & (df[geog_name].notnull()))]
+    slr_protected_area = [df.slr_mitigation == True, ((df.slr_mitigation == True) & (df[geog_name].notnull()))]
 
     protected_households_pct = []
     for slr, slr_protected in zip(slr_area, slr_protected_area):
