@@ -223,6 +223,11 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
     as a percentage of all households in sea level rise areas and a percentage of all 
     households in sea level rise areas that are EPCs.
 
+    To run for PBA50, move the files from "Box\Plan Bay Area 2050+\Performance and Equity\/
+    Plan Performance\Equity_Performance_Metrics\PBA50_reproduce_for_QA\slr_metrics_inputs"
+    to the relevant Plan run outputs folder, since these model output files were generated 
+    post-Plan run to use in these standalone metrics.
+
     Parameters:
     - rtp (str): RTP2021 or RTP2025.
     - modelrun_alias (str): Alias for the model run, used for labeling output.
@@ -231,7 +236,8 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
 
-    Writes metrics_slrProtection.csv to output_path, appending if append_output is True. Columns are:
+    Writes metrics_healthy1_hazard_resilience_SLR.csv to output_path, appending if append_output is True. Columns are:
+    - modelrun_id
     - modelrun_alias
     - hazard
     - area_alias
