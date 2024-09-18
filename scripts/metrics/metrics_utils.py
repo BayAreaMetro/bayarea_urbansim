@@ -484,7 +484,9 @@ def load_data_for_runs(
         if len(rtp2021_geography_crosswalk_df) == 0:
             # pba50_metrics.py called this "parcel_geography_file" - use it to get fbpchcat
             GEOGRAPHY_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "2021_02_25_parcels_geography.csv"
-            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID','fbpchcat','ppa_id','eir_coc_id', 'juris_name_full'])
+            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID', 'ACRES', 'fbpchcat','ppa_id','eir_coc_id', 'juris_name_full', 'urbanized'])
+            # match RTP2025 column name
+            rtp2021_geography_crosswalk_df.rename(columns={"urbanized": "in_urban_area"}, inplace=True)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_geography_crosswalk_df), GEOGRAPHY_CROSSWALK_FILE))
             logging.debug("  rtp2021_geography_crosswalk_df.head():\n{}".format(rtp2021_geography_crosswalk_df.head()))
 
@@ -516,6 +518,7 @@ def load_data_for_runs(
         modelrun_data[2050] = {}
         parcel_pattern       = "*_parcel_data_{}.csv"
         slr_parcel_pattern   = "*_slr_parcel_summary_{}.csv"
+        buildings_pattern    = "*_building_data_{}.csv"        
         geo_summary_pattern  = "*_county_summaries_{}.csv"
         taz1_summary_pattern = "*_taz_summaries_{}.csv"
 
@@ -696,6 +699,8 @@ def load_data_for_runs(
             # Retain only a subset of columns after merging
             columns_to_keep = ['parcel_id', 'tract10', 'fbpchcat', 
                                 'gg_id', 'tra_id', 'hra_id', 'dis_id', 'ppa_id', 'eir_coc_id','jurisdiction',
+                                # greenfield columns
+                                'in_urban_area', 'ACRES',
                                 'zone_id', 'county', 'superdistrict',
                                 'hhq1', 'hhq2', 'hhq3', 'hhq4', 
                                 'tothh', 'totemp',
@@ -731,6 +736,10 @@ def load_data_for_runs(
 
     # merge parcel information for horizon year onto buildings
     parcel_df = modelrun_data[horizon_year]['parcel']
+    # if RTP2021 get non_residential_sqft from the buildings table
+    if rtp=="RTP2021":
+        parcel_df = parcel_df.merge(buildings_df[['parcel_id', 'non_residential_sqft']].groupby(['parcel_id']).sum(), on='parcel_id', how='left')
+    # distinguish the column names from the buildings table names (these are parcel totals)
     parcels = parcel_df[['parcel_id', 'residential_units', 'non_residential_sqft', 'ACRES', 'in_urban_area']].\
                           rename(columns={"residential_units": "residential_units_total", "non_residential_sqft": "non_residential_sqft_total",
                                           "ACRES": "parcel_acres"})
