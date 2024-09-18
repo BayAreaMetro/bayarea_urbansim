@@ -147,11 +147,6 @@ def non_greenfield_development_share(
     '''
     logging.info("Calculating non_greenfield_development_share")
 
-    # Guard clause: this metric is implemented for RTP2025 / PBA50+ only
-    if rtp != 'RTP2025':
-        logging.info("  RTP2021 is not supported - skipping")
-        return
-
     # Define a potentially very impactful constant used to convert residential units to non-residential sqft and vice versa
     SQFT_PER_UNIT = 1750  # close to the weighted average size of developer-model units in a recent BAUS run
 
