@@ -90,9 +90,10 @@ def load_data_for_runs(
 
     Returns:
     - dict with year -> {
-        "parcel" -> parcel DataFrame, 
-        "county" -> county DataFrame,
-        "TAZ1454"-> taz DataFrame (necessary for totpop, which is only tabulated for TAZs)
+        "parcel"    -> parcel DataFrame,
+        "buildings" -> building DataFrame, 
+        "county"    -> county DataFrame,
+        "TAZ1454"   -> taz DataFrame (necessary for totpop, which is only tabulated for TAZs)
       }
     
     """
@@ -362,6 +363,7 @@ def load_data_for_runs(
                 modelrun_data[2025] = {}  # for later interpolation to 2023
         modelrun_data[2050]  = {}
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
+        buildings_pattern    = "core_summaries/*_building_summary_{}.csv"
         slr_parcel_pattern   = "hazards_summaries/*_slr_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
         taz1_summary_pattern = "travel_model_summaries/*_taz1_summary_{}.csv"
@@ -717,6 +719,32 @@ def load_data_for_runs(
             logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 
         modelrun_data[year]['parcel'] = parcel_df
+
+    # Load building data for horizon year
+    horizon_year = sorted(modelrun_data.keys())[-1]
+    logging.debug("Looking for building summaries matching {}".format(buildings_pattern.format(horizon_year)))
+    file = next(run_directory_path.glob(buildings_pattern.format(horizon_year)))
+    logging.debug(f"Found {file}")
+    buildings_df = pd.read_csv(file)
+    logging.info("  Read {:,} rows from geography summary {}".format(len(buildings_df), file))
+    logging.debug("Head:\n{}".format(buildings_df))
+
+    # merge parcel information for horizon year onto buildings
+    parcel_df = modelrun_data[horizon_year]['parcel']
+    parcels = parcel_df[['parcel_id', 'residential_units', 'non_residential_sqft', 'ACRES', 'in_urban_area']].\
+                          rename(columns={"residential_units": "residential_units_total", "non_residential_sqft": "non_residential_sqft_total",
+                                          "ACRES": "parcel_acres"})
+    buildings_df = pd.merge(
+        left     = buildings_df,
+        right    = parcels,
+        how      = "left",
+        on       = "parcel_id",
+        validate = "many_to_one"
+        )   
+    logging.debug("Head after merge with parcel_df:\n{}".format(buildings_df.head()))
+    logging.debug("Length after merge with parcel_df:\n{}".format(len(buildings_df)))
+
+    modelrun_data[horizon_year]['buildings'] = buildings_df  
 
     # Load county summaries
     for year in sorted(modelrun_data.keys()):
