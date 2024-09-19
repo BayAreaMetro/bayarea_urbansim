@@ -91,7 +91,7 @@ def load_data_for_runs(
     Returns:
     - dict with year -> {
         "parcel"    -> parcel DataFrame,
-        "buildings" -> building DataFrame, 
+        "buildings" -> buildings DataFrame, 
         "county"    -> county DataFrame,
         "TAZ1454"   -> taz DataFrame (necessary for totpop, which is only tabulated for TAZs)
       }
@@ -727,12 +727,12 @@ def load_data_for_runs(
 
     # Load building data for horizon year
     horizon_year = sorted(modelrun_data.keys())[-1]
-    logging.debug("Looking for building summaries matching {}".format(buildings_pattern.format(horizon_year)))
+    logging.debug("Looking for buildings summary matching {}".format(buildings_pattern.format(horizon_year)))
     file = next(run_directory_path.glob(buildings_pattern.format(horizon_year)))
     logging.debug(f"Found {file}")
     buildings_df = pd.read_csv(file)
-    logging.info("  Read {:,} rows from geography summary {}".format(len(buildings_df), file))
-    logging.debug("Head:\n{}".format(buildings_df))
+    logging.info("  Read {:,} rows from buildinsg summary {}".format(len(buildings_df), file))
+    logging.debug("Head:\n{}".format(buildingss_df))
 
     # merge parcel information for horizon year onto buildings
     parcel_df = modelrun_data[horizon_year]['parcel']
