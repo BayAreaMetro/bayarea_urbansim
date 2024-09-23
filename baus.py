@@ -254,8 +254,13 @@ def run_models(MODE):
 
                 "residential_developer",
                 "developer_reprocess",
+
+                "alt_feasibility",
+                
                 "retail_developer",
 
+                "alt_feasibility",
+                
                 "office_developer",
                 "subsidized_office_developer_vmt",
 
