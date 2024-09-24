@@ -11,7 +11,8 @@ profit_vs_return_on_cost_combination_factor: 0.5
 # optionally we don't look at small lot single family
 # pass_through are columns not used by the developer but which go in the debug output
 feasibility:
-  parcel_filter: (nodev != 1 and manual_nodev != 1 and source != 'developer_model' and sdem != 1 and oldest_building > 1906
+  parcel_filter: (nodev != 1 and manual_nodev != 1 and first_building_source != 'developer_model' 
+    and sdem != 1 and oldest_building > 1906
     and oldest_building_age > 20 and (total_residential_units != 1 or parcel_acres > 1.0)
     and first_building_type != 'HO' and first_building_type != 'SC')
   residential_to_yearly: True

@@ -467,9 +467,13 @@ def stories(buildings):
 
 # get whether a parcel contains a building from the developer model
 @orca.column('parcels', cache=True)
-def source(buildings):
-    return misc.reindex(buildings.source.groupby(buildings.parcel_id).first(),parcels.index)
+def bldg_source(buildings):
+    return buildings.source.groupby(buildings.parcel_id).first()
 
+@orca.column('parcels')
+def first_building_source(buildings):
+    df = buildings.to_frame(columns=['source', 'parcel_id'])
+    return df.groupby('parcel_id').source.first()
 
 @orca.column('parcels', cache=True)
 def height(parcels):
