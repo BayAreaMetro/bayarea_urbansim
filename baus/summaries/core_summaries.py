@@ -101,7 +101,7 @@ def new_buildings_summary(run_name, parcels, parcels_zoning_calculations, buildi
 
     df = df[['parcel_id', 'building_type', 'building_sqft', 'deed_restricted_units', 'year_built',
              'preserved_units', 'inclusionary_units', 'subsidized_units',
-             'non_residential_sqft', 'residential_price', 'residential_units', 'source',	
+             'non_residential_sqft','total_non_residential_sqft', 'residential_price', 'residential_units', 'source',	
              'vacant_residential_units', 'vacant_job_spaces', 'vacant_res_units', 'price_per_sqft',	'unit_price',	
              'land_value',	'acres', 'x', 'y', 'parcel_acres', 'total_residential_units',	'total_job_spaces',	
              'zoned_du', 'zoned_du_underbuild', 'zoned_du_build_ratio', 'zoned_far', 'zoned_far_underbuild', 
