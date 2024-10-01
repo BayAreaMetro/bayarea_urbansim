@@ -168,8 +168,7 @@ def run_models(MODE):
         baseyear_summary_models = [
             "simulation_validation",
 
-            "parcel_summary",
-            "building_summary",
+            "disaggregate_output",
 
             "hazards_slr_summary",
             "hazards_eq_summary",
@@ -325,12 +324,9 @@ def run_models(MODE):
         
         simulation_summary_models = [
             "interim_zone_output",
+            "disaggregate_output",
             "new_buildings_summary",
-
-            "parcel_summary",
             "parcel_growth_summary",
-            "building_summary",
-
             "hazards_slr_summary",
             "hazards_eq_summary",
 

@@ -6,11 +6,24 @@ import pandas as pd
 
 
 @orca.step()
-def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial_summary_year, final_year, interim_summary_years):
-
+def disaggregate_output(parcels, buildings, households, jobs, static_parcels,
+                        year, initial_summary_year, final_year, interim_summary_years):
+    """
+    This outputs disaggregate tables at the end of specified simulation years.
+    The disaggregate tables output are:
+    * parcel_table_{year}.csv
+    * building_table_{year}.csv
+    * household_table_{year}.csv
+    * job_table_{year}.csv
+    * static_parcels_{year}.csv
+    """
     if year not in [initial_summary_year, final_year] + interim_summary_years:
         return
 
+    coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
+    coresum_output_dir.mkdir(parents=True, exist_ok=True)
+
+    ####### disaggregate parcel output
     df = parcels.to_frame(["geom_id", "x", "y"])
     # add building data for parcels
     building_df = orca.merge_tables('buildings', [parcels, buildings], columns=['parcel_id', 'residential_units', 'deed_restricted_units',
@@ -34,10 +47,37 @@ def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial
     df["totemp"] = jobs_df.groupby('parcel_id').size()
 
     df = df.fillna(0)
-    coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
-    coresum_output_dir.mkdir(parents=True, exist_ok=True)
-    df.to_csv(coresum_output_dir / f"parcel_summary_{year}.csv")
 
+    df.to_csv(coresum_output_dir / f"parcel_table_{year}.csv")
+
+    ####### disaggregate building output
+    df = orca.merge_tables('buildings',
+        [parcels, buildings],
+        columns=['parcel_id', 'year_built', 'building_type', 'residential_units', 'unit_price', 
+                 'non_residential_sqft', 'deed_restricted_units', 'inclusionary_units',
+                 'preserved_units', 'subsidized_units', 'job_spaces', 'source'])
+
+    df = df.fillna(0)
+    df.to_csv(coresum_output_dir / f"building_table_{year}.csv")
+
+    ####### disaggregate household output
+    households_df = households.to_frame(columns=['building_id','persons','base_income_quartile','move_in_year'])
+    households_df.index.rename('household_id', inplace=True)
+    households_df = households_df.reset_index()
+
+    households_df.to_csv(coresum_output_dir / f"household_table_{year}.csv", index=False)
+
+    ####### disaggregate household output
+    jobs_df = jobs.to_frame(columns=['building_id','sector_id','empsix', 'move_in_year'])
+    jobs_df.to_csv(coresum_output_dir / f"job_table_{year}.csv", index=False)
+
+    ####### static parcels
+    # this is either a list or an ndarray depending on when it's called
+    print("static_parcels type={} len={}".format(
+        type(static_parcels), len(static_parcels)
+    ))
+    df = pd.DataFrame(data=static_parcels, columns=["parcel_id"])
+    df.to_csv(coresum_output_dir / f"static_parcels_{year}.csv", index=False)
 
 @orca.step()
 def parcel_growth_summary(year, run_name, initial_summary_year, final_year):
@@ -46,11 +86,11 @@ def parcel_growth_summary(year, run_name, initial_summary_year, final_year):
         return
 
     coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
-    initial_parcel_file = coresum_output_dir / f"parcel_summary_{initial_summary_year}.csv"
+    initial_parcel_file = coresum_output_dir / f"parcel_table_{initial_summary_year}.csv"
     print(f"initial_parcel_file resolve:{initial_parcel_file.resolve()} exists:{initial_parcel_file.exists()}")
 
     df1 = pd.read_csv(initial_parcel_file, index_col="parcel_id")
-    df2 = pd.read_csv(coresum_output_dir / f"parcel_summary_{final_year}.csv",
+    df2 = pd.read_csv(coresum_output_dir / f"parcel_table_{final_year}.csv",
                       index_col="parcel_id")
 
     for col in df1.columns:
@@ -66,26 +106,6 @@ def parcel_growth_summary(year, run_name, initial_summary_year, final_year):
     coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
     coresum_output_dir.mkdir(parents=True, exist_ok=True)
     df1.to_csv(coresum_output_dir / f"parcel_growth.csv")
-    
-
-
-@orca.step()
-def building_summary(run_name, parcels, buildings, year, initial_summary_year, final_year, interim_summary_years):
-
-    if year not in [initial_summary_year, final_year] + interim_summary_years:
-        return
-
-    df = orca.merge_tables('buildings',
-        [parcels, buildings],
-        columns=['parcel_id', 'year_built', 'building_type', 'residential_units', 'unit_price', 
-                 'non_residential_sqft', 'deed_restricted_units', 'inclusionary_units',
-                 'preserved_units', 'subsidized_units', 'job_spaces', 'source'])
-
-    df = df.fillna(0)
-    coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
-    coresum_output_dir.mkdir(parents=True, exist_ok=True)
-    df.to_csv(coresum_output_dir / f"building_summary_{year}.csv")
-
 
 @orca.step()
 def new_buildings_summary(run_name, parcels, parcels_zoning_calculations, buildings, year, final_year):
