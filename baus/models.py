@@ -188,10 +188,10 @@ def households_transition(households, household_controls, year, transition_reloc
 @orca.injectable()
 def static_parcels(developer_settings, parcels):
     # list of geom_ids to not relocate
-    static_parcels = developer_settings["static_parcels"]
-    # geom_ids -> parcel_ids
-    return geom_id_to_parcel_id(
-        pd.DataFrame(index=static_parcels), parcels).index.values
+    static_parcels_list = developer_settings["static_parcels"]
+    print("static_parcels(): {}".format(static_parcels_list))
+
+    return static_parcels_list
 
 
 def _proportional_jobs_model(
