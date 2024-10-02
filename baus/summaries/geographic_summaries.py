@@ -47,13 +47,14 @@ def parcel_transitions(parcels, year, initial_summary_year, final_year, run_name
     # get buildings - first and last year data
     coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
     
-    buildings_start_path = coresum_output_dir / f"building_summary_{initial_summary_year}.csv"
+    # if we're already reading disaggregate output files, shouldn't this just be a post-process rather than a model step?
+    buildings_start_path = coresum_output_dir / f"building_table_{initial_summary_year}.csv"
     print(f'Loading {buildings_start_path}')
     
     buildings_start = pd.read_csv(buildings_start_path, 
         index_col='building_id')
     
-    buildings_end_path = coresum_output_dir / f"building_summary_{final_year}.csv"
+    buildings_end_path = coresum_output_dir / f"building_table_{final_year}.csv"
     print(f'Loading {buildings_end_path}')
     
     buildings_end = pd.read_csv(buildings_end_path, 
