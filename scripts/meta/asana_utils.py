@@ -7,7 +7,7 @@ import yaml
 import html
 import os
 
-# CONSTANTS
+# CONSTANTS - setting as env variables for now
 ASANA_PERSONAL_ACCESS_TOKEN = os.getenv('ASANA_TOKEN')
 WORKSPACE_ID = os.getenv('WORKSPACE_ID')
 URBAN_MODELING_PROJECT_ID = os.getenv('URBAN_MODELING_PROJECT_ID')
