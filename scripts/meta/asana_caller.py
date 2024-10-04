@@ -43,9 +43,11 @@ def main():
     logger.info(f"Task Name: {args.task_name}")
     logger.info(f"Section Name: {args.section_name}")
 
-    # Grab run_name from the yaml directly
-    # TODO: task_name argument should be really be optional with no default - if passed, use instead of yaml name
-    run_name = f"BAUS Run: {pathlib.Path(args.yaml_path).name.replace('run_setup_', '').split('.')[0]}"
+    if not args.task_name:
+        # Grab run_name from the yaml directly
+        run_name = f"BAUS Run: {pathlib.Path(args.yaml_path).name.replace('run_setup_', '').split('.')[0]}"
+    else:
+        run_name = args.task_name
 
     # Call the function to create the Asana task
     try:
