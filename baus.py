@@ -8,6 +8,7 @@ from baus import (
     datasources, variables, models, subsidies, ual, slr, earthquake, 
     utils, preprocessing)
 from baus.tests import validation
+
 from baus.summaries import \
     core_summaries, geographic_summaries, affordable_housing_summaries, \
     hazards_summaries, metrics, travel_model_summaries
@@ -29,6 +30,8 @@ MODE = "simulation"
 EVERY_NTH_YEAR = 5
 IN_YEAR, OUT_YEAR = 2010, 2050
 
+CURRENT_BRANCH = os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip()
+CURRENT_COMMIT = os.popen('git rev-parse HEAD').read().rstrip()
 
 SLACK = "URBANSIM_SLACK" in os.environ
 if SLACK:
@@ -38,9 +41,6 @@ if SLACK:
     client = WebClient(token=os.environ["SLACK_TOKEN"])
     slack_channel = "#urbansim_sim_update"
 
-SET_RANDOM_SEED = True
-if SET_RANDOM_SEED:
-    np.random.seed(42)
 
 
 parser = argparse.ArgumentParser(description='Run UrbanSim models.')
@@ -49,6 +49,8 @@ parser.add_argument('--mode', action='store', dest='mode', help='which mode to r
 parser.add_argument('-i', action='store_true', dest='interactive', help='enter interactive mode after imports')
 parser.add_argument('--set-random-seed', action='store_true', dest='set_random_seed', help='set a random seed for consistent stochastic output')
 parser.add_argument('--disable-slack', action='store_true', dest='no_slack', help='disable slack outputs')
+parser.add_argument('--enable-asana', action='store_true', dest='use_asana', default=False, help='disable Asana task creation')
+
 
 options = parser.parse_args()
 
@@ -60,9 +62,23 @@ if options.mode:
 
 if options.set_random_seed:
     SET_RANDOM_SEED = True
+    np.random.seed(42)
+else:
+    SET_RANDOM_SEED = False
 
 if options.no_slack:
     SLACK = False
+
+if options.use_asana:
+    ASANA = True
+    
+    from scripts.meta.asana_utils import (
+    create_asana_task_from_yaml,
+    add_comment_to_task, 
+    mark_task_as_complete)
+    ASANA_SECTION_NAME = 'Final Blueprint Runs'
+else:
+    ASANA = False
 
 orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
 orca.add_injectable("base_year", IN_YEAR)
@@ -72,7 +88,6 @@ run_setup = orca.get_injectable("run_setup")
 run_name = orca.get_injectable("run_name")
 outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
 outputs_dir.mkdir(parents=True, exist_ok=True)
-
 
 def run_models(MODE):
 
@@ -239,8 +254,13 @@ def run_models(MODE):
 
                 "residential_developer",
                 "developer_reprocess",
+
+                "alt_feasibility",
+                
                 "retail_developer",
 
+                "alt_feasibility",
+                
                 "office_developer",
                 "subsidized_office_developer_vmt",
 
@@ -425,14 +445,10 @@ def run_models(MODE):
 print('***The Standard stream is being written to {}.log***'.format(run_name))
 sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
 
-# Memorialize the run config with the outputs - goes by run name attribute
-
-print('***Copying run_setup.yaml to output directory')
-shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 print("Started", time.ctime())
-print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
-print("Current Commit : ", os.popen('git rev-parse HEAD').read().rstrip())
+print("Current Branch : ", CURRENT_BRANCH)
+print("Current Commit : ",  CURRENT_COMMIT)
 print("Set Random Seed : ", SET_RANDOM_SEED)
 print("python version: %s" % sys.version.split('|')[0])
 print("urbansim version: %s" % urbansim.__version__)
@@ -445,6 +461,21 @@ print("pandas version: %s" % pd.__version__)
 
 print("SLACK: {}".format(SLACK))
 print("MODE: {}".format(MODE))
+
+if ASANA:
+    # We can do this before the shutil copy step and just use the native run_setup.yaml in the same dir as baus.py
+    task_handle = create_asana_task_from_yaml('run_setup.yaml', run_name, ASANA_SECTION_NAME)
+
+    # Get task identifer for later comment posting 
+    task_gid = task_handle['gid']
+
+    print(f"Creating asana run task with URL: {task_handle['permalink_url']}")
+
+# Memorialize the run config with the outputs - goes by run name attribute
+
+print('***Copying run_setup.yaml to output directory')
+shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
+
 
 if SLACK and MODE == "estimation":
     slack_start_message = f'Starting estimation {run_name} on host {host}'
@@ -464,6 +495,14 @@ if SLACK and MODE == "simulation":
         # For first slack channel posting of a run, catch any auth errors
         init_response = client.chat_postMessage(channel=slack_channel,
                                            text=slack_start_message)
+
+        if ASANA:
+
+            asana_msg = f"Creating asana run task with URL: {task_handle['permalink_url']}"
+            asana_response = client.chat_postMessage(channel=slack_channel,
+                                    thread_ts=init_response.data['ts'],
+                                    text=asana_msg)
+
     except SlackApiError as e:
         assert e.response["ok"] is False
         assert e.response["error"]  
@@ -496,6 +535,11 @@ except Exception as e:
                                            thread_ts=init_response.data['ts'],
                                            text=slack_fail_message)
 
+        if ASANA:
+            # Add a fail comment
+            add_comment_to_task(task_gid, slack_fail_message)
+
+
     else:
         raise e
     sys.exit(0)
@@ -505,6 +549,22 @@ if SLACK and MODE == "simulation":
     response = client.chat_postMessage(channel=slack_channel,
                                        thread_ts=init_response.data['ts'],
                                        text=slack_completion_message)
+
+    
+    if ASANA:
+        # Add a comment
+        add_comment_to_task(task_gid, "Simulation completed successfully.")
+
+        # Mark the task as completed
+        mark_task_as_complete(task_gid)
+
+        response = client.chat_postMessage(channel=slack_channel,
+                                       thread_ts=init_response.data['ts'],
+                                       text='Check asana for details.')
+
+
+    
+
 
                                                                                             
 print("Finished", time.ctime())         

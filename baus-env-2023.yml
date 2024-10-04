@@ -21,3 +21,5 @@ dependencies:
   - urbansim_defaults=0.2
   - pyyaml<6.0
   - slack_sdk
+  - asana=3.2.1  # not tested on later versions
+  - holidays

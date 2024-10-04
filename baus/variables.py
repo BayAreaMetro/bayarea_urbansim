@@ -459,6 +459,17 @@ def stories(buildings):
     return buildings.stories.groupby(buildings.parcel_id).max()
 
 
+
+# get whether a parcel contains a building from the developer model
+@orca.column('parcels', cache=True)
+def bldg_source(buildings):
+    return buildings.source.groupby(buildings.parcel_id).first()
+
+@orca.column('parcels')
+def first_building_source(buildings):
+    df = buildings.to_frame(columns=['source', 'parcel_id'])
+    return df.groupby('parcel_id').source.first()
+
 @orca.column('parcels', cache=True)
 def height(parcels):
     return parcels.stories * 12  # hard coded 12 feet per story
