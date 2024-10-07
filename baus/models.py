@@ -610,6 +610,9 @@ def residential_developer(feasibility, households, buildings, parcels, year,
                           add_extra_columns_func, parcels_geography,
                           limits_settings, final_year, run_setup):
 
+    #TODO: REMOVE
+    feasibility.to_frame().to_csv(f'M:/urban_modeling/baus/PBA50Plus/investigation/developer/feasibility_residential_developer_start_{year}.csv')
+    
     kwargs = developer_settings['residential_developer']
 
     if run_setup["residential_vacancy_rate_mods"]:
@@ -691,7 +694,7 @@ def residential_developer(feasibility, households, buildings, parcels, year,
             num_units_to_build=int(target),
             profit_to_prob_func=subsidies.profit_to_prob_func,
             **kwargs)
-        print('Stats of buildings before run_developer(): \n{}'.format(
+        print('Stats of buildings after run_developer(): \n{}'.format(
              buildings.to_frame()[['deed_restricted_units','preserved_units','inclusionary_units']].sum()))
 
         buildings = orca.get_table('buildings')
@@ -737,13 +740,21 @@ def residential_developer(feasibility, households, buildings, parcels, year,
 
 @orca.step()
 def retail_developer(jobs, buildings, parcels, nodes, feasibility,
-                     developer_settings, summary, add_extra_columns_func, net):
+                     developer_settings, summary, add_extra_columns_func, net, year):
 
+    #TODO: remove
+    feasibility.to_frame().to_csv(f'M:/urban_modeling/baus/PBA50Plus/investigation/developer/feasibility_retail_developer_start_{year}.csv')
+    
+    #f_1 = feasibility.to_frame()
+    #f_1.to_csv('M:/urban_modeling/baus/PBA50Plus/investigation/developer/feas_before_retail.csv')
     dev_settings = developer_settings['non_residential_developer']
     all_units = dev.compute_units_to_build(
         len(jobs),
         buildings.job_spaces.sum(),
         dev_settings['kwargs']['target_vacancy'])
+
+    if all_units == 0:
+        return
 
     target = all_units * float(dev_settings['type_splits']["Retail"])
     # target here is in sqft
