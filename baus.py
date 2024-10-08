@@ -517,7 +517,8 @@ if SLACK and MODE == "simulation":
         logger.info(f"Slack Channel Connection Error: {e.response['error']}")
 
 try:
-    run_models(mode, run_setup, years_to_run)
+    run_models(MODE, run_setup, years_to_run)
+    
 except Exception as e:
     logger.info(traceback.print_exc())
     tb = e.__traceback__
