@@ -13,6 +13,10 @@ from urbansim.models.relocation import RelocationModel
 from urbansim.utils import misc
 from urbansim_defaults import utils
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 ###############################################################################
 #

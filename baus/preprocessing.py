@@ -5,6 +5,10 @@ import pandas as pd
 from urbansim.utils import misc
 from baus.tests import validation
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 # TO ADD: Housing Unit imputation
 # We want to match the target in baseyear_taz_controls.csv

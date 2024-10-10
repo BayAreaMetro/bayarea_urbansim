@@ -4,6 +4,10 @@ import pathlib
 import orca
 import pandas as pd
 from baus import datasources
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 @orca.step()
 def parcel_transitions(parcels, year, initial_summary_year, final_year, run_name):

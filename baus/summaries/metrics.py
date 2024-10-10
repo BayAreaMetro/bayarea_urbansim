@@ -5,6 +5,11 @@ import orca
 import pandas as pd
 from baus import datasources
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
+
 
 @orca.step()
 def growth_geography_metrics(parcels, parcels_geography, buildings, households, jobs, year, 

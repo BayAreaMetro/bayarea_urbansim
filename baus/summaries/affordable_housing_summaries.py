@@ -5,6 +5,10 @@ import orca
 import pandas as pd
 from baus import datasources
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 @orca.step()
 def deed_restricted_units_summary(run_name, parcels, buildings, year, initial_summary_year, final_year, superdistricts_geography):

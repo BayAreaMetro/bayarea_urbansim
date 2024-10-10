@@ -7,7 +7,10 @@ from urbansim_defaults import utils
 from baus import datasources
 from baus import variables
 
+import logging
 
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 @orca.step()
 def slr_inundate(slr_progression, slr_parcel_inundation, year, parcels):

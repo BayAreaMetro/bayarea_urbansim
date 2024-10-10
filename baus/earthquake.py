@@ -10,6 +10,10 @@ from baus import variables
 from operator import itemgetter
 import itertools
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 # after slr has inundated some parcels and removed buildings permanently,
 # earthquake model removes further buildings temporarily

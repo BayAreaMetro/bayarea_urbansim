@@ -5,6 +5,11 @@ import orca
 import pandas as pd
 from urbansim.utils import misc
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
+
 
 @orca.step()
 def hazards_slr_summary(run_setup, run_name, year):

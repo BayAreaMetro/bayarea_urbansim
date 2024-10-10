@@ -8,9 +8,11 @@ from baus import (
     datasources, variables, models, subsidies, ual, slr, earthquake, 
     utils, preprocessing)
 from baus.tests import validation
-from baus.summaries import \
-    core_summaries, geographic_summaries, affordable_housing_summaries, \
-    hazards_summaries, metrics, travel_model_summaries
+
+from baus.summaries import (
+    core_summaries, geographic_summaries, affordable_housing_summaries, 
+    hazards_summaries, metrics, travel_model_summaries)
+
 from baus.visualizer import push_model_files
 import numpy as np
 import pandas as pd
@@ -23,12 +25,19 @@ import orca
 import orca_test
 import pandana
 import shutil
+import logging
+
+from logging_setup import setup_logging  # Custom logging setup function
+logger = logging.getLogger(__name__)
 
 
 MODE = "simulation"
 EVERY_NTH_YEAR = 5
 IN_YEAR, OUT_YEAR = 2010, 2050
-
+years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
+        
+CURRENT_BRANCH = os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip()
+CURRENT_COMMIT = os.popen('git rev-parse HEAD').read().rstrip()
 
 SLACK = "URBANSIM_SLACK" in os.environ
 if SLACK:
@@ -38,10 +47,6 @@ if SLACK:
     client = WebClient(token=os.environ["SLACK_TOKEN"])
     slack_channel = "#urbansim_sim_update"
 
-SET_RANDOM_SEED = True
-if SET_RANDOM_SEED:
-    np.random.seed(42)
-
 
 parser = argparse.ArgumentParser(description='Run UrbanSim models.')
 
@@ -49,6 +54,8 @@ parser.add_argument('--mode', action='store', dest='mode', help='which mode to r
 parser.add_argument('-i', action='store_true', dest='interactive', help='enter interactive mode after imports')
 parser.add_argument('--set-random-seed', action='store_true', dest='set_random_seed', help='set a random seed for consistent stochastic output')
 parser.add_argument('--disable-slack', action='store_true', dest='no_slack', help='disable slack outputs')
+parser.add_argument('--enable-asana', action='store_true', dest='use_asana', default=False, help='disable Asana task creation')
+
 
 options = parser.parse_args()
 
@@ -60,9 +67,23 @@ if options.mode:
 
 if options.set_random_seed:
     SET_RANDOM_SEED = True
+    np.random.seed(42)
+else:
+    SET_RANDOM_SEED = False
 
 if options.no_slack:
     SLACK = False
+
+if options.use_asana:
+    ASANA = True
+    
+    from scripts.meta.asana_utils import (
+    create_asana_task_from_yaml,
+    add_comment_to_task, 
+    mark_task_as_complete)
+    ASANA_SECTION_NAME = 'Final Blueprint Runs'
+else:
+    ASANA = False
 
 orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
 orca.add_injectable("base_year", IN_YEAR)
@@ -73,10 +94,37 @@ run_name = orca.get_injectable("run_name")
 outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
 outputs_dir.mkdir(parents=True, exist_ok=True)
 
+# Get the outputs directory and run name
+log_file_path = os.path.join(orca.get_injectable("outputs_dir"), f"{run_name}.log")
 
-def run_models(MODE):
+# Set up logging to write to the specified log file
+setup_logging(log_file_path)
 
-    if MODE == "estimation":
+# Example log message to confirm logging is working
+logger = logging.getLogger(__name__)
+logger.info("***The standard stream is being written to the log file***")
+
+logger.info("Started: %s", time.ctime())
+logger.info("Current Branch: %s", CURRENT_BRANCH)
+logger.info("Current Commit: %s", CURRENT_COMMIT)
+logger.info("Set Random Seed: %s", SET_RANDOM_SEED)
+logger.info("Python version: %s", sys.version.split('|')[0])
+logger.info("UrbanSim version: %s", urbansim.__version__)
+logger.info("UrbanSim Defaults version: %s", urbansim_defaults.__version__)
+logger.info("Orca version: %s", orca.__version__)
+logger.info("Orca Test version: %s", orca_test.__version__)
+logger.info("Pandana version: %s", pandana.__version__)
+logger.info("Numpy version: %s", np.__version__)
+logger.info("Pandas version: %s", pd.__version__)
+
+logger.info("SLACK: %s", SLACK)
+logger.info("MODE: %s", MODE)
+
+
+
+def run_models(mode, run_setup, years_to_run):
+
+    if mode == "estimation":
 
         orca.run([
             "neighborhood_vars",         
@@ -90,7 +138,7 @@ def run_models(MODE):
         ])
 
 
-    elif MODE == "preprocessing":
+    elif mode == "preprocessing":
 
         orca.run([
             "preproc_jobs",
@@ -100,7 +148,7 @@ def run_models(MODE):
         ])
 
 
-    elif MODE == "simulation":
+    elif mode == "simulation":
 
         def get_baseyear_models():
 
@@ -178,7 +226,7 @@ def run_models(MODE):
 
             return baseyear_summary_models
 
-        def get_baseyear_metrics():
+        def get_baseyear_metrics_models():
             
             baseyear_metrics_models = [
 
@@ -280,11 +328,11 @@ def run_models(MODE):
 
             if not run_setup["run_jobs_to_transit_strategy_elcm"]:
                 simulation_models.remove("elcm_simulate_ec5")
-                print('Removing `elcm_simulate_ec5`')
+                logger.info('Removing `elcm_simulate_ec5`')
 
             if not run_setup["run_jobs_to_transit_strategy_random"]:
                 simulation_models.remove("gov_transit_elcm")
-                print('Removing `gov_transit_elcm`')
+                logger.info('Removing `gov_transit_elcm`')
             
             if not run_setup["run_slr"]:
                 simulation_models.remove("slr_inundate")
@@ -362,7 +410,7 @@ def run_models(MODE):
             return simulation_summary_models
         
 
-        def get_simulation_metrics():
+        def get_simulation_metrics_models():
             
             simulation_metrics_models = [
 
@@ -393,9 +441,8 @@ def run_models(MODE):
             baseyear_models.extend(get_baseyear_summary_models())
         if run_setup["run_metrics"]:
             baseyear_models.extend(get_baseyear_metrics_models())
-        orca.run(baseyear_models, iter_vars=[IN_YEAR])
+        orca.run(baseyear_models, iter_vars=[years_to_run[0]])
 
-        years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
         simulation_models = get_simulation_models()
         if run_setup["run_summaries"]:
             simulation_models.extend(get_simulation_summary_models())
@@ -407,10 +454,10 @@ def run_models(MODE):
 
         if run_setup["run_visualizer"]:
             visualization_models = get_simulation_visualization_models()
-            orca.run(visualization_models, iter_vars=[OUT_YEAR])
+            orca.run(visualization_models, iter_vars=[years_to_run[-1]])
             
 
-    elif MODE == "visualizer":
+    elif mode == "visualizer":
 
         orca.run([
                 "copy_files_to_viz_loc",
@@ -422,29 +469,21 @@ def run_models(MODE):
 
 
 
-print('***The Standard stream is being written to {}.log***'.format(run_name))
-sys.stdout = sys.stderr = open(os.path.join(orca.get_injectable("outputs_dir"), "%s.log") % run_name, 'w')
+
+if ASANA:
+    # We can do this before the shutil copy step and just use the native run_setup.yaml in the same dir as baus.py
+    task_handle = create_asana_task_from_yaml('run_setup.yaml', run_name, ASANA_SECTION_NAME)
+
+    # Get task identifer for later comment posting 
+    task_gid = task_handle['gid']
+
+    logger.info(f"Creating asana run task with URL: {task_handle['permalink_url']}")
 
 # Memorialize the run config with the outputs - goes by run name attribute
 
-print('***Copying run_setup.yaml to output directory')
+logger.info('***Copying run_setup.yaml to output directory')
 shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
-print("Started", time.ctime())
-print("Current Branch : ", os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip())
-print("Current Commit : ", os.popen('git rev-parse HEAD').read().rstrip())
-print("Set Random Seed : ", SET_RANDOM_SEED)
-print("python version: %s" % sys.version.split('|')[0])
-print("urbansim version: %s" % urbansim.__version__)
-print("urbansim_defaults version: %s" % urbansim_defaults.__version__)
-print("orca version: %s" % orca.__version__)
-print("orca_test version: %s" % orca_test.__version__)
-print("pandana version: %s" % pandana.__version__)
-print("numpy version: %s" % np.__version__)
-print("pandas version: %s" % pd.__version__)
-
-print("SLACK: {}".format(SLACK))
-print("MODE: {}".format(MODE))
 
 if SLACK and MODE == "estimation":
     slack_start_message = f'Starting estimation {run_name} on host {host}'
@@ -455,7 +494,7 @@ if SLACK and MODE == "estimation":
     except SlackApiError as e:
         assert e.response["ok"] is False
         assert e.response["error"]  
-        print(f"Slack Channel Connection Error: {e.response['error']}")
+        logger.info(f"Slack Channel Connection Error: {e.response['error']}")
 
 if SLACK and MODE == "simulation":
     slack_start_message = f'Starting simulation {run_name} on host {host}\nOutput written to: {run_setup["outputs_dir"]}'
@@ -464,15 +503,24 @@ if SLACK and MODE == "simulation":
         # For first slack channel posting of a run, catch any auth errors
         init_response = client.chat_postMessage(channel=slack_channel,
                                            text=slack_start_message)
+
+        if ASANA:
+
+            asana_msg = f"Creating asana run task with URL: {task_handle['permalink_url']}"
+            asana_response = client.chat_postMessage(channel=slack_channel,
+                                    thread_ts=init_response.data['ts'],
+                                    text=asana_msg)
+
     except SlackApiError as e:
         assert e.response["ok"] is False
         assert e.response["error"]  
-        print(f"Slack Channel Connection Error: {e.response['error']}")
+        logger.info(f"Slack Channel Connection Error: {e.response['error']}")
 
 try:
-    run_models(MODE)
+    run_models(MODE, run_setup, years_to_run)
+    
 except Exception as e:
-    print(traceback.print_exc())
+    logger.info(traceback.print_exc())
     tb = e.__traceback__
     
     traces = traceback.extract_tb(tb=tb) #,limit=1)
@@ -487,7 +535,7 @@ except Exception as e:
     # we care mostly about the triggering error - so in reverse order
     error_msgs.reverse()
     error_trace = '\n'.join(error_msgs)
-    print(error_trace)
+    logger.info(error_trace)
 
     if SLACK and MODE == "simulation":
         slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}. Deets here:\n{error_trace}'
@@ -495,6 +543,11 @@ except Exception as e:
         response = client.chat_postMessage(channel=slack_channel,
                                            thread_ts=init_response.data['ts'],
                                            text=slack_fail_message)
+
+        if ASANA:
+            # Add a fail comment
+            add_comment_to_task(task_gid, slack_fail_message)
+
 
     else:
         raise e
@@ -506,5 +559,21 @@ if SLACK and MODE == "simulation":
                                        thread_ts=init_response.data['ts'],
                                        text=slack_completion_message)
 
+    
+    if ASANA:
+        # Add a comment
+        add_comment_to_task(task_gid, "Simulation completed successfully.")
+
+        # Mark the task as completed
+        mark_task_as_complete(task_gid)
+
+        response = client.chat_postMessage(channel=slack_channel,
+                                       thread_ts=init_response.data['ts'],
+                                       text='Check asana for details.')
+
+
+    
+
+
                                                                                             
-print("Finished", time.ctime())         
+logger.info("Finished", time.ctime())         

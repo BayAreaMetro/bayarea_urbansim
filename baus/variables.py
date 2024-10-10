@@ -7,6 +7,11 @@ from baus.utils import nearest_neighbor, groupby_random_choice
 from urbansim_defaults import utils
 from urbansim_defaults import variables
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
+
 
 '''
 There's some really interesting side-effects of orca cache behavior which

@@ -13,6 +13,10 @@ from baus.utils import nearest_neighbor
 import yaml
 import pathlib
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 #####################
 # TABLES AND INJECTABLES

@@ -7,6 +7,11 @@ import numpy as np
 from baus.utils import round_series_match_target, scale_by_target, simple_ipf
 from baus import datasources
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
+
 
 ######################################################
 ### functions for producing travel model variables ###

@@ -18,6 +18,10 @@ from baus.utils import \
     add_buildings, geom_id_to_parcel_id, groupby_random_choice, \
     parcel_id_to_geom_id, round_series_match_target
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 @orca.step()
 def elcm_simulate(jobs, buildings, aggregations):
