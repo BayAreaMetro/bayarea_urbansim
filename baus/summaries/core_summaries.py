@@ -94,21 +94,55 @@ def new_buildings_summary(run_name, parcels, parcels_zoning_calculations, buildi
     if year != final_year:
         return
 
-    parcels = parcels.to_frame().join(parcels_zoning_calculations.to_frame(), lsuffix='parcels')
-    df = buildings.to_frame().merge(parcels, left_on="parcel_id", right_index=True)
 
-    df = df[~df.source.isin(["h5_inputs"])] 
+    pcl_cols = ['parcel_acres', 'x', 'sdem', 'acres', 'max_dua', 'max_far',  'building_purchase_price_sqft',
+            'total_residential_units', 'y', 'total_job_spaces', 'land_cost', 'nodev', 'urbanized', 'manual_nodev',
+            'land_value', 'built_far', 'building_purchase_price', 'total_non_residential_sqft', 'built_dua',
+            'slr_nodev']
+    
+    pcl_zon_cols = ['zoned_far_underbuild', 'zoned_du_underbuild', 'zoned_du', 'zoned_far',
+                'zoned_du_build_ratio', 'zoned_far_build_ratio']
+    
+    parcels_zoning_df = (parcels.to_frame(columns=pcl_cols)
+           .join(parcels_zoning_calculations.to_frame(columns=pcl_zon_cols),
+                 lsuffix='parcels'))
 
-    df = df[['parcel_id', 'building_type', 'building_sqft', 'deed_restricted_units', 'year_built',
-             'preserved_units', 'inclusionary_units', 'subsidized_units',
-             'non_residential_sqft','total_non_residential_sqft', 'residential_price', 'residential_units', 'source',	
-             'vacant_residential_units', 'vacant_job_spaces', 'vacant_res_units', 'price_per_sqft',	'unit_price',	
-             'land_value',	'acres', 'x', 'y', 'parcel_acres', 'total_residential_units',	'total_job_spaces',	
-             'zoned_du', 'zoned_du_underbuild', 'zoned_du_build_ratio', 'zoned_far', 'zoned_far_underbuild', 
-             'zoned_far_build_ratio', 'sdem',	
-             'urbanized', 'manual_nodev', 'total_non_residential_sqft',	'nodev',	
-             'built_far', 'max_far', 'built_dua', 'max_dua', 'building_purchase_price_sqft',	
-             'building_purchase_price',	'land_cost', 'slr_nodev']]
+    # Get buildings frame
+    bldg_cols = ['parcel_id', 'source', 'vacant_residential_units', 'unit_price', 'inclusionary_units',
+                'year_built', 'preserved_units', 'residential_units', 'building_sqft', 'vacant_res_units',
+                'building_type', 'vacant_job_spaces', 'deed_restricted_units', 'non_residential_sqft',
+                'subsidized_units', 'price_per_sqft', 'residential_price']
+    
+    buildings_df = buildings.to_frame(columns=bldg_cols)
+    
+    # just keep new, simulation period records
+    buildings_df = buildings_df.query('source!="h5_inputs"')
+    
+    building_types = (buildings_df
+                  .groupby('parcel_id')
+                  .building_type.apply(lambda x: '-'.join(list(set(x)))))
+
+    df = buildings_df.merge(parcels_zoning_df, left_on="parcel_id", right_index=True,how='inner')
+    
+    # add building types for each parcel_id
+    df['building_types'] = building_types
+    #df = df[~df.source.isin(["h5_inputs"])] 
+
+    pcl_cols.append('building_types')
+
+    df = df[bldg_cols + pcl_cols + pcl_zon_cols]
+        
+        # ['parcel_id', 'building_type', 'building_sqft', 'deed_restricted_units', 'year_built',
+        #      'preserved_units', 'inclusionary_units', 'subsidized_units',
+        #      'non_residential_sqft', 'residential_price', 'residential_units', 'source',	
+        #      'vacant_residential_units', 'vacant_job_spaces', 'vacant_res_units', 'price_per_sqft',	'unit_price',	
+        #      'land_value',	'acres', 'x', 'y', 'parcel_acres', 'total_residential_units','total_non_residential_sqft',	'total_job_spaces',	
+        #      'zoned_du', 'zoned_du_underbuild', 'zoned_du_build_ratio', 'zoned_far', 'zoned_far_underbuild', 
+        #      'zoned_far_build_ratio', 'sdem',	
+        #      'urbanized', 'manual_nodev', 'total_non_residential_sqft',	'nodev',	
+        #      'built_far', 'max_far', 'built_dua', 'max_dua', 'building_purchase_price_sqft',	
+        #      'building_purchase_price',	'land_cost', 'slr_nodev']
+             
 
     df["run_name"] = run_name
 
