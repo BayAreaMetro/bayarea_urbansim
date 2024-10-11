@@ -56,7 +56,7 @@ def get_branch_details_from_run_log(p_log_path: Path) -> dict:
     # turn to pd.Series for easy searching for start and finish text markers
 
     log_file_s = pd.Series(log_file)
-    log_file.close()
+    fobj.close()
     log_file_branch = log_file_s[log_file_s.str.contains('Branch')]
     log_file_commit = log_file_s[log_file_s.str.contains('Commit')]
     
@@ -90,7 +90,7 @@ def get_timestamp_from_run_log(p_log_path: Path) -> dict:
 
     # Turn to pd.Series for easy searching for start and finish text markers
     log_file_s = pd.Series(log_file)
-    log_file.close()
+    fobj.close()
 
     # Log start and finish strings differ between old and new version
     search_strings = {True: {'start': 'Started: ', 'finished': 'Finished: '},
