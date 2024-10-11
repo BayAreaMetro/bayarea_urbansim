@@ -826,22 +826,29 @@ def building_purchase_price_sqft(parcels, developer_settings):
     price = pd.Series(0, parcels.index)
     gentype = parcels.general_type
     cap_rate = developer_settings["cap_rate"]
-    # all of these factors are above one which does some discouraging of
-    # redevelopment - this will need to be recalibrated when the new
-    # developer model comes into play
-    for form in ["Office", "Retail", "Industrial", "Residential"]:
-        # convert to price per sqft from yearly rent per sqft
-        factor = 1.4 if form == "Residential" else (1/cap_rate)
-        # raise cost to convert from industrial
-        if form == "Industrial":
-            factor *= 3.0
-        if form == "Retail":
-            factor *= 2.0
-        if form == "Office":
-            factor *= 1.4
-        tmp = parcel_average_price(form.lower())
-        price += tmp * (gentype == form) * factor
 
+    # define factors for each form - the non-res ones are converted from rent to price based on the cap rate
+    factors = {
+        "Residential": 1.4,
+        "Industrial": 3.0 * (1 / cap_rate),
+        "Retail": 2.0 * (1 / cap_rate),
+        "Office": 1.4 * (1 / cap_rate),
+        #"Vacant": 1
+    }
+
+    # loop through each form, filtering parcels by general type first
+    for form, factor in factors.items():
+        mask = gentype == form
+        if len(mask)>0:  # then proceed only if there are any matching parcels
+            tmp = parcel_average_price(form.lower())
+            price.loc[mask] = tmp[mask] * factor
+
+    price_debug = (pd.concat([price, gentype],
+                            axis=1,
+                            keys=['price', 'type'])
+                .groupby(['type'])
+                .price.median())
+    #print('Describe of building_purchase_price_sqft by type before clip: ', price_debug)
     # this is not a very constraining clip
     return price.clip(150, 2500)
 
@@ -1074,3 +1081,6 @@ def zoned_build_ratio(parcels_zoning_calculations):
     # build space
     return parcels_zoning_calculations.zoned_du_build_ratio + \
         parcels_zoning_calculations.zoned_far_build_ratio
+
+
+
