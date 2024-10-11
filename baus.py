@@ -576,4 +576,4 @@ if SLACK and MODE == "simulation":
 
 
                                                                                             
-logger.info("Finished", time.ctime())         
+logger.info("Finished: %s", time.ctime())
