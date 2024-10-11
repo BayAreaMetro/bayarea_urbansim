@@ -1,6 +1,5 @@
 import logging
 import asana
-import logging
 from datetime import datetime, timedelta
 import holidays
 import yaml
@@ -16,9 +15,6 @@ ASSIGNEE_EMAIL = f'{os.getlogin()}@bayareametro.gov'
 
 # Set up Asana client object
 client = asana.Client.access_token(ASANA_PERSONAL_ACCESS_TOKEN)
-
-
-import logging
 
 # Obtain the logger configured in the main script
 logger = logging.getLogger(__name__)

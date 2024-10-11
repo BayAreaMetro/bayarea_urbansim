@@ -4,6 +4,7 @@ import pathlib
 from asana_utils import create_asana_task_from_yaml
 from logging_config import setup_logging
 
+# Standalone caller for the task creation
 
 def main():
 

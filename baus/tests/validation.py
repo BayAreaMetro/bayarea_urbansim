@@ -7,7 +7,10 @@ import pandas as pd
 from pandas.util import testing as pdt
 from baus.utils import save_and_restore_state
 from urbansim.utils import misc
+import logging
 
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 def assert_series_equal(s1, s2, head=None):
     s1 = s1.sort_index()

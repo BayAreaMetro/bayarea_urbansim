@@ -13,6 +13,10 @@ from urbansim.utils import misc
 from baus.utils import add_buildings
 from urbansim.developer import sqftproforma
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 # this method is a custom profit to probability function where we test the
 # combination of different metrics like return on cost and raw profit

@@ -48,7 +48,7 @@ def get_branch_details_from_run_log(p_log_path: Path) -> dict:
     output = {'branch': None, 'commit': None}
 
     # open the file object
-    fobj = open(p_log_path, "r")
+    fobj = open(p_log_path, "r", encoding='utf-8')
 
     # read the lines in the log
     log_file = fobj.readlines()
@@ -56,6 +56,7 @@ def get_branch_details_from_run_log(p_log_path: Path) -> dict:
     # turn to pd.Series for easy searching for start and finish text markers
 
     log_file_s = pd.Series(log_file)
+    fobj.close()
     log_file_branch = log_file_s[log_file_s.str.contains('Branch')]
     log_file_commit = log_file_s[log_file_s.str.contains('Commit')]
     
@@ -65,7 +66,6 @@ def get_branch_details_from_run_log(p_log_path: Path) -> dict:
     output['branch'] = log_file_branch
     output['commit'] = log_file_commit
     return output
-
 
 
 def get_timestamp_from_run_log(p_log_path: Path) -> dict:
@@ -82,33 +82,67 @@ def get_timestamp_from_run_log(p_log_path: Path) -> dict:
 
     output = {'start': None, 'finish': None}
 
-    # open the file object
-    fobj = open(p_log_path, "r")
+    # Open the file object
+    fobj = open(p_log_path, "r", encoding='utf-8')
 
-    # read the lines in the log
+    # Read the lines in the log
     log_file = fobj.readlines()
 
-    # turn to pd.Series for easy searching for start and finish text markers
+    # Turn to pd.Series for easy searching for start and finish text markers
     log_file_s = pd.Series(log_file)
-    log_file_start = log_file_s[log_file_s.str.contains('^Started')]
-    log_file_finish = log_file_s[log_file_s.str.contains('^Finish')]
+    fobj.close()
+
+    # Log start and finish strings differ between old and new version
+    search_strings = {True: {'start': 'Started: ', 'finished': 'Finished: '},
+                      False: {'start': 'Started ', 'finished': 'Finished '}}
+
+    is_new_log_style = is_new_style_log(p_log_path)
+    if is_new_log_style:
+        # kick out error logs - we don't need the verbose detail
+        log_file_s = log_file_s[~log_file_s.str.contains('- ERROR -')]
+
+    # Pass the appropriate search string depending on the vintage of the log file style
+    log_file_start = log_file_s[log_file_s.str.contains(
+        search_strings[is_new_log_style]['start'])]
+    log_file_finish = log_file_s[log_file_s.str.contains(
+        search_strings[is_new_log_style]['finished'])]
 
     # If the started string is found in the log, get it:
     if len(log_file_start) > 0:
-        start_time = pd.to_datetime(log_file_start.str.replace(
-            'Started ', '').str.replace('\n', '')).iloc[0].isoformat()
-        output['start'] = start_time
-    
+        start_time = log_file_start.str.split(search_strings[is_new_log_style]['start']).map(
+            lambda x: x[-1].replace('\n', '')).map(pd.to_datetime)
+        output['start'] = start_time.iloc[0].isoformat()
+
     # If the finished string is found in the log, get it:
     if len(log_file_finish) > 0:
-        finish_time = pd.to_datetime(log_file_finish.str.replace(
-            'Finished ', '').str.replace('\n', '')).iloc[0].isoformat()
-        output['finish'] = finish_time
+        finish_time = log_file_finish.str.split(search_strings[is_new_log_style]['finished']).map(
+            lambda x: x[-1].replace('\n', '')).map(pd.to_datetime)
+        output['finish'] = finish_time.iloc[0].isoformat()
 
     # log_date_format = "%a %b %d %H:%M:%S %Y"
     # parsed_date = datetime.datetime.strptime(log_date_string, log_date_format)
     # return parsed_date.isoformat()
     return output
+
+def is_new_style_log(p_log_path: Path) -> bool:
+    
+    # open the file object
+    fobj = open(p_log_path, "r", encoding='utf-8')
+
+    # read the lines in the log
+    log_file = fobj.readlines()
+    
+    fobj.close()
+
+    # turn to pd.Series for easy searching for start and finish text markers
+    log_file_s = pd.Series(log_file)
+    
+    # Use the presence of the INFO marker as a litmus test for a log file from the logging module
+    if log_file_s.str.contains('- INFO -').any():
+        return True
+    else:
+        return False
+    
 
 def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.DataFrame:
     """
