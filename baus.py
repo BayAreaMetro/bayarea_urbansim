@@ -285,10 +285,16 @@ def run_models(mode, run_setup, years_to_run):
         #        "subsidized_residential_feasibility",
         #        "subsidized_residential_developer_jobs_housing",
 
+                "alt_feasibility",
                 "residential_developer",
                 "developer_reprocess",
+
+                "alt_feasibility",
+                
                 "retail_developer",
 
+                "alt_feasibility",
+                
                 "office_developer",
                 "subsidized_office_developer_vmt",
 

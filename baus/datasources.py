@@ -719,8 +719,8 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
     print("Check left / right orphaned zoningmodcats")
     print(pg.src.value_counts())
 
-    # then, subset to just left join
-    pg = pg[pg['src'] == 'left_only']
+    # then, subset to inner join
+    pg = pg[pg['src'] == 'both']
     
     print(
         "length of parcels table after merging the zoning strategy table is {} ".format(
@@ -808,7 +808,8 @@ def parcels_jurisdiction():
 def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settings):
 
     parcel_dtypes = {
-        "parcel_id": np.int64
+        "parcel_id": np.int64,
+         "PARCEL_ID": np.int64
     }  # , 'geom_id': np.int64, 'jurisdiction_id': np.int64}
 
     file = os.path.join(
@@ -816,11 +817,14 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
         "basis_inputs/crosswalks/",
         run_setup["parcels_geography_file"],
     )
-    df = pd.read_csv(file, dtype=parcel_dtypes, index_col="parcel_id")
+    df = (pd.read_csv(file, dtype=parcel_dtypes)
+        .rename(columns={'PARCEL_ID': 'parcel_id'})
+        .set_index("parcel_id")
+        )
     
     parcels_juris_df = parcels_jurisdiction.to_frame()
     df["juris_name"] = parcels_juris_df.juris_name
-    df["county"] = parcels_juris_df.juris_name
+    df["county"] = parcels_juris_df.county
 
     # not needed - we already have parcel_ids in the table
     # df = geom_id_to_parcel_id(df, parcels)
@@ -829,6 +833,9 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
     df.loc[2054505, "juris_name"] = "Santa Clara County"
     df.loc[2054506, "juris_name"] = "Marin County"
     df.loc[572927, "juris_name"] = "Contra Costa County"
+    
+    # new, after adding parcels_jurisdiction() as a source of juris
+    df.loc[2054503, "juris_name"] = "Santa Clara County"
 
     # assert no empty juris values
     assert True not in df.juris_name.isnull().value_counts()
@@ -844,14 +851,22 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
         run_setup["parcels_geography_cols"]
     )
 
-    try:
-        # PBA50 parcels_geography input has the zoningmodcat column
-        # so preserving it with the try/except logic for now
+    if 'zoningmodcat' in df:
         print("{} zoningmodcat format is".format(df["zoningmodcat"]))
-    except KeyError:
-        df["zoningmodcat"] = ""
-        for col in run_setup["zoningmodcat_cols"]:
-            df["zoningmodcat"] = df["zoningmodcat"] + df[col]
+    else:    
+        
+        # If not present, generate zoningmodcat
+        # this variable should match the generating scripts for the mods so the joins will work, e.g. 
+        # bayarea_urbansim/scripts/strategy_building/build_PBA50Plus_NP_zoningmods_exp.ipynb
+
+        zoning_mod_cols = run_setup["zoningmodcat_cols"]
+        df["zoningmodcat"] = (
+            df[zoning_mod_cols]
+            .astype(str)
+            .apply(lambda x: "".join(x), axis=1)
+            .str.lower() 
+        )
+        
         print("{} zoningmodcat format is".format(df["zoningmodcat"]))
 
     return df
