@@ -71,7 +71,7 @@ INTERACT = options.interactive
 MODE = options.mode
 
 # Flip the boolean since it is a disable flag
-SLACK = ~options.no_slack:
+SLACK = ~options.no_slack
 
 # Environment vars needed - SLACK_TOKEN
 SLACK = "URBANSIM_SLACK" in os.environ
