@@ -65,7 +65,7 @@ parser.add_argument('--enable-asana', action='store_true', dest='use_asana', def
 
 options = parser.parse_args()
 
-# Harvest constants
+# Harvest constants - 
 INTERACT = options.interactive
 
 MODE = options.mode
@@ -74,17 +74,28 @@ MODE = options.mode
 SLACK = ~options.no_slack
 
 # Environment vars needed - SLACK_TOKEN
-SLACK = "URBANSIM_SLACK" in os.environ
+#SLACK = "URBANSIM_SLACK" in os.environ
+
+
 if SLACK:
-    host = socket.gethostname()
+
     from slack_sdk import WebClient
     from slack_sdk.errors import SlackApiError
-    client = WebClient(token=os.environ["SLACK_TOKEN"])
+    slack_token = os.environ.get("SLACK_TOKEN")
+    
+    if slack_token is None:
+        raise EnvironmentError("SLACK logging was requested but SLACK_TOKEN environment variable is not set. Please set it to enable Slack integration.")
+
+    host = socket.gethostname()
+    client = WebClient(token=slack_token)
     slack_channel = "#urbansim_sim_update"
+    
 
 if options.set_random_seed:
     SET_RANDOM_SEED = True
     np.random.seed(42)
+else:
+    SET_RANDOM_SEED = False
 
 if options.use_asana:
     ASANA = True
