@@ -4,6 +4,10 @@ import pathlib
 import orca
 import pandas as pd
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 @orca.step()
 def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial_summary_year, final_year, interim_summary_years):
