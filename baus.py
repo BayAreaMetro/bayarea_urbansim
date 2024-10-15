@@ -27,8 +27,8 @@ import pandana
 import shutil
 import logging
 
-from logging_setup import setup_logging  # Custom logging setup function
-logger = logging.getLogger(__name__)
+from logging_setup import setup_logging
+
 
 
 MODE = "simulation"
@@ -94,14 +94,14 @@ run_name = orca.get_injectable("run_name")
 outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
 outputs_dir.mkdir(parents=True, exist_ok=True)
 
+
+# Set up BAUS logging to write to the specified log file
 # Get the outputs directory and run name
 log_file_path = os.path.join(orca.get_injectable("outputs_dir"), f"{run_name}.log")
 
-# Set up logging to write to the specified log file
-setup_logging(log_file_path)
+logger = setup_logging(log_file_path, logging.DEBUG)
 
-# Example log message to confirm logging is working
-logger = logging.getLogger(__name__)
+
 logger.info("***The standard stream is being written to the log file***")
 
 logger.info("Started: %s", time.ctime())
