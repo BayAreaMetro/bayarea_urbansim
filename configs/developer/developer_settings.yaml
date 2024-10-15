@@ -68,9 +68,12 @@ static_parcels:
 # settings that get passed to the residential developer as kwargs
 residential_developer:
   target_vacancy: .03
-  min_unit_size: 750 # was 1000
+  #min_unit_size: 750
+  min_unit_size: 1000
+  
   bldg_sqft_per_job: 400
-  max_parcel_size: 10_000_000 # 229 acres, was 150_000_000
+  #max_parcel_size: 10_000_000 # 229 acres
+  max_parcel_size: 150_000_000
 
 # same as above for non-res
 non_residential_developer:
@@ -78,9 +81,9 @@ non_residential_developer:
     target_vacancy: .05
     bldg_sqft_per_job: 400
   type_splits:
-    Industrial: 0.1
+    Industrial: 0.0
     Retail: 0.2
-    Office: 0.7
+    Office: 0.8
 
 # jobs sqft per building type (for existing buildings (everything below?)
 building_sqft_per_job:
