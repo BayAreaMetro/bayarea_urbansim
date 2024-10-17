@@ -22,6 +22,7 @@ def setup_logging(log_file, log_level=logging.INFO):
     # Logging configuration
     logging.basicConfig(
         filename=log_file,
+        filemode='w',     # Don't append - create new log
         level=log_level,  # Default level passed to the logger
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
@@ -30,5 +31,13 @@ def setup_logging(log_file, log_level=logging.INFO):
     # Redirect stdout and stderr to the logger, capturing print statements for now
     sys.stdout = StreamToLogger(logging.getLogger('baus'), logging.INFO)
     sys.stderr = StreamToLogger(logging.getLogger('baus'), logging.ERROR)
+
+    logger.debug("baus logger:{}".format(logger))
+    # set orca logger to warn; info and debug aren't useful
+    logging.getLogger('orca').setLevel(logging.WARN)
+    logger.debug("orca logger:{}".format(logging.getLogger('orca')))
+    # set these to info
+    logging.getLogger('urbansim.models.util').setLevel(logging.INFO)
+    logger.debug("urbansim.models.util logger:{}".format(logging.getLogger('urbansim.models.util')))
 
     return logger
