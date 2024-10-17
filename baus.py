@@ -106,6 +106,8 @@ if options.use_asana:
     mark_task_as_complete)
     # hard code this for now
     ASANA_SECTION_NAME = 'Final Blueprint Runs'
+else:
+    ASANA = False
 
 
 # Set up BAUS logging to write to the specified log file
