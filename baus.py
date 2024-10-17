@@ -472,64 +472,18 @@ if ASANA:
 logger.info('***Copying run_setup.yaml to output directory')
 shutil.copyfile(options.run_setup_yaml, os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
-if SLACK:
-    if MODE == "estimation":
-        slack_start_message = f'Starting estimation {run_name} on host {host}'
-        try:
-            # For first slack channel posting of a run, catch any auth errors
-            init_response = client.chat_postMessage(channel=slack_channel,
-                                                    text=slack_start_message)
-        except SlackApiError as e:
-            assert e.response["ok"] is False
-            assert e.response["error"]  
-            logger.info(f"Slack Channel Connection Error: {e.response['error']}")
-
-    if MODE == "simulation":
-        slack_start_message = f'Starting simulation {run_name} on host {host}\nOutput written to: {run_setup["outputs_dir"]}'
-        
-        try:
-            # For first slack channel posting of a run, catch any auth errors
-            init_response = client.chat_postMessage(channel=slack_channel,
-                                            text=slack_start_message)
-
-        except SlackApiError as e:
-            assert e.response["ok"] is False
-            assert e.response["error"]  
-            logger.info(f"Slack Channel Connection Error: {e.response['error']}")
-
-    if ASANA:
-
-        asana_msg = f"Creating asana run task with URL: {task_handle['permalink_url']}"
-        asana_response = client.chat_postMessage(channel=slack_channel,
-            thread_ts=init_response.data['ts'],
-            text=asana_msg)
+if SLACK: baus.slack.slack_start(MODE, host, run_name, run_setup)
+    
+if ASANA:
+    asana_msg = f"Creating asana run task with URL: {task_handle['permalink_url']}"
+    asana_response = client.chat_postMessage(channel=orca.get_injectable('slack_channel'),
+        thread_ts=orca.get_injectable('slack_init_response').data['ts'],
+        text=asana_msg)
 
 # main event: run the models
 try:
     run_models(MODE)
 
-    # In the event of a successful completion
-
-    if SLACK and MODE == "simulation":
-        slack_completion_message = f'Completed simulation {run_name} on host {host}'
-        response = client.chat_postMessage(channel=slack_channel,
-                                        thread_ts=init_response.data['ts'],
-                                        text=slack_completion_message)
-
-        
-        if ASANA:
-            # Add a comment
-            add_comment_to_task(task_gid, "Simulation completed successfully.")
-
-            # Mark the task as completed
-            mark_task_as_complete(task_gid)
-
-            response = client.chat_postMessage(channel=slack_channel,
-                                        thread_ts=init_response.data['ts'],
-                                        text='Check asana for details.')
-                                                                                                
-    logger.info("Finished: %s", time.ctime())
-    
 except Exception as e:
     logger.info(traceback.print_exc())
     tb = e.__traceback__
@@ -548,18 +502,28 @@ except Exception as e:
     error_trace = '\n'.join(error_msgs)
     logger.info(error_trace)
 
-    if SLACK and MODE == "simulation":
-        slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}. Deets here:\n{error_trace}'
-        
-        response = client.chat_postMessage(channel=slack_channel,
-                                           thread_ts=init_response.data['ts'],
-                                           text=slack_fail_message)
+    if SLACK: baus.slack.slack_error(error_type, error_msg, error_trace)
 
-        if ASANA:
-            # Add a fail comment
-            add_comment_to_task(task_gid, slack_fail_message)
+    if ASANA:
+        # Add a fail comment
+        add_comment_to_task(task_gid, error_msg)
 
 
     else:
         raise e
     sys.exit(0)
+
+if SLACK: baus.slack.slack_complete(MODE, host, run_name)
+
+if ASANA:
+    # Add a comment
+    add_comment_to_task(task_gid, "Simulation completed successfully.")
+
+    # Mark the task as completed
+    mark_task_as_complete(task_gid)
+
+    response = client.chat_postMessage(channel=slack_channel,
+                                       thread_ts=orca.get_injectable('slack_init_response').data['ts'],
+                                       text='Check asana for details.')
+
+print("Finished", time.ctime())
