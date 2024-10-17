@@ -6,13 +6,14 @@ import pandas as pd
 
 
 @orca.step()
-def disaggregate_output(parcels, buildings, households, jobs, static_parcels,
+def disaggregate_output(parcels, buildings, residential_units, households, jobs, static_parcels,
                         year, initial_summary_year, final_year, interim_summary_years):
     """
     This outputs disaggregate tables at the end of specified simulation years.
     The disaggregate tables output are:
     * parcel_table_{year}.csv
     * building_table_{year}.csv
+    * residential_units_{year}.csv
     * household_table_{year}.csv
     * job_table_{year}.csv
     * static_parcels_{year}.csv
@@ -55,20 +56,35 @@ def disaggregate_output(parcels, buildings, households, jobs, static_parcels,
         [parcels, buildings],
         columns=['parcel_id', 'year_built', 'building_type', 'residential_units', 'unit_price', 
                  'non_residential_sqft', 'deed_restricted_units', 'inclusionary_units',
-                 'preserved_units', 'subsidized_units', 'job_spaces', 'source'])
+                 'preserved_units', 'subsidized_units', 'job_spaces', 'vacant_job_spaces', 'source'])
 
     df = df.fillna(0)
     df.to_csv(coresum_output_dir / f"building_table_{year}.csv")
 
+    ####### disaggregate residential_units output
+    resunits_df = residential_units.to_frame(columns=[
+        'unit_residential_price','unit_residential_rent',
+        'num_units','building_id','unit_num',
+        'deed_restricted','tenure','vacant_units'])
+    resunits_df.index.rename('unit_id', inplace=True)
+    resunits_df = resunits_df.reset_index()
+
+    resunits_df.to_csv(coresum_output_dir / f"residential_units_table_{year}.csv", index=False)
+
     ####### disaggregate household output
-    households_df = households.to_frame(columns=['building_id','persons','base_income_quartile','move_in_year'])
+    households_df = households.to_frame(columns=[
+        'unit_id','unit_num','building_id','persons',
+        'income','base_income_quartile','base_income_octile','tenure',
+        'move_in_year'])
     households_df.index.rename('household_id', inplace=True)
     households_df = households_df.reset_index()
 
     households_df.to_csv(coresum_output_dir / f"household_table_{year}.csv", index=False)
 
-    ####### disaggregate household output
+    ####### disaggregate jobs output
     jobs_df = jobs.to_frame(columns=['building_id','sector_id','empsix', 'move_in_year'])
+    jobs_df.index.rename('job_id', inplace=True)
+    jobs_df = jobs_df.reset_index()
     jobs_df.to_csv(coresum_output_dir / f"job_table_{year}.csv", index=False)
 
     ####### static parcels
