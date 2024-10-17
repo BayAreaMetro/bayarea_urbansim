@@ -302,7 +302,7 @@ def reconcile_placed_households(households, residential_units):
     #         ColumnSpec('building_id', foreign_key='buildings.building_id',
     #                    missing=False))))
 
-    hh = households.to_frame(['unit_id', 'building_id'])
+    hh = households.to_frame(['unit_id', 'building_id', 'move_in_year'])
     hh.index.rename('household_id', inplace=True)
     hh = hh.reset_index()
     print("hh columns: %s" % hh.columns)
@@ -320,7 +320,7 @@ def reconcile_placed_households(households, residential_units):
         set_index('household_id')
     print("hh index.names: %s" % hh.index.names)
 
-    print("%d movers updated" % len(hh))
+    print("{:,} movers updated".format(len(hh)))
     households.update_col_from_series('building_id',
                                       hh.building_id, cast=True)
 
@@ -856,7 +856,7 @@ def hlcm_renter_estimate(households, residential_units, aggregations):
 
 # use one core hlcm for the hlcms below, with different yaml files
 def hlcm_simulate(households, residential_units, aggregations,
-                  price_settings, yaml_name, equilibration_name):
+                  price_settings, yaml_name, equilibration_name, move_in_year):
 
     return utils.lcm_simulate(cfg="location_choice/"+yaml_name,
                               choosers=households,
@@ -867,12 +867,13 @@ def hlcm_simulate(households, residential_units, aggregations,
                               vacant_fname='vacant_units',
                               enable_supply_correction=price_settings.get(
                                 equilibration_name, None),
-                              cast=True)
 
+                              cast=True,
+                              move_in_year=move_in_year)
 
 @orca.step()
 def hlcm_owner_simulate(households, residential_units,
-                        aggregations, price_settings):
+                        aggregations, price_settings, year):
 
     # Note that the submarket id (zone_id) needs to be in the table of
     # alternatives, for supply/demand equilibration, and needs to NOT be in the
@@ -883,48 +884,49 @@ def hlcm_owner_simulate(households, residential_units,
 
     hlcm_simulate(orca.get_table('own_hh'), orca.get_table('own_units'),
                   aggregations, price_settings, "hlcm_owner.yaml",
-                  'price_equilibration')
+                  'price_equilibration',
+                  move_in_year=year)
 
     update_unit_ids(households, 'own')
 
 
 @orca.step()
 def hlcm_owner_lowincome_simulate(households, residential_units,
-                                  aggregations, price_settings):
+                                  aggregations, price_settings, year):
 
     # Pre-filter the alternatives to avoid over-pruning (PR 103)
     correct_alternative_filters_sample(residential_units, households, 'own')
 
     hlcm_simulate(orca.get_table('own_hh'), orca.get_table('own_units'),
                   aggregations, price_settings, "hlcm_owner_lowincome.yaml",
-                  'price_equilibration')
+                  'price_equilibration', move_in_year=year)
 
     update_unit_ids(households, 'own')
 
 
 @orca.step()
-def hlcm_renter_simulate(households, residential_units, aggregations, price_settings):
+def hlcm_renter_simulate(households, residential_units, aggregations, price_settings, year):
 
     # Pre-filter the alternatives to avoid over-pruning (PR 103)
     correct_alternative_filters_sample(residential_units, households, 'rent')
 
     hlcm_simulate(orca.get_table('rent_hh'), orca.get_table('rent_units'),
                   aggregations, price_settings, "hlcm_renter.yaml",
-                  'rent_equilibration')
+                  'rent_equilibration', move_in_year=year)
 
     update_unit_ids(households, 'rent')
 
 
 @orca.step()
 def hlcm_renter_lowincome_simulate(households, residential_units, aggregations,
-                                   price_settings):
+                                   price_settings, year):
 
     # Pre-filter the alternatives to avoid over-pruning (PR 103)
     correct_alternative_filters_sample(residential_units, households, 'rent')
 
     hlcm_simulate(orca.get_table('rent_hh'), orca.get_table('rent_units'),
                   aggregations, price_settings, "hlcm_renter_lowincome.yaml",
-                  'rent_equilibration')
+                  'rent_equilibration', move_in_year=year)
 
     update_unit_ids(households, 'rent')
 
@@ -978,14 +980,15 @@ def update_unit_ids(households, tenure):
 
     Returns
     -------
-    None. unit_id column gets updated in the households table.
+    None. unit_id and move_in_year columns get updated in the households table.
 
     """
-    unit_ids = households.to_frame(['unit_id'])
-    updated = orca.get_table(tenure+'_hh').to_frame(['unit_id'])
-    unit_ids.loc[unit_ids.index.isin(updated.index),
-                 'unit_id'] = updated['unit_id']
-    households.update_col_from_series('unit_id', unit_ids.unit_id, cast=True)
+    unit_ids = households.to_frame(['unit_id','move_in_year'])
+    updated = orca.get_table(tenure+'_hh').to_frame(['unit_id','move_in_year'])
+    unit_ids.loc[unit_ids.index.isin(updated.index), 'unit_id'     ] = updated['unit_id']
+    unit_ids.loc[unit_ids.index.isin(updated.index), 'move_in_year'] = updated['move_in_year']
+    households.update_col_from_series('unit_id',      unit_ids.unit_id, cast=True)
+    households.update_col_from_series('move_in_year', unit_ids.move_in_year, cast=True)
 
 
 # this opens the yaml file, deletes the predict filters and writes it to the
@@ -1020,7 +1023,7 @@ def hlcm_owner_simulate_no_unplaced(households, residential_units,
 
     return hlcm_simulate(households, residential_units, aggregations,
                          price_settings, "hlcm_owner_no_unplaced.yaml",
-                         "price_equilibration")
+                         "price_equilibration", move_in_year=year)
 
 
 @orca.step()
@@ -1038,7 +1041,7 @@ def hlcm_owner_lowincome_simulate_no_unplaced(households, residential_units,
 
     return hlcm_simulate(households, residential_units, aggregations,
                          price_settings, "hlcm_owner_lowincome_no_unplaced.yaml",
-                         "price_equilibration")
+                         "price_equilibration", move_in_year=year)
 
 
 @orca.step()
@@ -1056,7 +1059,7 @@ def hlcm_renter_simulate_no_unplaced(households, residential_units,
 
     return hlcm_simulate(households, residential_units, aggregations,
                          price_settings, "hlcm_renter_no_unplaced.yaml",
-                         "rent_equilibration")
+                         "rent_equilibration", move_in_year=year)
 
 
 @orca.step()
@@ -1074,7 +1077,7 @@ def hlcm_renter_lowincome_simulate_no_unplaced(households, residential_units,
 
     return hlcm_simulate(households, residential_units, aggregations,
                          price_settings, "hlcm_renter_lowincome_no_unplaced.yaml",
-                         "rent_equilibration")
+                         "rent_equilibration", move_in_year=year)
 
 
 @orca.step()

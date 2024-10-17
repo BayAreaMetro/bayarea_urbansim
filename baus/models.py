@@ -20,7 +20,7 @@ from baus.utils import \
 
 
 @orca.step()
-def elcm_simulate(jobs, buildings, aggregations):
+def elcm_simulate(jobs, buildings, aggregations, year):
     """
     testing docstring documentation for automated documentation creation
     """
@@ -39,7 +39,8 @@ def elcm_simulate(jobs, buildings, aggregations):
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
                               "building_id", "job_spaces",
-                              "vacant_job_spaces", cast=True)
+                              "vacant_job_spaces", cast=True,
+                              move_in_year=year)
     return elcm
 
 
@@ -58,7 +59,7 @@ def elcm_simulate_ec5(jobs, buildings, aggregations, year):
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
                               "building_id", "job_spaces",
-                              "vacant_job_spaces", cast=True)
+                              "vacant_job_spaces", cast=True, move_in_year=year)
     return elcm
 
 
@@ -364,7 +365,7 @@ def proportional_elcm(jobs, households, buildings, parcels, proportional_retail_
 
 @orca.step()
 def jobs_relocation(jobs, employment_relocation_rates, run_setup, employment_relocation_rates_adjusters, years_per_iter, settings, 
-	                static_parcels, buildings):
+	                static_parcels, buildings, year):
 
     # get buildings that are on those parcels
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
@@ -387,14 +388,14 @@ def jobs_relocation(jobs, employment_relocation_rates, run_setup, employment_rel
 
     # get the index of the moving jobs
     index = jobs.index[move]
-    print("{} jobs are relocating".format(len(index)))
+    print("{:,} jobs are relocating in {}".format(len(index), year))
 
     # set jobs that are moving to a building_id of -1 (means unplaced)
     jobs.update_col_from_series("building_id", pd.Series(-1, index=index))
 
 
 @orca.step()
-def household_relocation(households, household_relocation_rates, run_setup, static_parcels, buildings):
+def household_relocation(households, household_relocation_rates, run_setup, static_parcels, buildings, year):
 
     # get buildings that are on those parcels
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
@@ -403,10 +404,14 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
     # update the relocation rates with the renter protections strategy if applicable
     if run_setup["run_renter_protections_strategy"]:
         renter_protections_relocation_rates = orca.get_table("renter_protections_relocation_rates")
-        rates = pd.concat([rates, renter_protections_relocation_rates.to_frame()]).drop_duplicates(subset=["zone_id", "base_income_quartile", "tenure"], keep="last")
+        rates = pd.concat([rates, renter_protections_relocation_rates.to_frame()]).drop_duplicates(
+            subset=["zone_id", "base_income_quartile", "tenure"], keep="last")
         rates = rates.reset_index(drop=True)
     
-    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure"]), rates, on=["zone_id", "base_income_quartile", "tenure"], how="left")
+    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure", "move_in_year"]), 
+                  rates, 
+                  on=["zone_id", "base_income_quartile", "tenure"],
+                  how="left")
     df.index = households.index
 
     # get random floats and move households if they're less than the rate

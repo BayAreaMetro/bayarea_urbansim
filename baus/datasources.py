@@ -751,13 +751,28 @@ def print_error_if_not_available(store, table):
 
 
 @orca.table(cache=True)
-def jobs(store):
-    return print_error_if_not_available(store, 'jobs_preproc')
+def jobs(store, base_year):
+    jobs_preproc = print_error_if_not_available(store, 'jobs_preproc')
+    print("orca.table jobs() - accessing jobs_preproc from store")
+    # set initial value to base_year -1
+    if 'move_in_year' not in jobs_preproc:
+        print("setting initial move_in_year to {}".format(base_year-1))
+        jobs_preproc['move_in_year'] = base_year-1
+    print("jobs_preproc:\n{}".format(jobs_preproc))
+    return jobs_preproc
 
 
 @orca.table(cache=True)
-def households(store):
-    return print_error_if_not_available(store, 'households_preproc')
+def households(store, base_year):
+    households_preproc = print_error_if_not_available(store, 'households_preproc')
+    print("orca.table households() - accessing households_preproc from store")
+    # set initial value to base_year -1
+    if 'move_in_year' not in households_preproc:
+        print("setting initial move_in_year to {}".format(base_year-1))
+        households_preproc['move_in_year'] = base_year-1
+    print("households_preproc:\n{}".format(households_preproc))
+    # TODO: why does this table have household_id which is NaN?  Is the index the actual household_id?
+    return households_preproc
 
 
 @orca.table(cache=True)
