@@ -17,9 +17,10 @@ from baus.summaries import (
 from baus.visualizer import push_model_files
 import baus.slack
 import baus.debug
+import logging_setup
+
 import numpy as np
 import pandas as pd
-import orca
 import socket
 import argparse
 import urbansim
@@ -30,28 +31,6 @@ import pandana
 import shutil
 import logging
 
-from logging_setup import setup_logging
-
-# Set run year details
-# TODO: move to config 
-EVERY_NTH_YEAR = 5
-IN_YEAR, OUT_YEAR = 2010, 2050
-
-# Get run years from constants
-years_to_run = range(IN_YEAR + EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
-
-# Set a few orca constants
-orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
-orca.add_injectable("base_year", IN_YEAR)
-orca.add_injectable("final_year", OUT_YEAR)
-
-# Get a few orca objects
-run_setup = orca.get_injectable("run_setup")
-run_name = orca.get_injectable("run_name")
-
-# Prepare output dir for run
-outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
-outputs_dir.mkdir(parents=True, exist_ok=True)
         
 # Get repo deets        
 CURRENT_BRANCH = os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip()
@@ -60,6 +39,7 @@ CURRENT_COMMIT = os.popen('git rev-parse HEAD').read().rstrip()
 # Configure argument parsing
 parser = argparse.ArgumentParser(description='Run UrbanSim models.')
 
+parser.add_argument('--run_setup_yaml', default='run_setup.yaml', help='Specify run_setup.yaml file to use')
 parser.add_argument('--mode', action='store', dest='mode', default='simulation', help='which mode to run (see code for mode options)')
 parser.add_argument('-i', action='store_true', dest='interactive', default=False, help='enter interactive mode after imports')
 parser.add_argument('--set-random-seed', action='store_true', dest='set_random_seed', default=False, help='set a random seed for consistent stochastic output')
@@ -71,6 +51,9 @@ options = parser.parse_args()
 # Harvest constants - 
 INTERACT = options.interactive
 
+# use the given run_setup.yaml file
+orca.add_injectable("run_setup_yaml", options.run_setup_yaml)
+
 MODE = options.mode
 
 # Flip the boolean since it is a disable flag
@@ -78,6 +61,14 @@ SLACK = ~options.no_slack
 
 # Environment vars needed - SLACK_TOKEN
 #SLACK = "URBANSIM_SLACK" in os.environ
+
+# Get a few orca objects
+run_setup = orca.get_injectable("run_setup")
+run_name = orca.get_injectable("run_name")
+
+# Prepare output dir for run
+outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
+outputs_dir.mkdir(parents=True, exist_ok=True)
 
 BASE_YEAR = run_setup["base_year"]
 FINAL_YEAR = run_setup["final_year"]
@@ -101,7 +92,8 @@ if SLACK:
     host = socket.gethostname()
     client = WebClient(token=slack_token)
     slack_channel = "#urbansim_sim_update"
-    
+    orca.add_injectable('slack_client',client)
+    orca.add_injectable('slack_channel',slack_channel)
 
 if options.set_random_seed:
     SET_RANDOM_SEED = True
@@ -109,6 +101,7 @@ if options.set_random_seed:
 else:
     SET_RANDOM_SEED = False
 
+ASANA = False
 if options.use_asana:
     ASANA = True
     
@@ -123,8 +116,14 @@ if options.use_asana:
 # Set up BAUS logging to write to the specified log file
 # Get the outputs directory and run name
 log_file_path = os.path.join(orca.get_injectable("outputs_dir"), f"{run_name}.log")
-
-logger = setup_logging(log_file_path, logging.DEBUG)
+print("Writing to log {}".format(log_file_path))
+try:
+    logger = logging_setup.setup_logging(log_file_path, logging.DEBUG)
+    print("logger={}".format(logger))
+except Exception as inst:
+    print("Exception occured setting up logging")
+    print(inst)
+    sys.exit()
 
 logger.info("***The standard stream is being written to the log file***")
 logger.info("Started: %s", time.ctime())
@@ -144,7 +143,7 @@ logger.info("SLACK: %s", SLACK)
 logger.info("MODE: %s", MODE)
 
 
-def run_models(mode, run_setup, years_to_run):
+def run_models(mode):
 
     if mode == "estimation":
 
@@ -471,7 +470,7 @@ if ASANA:
 # Memorialize the run config with the outputs - goes by run name attribute
 
 logger.info('***Copying run_setup.yaml to output directory')
-shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
+shutil.copyfile(options.run_setup_yaml, os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 if SLACK:
     if MODE == "estimation":
@@ -493,23 +492,21 @@ if SLACK:
             init_response = client.chat_postMessage(channel=slack_channel,
                                             text=slack_start_message)
 
-if SLACK: baus.slack.slack_start(MODE, host, run_name, run_setup)
-            if ASANA:
-
-                asana_msg = f"Creating asana run task with URL: {task_handle['permalink_url']}"
-                asana_response = client.chat_postMessage(channel=slack_channel,
-                                        thread_ts=init_response.data['ts'],
-                                        text=asana_msg)
-
         except SlackApiError as e:
             assert e.response["ok"] is False
             assert e.response["error"]  
             logger.info(f"Slack Channel Connection Error: {e.response['error']}")
 
+    if ASANA:
+
+        asana_msg = f"Creating asana run task with URL: {task_handle['permalink_url']}"
+        asana_response = client.chat_postMessage(channel=slack_channel,
+            thread_ts=init_response.data['ts'],
+            text=asana_msg)
 
 # main event: run the models
 try:
-    run_models(MODE, run_setup, years_to_run)
+    run_models(MODE)
 
     # In the event of a successful completion
 
