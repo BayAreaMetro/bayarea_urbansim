@@ -4,6 +4,10 @@ import pathlib
 import orca
 import pandas as pd
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 @orca.step()
 def disaggregate_output(parcels, buildings, residential_units, households, jobs, static_parcels,
@@ -21,11 +25,16 @@ def disaggregate_output(parcels, buildings, residential_units, households, jobs,
     if year not in [initial_summary_year, final_year] + interim_summary_years:
         return
 
+<<<<<<< HEAD
     coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
     coresum_output_dir.mkdir(parents=True, exist_ok=True)
 
     ####### disaggregate parcel output
-    df = parcels.to_frame(["geom_id", "x", "y"])
+    df = parcels.to_frame(["geom_id", "x", "y", 'max_dua', 'built_dua', 'max_far', 'built_far'])
+=======
+    df = parcels.to_frame(["geom_id", "x", "y", 'max_dua', 'built_dua', 'max_far', 'built_far'])
+    
+>>>>>>> main
     # add building data for parcels
     building_df = orca.merge_tables('buildings', [parcels, buildings], columns=['parcel_id', 'residential_units', 'deed_restricted_units',
                                                                                 'preserved_units', 'inclusionary_units', 'subsidized_units',

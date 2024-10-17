@@ -18,6 +18,10 @@ from baus.utils import \
     add_buildings, geom_id_to_parcel_id, groupby_random_choice, \
     parcel_id_to_geom_id, round_series_match_target
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 @orca.step()
 def elcm_simulate(jobs, buildings, aggregations, year):
@@ -447,6 +451,8 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     print("Demolishing/building %d buildings" % len(demolish))
 
     l1 = len(buildings)
+    # the following function has `demolish` as an input, but it is not removing the buildings in the 'demolish' table,
+    # instead, it removes existing buildings on parcels to be occupied by buildings in 'demolish'   
     buildings = utils._remove_developed_buildings(buildings.to_frame(buildings.local_columns), demolish,
                                                   unplace_agents=["households", "jobs"])
     orca.add_injectable('static_parcels', np.append(static_parcels, demolish.loc[demolish.action == 'build', 'parcel_id']))
@@ -1142,7 +1148,7 @@ def regional_vars(net):
     nodes = networks.from_yaml(net["drive"], "accessibility/regional_vars.yaml")
     nodes = nodes.fillna(0)
 
-    nodes2 = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "accessibility/pandana/regional_poi_distances.csv"),
+    nodes2 = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), "accessibility/pandana/regional_poi_distances_v2.csv"),
                          index_col="tmnode_id")
     nodes = pd.concat([nodes, nodes2], axis=1)
 
@@ -1173,7 +1179,7 @@ def regional_pois(accessibility_settings, landmarks):
     df = pd.DataFrame(cols)
     print(df.describe())
     df.index.name = "tmnode_id"
-    df.to_csv('regional_poi_distances.csv')
+    df.to_csv('regional_poi_distances_v2.csv')
 
 
 @orca.step()

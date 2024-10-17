@@ -9,6 +9,10 @@ from urbansim_defaults.utils import _remove_developed_buildings
 from urbansim.developer.developer import Developer as dev
 import itertools as it
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 #####################
 # UTILITY FUNCTIONS
