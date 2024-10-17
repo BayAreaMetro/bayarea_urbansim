@@ -224,7 +224,7 @@ def final_year():
 @orca.injectable(cache=True)
 def store(base_year):
     if base_year == 2020:
-        h5_path = pathlib.Path(orca.get_injectable("inputs_dir")) / "basis_inputs" / "parcels_buildings_agents" / "2024_08_09_bayarea_2020start.h5"
+        h5_path = pathlib.Path(orca.get_injectable("inputs_dir")) / "basis_inputs" / "parcels_buildings_agents" / "2024_10_16_bayarea_2020start.h5"
     else:
         h5_path = pathlib.Path(orca.get_injectable("inputs_dir")) / "basis_inputs" / "parcels_buildings_agents" / "2015_09_01_bayarea_v3.h5"
 
