@@ -98,7 +98,6 @@ if options.set_random_seed:
 else:
     SET_RANDOM_SEED = False
 
-ASANA = False
 if options.use_asana:
     ASANA = True
     
