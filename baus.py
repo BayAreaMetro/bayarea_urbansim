@@ -59,9 +59,6 @@ MODE = options.mode
 # Flip the boolean since it is a disable flag
 SLACK = ~options.no_slack
 
-# Environment vars needed - SLACK_TOKEN
-#SLACK = "URBANSIM_SLACK" in os.environ
-
 # Get a few orca objects
 run_setup = orca.get_injectable("run_setup")
 run_name = orca.get_injectable("run_name")
@@ -125,6 +122,7 @@ except Exception as inst:
     print(inst)
     sys.exit()
 
+orca.add_injectable('logger',logger)
 logger.info("***The standard stream is being written to the log file***")
 logger.info("Started: %s", time.ctime())
 logger.info("Current Branch: %s", CURRENT_BRANCH)
