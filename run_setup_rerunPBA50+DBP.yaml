@@ -2,12 +2,15 @@
 # the model's initial year is 2010, while this specifies the first reporting year
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
+base_year: 2010
+final_year: 2050
 initial_summary_year: 2020
 
 # RUN NAME
-#run_name: PBA50Plus_all_w_ec5_elcm
-#run_name: PBA50Plus_all_w_ec5_random_p33
-run_name: PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
+# reproducing PBA50Plus_DraftBlueprint.yaml
+# https://app.asana.com/0/1203879112191908/1207218106400778/f
+# originally named PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
+run_name: PBA50Plus_DraftBlueprint_v04
 
 annotation: 
    - Deed restriction fix
@@ -25,7 +28,7 @@ vintage: PBA2050Plus
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_DraftBlueprint'
+outputs_dir: 'E:\LUModel2Share\PBA50Plus_DraftBlueprint'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -37,8 +40,8 @@ run_summaries: True
 run_metrics: False
 
 # OPTIONAL VISUALIZER
-run_visualizer: True
-viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
+run_visualizer: False
+viz_dir: 'E:\LUModel2Share\BAUS_Visualizer_PBA50Plus'
 
 
 # CORE CONFIGS

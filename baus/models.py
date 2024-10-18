@@ -24,7 +24,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 @orca.step()
-def elcm_simulate(jobs, buildings, aggregations):
+def elcm_simulate(jobs, buildings, aggregations, year):
     """
     testing docstring documentation for automated documentation creation
     """
@@ -43,7 +43,8 @@ def elcm_simulate(jobs, buildings, aggregations):
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
                               "building_id", "job_spaces",
-                              "vacant_job_spaces", cast=True)
+                              "vacant_job_spaces", cast=True,
+                              move_in_year=year)
     return elcm
 
 
@@ -62,7 +63,7 @@ def elcm_simulate_ec5(jobs, buildings, aggregations, year):
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
                               "building_id", "job_spaces",
-                              "vacant_job_spaces", cast=True)
+                              "vacant_job_spaces", cast=True, move_in_year=year)
     return elcm
 
 
@@ -192,10 +193,10 @@ def households_transition(households, household_controls, year, transition_reloc
 @orca.injectable()
 def static_parcels(developer_settings, parcels):
     # list of geom_ids to not relocate
-    static_parcels = developer_settings["static_parcels"]
-    # geom_ids -> parcel_ids
-    return geom_id_to_parcel_id(
-        pd.DataFrame(index=static_parcels), parcels).index.values
+    static_parcels_list = developer_settings["static_parcels"]
+    print("static_parcels(): {}".format(static_parcels_list))
+
+    return static_parcels_list
 
 
 def _proportional_jobs_model(
@@ -368,7 +369,7 @@ def proportional_elcm(jobs, households, buildings, parcels, proportional_retail_
 
 @orca.step()
 def jobs_relocation(jobs, employment_relocation_rates, run_setup, employment_relocation_rates_adjusters, years_per_iter, settings, 
-	                static_parcels, buildings):
+	                static_parcels, buildings, year):
 
     # get buildings that are on those parcels
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
@@ -391,14 +392,14 @@ def jobs_relocation(jobs, employment_relocation_rates, run_setup, employment_rel
 
     # get the index of the moving jobs
     index = jobs.index[move]
-    print("{} jobs are relocating".format(len(index)))
+    print("{:,} jobs are relocating in {}".format(len(index), year))
 
     # set jobs that are moving to a building_id of -1 (means unplaced)
     jobs.update_col_from_series("building_id", pd.Series(-1, index=index))
 
 
 @orca.step()
-def household_relocation(households, household_relocation_rates, run_setup, static_parcels, buildings):
+def household_relocation(households, household_relocation_rates, run_setup, static_parcels, buildings, year):
 
     # get buildings that are on those parcels
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
@@ -407,10 +408,14 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
     # update the relocation rates with the renter protections strategy if applicable
     if run_setup["run_renter_protections_strategy"]:
         renter_protections_relocation_rates = orca.get_table("renter_protections_relocation_rates")
-        rates = pd.concat([rates, renter_protections_relocation_rates.to_frame()]).drop_duplicates(subset=["zone_id", "base_income_quartile", "tenure"], keep="last")
+        rates = pd.concat([rates, renter_protections_relocation_rates.to_frame()]).drop_duplicates(
+            subset=["zone_id", "base_income_quartile", "tenure"], keep="last")
         rates = rates.reset_index(drop=True)
     
-    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure"]), rates, on=["zone_id", "base_income_quartile", "tenure"], how="left")
+    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure", "move_in_year"]), 
+                  rates, 
+                  on=["zone_id", "base_income_quartile", "tenure"],
+                  how="left")
     df.index = households.index
 
     # get random floats and move households if they're less than the rate
@@ -608,7 +613,7 @@ def alt_feasibility(parcels, developer_settings,
 def residential_developer(feasibility, households, buildings, parcels, year,
                           developer_settings, summary, form_to_btype_func,
                           add_extra_columns_func, parcels_geography,
-                          limits_settings, final_year, run_setup):
+                          limits_settings, base_year, final_year, run_setup):
 
     kwargs = developer_settings['residential_developer']
 
@@ -641,15 +646,15 @@ def residential_developer(feasibility, households, buildings, parcels, year,
             # and development is lumpy
 
             current_total = parcels.total_residential_units[
-                (juris_name == juris) & (parcels.newest_building >= 2010)]\
+                (juris_name == juris) & (parcels.newest_building >= base_year)]\
                 .sum()
 
-            target = (year - 2010 + 1) * limit - current_total
+            target = (year - base_year + 1) * limit - current_total
             # make sure we don't overshoot the total development of the limit
             # for the horizon year - for instance, in Half Moon Bay we have
             # a very low limit and a single development in a far out year can
             # easily build over the limit for the total simulation
-            max_target = (final_year - 2010 + 1) * limit - current_total
+            max_target = (final_year - base_year + 1) * limit - current_total
 
             if target <= 0:
                 continue
