@@ -580,7 +580,7 @@ def alt_feasibility(parcels, developer_settings,
                     parcel_is_allowed_func):
     kwargs = developer_settings['feasibility']
     config = sqftproforma.SqFtProFormaConfig()
-    config.parking_rates["office"] = 1.5
+    config.parking_rates["office"] = 1
     config.parking_rates["retail"] = 1.5
     config.building_efficiency = .85
     config.parcel_coverage = .85
