@@ -3,7 +3,8 @@
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
 base_year: 2020
-final_year: 2030
+final_year: 2050
+# stop_year: 2030 # stop the simulation early for testing
 initial_summary_year: 2020
 
 # RUN NAME
