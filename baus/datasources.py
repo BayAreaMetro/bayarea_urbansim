@@ -170,10 +170,6 @@ def cost_shifters():
 @orca.injectable('developer_settings', cache=True)
 def developer_settings(base_year):
     developer_settings_yaml = "developer_settings.yaml"
-    # TODO: deprecate this. Right now this is needed to get the results to match if base_year == 2020
-    # This is because developed parcels are added to the static parcels list, which I think they likely shouldn't
-    if base_year == 2020:
-        developer_settings_yaml = "developer_settings_2020.yaml"
     full_path = os.path.join(misc.configs_dir(), "developer", developer_settings_yaml)
     logger.info("Reading developer settings from {}".format(full_path))
     with open(full_path) as f:
@@ -235,7 +231,7 @@ def final_year():
 @orca.injectable(cache=True)
 def store(base_year):
     if base_year == 2020:
-        h5_path = pathlib.Path(orca.get_injectable("inputs_dir")) / "basis_inputs" / "parcels_buildings_agents" / "2024_10_18_bayarea_2020start.h5"
+        h5_path = pathlib.Path(orca.get_injectable("inputs_dir")) / "basis_inputs" / "parcels_buildings_agents" / "2024_10_29_bayarea_2020start.h5"
     else:
         h5_path = pathlib.Path(orca.get_injectable("inputs_dir")) / "basis_inputs" / "parcels_buildings_agents" / "2015_09_01_bayarea_v3.h5"
 
