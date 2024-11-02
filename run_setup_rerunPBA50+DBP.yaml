@@ -10,7 +10,8 @@ initial_summary_year: 2020
 # reproducing PBA50Plus_DraftBlueprint.yaml
 # https://app.asana.com/0/1203879112191908/1207218106400778/f
 # originally named PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
-run_name: PBA50Plus_DraftBlueprint_v04
+# as of v06, this does not reproduce DBP results exactly because incorrect caching has been removed
+run_name: PBA50Plus_DraftBlueprint_v06
 
 annotation: 
    - Deed restriction fix
