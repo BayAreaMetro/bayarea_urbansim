@@ -862,7 +862,8 @@ def hlcm_renter_estimate(households, residential_units, aggregations):
 def hlcm_simulate(households, residential_units, aggregations,
                   price_settings, yaml_name, equilibration_name, move_in_year):
 
-    return utils.lcm_simulate(cfg="location_choice/"+yaml_name,
+    logger.debug("Running utils.lcm_simulate() with cfg={} choosers=households buildings=residential_units out_fname=unit_id".format("location_choice/"+yaml_name))
+    utils.lcm_simulate(cfg="location_choice/"+yaml_name,
                               choosers=households,
                               buildings=residential_units,
                               join_tbls=aggregations,
@@ -886,6 +887,7 @@ def hlcm_owner_simulate(households, residential_units,
     # Pre-filter the alternatives to avoid over-pruning (PR 103)
     correct_alternative_filters_sample(residential_units, households, 'own')
 
+    logger.debug("Running hlcm_simulate() with households=own_hh")
     hlcm_simulate(orca.get_table('own_hh'), orca.get_table('own_units'),
                   aggregations, price_settings, "hlcm_owner.yaml",
                   'price_equilibration',
@@ -901,6 +903,7 @@ def hlcm_owner_lowincome_simulate(households, residential_units,
     # Pre-filter the alternatives to avoid over-pruning (PR 103)
     correct_alternative_filters_sample(residential_units, households, 'own')
 
+    logger.debug("Running hlcm_simulate() with households=own_hh")
     hlcm_simulate(orca.get_table('own_hh'), orca.get_table('own_units'),
                   aggregations, price_settings, "hlcm_owner_lowincome.yaml",
                   'price_equilibration', move_in_year=year)
@@ -914,6 +917,7 @@ def hlcm_renter_simulate(households, residential_units, aggregations, price_sett
     # Pre-filter the alternatives to avoid over-pruning (PR 103)
     correct_alternative_filters_sample(residential_units, households, 'rent')
 
+    logger.debug("Running hlcm_simulate() with households=rent_hh")
     hlcm_simulate(orca.get_table('rent_hh'), orca.get_table('rent_units'),
                   aggregations, price_settings, "hlcm_renter.yaml",
                   'rent_equilibration', move_in_year=year)
@@ -928,6 +932,7 @@ def hlcm_renter_lowincome_simulate(households, residential_units, aggregations,
     # Pre-filter the alternatives to avoid over-pruning (PR 103)
     correct_alternative_filters_sample(residential_units, households, 'rent')
 
+    logger.debug("Running hlcm_simulate() with households=rent_hh")
     hlcm_simulate(orca.get_table('rent_hh'), orca.get_table('rent_units'),
                   aggregations, price_settings, "hlcm_renter_lowincome.yaml",
                   'rent_equilibration', move_in_year=year)
@@ -1025,6 +1030,7 @@ def hlcm_owner_simulate_no_unplaced(households, residential_units,
         "location_choice/hlcm_owner.yaml",
         "location_choice/hlcm_owner_no_unplaced.yaml")
 
+    logger.debug("Running hlcm_simulate() with households=households")
     return hlcm_simulate(households, residential_units, aggregations,
                          price_settings, "hlcm_owner_no_unplaced.yaml",
                          "price_equilibration", move_in_year=year)
@@ -1043,6 +1049,7 @@ def hlcm_owner_lowincome_simulate_no_unplaced(households, residential_units,
         "location_choice/hlcm_owner_lowincome.yaml",
         "location_choice/hlcm_owner_lowincome_no_unplaced.yaml")
 
+    logger.debug("Running hlcm_simulate() with households=households")
     return hlcm_simulate(households, residential_units, aggregations,
                          price_settings, "hlcm_owner_lowincome_no_unplaced.yaml",
                          "price_equilibration", move_in_year=year)
@@ -1061,6 +1068,7 @@ def hlcm_renter_simulate_no_unplaced(households, residential_units,
         "location_choice/hlcm_renter.yaml",
         "location_choice/hlcm_renter_no_unplaced.yaml")
 
+    logger.debug("Running hlcm_simulate() with households=households")
     return hlcm_simulate(households, residential_units, aggregations,
                          price_settings, "hlcm_renter_no_unplaced.yaml",
                          "rent_equilibration", move_in_year=year)
@@ -1079,6 +1087,7 @@ def hlcm_renter_lowincome_simulate_no_unplaced(households, residential_units,
         "location_choice/hlcm_renter_lowincome.yaml",
         "location_choice/hlcm_renter_lowincome_no_unplaced.yaml")
 
+    logger.debug("Running hlcm_simulate() with households=households")
     return hlcm_simulate(households, residential_units, aggregations,
                          price_settings, "hlcm_renter_lowincome_no_unplaced.yaml",
                          "rent_equilibration", move_in_year=year)

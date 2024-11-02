@@ -576,7 +576,7 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
     acct_settings : Dict
         A dictionary of settings to parameterize the model.  Needs these keys: sending_buildings_subaccount_def - maps buildings to subaccounts
         receiving_buildings_filter - filter for eligible buildings
-    settings : Dict
+    developer_settings : Dict
         The overall settings
     account : Account
         The Account object to use for subsidization
@@ -615,6 +615,10 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
         the subsidized units, run through the standard code path, although it's very unlikely that there would be more subsidized housing than 
         demand)
     """
+    feas_cols = sorted(feasibility.columns.to_list())
+    logger.debug("run_subsidized_developer(): feasibility len={:,} dataframe=\n{}".format(
+        len(feasibility), feasibility[feas_cols]
+    ))
     # step 2
     feasibility = feasibility.replace([np.inf, -np.inf], np.nan)
     feasibility = feasibility[feasibility.max_profit < 0]
@@ -655,10 +659,10 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
     feasibility["subaccount"] = feasibility.eval(sending_bldgs)
     # step 6
     for subacct, amount in account.iter_subaccounts():
-        print("Subaccount: ", subacct)
+        logger.debug("Subaccount:{}; amount:${:,.2f}".format(subacct, amount))
 
         df = feasibility[feasibility.subaccount == subacct]
-        print("Number of feasible projects in receiving zone:", len(df))
+        logger.debug("Number of feasible projects in receiving zone: {:,}".format(len(df)))
 
         if len(df) == 0:
             continue
@@ -668,7 +672,6 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
         # df.to_csv('subsidized_units_%d_%s_%s.csv' % (orca.get_injectable("year"), account.name, subacct))
 
         # step 8
-        print("Amount in subaccount: ${:,.2f}".format(amount))
         num_bldgs = int((-1*df.max_profit).cumsum().searchsorted(amount))
 
         if num_bldgs == 0:
@@ -680,8 +683,6 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
 
         df.columns = pd.MultiIndex.from_tuples(
             [("residential", col) for col in df.columns])
-        # disable stdout since developer is a bit verbose for this use case
-        sys.stdout, old_stdout = StringIO(), sys.stdout
 
         kwargs = developer_settings['residential_developer']
         # step 9
@@ -699,7 +700,6 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
             add_more_columns_callback=add_extra_columns_func,
             profit_to_prob_func=profit_to_prob_func,
             **kwargs)
-        sys.stdout = old_stdout
         buildings = orca.get_table("buildings")
 
         if new_buildings is None:
@@ -755,19 +755,19 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
 #        assert np.all(buildings.local.deed_restricted_units.fillna(0) <=
 #                      buildings.local.residential_units.fillna(0))
 
-        print("Amount left after subsidy: ${:,.2f}".format(account.total_transactions_by_subacct(subacct)))
+        logger.debug("Amount left after subsidy: ${:,.2f}".format(account.total_transactions_by_subacct(subacct)))
 
         new_buildings_list.append(new_buildings)
 
     total_len = reduce(lambda x, y: x+len(y), new_buildings_list, 0)
     if total_len == 0:
-        print("No subsidized buildings")
+        logger.debug("No subsidized buildings")
         return
 
     new_buildings = pd.concat(new_buildings_list)
-    print("Built {} total subsidized buildings".format(len(new_buildings)))
-    print("    Total subsidy: ${:,.2f}".format(-1*new_buildings.max_profit.sum()))
-    print("    Total subsidized units: {:.0f}".format(new_buildings.residential_units.sum()))
+    logger.debug("Built {:,} total subsidized buildings".format(len(new_buildings)))
+    logger.debug("    Total subsidy: ${:,.2f}".format(-1*new_buildings.max_profit.sum()))
+    logger.debug("    Total subsidized units: {:.0f}".format(new_buildings.residential_units.sum()))
 
     new_buildings["subsidized"] = True
     new_buildings["policy_name"] = policy_name
