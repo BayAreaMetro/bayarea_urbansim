@@ -18,8 +18,8 @@ def debug(store, base_year, year, nodes, parcels, buildings, residential_units, 
     # https://udst.github.io/orca/core.html#orca.orca.DataFrameWrapper
 
     output_store = None
-    # create the 2020 input file for 2020 start (assuming this is not a 2020 start)
-    if (year == 2020) and (base_year != 2020):
+    # optional: create the 2020 input file for 2020 start (assuming this is not a 2020 start)
+    if False and (year == 2020) and (base_year != 2020):
         now = datetime.datetime.now()
         h5_path = (pathlib.Path(orca.get_injectable("inputs_dir")) 
             / "basis_inputs" 
@@ -33,7 +33,7 @@ def debug(store, base_year, year, nodes, parcels, buildings, residential_units, 
     logger.debug("nodes.columns: {}".format(nodes_columns))
     for node_col in nodes_columns:
         logger.debug("node_col {} type={}".format(node_col, nodes.column_type(node_col)))
-    if (year == 2020) and (base_year != 2020):
+    if output_store:
         nodes_table_columns = [
            'ave_hhsize',
            'ave_income_1500',
@@ -208,12 +208,6 @@ def debug(store, base_year, year, nodes, parcels, buildings, residential_units, 
         household_store_df = households.to_frame(households_preproc_store_columns)
         logger.debug("household_store_df.dtypes:\n{}".format(household_store_df.dtypes))
         output_store["households_preproc"] = household_store_df
-    if (year==2020):
-        households_table = orca.get_table("households")
-        households_temp_df = households_table.to_frame(['income','node_id'])
-        logger.debug("households['income','node_id']:\n")
-        logger.debug(households_temp_df)
-        logger.debug(households_temp_df.describe().apply(lambda s: s.apply('{0:.2f}'.format)))
 
     # these are the columns in the original store
     jobs_preproc_store_columns = [
