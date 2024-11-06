@@ -459,7 +459,7 @@ def run_models(mode):
 
 if ASANA:
     # We can do this before the shutil copy step and just use the native run_setup.yaml in the same dir as baus.py
-    task_handle = create_asana_task_from_yaml('run_setup.yaml', run_name, ASANA_SECTION_NAME)
+    task_handle = create_asana_task_from_yaml(options.run_setup_yaml, run_name, ASANA_SECTION_NAME)
 
     # Get task identifer for later comment posting 
     task_gid = task_handle['gid']
@@ -468,7 +468,7 @@ if ASANA:
 
 # Memorialize the run config with the outputs - goes by run name attribute
 
-logger.info('***Copying run_setup.yaml to output directory')
+logger.info(f'***Copying {options.run_setup_yaml} to output directory')
 shutil.copyfile(options.run_setup_yaml, os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 if SLACK: baus.slack.slack_start(MODE, host, run_name, run_setup)
