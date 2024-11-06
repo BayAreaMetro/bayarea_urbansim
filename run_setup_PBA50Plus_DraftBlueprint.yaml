@@ -2,30 +2,30 @@
 # the model's initial year is 2010, while this specifies the first reporting year
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
+base_year: 2010
+final_year: 2050
 initial_summary_year: 2020
 
 # RUN NAME
-#run_name: PBA50Plus_all_w_ec5_elcm
-#run_name: PBA50Plus_all_w_ec5_random_p33
-run_name: PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
+# reproducing PBA50Plus_DraftBlueprint.yaml
+# https://app.asana.com/0/1203879112191908/1207218106400778/f
+# originally named PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
+# as of v06, this does not reproduce DBP results exactly because incorrect caching has been removed
+run_name: PBA50Plus_DraftBlueprint_2020BaseYearCompat
 
 annotation: 
-   - Deed restriction fix
-   - H6 pipeline fix
-   - TM demog file fix
-   - updated 06b logsums
-   - office vacancy geo summary
-   - office includes ME (mixed office)
-   - has updated nodev sites with geom_id fixed (#0021f57)
-   - updated base zoning and lookups (4/30 version)
+   - This is equivalent to the PBA50Plus Draft Blueperint run (PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix)
+     but with code changes required such that running a 2020 base year would achieve the same results
+     as a 2010 base year.  Details can be found here https://github.com/BayAreaMetro/bayarea_urbansim/pull/384
+   - Make model start year configurable (and set to 2020) (https://app.asana.com/0/15119358130897/1207556028226924/f)
 
-reference_run: PBA50Plus_Draft_Blueprint_v6
+reference_run: PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
 variant: DBP
 vintage: PBA2050Plus
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_DraftBlueprint'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_FinalBlueprint'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
