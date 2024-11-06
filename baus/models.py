@@ -680,7 +680,7 @@ def residential_developer(feasibility, households, buildings, parcels, year,
         print('Stats of buildings before run_developer(): \n{}'.format(
              buildings.to_frame()[['deed_restricted_units','preserved_units','inclusionary_units']].sum()))
         new_buildings = utils.run_developer(
-            "residential",
+            ["residential", "mixedresidential"],
             households,
             buildings,
             "residential_units",
