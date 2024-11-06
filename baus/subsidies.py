@@ -141,7 +141,7 @@ def acct_settings(account_strategies):
 
 
 @orca.step()
-def lump_sum_accounts(year, years_per_iter, run_setup):
+def lump_sum_accounts(year, base_year, years_per_iter, run_setup, logger):
 
     if not run_setup["run_housing_bond_strategy"]:
         return
@@ -158,10 +158,15 @@ def lump_sum_accounts(year, years_per_iter, run_setup):
         amt = float(acct["total_amount"])
         amt *= years_per_iter
 
-        metadata = {"description": "%s subsidies" % acct["name"], "year": year}
+        # TODO: special case for 2020 base year to match 2010 base year -- add lump sum for 2015
+        # I think this can be removed
+        if base_year==2020 and year==2020:
+            metadata = {"description": f"{acct['name']} subsidies", "year": 2015}
+            coffer[acct["name"]].add_transaction(amt, subaccount=1, metadata=metadata, logger=logger)
 
+        metadata = {"description": f"{acct['name']} subsidies", "year": year}
         # the subaccount is meaningless here (it's a regional account) but the subaccount number is referred to below
-        coffer[acct["name"]].add_transaction(amt, subaccount=1, metadata=metadata)
+        coffer[acct["name"]].add_transaction(amt, subaccount=1, metadata=metadata, logger=logger)
 
 
 @orca.step()
@@ -184,7 +189,7 @@ def office_lump_sum_accounts(run_setup, year, years_per_iter):
 
         # the subaccount is meaningless here (it's a regional account) -
         # but the subaccount number is referred to below
-        coffer[acct["name"]].add_transaction(amt, subaccount="regional", metadata=metadata)
+        coffer[acct["name"]].add_transaction(amt, subaccount="regional", metadata=metadata, logger=logger)
 
 # this will compute the reduction in revenue from a project due to
 # inclustionary housing - the calculation will be described in thorough
@@ -404,7 +409,7 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
 
     # the subaccount is meaningless here (it's a regional account) - but the subaccount number is referred to below
     # adds the total fees collected to the coffer for residential dev
-    coffer["vmt_res_acct"].add_transaction(total_fees, subaccount=1, metadata=metadata)
+    coffer["vmt_res_acct"].add_transaction(total_fees, subaccount=1, metadata=metadata, logger=logger)
 
     total_fees = 0
     if run_setup["run_vmt_fee_com_for_com_strategy"]:
@@ -428,7 +433,7 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
 
     print("Adding total vmt fees for com amount of $%.2f" % total_fees)
 
-    coffer["vmt_com_acct"].add_transaction(total_fees, subaccount="regional", metadata=metadata)
+    coffer["vmt_com_acct"].add_transaction(total_fees, subaccount="regional", metadata=metadata, logger=logger)
 
 
 @orca.step()
@@ -471,7 +476,7 @@ def calculate_jobs_housing_fees(account_strategies, year, coffer, summary, years
         metadata = {"description": "%s subsidies from jobs-housing development fees" % acct["name"], "year": year}
 
         # add to the subaccount in coffer
-        coffer[acct["name"]].add_transaction(total_fees, subaccount=acct["name"], metadata=metadata)
+        coffer[acct["name"]].add_transaction(total_fees, subaccount=acct["name"], metadata=metadata, logger=logger)
 
 
 #@orca.step()
@@ -535,7 +540,7 @@ def subsidized_office_developer(feasibility, coffer, formula, year, add_extra_co
             "index": dev_id
         }
 
-        coffer[coffer_acct_name].add_transaction(-1*amt, subaccount="regional", metadata=metadata)
+        coffer[coffer_acct_name].add_transaction(-1*amt, subaccount="regional", metadata=metadata, logger=logger)
 
         total_subsidy -= amt
 
@@ -748,7 +753,7 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
 
             metadata['deed_restricted_units'] = new_buildings.loc[index, 'deed_restricted_units']
             metadata['subsidized_units'] = new_buildings.loc[index, 'subsidized_units']
-            account.add_transaction(amt, subaccount=subacct, metadata=metadata)
+            account.add_transaction(amt, subaccount=subacct, metadata=metadata,  logger=logger)
 
         # turn off this assertion for the Draft Blueprint affordable housing policy since the number of deed restricted units
         # vs units from development projects looks reasonable
