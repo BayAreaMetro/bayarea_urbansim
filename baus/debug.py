@@ -64,13 +64,6 @@ def debug(store, base_year, year, nodes, parcels, buildings, residential_units, 
             node_store_df = nodes.to_frame(nodes_table_columns)
             logger.debug("node_store_df.dtypes:\n{}".format(node_store_df.dtypes))
             output_store["nodes"] = node_store_df
-    # TODO: this belongs elsewhere
-    if (year==2020) and (base_year == 2020):
-        nodes_df = store['nodes']
-        logger.debug('retrieving nodes_df from store:\n')
-        logger.debug(nodes_df.head())
-        logger.debug(nodes_df.describe().apply(lambda s: s.apply('{0:.2f}'.format)))
-        orca.add_table("nodes", nodes_df)
 
     parcels_columns = sorted(list(parcels.columns))
     logger.debug("parcels.columns: {}".format(parcels_columns))
