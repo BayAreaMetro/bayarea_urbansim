@@ -4,32 +4,22 @@
 # adter which external forces and strategies are applied
 base_year: 2020
 final_year: 2050
-# stop_year: 2030 # stop the simulation early for testing
 initial_summary_year: 2020
 
 # RUN NAME
-# reproducing PBA50Plus_DraftBlueprint.yaml
-# https://app.asana.com/0/1203879112191908/1207218106400778/f
-# originally named PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
-run_name: PBA50Plus_DraftBlueprint_start2020_v00
+run_name: PBA50Plus_DraftBlueprint_2020BaseYearCompat_start2020
 
 annotation: 
-   - Deed restriction fix
-   - H6 pipeline fix
-   - TM demog file fix
-   - updated 06b logsums
-   - office vacancy geo summary
-   - office includes ME (mixed office)
-   - has updated nodev sites with geom_id fixed (#0021f57)
-   - updated base zoning and lookups (4/30 version)
+   - Reproducing PBA50Plus_DraftBlueprint_2020BaseYearCompat
+     but with start year 2020
 
-reference_run: PBA50Plus_Draft_Blueprint_v6
+reference_run: PBA50Plus_DraftBlueprint_2020BaseYearCompat
 variant: DBP
 vintage: PBA2050Plus
 
 # PATHS FOR INPUTS AND OUTPUTS
 inputs_dir: 'M:/urban_modeling/baus/BAUS Inputs'
-outputs_dir: 'E:\LUModel2Share\PBA50Plus_DraftBlueprint'
+outputs_dir: 'M:/urban_modeling/baus/PBA50Plus/PBA50Plus_FinalBlueprint'
 
 # OPTIONAL RUN VALIDATION
 run_simulation_validation: True 
@@ -42,7 +32,7 @@ run_metrics: False
 
 # OPTIONAL VISUALIZER
 run_visualizer: True
-viz_dir: 'E:\LUModel2Share\BAUS_Visualizer_PBA50Plus'
+viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
 
 
 # CORE CONFIGS
