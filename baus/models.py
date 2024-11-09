@@ -193,7 +193,7 @@ def households_transition(households, household_controls, year, transition_reloc
 # this is a list of parcel_ids which are to be treated as static
 @orca.injectable()
 def static_parcels(developer_settings, parcels):
-    # list of geom_ids to not relocate
+    # list of parcel ids to not relocate
     static_parcels_list = developer_settings["static_parcels"]
     print("static_parcels(): {}".format(static_parcels_list))
 
