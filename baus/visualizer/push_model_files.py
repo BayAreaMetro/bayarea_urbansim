@@ -17,25 +17,25 @@ def copy_files_to_viz_loc(run_name, outputs_dir, viz_dir):
 
     outputs_dir_path = pathlib.Path(outputs_dir)
 
-    new_buildings = pd.read_csv(outputs_dir_path / "core_summaries" / f"{run_name}_new_buildings_summary.csv")
+    new_buildings = pd.read_csv(outputs_dir_path / "core_summaries" / "new_buildings_summary.csv")
     new_buildings["run_name"] = run_name
     new_buildings.to_csv(viz_dir_path / f"{run_name}_new_buildings_summary.csv")
     
-    taz_output_file = pd.read_csv(outputs_dir_path / "travel_model_summaries" / f"{run_name}_taz1_summary_growth.csv")
+    taz_output_file = pd.read_csv(outputs_dir_path / "travel_model_summaries" / f"taz1_summary_growth.csv")
     taz_output_file["run_name"] = run_name
     taz_output_file.to_csv(viz_dir_path / f"{run_name}_taz1_summary_growth.csv")
     
-    interim_taz_output_file = pd.read_csv(outputs_dir_path / "core_summaries" / f"{run_name}_interim_zone_output_allyears.csv")
+    interim_taz_output_file = pd.read_csv(outputs_dir_path / "core_summaries" / f"interim_zone_output_allyears.csv")
     interim_taz_output_file["run_name"] = run_name
     interim_taz_output_file.to_csv(viz_dir_path / f"{run_name}_interim_zone_output_allyears.csv")
 
     for geog in ["juris", "superdistrict", "county"]:
-        output_file = pd.read_csv(outputs_dir_path / "geographic_summaries" / f"{run_name}_{geog}_summary_growth.csv")
+        output_file = pd.read_csv(outputs_dir_path / "geographic_summaries" / f"{geog}_summary_growth.csv")
         output_file["run_name"] = run_name
         output_file.to_csv(viz_dir_path / f"{run_name}_{geog}_summary_growth.csv")
 
     for geog in ["juris", "superdistrict", "county"]:
-        output_file = pd.read_csv(outputs_dir_path / "affordable_housing_summaries" / f"{run_name}_{geog}_dr_growth.csv")
+        output_file = pd.read_csv(outputs_dir_path / "affordable_housing_summaries" / f"{geog}_dr_growth.csv")
         output_file["run_name"] = run_name
         output_file.to_csv(viz_dir_path / f"{run_name}_{geog}_dr_growth.csv")
 

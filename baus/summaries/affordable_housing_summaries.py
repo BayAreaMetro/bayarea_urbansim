@@ -56,7 +56,7 @@ def deed_restricted_units_summary(run_name, parcels, buildings, year, initial_su
 
     affhousum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "affordable_housing_summaries"
     affhousum_output_dir.mkdir(parents=True, exist_ok=True)
-    region_dr.to_csv(affhousum_output_dir / f"{run_name}_region_dr_summary_{year}.csv")
+    region_dr.to_csv(affhousum_output_dir / f"region_dr_summary_{year}.csv")
 
     #### geographic deed restricted units summary ####
     geographies = ['juris', 'superdistrict', 'county']
@@ -94,7 +94,7 @@ def deed_restricted_units_summary(run_name, parcels, buildings, year, initial_su
 
         affhousum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "affordable_housing_summaries"
         affhousum_output_dir.mkdir(parents=True, exist_ok=True)
-        summary_table.fillna(0).to_csv(affhousum_output_dir / f"{run_name}_{geography}_dr_summary_{year}.csv")
+        summary_table.fillna(0).to_csv(affhousum_output_dir / f"{geography}_dr_summary_{year}.csv")
         
 
 @orca.step()
@@ -109,8 +109,8 @@ def deed_restricted_units_growth_summary(year, initial_summary_year, final_year,
 
         # use 2015 as the base year
         ahs_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "affordable_housing_summaries"
-        year1 = pd.read_csv(ahs_dir / f"{run_name}_{geography}_dr_summary_{initial_summary_year}.csv")
-        year2 = pd.read_csv(ahs_dir / f"{run_name}_{geography}_dr_summary_{final_year}.csv")
+        year1 = pd.read_csv(ahs_dir / f"{geography}_dr_summary_{initial_summary_year}.csv")
+        year2 = pd.read_csv(ahs_dir / f"{geography}_dr_summary_{final_year}.csv")
 
         dr_growth = year1.merge(year2, on=geography, suffixes=("_"+str(initial_summary_year), "_"+str(final_year)))
         
@@ -138,4 +138,4 @@ def deed_restricted_units_growth_summary(year, initial_summary_year, final_year,
         
         affhousum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "affordable_housing_summaries"
         affhousum_output_dir.mkdir(parents=True, exist_ok=True)
-        dr_growth.to_csv(affhousum_output_dir / f"{run_name}_{geography}_dr_growth.csv")
+        dr_growth.to_csv(affhousum_output_dir / f"{geography}_dr_growth.csv")

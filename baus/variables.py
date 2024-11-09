@@ -26,7 +26,7 @@ I don't trust myself to be able to use it right
 #####################
 
 
-@orca.column('households', cache=True)
+@orca.column('households', cache=True, cache_scope='step')
 def tmnode_id(households, buildings):
     return misc.reindex(buildings.tmnode_id, households.building_id)
 
@@ -77,7 +77,7 @@ def transit_type(costar, parcels_geography):
 #####################
 
 
-@orca.column('jobs', cache=True)
+@orca.column('jobs', cache=True, cache_scope='step')
 def tmnode_id(jobs, buildings):
     return misc.reindex(buildings.tmnode_id, jobs.building_id)
 
@@ -301,7 +301,7 @@ def unit_price(buildings):
     return buildings.residential_price * buildings.sqft_per_unit
 
 
-@orca.column('buildings', cache=True)
+@orca.column('buildings', cache=True, cache_scope='step')
 def tmnode_id(buildings, parcels):
     return misc.reindex(parcels.tmnode_id, buildings.parcel_id)
 
@@ -361,7 +361,7 @@ def vmt_nonres_cat(buildings, run_setup):
         return misc.reindex(vmt_fee_categories.nonres_cat, buildings.zone_id)
 
 
-@orca.column('buildings', cache=True)
+@orca.column('buildings', cache=False)
 def residential_price(buildings, residential_units, developer_settings):
     """
     This was originally an orca.step in the ual code.  This allows model steps
