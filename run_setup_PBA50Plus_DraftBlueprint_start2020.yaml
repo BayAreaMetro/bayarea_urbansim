@@ -32,7 +32,7 @@ run_metrics: False
 
 # OPTIONAL VISUALIZER
 run_visualizer: True
-viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files'
+viz_dir: 'M:/urban_modeling/baus/PBA50Plus/BAUS_Visualizer_PBA50Plus_Files/PRODUCTION'
 
 
 # CORE CONFIGS
