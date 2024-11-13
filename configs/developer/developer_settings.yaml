@@ -16,6 +16,8 @@ feasibility:
     and oldest_building_age > 20 and (total_residential_units != 1 or parcel_acres > 1.0)
     and first_building_type != 'HO' and first_building_type != 'SC')
   residential_to_yearly: True
+  # means we get a much larger feasibility frame returned, including non-profitable ones
+  only_built: False 
   simple_zoning: True
   pass_through:
     - oldest_building
