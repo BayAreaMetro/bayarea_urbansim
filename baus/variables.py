@@ -611,6 +611,27 @@ def parcel_average_price(use, quantile=.5):
     return misc.reindex(orca.get_table('nodes')[use], orca.get_table('parcels').node_id)
 
 
+@orca.column('parcels', cache=True)
+def profit_adjustment_tier(parcels_geography, profit_adjustment_strategies):
+    
+    tier_cols = []
+    for key, policy in profit_adjustment_strategies["acct_settings"]["profitability_adjustment_policies"].items():
+
+        print(key)
+        formula_segment = policy["profitability_adjustment_formula"]
+        formula_value = policy["profitability_adjustment_value"]
+
+        pct_formula_segment = parcels_geography.local.eval(formula_segment).astype(int)
+        pct_modifications = pct_formula_segment.mul(1+formula_value)
+
+        this_tier = policy['shortname']
+        tier_cols.append(this_tier)
+        #parcels_geography[this_tier] =   pct_formula_segment
+    hsg_tier_group = parcels_geography.to_frame(columns=tier_cols).groupby(tier_cols).ngroup()
+    return hsg_tier_group
+
+
+
 #############################
 # Functions for Checking
 # Allowed Uses and Building
