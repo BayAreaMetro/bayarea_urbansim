@@ -16,6 +16,8 @@ rtp2025_taz_crosswalk_df        = pd.DataFrame() # taz1 -> epc
 rtp2025_parcel_taz_crosswalk_df = pd.DataFrame() # parcel -> taz1
 parcel_taz_sd_crosswalk_df      = pd.DataFrame() # parcel -> taz1 and superdistrict
 
+pba50_geography_crosswalk_df = pd.DataFrame() # parcel -> PBA50 growth geographies for use in rtp2025 metrics
+
 rtp2025_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 rtp2025_dbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 
@@ -28,30 +30,32 @@ rtp2021_fbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea leve
 
 PARCEL_AREA_FILTERS = {
     'RTP2021': {
-            'HRA'      : lambda df: df['hra_id'] == 'HRA',
-            'TRA'      : lambda df: df['tra_id'] != 'NA',  # note this is the string NA
-            'HRAandTRA': lambda df: (df['tra_id'] != 'NA') & (df['hra_id'] == 'HRA'),
-            'GG'       : lambda df: df['gg_id'] == 'GG',
-            'nonGG'    : lambda df: df['gg_id'] != 'GG',
-            'GG_nonPDA': lambda df: (df['gg_id'] == 'GG') & (pd.isna(df['pda_id_pba50_fb'])),
-            'PDA'      : lambda df: pd.notna(df['pda_id_pba50_fb']),
-            'EPC'      : lambda df: df['tract10_epc'] == 1,
-            'nonEPC'   : lambda df: df['tract10_epc'] != 1,
-            'PPA'      : lambda df: df['ppa_id'] == 'ppa',
-            'Region'   : None
+            'HRA'       : lambda df: df['hra_id'] == 'HRA',
+            'TRA'       : lambda df: df['tra_id'] != 'NA',  # note this is the string NA
+            'HRAandTRA' : lambda df: (df['tra_id'] != 'NA') & (df['hra_id'] == 'HRA'),
+            'GG'        : lambda df: df['gg_id'] == 'GG',
+            'nonGG'     : lambda df: df['gg_id'] != 'GG',
+            'GG_nonPDA' : lambda df: (df['gg_id'] == 'GG') & (pd.isna(df['pda_id_pba50_fb'])),
+            'PDA'       : lambda df: pd.notna(df['pda_id_pba50_fb']),
+            'EPC'       : lambda df: df['tract10_epc'] == 1,
+            'nonEPC'    : lambda df: df['tract10_epc'] != 1,
+            'PPA'       : lambda df: df['ppa_id'] == 'ppa',
+            'Region'    : None
     },
     'RTP2025': {
-            'HRA'      : lambda df: df['hra_id'] == 'HRA',
-            'TRA'      : lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
-            'HRAandTRA': lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
-            'GG'       : lambda df: df['gg_id'] == 'GG',
-            'nonGG'    : lambda df: df['gg_id'] != 'GG',
-            'GG_nonPDA': lambda df: (df['gg_id'] == 'GG') & (pd.isna(df['pda_id'])),
-            'PDA'      : lambda df: pd.notna(df['pda_id']),
-            'EPC'      : lambda df: df['epc_id'] == 'EPC',
-            'nonEPC'   : lambda df: df['epc_id'] != 'EPC',
-            'PPA'      : lambda df: df['ppa_id'] == 'PPA',
-            'Region'   : None
+            'HRA'       : lambda df: df['hra_id'] == 'HRA',
+            'TRA'       : lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
+            'HRAandTRA' : lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
+            'GG'        : lambda df: df['gg_id'] == 'GG',
+            'nonGG'     : lambda df: df['gg_id'] != 'GG',
+            'PBA50GG'   : lambda df: df['pba50_gg_id'] == 'GG',
+            'PBA50nonGG': lambda df: df['pba50_gg_id'] != 'GG',
+            'GG_nonPDA' : lambda df: (df['gg_id'] == 'GG') & (pd.isna(df['pda_id'])),
+            'PDA'       : lambda df: pd.notna(df['pda_id']),
+            'EPC'       : lambda df: df['epc_id'] == 'EPC',
+            'nonEPC'    : lambda df: df['epc_id'] != 'EPC',
+            'PPA'       : lambda df: df['ppa_id'] == 'PPA',
+            'Region'    : None
     }
 }
 
@@ -109,6 +113,7 @@ def load_data_for_runs(
     global parcel_taz_sd_crosswalk_df
     global rtp2025_np_parcel_inundation_df
     global rtp2025_dbp_parcel_inundation_df
+    global pba50_geography_crosswalk_df
 
     global rtp2021_geography_crosswalk_df
     global rtp2021_tract_crosswalk_df
@@ -176,6 +181,13 @@ def load_data_for_runs(
             rtp2025_geography_crosswalk_df['jurisdiction'] = rtp2025_geography_crosswalk_df.jurisdiction.str.title()
             rtp2025_geography_crosswalk_df['jurisdiction'] = rtp2025_geography_crosswalk_df.jurisdiction.str.replace("St ","St. ") # St. Helena
             logging.debug(f"rtp2025_geography_crosswalk_df.jurisdiction.value_counts(dropna=False):\n{rtp2025_geography_crosswalk_df.jurisdiction.value_counts(dropna=False)}")
+        
+        if len(pba50_geography_crosswalk_df) == 0:
+            PBA50_PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "2021_02_25_parcels_geography.csv"
+            pba50_geography_crosswalk_df = pd.read_csv(PBA50_PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','gg_id'])
+            pba50_geography_crosswalk_df.rename(columns={"gg_id":"pba50_gg_id"}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(pba50_geography_crosswalk_df), PBA50_PARCEL_CROSSWALK_FILE))
+            logging.debug("  pba50_geography_crosswalk_df.head():\n{}".format(pba50_geography_crosswalk_df.head()))
 
         if len(rtp2025_urban_area_crosswalk_df) == 0:
             URBAN_AREA_CROSSWALK_FILE = CROSSWALKS_DIR / "p10_parcels_to_2020_urban_areas.csv"
@@ -576,6 +588,17 @@ def load_data_for_runs(
                 validate = "one_to_one"
             )
             logging.debug("Head after merge with rtp2025_geography_crosswalk_df:\n{}".format(parcel_df.head()))
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = pba50_geography_crosswalk_df,
+                how      = "left",
+                left_on  = "parcel_id",
+                right_on = "PARCEL_ID",
+                validate = "one_to_one"
+            )
+            logging.debug("Head after merge with pba50_geography_crosswalk_df:\n{}".format(parcel_df.head()))
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
             # add tract lookup for tract categories

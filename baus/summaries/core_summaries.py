@@ -4,6 +4,10 @@ import pathlib
 import orca
 import pandas as pd
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
 
 @orca.step()
 def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial_summary_year, final_year, interim_summary_years):
@@ -11,7 +15,8 @@ def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial
     if year not in [initial_summary_year, final_year] + interim_summary_years:
         return
 
-    df = parcels.to_frame(["geom_id", "x", "y"])
+    df = parcels.to_frame(["geom_id", "x", "y", 'max_dua', 'built_dua', 'max_far', 'built_far'])
+    
     # add building data for parcels
     building_df = orca.merge_tables('buildings', [parcels, buildings], columns=['parcel_id', 'residential_units', 'deed_restricted_units',
                                                                                 'preserved_units', 'inclusionary_units', 'subsidized_units',

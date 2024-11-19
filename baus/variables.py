@@ -7,6 +7,11 @@ from baus.utils import nearest_neighbor, groupby_random_choice
 from urbansim_defaults import utils
 from urbansim_defaults import variables
 
+import logging
+
+# Get a logger specific to this module
+logger = logging.getLogger(__name__)
+
 
 '''
 There's some really interesting side-effects of orca cache behavior which
@@ -961,7 +966,7 @@ def effective_max_dua(zoning_existing, parcels):
 
     s = pd.concat([s, strategy_max_dua], axis=1).max(axis=1)
 
-    # take the min dua IFF the upzone value is less than the current value
+    # take the min dua IFF the downzone value is less than the current value
     # i.e. don't let the downzoning operation accidentally upzone
 
     strategy_min_dua = orca.get_table("zoning_strategy").dua_down
