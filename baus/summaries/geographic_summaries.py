@@ -173,7 +173,7 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
         columns=['juris', 'superdistrict', 'county', 'subregion', 'empsix', 'ec5_cat'])
 
     buildings_df = orca.merge_tables('buildings', [parcels, buildings],
-        columns=['juris', 'superdistrict', 'county', 'subregion', 'building_type', 
+        columns=['juris', 'superdistrict', 'county', 'subregion', 'profit_adjustment_tier','building_type', 
                  'residential_units', 'deed_restricted_units', 'non_residential_sqft','job_spaces',
                  'vacant_job_spaces'])
 
@@ -240,6 +240,15 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
             groupby(geography).residential_units.sum()
         summary_table['mfdu'] = buildings_df[(buildings_df.building_type == 'HM') | (buildings_df.building_type == 'MR')].\
             groupby(geography).residential_units.sum()
+        
+        # units by tier
+        for tier_nme in buildings_df.profit_adjustment_tier.unique():
+            summary_table[f'residential_units_{tier_nme}'] = (
+                buildings_df.query(
+                'profit_adjustment_tier==@tier_nme')
+                .groupby(geography)
+                .residential_units.sum()
+            )        
         
         # employees by sector
         summary_table['totemp'] = jobs_df.groupby(geography).size()

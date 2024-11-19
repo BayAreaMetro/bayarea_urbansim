@@ -612,7 +612,7 @@ def parcel_average_price(use, quantile=.5):
 
 
 @orca.column('parcels', cache=True)
-def profit_adjustment_tier(parcels_geography, profit_adjustment_strategies):
+def profit_adjustment_tier(parcels, parcels_geography, profit_adjustment_strategies):
     
     tier_cols = []
     for key, policy in profit_adjustment_strategies["acct_settings"]["profitability_adjustment_policies"].items():
@@ -626,8 +626,10 @@ def profit_adjustment_tier(parcels_geography, profit_adjustment_strategies):
 
         this_tier = policy['shortname']
         tier_cols.append(this_tier)
-        #parcels_geography[this_tier] =   pct_formula_segment
+        parcels_geography[this_tier] =   pct_formula_segment
     hsg_tier_group = parcels_geography.to_frame(columns=tier_cols).groupby(tier_cols).ngroup()
+    hsg_tier_group =  hsg_tier_group.reindex(parcels.index)
+    hsg_tier_group.to_csv('hsg_tier_group.csv')
     return hsg_tier_group
 
 

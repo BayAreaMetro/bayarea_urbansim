@@ -380,8 +380,10 @@ def policy_modifications_of_profit(feasibility, parcels):
 
                 feasibility[("residential", "max_profit")] *= pct_modifications
 
-        if len(tier_cols>0):
+        if len(tier_cols)>0:
+            print(f'tier_cols: {tier_cols}')
             hsg_tier_group = parcels.to_frame(columns=tier_cols).groupby(tier_cols).ngroup()
+            hsg_tier_group.to_csv('subsidy_hsg_tier_group.csv')
             orca.add_column('parcels', 'hsg_tier_grp', hsg_tier_group)
 
     print("There are %d affordable units if all feasible projects are built" % feasibility[("residential", "deed_restricted_units")].sum())
