@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 ###############################################################################
 
 
+
 def _create_empty_units(buildings):
     """
     Create a table of empty units corresponding to an input table of buildings.
@@ -43,41 +44,27 @@ def _create_empty_units(buildings):
     df : DataFrame
         Table of units, to be processed within an orca step
     """
-    # The '.astype(int)' deals with a bug (?) where the developer model creates
-    # floating-point unit counts
+    building_ids = np.repeat(buildings.index.values, buildings.residential_units.fillna(0).values.astype(int))
+    unit_nums = np.tile(np.arange(buildings.residential_units.max().astype(int)), len(buildings.index))[:len(building_ids)]
 
-    s = buildings.residential_units.fillna(0) >=\
-        buildings.deed_restricted_units.fillna(0)
+    deed_restricted_units = buildings.deed_restricted_units.fillna(0).values.astype(int)
+    residential_units = buildings.residential_units.fillna(0).values.astype(int)
 
-    assert np.all(buildings.residential_units.fillna(0) >=
-                  buildings.deed_restricted_units.fillna(0))
+    deed_restricted = np.concatenate([
+        np.concatenate([np.ones(dr, dtype=int), np.zeros(ru - dr, dtype=int)])
+        for ru, dr in zip(residential_units, deed_restricted_units)
+    ])
 
     df = pd.DataFrame({
         'unit_residential_price': 0.0,
         'unit_residential_rent': 0.0,
         'num_units': 1,
-        'building_id': np.repeat(
-            buildings.index.values,
-            buildings.residential_units.values.astype(int)
-        ),
-        # counter of the units in a building
-        'unit_num': np.concatenate([
-            np.arange(num_units)
-            for num_units in buildings.residential_units.values.astype(int)
-        ]),
-        # also identify deed restricted units
-        'deed_restricted': np.concatenate([
-            np.concatenate([
-                np.ones(restricted_units),
-                np.zeros(num_units - restricted_units)
-            ])
-            # iterate over number of units and deed restricted units too
-            for (num_units, restricted_units) in list(zip(
-                buildings.residential_units.values.astype(int),
-                buildings.deed_restricted_units.values.astype(int)
-            ))
-        ])
-    }).sort_values(by=['building_id', 'unit_num']).reset_index(drop=True)
+        'building_id': building_ids,
+        'unit_num': unit_nums,
+        'deed_restricted': deed_restricted
+    })
+
+    df = df.sort_values(by=['building_id', 'unit_num']).reset_index(drop=True)
     df.index.name = 'unit_id'
     return df
 
