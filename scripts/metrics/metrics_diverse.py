@@ -39,7 +39,7 @@ def low_income_households_share(
     summary_list = []
     # Process each area and year
     for year in SUMMARY_YEARS:
-        for area in ['HRA','TRA','HRAandTRA','EPC','Region']:
+        for area in ['HRA','TRA','HRAandTRA','EPC_18','EPC_22','Region']:
             filter_condition = metrics_utils.PARCEL_AREA_FILTERS[rtp][area]
             if callable(filter_condition):  # Check if the filter is a function
                 df_area = modelrun_data[year]['parcel'].loc[filter_condition(modelrun_data[year]['parcel'])]
@@ -106,14 +106,25 @@ def gentrify_displacement_tracts(
     INITIAL_YEAR = SUMMARY_YEARS[0]
     HORIZON_YEAR = SUMMARY_YEARS[-1]
 
-    SUMMARIZATION_CATEGORIES = [
+    if rtp == 'RTP2021':
+        SUMMARIZATION_CATEGORIES = [
+            ('Region',          'all_region'), # Region != all_region for tableau aliasing 
+            ('Region',          'EPC'       ),
+            ('Region',          'DispRisk'  ),
+            ('GrowthGeography', 'all_gg'    ), # GrowthGeography != all_gg for tableau aliasing
+            ('GrowthGeography', 'HRA'       ),
+            ('GrowthGeography', 'TRA'       )
+        ]
+    elif rtp == 'RTP2025':
+        SUMMARIZATION_CATEGORIES = [
         ('Region',          'all_region'), # Region != all_region for tableau aliasing 
-        ('Region',          'EPC'       ),
+        ('Region',          'EPC_18'    ),
+        ('Region',          'EPC_22'    ),
         ('Region',          'DispRisk'  ),
         ('GrowthGeography', 'all_gg'    ), # GrowthGeography != all_gg for tableau aliasing
         ('GrowthGeography', 'HRA'       ),
         ('GrowthGeography', 'TRA'       )
-    ]
+        ]
 
     CATEGORY_TO_RTP_TRACT_ID = {
         # for RTP2021/PBA50, all tract lookups are relative to tract10
@@ -131,7 +142,8 @@ def gentrify_displacement_tracts(
         'RTP2025':{
             'Region':           None,
             'all_region':       'tract20',
-            'EPC':              'tract20_epc',
+            'EPC_18':           'tract10_epc',
+            'EPC_22':           'tract20_epc',
             'DispRisk':         'tract10_DispRisk',
             'GrowthGeography':  'tract20_growth_geo',
             'all_gg':           None, # no additional filter
@@ -148,7 +160,7 @@ def gentrify_displacement_tracts(
                 tract_keys['tract10'].add(CATEGORY_TO_RTP_TRACT_ID[rtp][cat])
             if CATEGORY_TO_RTP_TRACT_ID[rtp][cat].startswith('tract20'):
                 tract_keys['tract20'].add(CATEGORY_TO_RTP_TRACT_ID[rtp][cat])
-    logging.debug(f"{tract_keys=}")
+    logging.debug(f"{tract_keys}")
 
     # store results here to build dataframe
     summary_dict_list = []
@@ -217,7 +229,7 @@ def gentrify_displacement_tracts(
 
             cat1_tract_var = CATEGORY_TO_RTP_TRACT_ID[rtp][cat1]
             cat2_tract_var = CATEGORY_TO_RTP_TRACT_ID[rtp][cat2]
-            logging.debug(f"Summarizing ({cat1},{cat2}); {cat1_tract_var=} {cat2_tract_var=}")
+            logging.debug(f"Summarizing ({cat1},{cat2}); {cat1_tract_var} {cat2_tract_var}")
             # error if both not none and mismatching (e.g. can't summarize on tract10 and tract20 at the same time)
             if cat1_tract_var and cat2_tract_var:
                 # logging.debug(f"{cat1_tract_var[:7]} == {cat2_tract_var[:7]}")
@@ -233,7 +245,7 @@ def gentrify_displacement_tracts(
             elif cat1 == 'GrowthGeography':
                 category_tract_summary_df = multiyear_tract_summary_df.loc[multiyear_tract_summary_df[cat1_tract_var] == 1]  # tract[10|20]_growth_geo == 1
             else:
-                raise RuntimeError(f"{cat1=} not supported")
+                raise RuntimeError(f"{cat1} not supported")
 
             # filter to cat2
             if cat2.startswith('all'):
@@ -253,7 +265,7 @@ def gentrify_displacement_tracts(
             }
             for summarize_var in ['displacement','gentrification']:
                 tract_count_var = category_tract_summary_df[summarize_var].sum()  # sum coerces booleans to ints 0/1
-                logging.debug(f'  {summarize_var} for {cat1=} {cat2=}: {tract_count_var=} {tract_count_all=}')
+                logging.debug(f'  {summarize_var} for {cat1} {cat2}: {tract_count_var} {tract_count_all}')
 
                 # save it to summary_dict
                 summary_dict[f'{summarize_var}_tracts'      ] = tract_count_var

@@ -52,8 +52,10 @@ PARCEL_AREA_FILTERS = {
             'PBA50nonGG': lambda df: df['pba50_gg_id'] != 'GG',
             'GG_nonPDA' : lambda df: (df['gg_id'] == 'GG') & (pd.isna(df['pda_id'])),
             'PDA'       : lambda df: pd.notna(df['pda_id']),
-            'EPC'       : lambda df: df['epc_id'] == 'EPC',
-            'nonEPC'    : lambda df: df['epc_id'] != 'EPC',
+            'EPC_18'    : lambda df: df['tract10_epc'] == 1,
+            'nonEPC_18' : lambda df: df['tract10_epc'] != 1,
+            'EPC_22'    : lambda df: df['tract20_epc'] == 1,
+            'nonEPC_22' : lambda df: df['tract20_epc'] != 1,
             'PPA'       : lambda df: df['ppa_id'] == 'PPA',
             'Region'    : None
     }
@@ -172,7 +174,7 @@ def load_data_for_runs(
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
             logging.debug(f"  rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)}")
-            logging.debug(f"  {len(rtp2025_geography_crosswalk_df.loc[pd.isna(rtp2025_geography_crosswalk_df.ppa_id)])=}")
+            # logging.debug(f"  {len(rtp2025_geography_crosswalk_df.loc[pd.isna(rtp2025_geography_crosswalk_df.ppa_id)])=}")
             logging.debug(f"  rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['gg_id'].value_counts(dropna=False)}")
 
             # jurisdiction: standardize to Title Case, with spaces
@@ -236,17 +238,30 @@ def load_data_for_runs(
             logging.debug("  rtp2025_tract_crosswalk_df.head():\n{}".format(rtp2025_tract_crosswalk_df.head()))
 
             # tract-based lookups
-            TRACT_EPC_CROSSWALK_FILE = "https://raw.githubusercontent.com/BayAreaMetro/Spatial-Analysis-Mapping-Projects/master/Project-Documentation/Equity-Priority-Communities/Data/epc_acs2022.csv"
-            tract_epc_df = pd.read_csv(TRACT_EPC_CROSSWALK_FILE, usecols=['tract_geoid','epc_2050p'])
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_epc_df), TRACT_EPC_CROSSWALK_FILE))
+            TRACT_EPC22_CROSSWALK_FILE = "https://raw.githubusercontent.com/BayAreaMetro/Spatial-Analysis-Mapping-Projects/master/Project-Documentation/Equity-Priority-Communities/Data/epc_acs2022.csv"
+            tract_epc22_df = pd.read_csv(TRACT_EPC22_CROSSWALK_FILE, usecols=['tract_geoid','epc_2050p'])
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_epc22_df), TRACT_EPC22_CROSSWALK_FILE))
             # EPCs are defined with tract20 -> rename
-            tract_epc_df.rename(columns = {"tract_geoid":"tract20", "epc_2050p":"tract20_epc"}, inplace=True)
-            logging.info("  len(tract_epc_df.tract20.unique()): {:,}".format(len(tract_epc_df.tract20.unique())))
-            logging.debug("  tract_epc_df.head():\n{}".format(tract_epc_df.head()))
+            tract_epc22_df.rename(columns = {"tract_geoid":"tract20", "epc_2050p":"tract20_epc"}, inplace=True)
+            logging.info("  len(tract_epc22_df.tract20.unique()): {:,}".format(len(tract_epc22_df.tract20.unique())))
+            logging.debug("  tract_epc22_df.head():\n{}".format(tract_epc22_df.head()))
             rtp2025_tract_crosswalk_df = pd.merge(
                 left     = rtp2025_tract_crosswalk_df,
-                right    = tract_epc_df,
+                right    = tract_epc22_df,
                 on       = 'tract20',
+                how      = 'left',
+                validate = 'many_to_one'
+            )
+            # also need EPCs based on tract10 (based on ACS 2014-2018 data)
+            TRACT_EPC18_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "COCs_ACS2018_tbl_TEMP.csv"
+            tract_epc18_df = pd.read_csv(TRACT_EPC18_CROSSWALK_FILE, usecols=['geoid','tract_id','coc_flag_pba2050'])
+            tract_epc18_df.rename(columns={'geoid':'geoid10', 'tract_id':'tract10', 'coc_flag_pba2050':'tract10_epc'}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(tract_epc18_df), TRACT_EPC18_CROSSWALK_FILE))
+            logging.debug("  tract_epc18_df.head():\n{}".format(tract_epc18_df.head()))
+            rtp2025_tract_crosswalk_df = pd.merge(
+                left     = rtp2025_tract_crosswalk_df,
+                right    = tract_epc18_df[['geoid10', 'tract10_epc']].rename({'geoid10': 'tract10'}, axis=1),
+                on       = 'tract10',
                 how      = 'left',
                 validate = 'many_to_one'
             )
@@ -318,16 +333,44 @@ def load_data_for_runs(
 
             logging.debug("final rtp2025_tract_crosswalk_df.head():\n{}".format(rtp2025_tract_crosswalk_df))
             logging.debug("final rtp2025_tract_crosswalk_df.dtypes():\n{}".format(rtp2025_tract_crosswalk_df.dtypes))
-            # columns are: parcel_id, tract10, tract20, tract20_epc, tract20_growth_geo, tract20_tra, tract20_hra, tract10_DispRisk
+
+            logging.debug('debug EPC rtp2025_tract_crosswalk_df: \n{}'.format(rtp2025_tract_crosswalk_df[['tract20_epc', 'tract10_epc']].sum()))
+            # columns are: parcel_id, tract10, tract20, tract10_epc, tract20_epc, tract20_growth_geo, tract20_tra, tract20_hra, tract10_DispRisk
 
 
         if len(rtp2025_taz_crosswalk_df) == 0:
 
             # taz-based lookups
-            TAZ_EPC_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "taz1454_epcPBA50plus_2024_02_29.csv"
-            rtp2025_taz_crosswalk_df = pd.read_csv(TAZ_EPC_CROSSWALK_FILE, usecols=['TAZ1454','taz_epc'])
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_taz_crosswalk_df), TAZ_EPC_CROSSWALK_FILE))
+            # EPC based on 2020 Census geometries and ACS 2018-2022
+            TAZ_EPC22_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "taz1454_epcPBA50plus_2024_02_29.csv"
+            rtp2025_taz_crosswalk_df = pd.read_csv(TAZ_EPC22_CROSSWALK_FILE, usecols=['TAZ1454','taz_epc'])
+            rtp2025_taz_crosswalk_df.rename(columns = {"taz_epc":"tract20_epc"}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_taz_crosswalk_df), TAZ_EPC22_CROSSWALK_FILE))
             logging.debug("  rtp2025_taz_crosswalk_df.head():\n{}".format(rtp2025_taz_crosswalk_df.head()))
+            # EPC based on 2010 Census geometries and ACS 2014-2018
+            TAZ_TRACT10_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "TAZ1454_tract2010_crosswalk.csv"
+            taz_tract10_crosswalk_df = pd.read_csv(TAZ_TRACT10_CROSSWALK_FILE, usecols=['TAZ1454', 'GEOID10_tract2010'])
+            taz_tract10_crosswalk_df.rename(columns={'GEOID10_tract2010': 'geoid10'}, inplace=True)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(taz_tract10_crosswalk_df), TAZ_TRACT10_CROSSWALK_FILE))
+            logging.debug("  taz_tract10_crosswalk_df.head():\n{}".format(taz_tract10_crosswalk_df.head()))
+
+            rtp2025_taz_crosswalk_df = pd.merge(
+                left     = rtp2025_taz_crosswalk_df,
+                right    = taz_tract10_crosswalk_df,
+                on       = 'TAZ1454',
+                how      = 'left',
+                validate = 'one_to_one'
+            )
+            rtp2025_taz_crosswalk_df = pd.merge(
+                left     = rtp2025_taz_crosswalk_df,
+                right    = tract_epc18_df[['geoid10', 'tract10_epc']],
+                on       = 'geoid10',
+                how      = 'left',
+                # validate = 'one_to_one'
+            )
+            logging.debug('rtp2025_taz_crosswalk_df: {} rows'.format(len(rtp2025_taz_crosswalk_df)))
+            logging.debug('rtp2025_taz_crosswalk_df.head(): \n{}'.format(rtp2025_taz_crosswalk_df.head()))
+            logging.debug('debug EPC, rtp2025_taz_crosswalk_df: \n{}'.format(rtp2025_taz_crosswalk_df[['tract20_epc', 'tract10_epc']].sum()))
 
         if len(rtp2025_parcel_taz_crosswalk_df)==0:
 
@@ -609,6 +652,9 @@ def load_data_for_runs(
                 on       = "parcel_id",
                 validate = "one_to_one"
             )
+            logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            logging.debug('debug EPC parcel_df 1: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
 
             # add transit service area lookups
             # logging.info("Columns in rtp2025_transit_service_df: ", rtp2025_transit_service_df.columns, rtp2025_transit_service_df.index.name)
@@ -623,7 +669,7 @@ def load_data_for_runs(
 
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_transit_service_df:\n{}".format(parcel_df.head()))
-
+            logging.debug('debug EPC parcel_df 2: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
             # add area_type (urban/suburban/rural) and superdistrict lookups
             parcel_df = pd.merge(
                 left     = parcel_df,
@@ -636,7 +682,7 @@ def load_data_for_runs(
 
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_parcel_taz_crosswalk_df:\n{}".format(parcel_df.head()))
-
+            logging.debug('debug EPC parcel_df 3: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
 
             # add parcel lookup for 2020 urban area footprint
             parcel_df = pd.merge(
@@ -648,7 +694,7 @@ def load_data_for_runs(
             )
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_urban_area_crosswalk_df:\n{}".format(parcel_df.head()))
-
+            logging.debug('debug EPC parcel_df 4: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
             # add parcel sea level rise inundation based on the Plan scenario
             this_modelrun_alias = classify_runid_alias(modelrun_alias)
             if this_modelrun_alias == "NP":
@@ -671,10 +717,10 @@ def load_data_for_runs(
                 )
                 logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
                 logging.debug("Head after merge with rtp2025_dbp_parcel_inundation_df:\n{}".format(parcel_df.head()))
-
+            logging.debug('debug EPC parcel_df 5: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
             # rtp2025_tract_crosswalk_df.columns should all be ints -- convert
             cols_int64 = ['tract10','tract20']
-            cols_int   = ['tract20_epc','tract20_growth_geo','tract20_tra','tract20_hra','tract10_DispRisk','in_urban_area']
+            cols_int   = ['tract20_epc','tract10_epc','tract20_growth_geo','tract20_tra','tract20_hra','tract10_DispRisk','in_urban_area']
             fill_cols  = {col:-1 for col in cols_int64+cols_int}
             logging.debug(fill_cols)
             parcel_df.fillna(fill_cols, inplace=True)
@@ -682,6 +728,7 @@ def load_data_for_runs(
             parcel_df[cols_int] = parcel_df[cols_int].astype(int)
             logging.debug("Head after int type conversion:\n{}".format(parcel_df.head()))
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            logging.debug('debug EPC parcel_df 6: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
 
         if rtp == "RTP2021":
             # if it's already here, remove -- we're adding from a single source
@@ -800,7 +847,7 @@ def load_data_for_runs(
                 'TOTEMP'        :'totemp',
                 'TOTHH'         :'tothh',
             }, inplace=True)
-            logging.debug(f"{modelrun_data[year]['county'].head()=}")
+            # logging.debug(f"{modelrun_data[year]['county'].head()=}")
 
     # Load taz summaries
     # This is only necessary for RTP2025 / healthy.urban_park_acres()
