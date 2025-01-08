@@ -343,42 +343,6 @@ def policy_modifications_of_profit(feasibility, parcels):
 
         feasibility[("residential", "max_profit")] *= pct_modifications
 
-    if "profitability_adjustment_policies" in profit_adjustment_strategies["acct_settings"]:
-
-        tier_cols = []
-        for key, policy in profit_adjustment_strategies["acct_settings"]["profitability_adjustment_policies"].items():
-
-            if run_setup[policy["name"]]:
-
-                parcels_geography = orca.get_table("parcels_geography")
-
-                formula_segment = policy["profitability_adjustment_formula"]
-                formula_value = policy["profitability_adjustment_value"]
-
-                # evaluate tier segment
-                pcl_formula_segment = parcels_geography.local.eval(formula_segment).astype(int)
-                print(f'profit_adjust_tier distribution for {key}')
-                print(pcl_formula_segment.value_counts())
-                
-                # multiply (0,1) series with adjustment - 0 remains 0; 1 becomes small percentage term (e.g. .025) 
-                pct_modifications = pcl_formula_segment.mul(formula_value)
-
-                # make these into practical factors by adding 1
-                pct_modifications += 1
-                
-                # assign classification column back to parcels_geography frame
-
-                this_tier = policy['shortname']
-                tier_cols.append(this_tier)
-                #parcels_geography[this_tier] =   pcl_formula_segment
-                #parcels[this_tier] =   pcl_formula_segment
-                
-                orca.add_column('parcels', this_tier, pcl_formula_segment)
-                
-                print("Modifying profit for %s:\n" % policy["name"], pct_modifications.describe())
-                print(f"Formula for {this_tier}: \n{formula_segment}: {formula_value:0.2%}")
-
-                feasibility[("residential", "max_profit")] *= pct_modifications
 
     if "profitability_adjustment_policies" in profit_adjustment_strategies["acct_settings"]:
 
