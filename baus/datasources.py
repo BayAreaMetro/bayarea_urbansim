@@ -685,6 +685,7 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
         strategy_zoning[k] = np.nan
 
     def add_drop_helper(col, val):
+
         for ind, item in strategy_zoning[col].items():
             if not isinstance(item, str):
                 continue
@@ -702,12 +703,27 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
             len(parcels_geography.to_frame())
         )
     )
+    
+    # merge the zoning strategy table with the parcels_geography table
     pg = pd.merge(
-        parcels_geography.to_frame().reset_index(),
+        parcels_geography.to_frame(),
         strategy_zoning,
-        on=join_col,
-        how="left",
-    ).set_index("parcel_id")
+        left_index=True
+        right_on=join_col,
+        how="outer",
+        indicator='src'
+    )
+
+    # Count orphaned records
+    orphaned_left = pg[pg['src'] == 'left_only'].shape[0]
+    orphaned_right = pg[pg['src'] == 'right_only'].shape[0]
+
+    print(f'Orphaned zoningmodcat records in the left (parcels_geography): {orphaned_left}')
+    print(f'Orphaned zoningmodcat records in the right (strategy_zoning): {orphaned_right}')
+
+    # then, subset to just left join
+    pg = pg[pg['src'] == 'left_only']
+    
     print(
         "length of parcels table after merging the zoning strategy table is {} ".format(
             len(pg)
@@ -803,8 +819,7 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
         run_setup["parcels_geography_file"],
     )
     df = pd.read_csv(file, dtype=parcel_dtypes, index_col="parcel_id")
-    # parcels_juris = orca.get_table('parcels_jurisdiction').to_frame()
-
+    
     parcels_juris_df = parcels_jurisdiction.to_frame()
     df["juris_name"] = parcels_juris_df.juris_name
     df["county"] = parcels_juris_df.juris_name
