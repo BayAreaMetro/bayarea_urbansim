@@ -708,7 +708,7 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
     pg = pd.merge(
         parcels_geography.to_frame(),
         strategy_zoning,
-        left_index=True
+        left_index=True,
         right_on=join_col,
         how="outer",
         indicator='src'
