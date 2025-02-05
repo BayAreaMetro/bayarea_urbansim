@@ -706,20 +706,18 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
     
     # merge the zoning strategy table with the parcels_geography table
     pg = pd.merge(
-        parcels_geography.to_frame(),
+        parcels_geography.to_frame().reset_index(),
         strategy_zoning,
-        left_index=True,
-        right_on=join_col,
+        on=join_col,
         how="outer",
         indicator='src'
     )
 
-    # Count orphaned records
-    orphaned_left = pg[pg['src'] == 'left_only'].shape[0]
-    orphaned_right = pg[pg['src'] == 'right_only'].shape[0]
-
-    print(f'Orphaned zoningmodcat records in the left (parcels_geography): {orphaned_left}')
-    print(f'Orphaned zoningmodcat records in the right (strategy_zoning): {orphaned_right}')
+    pg = pg.set_index('parcel_id') 
+    
+    # Count orphaned records - ideally these should both be 0
+    print("Check left / right orphaned zoningmodcats")
+    print(pg.src.value_counts())
 
     # then, subset to just left join
     pg = pg[pg['src'] == 'left_only']
