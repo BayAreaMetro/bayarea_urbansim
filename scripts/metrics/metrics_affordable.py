@@ -397,7 +397,7 @@ def housing_cost_share_of_income(
         logging.debug(f"\n{scenario_params_df.dtypes}")
 
     elif rtp == "RTP2025":
-        # TODO: why is this 2019 and as recent as possible (2021)?
+        # TODO: why is this 2019 and not as recent as possible (2021)?
         PUMS_BASEYEAR_HOUSING_COST_FILE = metrics_path / "metrics_input_files" / "ACS_PUMS_2019_Share_Income_Spent_on_Housing_by_Quartile.csv"
 
         if modelrun_alias == "No Project":
