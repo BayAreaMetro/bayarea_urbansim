@@ -611,8 +611,8 @@ def residential_developer(feasibility, households, buildings, parcels, year,
                           limits_settings, final_year, run_setup):
 
     #TODO: REMOVE
-    feas_path = os.path.join(orca.get_injectable("outputs_dir"),f'feasibility_residential_developer_start_{year}.csv')
-    feasibility.to_frame().to_csv(feas_path)
+    #feas_path = os.path.join(orca.get_injectable("outputs_dir"),f'feasibility_residential_developer_start_{year}.csv')
+    #feasibility.to_frame().to_csv(feas_path)
     
     kwargs = developer_settings['residential_developer']
 
@@ -744,7 +744,7 @@ def retail_developer(jobs, buildings, parcels, nodes, feasibility,
                      developer_settings, summary, add_extra_columns_func, net, year):
 
     #TODO: remove
-    feasibility.to_frame().to_csv(f'M:/urban_modeling/baus/PBA50Plus/investigation/developer/feasibility_retail_developer_start_{year}.csv')
+    #feasibility.to_frame().to_csv(f'M:/urban_modeling/baus/PBA50Plus/investigation/developer/feasibility_retail_developer_start_{year}.csv')
     
     #f_1 = feasibility.to_frame()
     #f_1.to_csv('M:/urban_modeling/baus/PBA50Plus/investigation/developer/feas_before_retail.csv')
