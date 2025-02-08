@@ -321,7 +321,8 @@ def lowinc_homeownership_share(
         'NP':'NP',
         'No Project':'NP',
         'DBP':'DBP',
-        'Draft Blueprint':'DBP'
+        'Draft Blueprint':'DBP',
+        'Final Blueprint':'DBP', # use DBP controls for Final Blueprint - they're unchanged
      }
 
     def pct(x): return x / x.sum()
