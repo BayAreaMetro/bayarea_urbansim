@@ -12,7 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 @orca.step()
-def hazards_slr_summary(run_setup, run_name, year):
+def hazards_slr_summary(run_setup, run_name, parcels, year):
+
+    # first export parcel level information on inundated and mitigated parcels
+    slr_parcel_summary = parcels.to_frame(['parcel_id', 'slr_nodev', 'slr_mitigation'])
+    hazsumm_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "hazards_summaries"
+    hazsumm_output_dir.mkdir(parents=True, exist_ok=True)
+    slr_parcel_summary.to_csv(hazsumm_output_dir / f"{run_name}_slr_parcel_summary_{year}.csv")
 
     if not run_setup['run_slr']:
         return
@@ -59,8 +65,6 @@ def hazards_slr_summary(run_setup, run_name, year):
     for empsix in ['AGREMPN', 'MWTEMPN', 'RETEMPN', 'FPSEMPN', 'HEREMPN', 'OTHEMPN']:
         slr_summary["impacted_jobs_"+str(empsix)] = (unplaced_jobs_tot["empsix"] == empsix).sum()
 
-    hazsumm_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "hazards_summaries"
-    hazsumm_output_dir.mkdir(parents=True, exist_ok=True)
     slr_summary.to_csv(hazsumm_output_dir / f"{run_name}_slr_summary_{year}.csv")
 
 

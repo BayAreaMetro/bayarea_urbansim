@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 @orca.step()
-def slr_inundate(slr_progression, slr_parcel_inundation, year, parcels):
+def slr_inundate(slr_progression, slr_parcel_inundation, year, parcels, initial_year):
 
     # inundated parcels are all parcels at or below the SLR progression level in that year
     slr_progression = slr_progression.to_frame()
@@ -35,6 +35,16 @@ def slr_inundate(slr_progression, slr_parcel_inundation, year, parcels):
     slr_nodev.update(destroy)
     orca.add_column('parcels', 'slr_nodev', slr_nodev)
     parcels = orca.get_table("parcels")
+
+    # also track how many parcels were mitigated for summary purposes
+    # because of the way the inputs are setup, all mitigated parcels are mitigated from the start of the simulation
+    if year != initial_year:
+        return
+    mitigation_parcels = slr_parcel_inundation.query('inundation==100').astype('bool')
+    slr_mitigation = pd.Series(False, parcels.index)
+    mitigation = pd.Series(mitigation_parcels['inundation'])
+    slr_mitigation.update(mitigation)
+    orca.add_column('parcels', 'slr_mitigation', slr_mitigation)
 
 
 @orca.step()
