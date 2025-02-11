@@ -1,0 +1,170 @@
+# list the columns defining the parcel classes
+zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]
+
+input_file: "/Volumes/Data/Models/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/fbp_urbansim_parcel_classes.csv"
+output_file: "/Volumes/Data/Models/urban_modeling/baus/BAUS Inputs/plan_strategies/zoning_mods_PBA50Plus_FBP_feb2025.csv"
+
+zoning_modifications:
+  - category: GG_TRA1_HRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_1'", "hra_id == 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 200
+      far_up: 10
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA1_HRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_1'", "hra_id == 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 50
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA1_NonHRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_1'", "hra_id != 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 150
+      far_up: 10
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA1_NonHRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_1'", "hra_id != 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 50
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA2_HRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_2'", "hra_id == 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 100
+      far_up: 5
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA2_HRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_2'", "hra_id == 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 50
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA2_NonHRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_2'", "hra_id != 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 75
+      far_up: 5
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA2_NonHRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_2'", "hra_id != 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 35
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA3_HRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_3'", "hra_id == 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 50
+      far_up: 2
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA3_HRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_3'", "hra_id == 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 50
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA4_HRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_4'", "hra_id == 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 50
+      far_up: 3
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA4_HRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_4'", "hra_id == 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 50
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA4_NonHRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_4'", "hra_id != 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 35
+      far_up: 2
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA4_NonHRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_4'", "hra_id != 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 35
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA5_NonHRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id != 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 35
+      far_up: 2
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA5_NonHRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id != 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 35
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA6_NonHRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "hra_id != 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 35
+      far_up: 2
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA6_NonHRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "hra_id != 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 35
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA5_HRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id == 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 50
+      far_up: 2
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA5_HRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id == 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 50
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA6_HRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "hra_id == 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 50
+      far_up: 1.5
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: PPA_Zoning
+    conditions: ["ppa_id == 'PPA'"]
+    updates:
+      far_up: 2
+      add_bldg: 'IW'
+      drop_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+      dua_up: null
+
+  - category: GG_No_TRA_HRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'No_TRA'", "hra_id == 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 35
+      add_bldg: 'HM MR'
+
+
+  # - category: UGB_Zoning
+  #   conditions: ["ugb_id == 'UGB' "]
+  #   updates:
+  #     dua_down: 0
+  #     far_down: 0
+  #     far_up: null
+  #     dua_up: null
+  #     add_bldg: null
+  #     drop_bldg: null
+
+

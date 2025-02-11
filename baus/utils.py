@@ -64,17 +64,16 @@ def save_and_restore_state(in_d, outhdf="save_state.h5"):
 
 # similar to the function in urbansim_defaults, except it assumes you want
 # to use your own pick function
-def add_buildings(buildings, new_buildings,
-                  remove_developed_buildings=True):
+def add_buildings(buildings, new_buildings, remove_developed_buildings=True):
 
     old_buildings = buildings.to_frame(buildings.local_columns)
     new_buildings = new_buildings[buildings.local_columns]
 
     if remove_developed_buildings:
         unplace_agents = ["households", "jobs"]
-        old_buildings = \
-            _remove_developed_buildings(old_buildings, new_buildings,
-                                        unplace_agents)
+        old_buildings = _remove_developed_buildings(
+            old_buildings, new_buildings, unplace_agents
+        )
 
     all_buildings = dev.merge(old_buildings, new_buildings)
 
@@ -86,23 +85,32 @@ def add_buildings(buildings, new_buildings,
 # from df1 that are closest to each row in df2
 def nearest_neighbor(df1, df2):
     from sklearn.neighbors import KDTree
+
     kdt = KDTree(df1.as_matrix())
     indexes = kdt.query(df2.as_matrix(), k=1, return_distance=False)
     return df1.index.values[indexes]
 
 
-# need to reindex from geom id to the id used on parcels
+# need to reindex from geom_id to parcel_id
 def geom_id_to_parcel_id(df, parcels):
-    s = parcels.geom_id  # get geom_id
-    s = pd.Series(s.index, index=s.values)  # invert series
-    df["new_index"] = s.loc[df.index]  # get right parcel_id for each geom_id
+
+    # df comes with geom_id as the index
+
+    # get geom_id from parcels table, keyed on parcel_id
+    s = parcels.geom_id
+
+    # invert the series (so index is geom_id, *value* is parcel_id)
+    s = pd.Series(s.index, index=s.values)
+
+    # lookup the parcel_id for each geom_id in the source df
+    df["new_index"] = s.loc[df.index]
     df = df.dropna(subset=["new_index"])
-    df["new_index"] = df.new_index.astype('int')
+    df["new_index"] = df.new_index.astype("int")
     df = df.set_index("new_index", drop=True)
     df.index.name = "parcel_id"
     return df
 
-
+# walk from parcel_id to geom_id
 def parcel_id_to_geom_id(s):
     parcels = orca.get_table("parcels")
     g = parcels.geom_id  # get geom_id
@@ -122,18 +130,17 @@ def groupby_random_choice(s, counts, replace=True):
     if counts.sum() == 0:
         return pd.Series()
 
-    return pd.concat([
-        s[s == grp].sample(cnt, replace=replace)
-        for grp, cnt in counts[counts > 0].iteritems()
-    ])
+    return pd.concat(
+        [
+            s[s == grp].sample(cnt, replace=replace)
+            for grp, cnt in counts[counts > 0].iteritems()
+        ]
+    )
 
 
 # pick random indexes from s without replacement
 def random_indexes(s, num, replace=False):
-    return np.random.choice(
-        np.repeat(s.index.values, s.values),
-        num,
-        replace=replace)
+    return np.random.choice(np.repeat(s.index.values, s.values), num, replace=replace)
 
 
 # This method takes a series of floating point numbers, rounds to
@@ -144,10 +151,10 @@ def random_indexes(s, num, replace=False):
 def round_series_match_target(s, target, fillna=np.nan):
     if target == 0 or s.sum() == 0:
         return s
-    r = s.fillna(fillna).round().astype('int')
+    r = s.fillna(fillna).round().astype("int")
     # handles rare cases where all values round to 0
     if r.sum() == 0:
-        r = np.ceil(s).astype('int')
+        r = np.ceil(s).astype("int")
     diff = int(np.subtract(target, r.sum()))
     # diff = int(target - r.sum())
     if diff > 0:
@@ -169,7 +176,7 @@ def round_series_match_target(s, target, fillna=np.nan):
 def scale_by_target(s, target, check_close=None):
     ratio = float(target) / s.sum()
     if check_close:
-        assert 1.0-check_close < ratio < 1.0+check_close
+        assert 1.0 - check_close < ratio < 1.0 + check_close
     return s * ratio
 
 
@@ -191,8 +198,7 @@ def constrained_normalization(marginals, constraint, total):
         num_constrained = len(constrained[constrained is True])
         num_exceeds = len(exceeds[exceeds is True])
 
-        print("Len constrained = %d, exceeds = %d" %
-              (num_constrained, num_exceeds))
+        print("Len constrained = %d, exceeds = %d" % (num_constrained, num_exceeds))
 
         if num_exceeds == 0:
             return marginals
@@ -201,8 +207,7 @@ def constrained_normalization(marginals, constraint, total):
 
         # scale up where unconstrained
         unconstrained_total = total - marginals[constrained].sum()
-        marginals[unconstrained] *= \
-            unconstrained_total / marginals[unconstrained].sum()
+        marginals[unconstrained] *= unconstrained_total / marginals[unconstrained].sum()
 
         # should have scaled up
         assert np.isclose(marginals.sum(), total)
@@ -224,7 +229,7 @@ def simple_ipf(seed_matrix, col_marginals, row_marginals, tolerance=1, cnt=0):
 
     seed_matrix *= ratios
     closeness = np.absolute(row_marginals - seed_matrix.sum(axis=1)).sum()
-    assert np.absolute(col_marginals - seed_matrix.sum(axis=0)).sum() < .01
+    assert np.absolute(col_marginals - seed_matrix.sum(axis=0)).sum() < 0.01
     print("row closeness", closeness)
     if closeness < tolerance:
         return seed_matrix
@@ -233,7 +238,7 @@ def simple_ipf(seed_matrix, col_marginals, row_marginals, tolerance=1, cnt=0):
     ratios = np.array(row_marginals / seed_matrix.sum(axis=1))
     ratios[row_marginals == 0] = 0
     seed_matrix = seed_matrix * ratios.reshape((ratios.size, 1))
-    assert np.absolute(row_marginals - seed_matrix.sum(axis=1)).sum() < .01
+    assert np.absolute(row_marginals - seed_matrix.sum(axis=1)).sum() < 0.01
     closeness = np.absolute(col_marginals - seed_matrix.sum(axis=0)).sum()
     print("col closeness", closeness)
     if closeness < tolerance:
@@ -242,23 +247,24 @@ def simple_ipf(seed_matrix, col_marginals, row_marginals, tolerance=1, cnt=0):
     if cnt >= 50:
         return seed_matrix
 
-    return simple_ipf(seed_matrix, col_marginals, row_marginals,
-                      tolerance, cnt+1)
+    return simple_ipf(seed_matrix, col_marginals, row_marginals, tolerance, cnt + 1)
 
 
 def subtract_base_year_urban_footprint(run_number):
-    base_year_filename = \
-        'runs/run{}_urban_footprint_summary_summaries_{}.csv'.\
-        format(run_number, 2010)
+    base_year_filename = "runs/run{}_urban_footprint_summary_summaries_{}.csv".format(
+        run_number, 2010
+    )
     bdf = pd.read_csv(base_year_filename, index_col=0)
-    outcome_year_filename = \
-        'runs/run{}_urban_footprint_summary_summaries_{}.csv'.\
-        format(run_number, 2040)
+    outcome_year_filename = (
+        "runs/run{}_urban_footprint_summary_summaries_{}.csv".format(run_number, 2040)
+    )
     odf = pd.read_csv(outcome_year_filename, index_col=0)
     sdf = odf - bdf
     sdf.to_csv(
-        'runs/run{}_urban_footprint_subtracted_summaries_{}.csv'
-        .format(run_number, 2040))
+        "runs/run{}_urban_footprint_subtracted_summaries_{}.csv".format(
+            run_number, 2040
+        )
+    )
 
 
 def pipeline_filtering(input_pipeline, list_filter_criteria):
@@ -273,25 +279,27 @@ def pipeline_filtering(input_pipeline, list_filter_criteria):
         pd.DataFrame: The filtered DataFrame.
     """
 
-    key_numerics = ['non_residential_sqft', 'residential_units']
+    key_numerics = ["non_residential_sqft", "residential_units"]
 
-    print('Starting length of the pipeline: {:,}'.format(len(input_pipeline)))
+    print("Starting length of the pipeline: {:,}".format(len(input_pipeline)))
 
     for filter_criteria in list_filter_criteria:
         filter_components = []
         for key, operator_value in filter_criteria.items():
-            
+
             # name key is just matched to a county identifier so no conditions found in values there
-            if not key == 'name':
-                 
-                value = operator_value['value']
-                operator = operator_value['operator']
-                
+            if not key == "name":
+
+                value = operator_value["value"]
+                operator = operator_value["operator"]
+
                 # Generate query expression list from components
                 lst_conditions = [
-                    f"{key}{operator}" +
-                    f'"{value}"' if isinstance(
-                        value, str) else f"{key}{operator}{value}"
+                    (
+                        f"{key}{operator}" + f'"{value}"'
+                        if isinstance(value, str)
+                        else f"{key}{operator}{value}"
+                    )
                 ]
 
                 # Generate query string from query list
@@ -309,16 +317,17 @@ def pipeline_filtering(input_pipeline, list_filter_criteria):
             series_string = f"\tRecords Lost: {'; '.join([f'{key}: {value:,.0f}' for key, value in drop_summary.items()])}"
 
             print(
-                f'Applying filter: `{str_full_query}`\n',
-                f'\tRemoving {drop_mask.value_counts()[True]} records from pipeline\n',
-                #f'\tRecords lost:\n\t{input_pipeline[drop_mask][key_numerics].sum()}',
-                series_string)
-            
+                f"Applying filter: `{str_full_query}`\n",
+                f"\tRemoving {drop_mask.value_counts()[True]} records from pipeline\n",
+                # f'\tRecords lost:\n\t{input_pipeline[drop_mask][key_numerics].sum()}',
+                series_string,
+            )
+
             # applying to source data
             input_pipeline = input_pipeline[~drop_mask]
 
         else:
-            print('Filters match no records. Keeping all pipeline records.')
+            print("Filters match no records. Keeping all pipeline records.")
 
     # Return resulting pipeline
     return input_pipeline

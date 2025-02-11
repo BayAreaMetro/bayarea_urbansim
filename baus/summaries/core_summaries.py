@@ -110,7 +110,8 @@ def new_buildings_summary(run_name, parcels, parcels_zoning_calculations, buildi
              'land_value',	'acres', 'x', 'y', 'parcel_acres', 'total_residential_units',	'total_job_spaces',	
              'zoned_du', 'zoned_du_underbuild', 'zoned_du_build_ratio', 'zoned_far', 'zoned_far_underbuild', 
              'zoned_far_build_ratio', 'sdem',	
-             'urbanized', 'manual_nodev', 'total_non_residential_sqft',	'nodev',	
+             #'urbanized', 
+             'manual_nodev', 'total_non_residential_sqft',	'nodev',	
              'built_far', 'max_far', 'built_dua', 'max_dua', 'building_purchase_price_sqft',	
              'building_purchase_price',	'land_cost', 'slr_nodev']]
 
