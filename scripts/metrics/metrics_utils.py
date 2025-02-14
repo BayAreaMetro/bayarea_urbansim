@@ -20,6 +20,8 @@ pba50_geography_crosswalk_df = pd.DataFrame() # parcel -> PBA50 growth geographi
 
 rtp2025_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 rtp2025_dbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
+rtp2025_fbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
+
 
 rtp2021_tract_crosswalk_df      = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA, PPA
 rtp2021_pda_crosswalk_df        = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
@@ -66,8 +68,11 @@ PARCEL_AREA_FILTERS = {
 M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 USERNAME = getpass.getuser()
 HOME_DIR = pathlib.Path.home()
+
 if USERNAME.lower() in ['lzorn']:
     BOX_DIR = pathlib.Path("E:/Box")
+elif USERNAME.lower() in ['aolsen']:
+    BOX_DIR = HOME_DIR /'Library/CloudStorage/Box-Box'
 else:
     BOX_DIR = HOME_DIR / 'Box'
 
@@ -115,6 +120,7 @@ def load_data_for_runs(
     global parcel_taz_sd_crosswalk_df
     global rtp2025_np_parcel_inundation_df
     global rtp2025_dbp_parcel_inundation_df
+    global rtp2025_fbp_parcel_inundation_df
     global pba50_geography_crosswalk_df
 
     global rtp2021_geography_crosswalk_df
@@ -123,7 +129,9 @@ def load_data_for_runs(
     global rtp2021_np_parcel_inundation_df
     global rtp2021_fbp_parcel_inundation_df
 
+    global slr_lookup
     CROSSWALKS_DIR = M_DRIVE / "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks"
+
 
     # Start by pre-canning a parcel_id to zone_id, county, and superdistrict crosswalk DF
     # This crosswalk is the same for RTP2021 and RTP2025
@@ -167,6 +175,11 @@ def load_data_for_runs(
 
     # year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
     modelrun_data = {}
+
+    # store the slr frames - we only need to instantiate once
+    if not isinstance(globals().get('slr_lookup'), dict):
+        slr_lookup = {}
+         
     if rtp == "RTP2025":
         if len(rtp2025_geography_crosswalk_df) == 0:
             PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "parcels_geography_2024_02_14.csv"
@@ -406,19 +419,32 @@ def load_data_for_runs(
             logging.debug("rtp2025_parcel_taz_crosswalk_df.head():\n{}".format(rtp2025_parcel_taz_crosswalk_df))
             logging.debug("rtp2025_parcel_taz_crosswalk_df.dtypes():\n{}".format(rtp2025_parcel_taz_crosswalk_df.dtypes))
             
-            
+
         if len(rtp2025_np_parcel_inundation_df) == 0:
-            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_NP.csv"
+            #PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_NP.csv"
+            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_NP_JAN25.csv"
             rtp2025_np_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_np_parcel_inundation_df), PARCEL_INUNDATION_FILE))
             logging.debug("  rtp2025_np_parcel_inundation_df.head():\n{}".format(rtp2025_np_parcel_inundation_df.head()))
+            slr_lookup['NP'] = rtp2025_np_parcel_inundation_df
 
         if len(rtp2025_dbp_parcel_inundation_df) == 0:
             PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_DBP.csv"
             rtp2025_dbp_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_dbp_parcel_inundation_df), PARCEL_INUNDATION_FILE))
             logging.debug("  rtp2025_dbp_parcel_inundation_df.head():\n{}".format(rtp2025_dbp_parcel_inundation_df.head()))
+            slr_lookup['DBP'] = rtp2025_dbp_parcel_inundation_df
 
+        if len(rtp2025_fbp_parcel_inundation_df) == 0:
+            #PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_FBP.csv"
+            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_FPB_JAN25.csv"
+            
+            rtp2025_fbp_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_fbp_parcel_inundation_df), PARCEL_INUNDATION_FILE))
+            logging.debug("  rtp2025_fbp_parcel_inundation_df.head():\n{}".format(rtp2025_fbp_parcel_inundation_df.head()))
+            slr_lookup['FBP'] = rtp2025_fbp_parcel_inundation_df
+
+        
         # define analysis years
         if skip_base_year:
             logging.info(f"Skipping 2020 {'' if no_interpolate else 'and 2025 '}data because we're reusing the No Project base year data")
@@ -574,18 +600,23 @@ def load_data_for_runs(
             rtp2021_geography_crosswalk_df['jurisdiction'] = rtp2021_geography_crosswalk_df.jurisdiction.str.replace("St ","St. ") # St. Helena
             logging.debug(f"rtp2021_geography_crosswalk_df.jurisdiction.value_counts(dropna=False):\n{rtp2021_geography_crosswalk_df.jurisdiction.value_counts(dropna=False)}")
 
+        
         if len(rtp2021_np_parcel_inundation_df) == 0:
             PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50_NP.csv"
             rtp2021_np_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
             logging.info("  Read {:,} rows from file {}".format(len(rtp2021_np_parcel_inundation_df), PARCEL_INUNDATION_FILE))
             logging.debug("  rtp2021_np_parcel_inundation_df.head():\n{}".format(rtp2021_np_parcel_inundation_df.head()))
-
+            # store it in the lookup for easy access later
+            slr_lookup['NP'] = rtp2021_np_parcel_inundation_df
+        
         if len(rtp2021_fbp_parcel_inundation_df) == 0:
             PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50_FBP.csv"
             rtp2021_fbp_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_fbp_parcel_inundation_df), PARCEL_INUNDATION_FILE))
             logging.debug("  rtp2021_fbp_parcel_inundation_df.head():\n{}".format(rtp2021_fbp_parcel_inundation_df.head()))
-
+            slr_lookup['FBP'] = rtp2021_fbp_parcel_inundation_df
+        
+    
         # define analysis years
         modelrun_data[2015] = {}
         modelrun_data[2050] = {}
@@ -697,26 +728,28 @@ def load_data_for_runs(
             logging.debug('debug EPC parcel_df 4: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
             # add parcel sea level rise inundation based on the Plan scenario
             this_modelrun_alias = classify_runid_alias(modelrun_alias)
-            if this_modelrun_alias == "NP":
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2025_np_parcel_inundation_df,
-                    how      = "left",
-                    on       = "parcel_id",
-                    validate = "one_to_one"
-                )
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-                logging.debug("Head after merge with rtp2025_np_parcel_inundation_df:\n{}".format(parcel_df.head()))
-            elif this_modelrun_alias == "DBP":
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2025_dbp_parcel_inundation_df,
-                    how      = "left",
-                    on       = "parcel_id",
-                    validate = "one_to_one"
-                )
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-                logging.debug("Head after merge with rtp2025_dbp_parcel_inundation_df:\n{}".format(parcel_df.head()))
+            
+            # simplify the merge with the sea level rise lookup, avoiding repetitive code
+            # TODO: this could be used more widely in stead of conditionals
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = slr_lookup[this_modelrun_alias], #rtp2025_np_parcel_inundation_df,
+                how      = "left",
+                on       = "parcel_id",
+                validate = "one_to_one"
+            )
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            logging.debug("Head after merge with rtp2025_{alias}_parcel_inundation_df:\n{df}".format(alias=this_modelrun_alias,df=parcel_df.head()))
+            # elif this_modelrun_alias == "DBP":
+            #     parcel_df = pd.merge(
+            #         left     = parcel_df,
+            #         right    = rtp2025_dbp_parcel_inundation_df,
+            #         how      = "left",
+            #         on       = "parcel_id",
+            #         validate = "one_to_one"
+            #     )
+            #     logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            #     logging.debug("Head after merge with rtp2025_dbp_parcel_inundation_df:\n{}".format(parcel_df.head()))
             logging.debug('debug EPC parcel_df 5: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
             # rtp2025_tract_crosswalk_df.columns should all be ints -- convert
             cols_int64 = ['tract10','tract20']
