@@ -90,7 +90,8 @@ def urban_park_acres(
             # summarize the data for this
             tazdata_df = modelrun_data[year]['TAZ1454']
             if person_segment == 'EPC ':
-                tazdata_df = tazdata_df.loc[ tazdata_df.taz_epc == 1]
+                epc_col = 'tract20_epc' if rtp == 'RTP2025' else 'tract10_epc'
+                tazdata_df = tazdata_df.loc[ tazdata_df[epc_col] == 1]
             
             taz_county_summary_df = tazdata_df.groupby('COUNTY').agg({'TOTPOP':'sum'})
             # convert to 1000s of population
