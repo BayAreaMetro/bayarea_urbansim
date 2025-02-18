@@ -15,7 +15,7 @@ def parcel_summary(run_name, parcels, buildings, households, jobs, year, initial
     if year not in [initial_summary_year, final_year] + interim_summary_years:
         return
 
-    df = parcels.to_frame(["geom_id", "x", "y", 'max_dua', 'built_dua', 'max_far', 'built_far'])
+    df = parcels.to_frame(["geom_id", "x", "y", 'max_dua', 'built_dua', 'max_far', 'built_far','parcel_softsite'])
     
     # add building data for parcels
     building_df = orca.merge_tables('buildings', [parcels, buildings], columns=['parcel_id', 'residential_units', 'deed_restricted_units',
@@ -59,7 +59,7 @@ def parcel_growth_summary(year, run_name, initial_summary_year, final_year):
                       index_col="parcel_id")
 
     for col in df1.columns:
-        if col in ["geom_id", "x", "y"]:
+        if col in ["geom_id", "x", "y","parcel_softsite"]:
             continue
 
         # fill na with 0 otherwise it drops the parcel data during subtraction
