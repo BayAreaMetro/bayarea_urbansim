@@ -44,6 +44,11 @@ def _create_empty_units(buildings):
     df : DataFrame
         Table of units, to be processed within an orca step
     """
+
+    
+    assert np.all(buildings.residential_units.fillna(0) >=
+                  buildings.deed_restricted_units.fillna(0))
+                  
     building_ids = np.repeat(buildings.index.values, buildings.residential_units.fillna(0).values.astype(int))
     unit_nums = np.tile(np.arange(buildings.residential_units.max().astype(int)), len(buildings.index))[:len(building_ids)]
 
