@@ -93,7 +93,8 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
         l = ['first', 'second', 'third', 'fourth']
         for item in l:
 
-            if value[item+"_unit_filter"] is None or value[item+"_unit_target"] is None:
+            # both filter and associated value need to be defined to continue
+            if value.get(item+"_unit_filter") is None or value.get(item+"_unit_target") is None:
                 continue
             
             filter_nm = value[item+"_unit_filter"]
