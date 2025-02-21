@@ -980,12 +980,13 @@ HEIGHT_PER_STORY = 12.0
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def zoned_du(parcels, parcels_zoning_calculations):
-    return parcels_zoning_calculations.effective_max_dua * parcels.parcel_acres
+    return parcels_zoning_calculations.max_dua * parcels.parcel_acres
 
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def zoned_du_vacant(parcels, parcels_zoning_calculations):
-    return parcels_zoning_calculations.effective_max_dua * \
+    # zoned du capacity for vacant parcels only
+    return parcels_zoning_calculations.max_dua * \
         parcels.parcel_acres * ~parcels.nodev * (parcels.total_sqft == 0)
 
 
@@ -998,16 +999,18 @@ def effective_max_dua(zoning_existing, parcels):
 
     max_dua_from_height = max_far_from_height * 43560 / GROSS_AVE_UNIT_SIZE
 
-    s = pd.concat([zoning_existing.max_dua, max_dua_from_far, max_dua_from_height], axis=1).min(axis=1)
+    s = pd.concat([zoning_existing.max_dua, 
+                   max_dua_from_far, 
+                   max_dua_from_height], axis=1).min(axis=1)
 
-    # take the max dua IFF the upzone value is greater than the current value
+    # take the max dua IF the upzone value is greater than the current value
     # i.e. don't let the upzoning operation accidentally downzone
 
     strategy_max_dua = orca.get_table("zoning_strategy").dua_up
 
     s = pd.concat([s, strategy_max_dua], axis=1).max(axis=1)
 
-    # take the min dua IFF the downzone value is less than the current value
+    # take the min dua IF the downzone value is less than the current value
     # i.e. don't let the downzoning operation accidentally upzone
 
     strategy_min_dua = orca.get_table("zoning_strategy").dua_down
@@ -1025,7 +1028,7 @@ def effective_max_dua(zoning_existing, parcels):
 @orca.column('parcels_zoning_calculations')
 def zoned_far(parcels, parcels_zoning_calculations):
     # adding to help look at nonres capacity in model outputs
-    return parcels_zoning_calculations.effective_max_far * parcels.parcel_size
+    return parcels_zoning_calculations.max_far * parcels.parcel_size
 
 
 @orca.column('parcels_zoning_calculations', cache=True)
@@ -1033,7 +1036,8 @@ def effective_max_far(zoning_existing, parcels):
 
     max_far_from_height = (zoning_existing.max_height / HEIGHT_PER_STORY) * PARCEL_USE_EFFICIENCY
 
-    s = pd.concat([zoning_existing.max_far, max_far_from_height], axis=1).min(axis=1)
+    s = pd.concat([zoning_existing.max_far, 
+                   max_far_from_height], axis=1).min(axis=1)
 
     # take the max far IFF the upzone value is greater than the current value
     # i.e. don't let the upzoning operation accidentally downzone
@@ -1084,22 +1088,21 @@ def zoned_du_underbuild(parcels, parcels_zoning_calculations):
 def zoned_du_build_ratio(parcels, parcels_zoning_calculations):
     # ratio of existing res built space to zoned res built space
     s = parcels.total_residential_units / \
-       (parcels_zoning_calculations.effective_max_dua * parcels.parcel_acres)
+       (parcels_zoning_calculations.zoned_du)
     return s.replace(np.inf, 1).clip(0, 1)
 
 
 @orca.column('parcels_zoning_calculations')
 def zoned_far_underbuild(parcels, parcels_zoning_calculations):
     # adding to help look at nonres capacity in model outputs
-    return parcels_zoning_calculations.zoned_far - parcels.total_non_residential_sqft
+    return (parcels_zoning_calculations.zoned_far - parcels.total_non_residential_sqft).clip(0)
 
 
 @orca.column('parcels_zoning_calculations')
 def zoned_far_build_ratio(parcels, parcels_zoning_calculations):
     # ratio of existing nonres built space to zoned nonres built space
     s = parcels.total_non_residential_sqft / \
-        (parcels_zoning_calculations.effective_max_far *
-         parcels.parcel_size)
+        parcels_zoning_calculations.zoned_far
     return s.replace(np.inf, 1).clip(0, 1)
 
 
@@ -1111,4 +1114,13 @@ def zoned_build_ratio(parcels_zoning_calculations):
         parcels_zoning_calculations.zoned_far_build_ratio
 
 
+
+@orca.column('parcels_zoning_calculations')
+def parcel_softsite(parcels,parcels_zoning_calculations):
+
+    current_sqft = (parcels.total_non_residential_sqft.clip(0) 
+                    + parcels.total_residential_units / GROSS_AVE_UNIT_SIZE )
+    
+    # assume zoned far covers the envelope - including for residential
+    return (current_sqft / parcels_zoning_calculations.zoned_far).clip(0, 1)
 

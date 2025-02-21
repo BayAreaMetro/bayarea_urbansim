@@ -70,7 +70,7 @@ def main():
         BOX_DIR = HOME_DIR / 'Box'
     
     MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/")
-    METRICS_DIR        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
+    METRICS_DIR        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Final_Blueprint"
     RUN_INVENTORY_FILE = METRICS_DIR / "metrics_input_files/PBA50Plus_model_run_inventory.csv"
     OUTPUT_PATH        = METRICS_DIR
     LOG_FILENAME       = "metrics_lu_standalone_{}{}.log"  # loglevel
