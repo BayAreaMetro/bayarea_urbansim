@@ -18,7 +18,13 @@ configs/hlcm_renter_no_unplaced.yaml
 configs/hlcm_owner_no_unplaced.yaml
 configs/hlcm_renter_lowincome_no_unplaced.yaml
 configs/hlcm_owner_lowincome_no_unplaced.yaml
+
+# Ignore all files with 'costar' in the name, case-insensitive
 **/*[Cc][Oo][Ss][Tt][Aa][Rr]*.csv
+
+# Allow files with 'costar' in the configs/adjusters directory
+!configs/adjusters/*[Cc][Oo][Ss][Tt][Aa][Rr]*.csv
+
 .DS_Store
 site/*
 run_setup.yaml

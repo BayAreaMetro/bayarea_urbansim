@@ -297,6 +297,7 @@ def run_models(mode, run_setup, years_to_run):
         #        "subsidized_residential_feasibility",
         #        "subsidized_residential_developer_jobs_housing",
 
+                "alt_feasibility",
                 "residential_developer",
                 "developer_reprocess",
 
@@ -405,8 +406,8 @@ def run_models(mode, run_setup, years_to_run):
                 "parcel_growth_summary",
                 "building_summary",
 
-                "hazards_slr_summary",
-                "hazards_eq_summary",
+                #"hazards_slr_summary",
+                #"hazards_eq_summary",
 
                 "deed_restricted_units_summary",
                 "deed_restricted_units_growth_summary",

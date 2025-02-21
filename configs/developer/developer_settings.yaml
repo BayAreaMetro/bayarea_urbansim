@@ -16,6 +16,8 @@ feasibility:
     and oldest_building_age > 20 and (total_residential_units != 1 or parcel_acres > 1.0)
     and first_building_type != 'HO' and first_building_type != 'SC')
   residential_to_yearly: True
+  # means we get a much larger feasibility frame returned, including non-profitable ones
+  only_built: False 
   simple_zoning: True
   pass_through:
     - oldest_building
@@ -68,9 +70,12 @@ static_parcels:
 # settings that get passed to the residential developer as kwargs
 residential_developer:
   target_vacancy: .03
+  #min_unit_size: 750
   min_unit_size: 1000
+  
   bldg_sqft_per_job: 400
-  max_parcel_size: 150000000
+  #max_parcel_size: 10_000_000 # 229 acres
+  max_parcel_size: 150_000_000
 
 # same as above for non-res
 non_residential_developer:
