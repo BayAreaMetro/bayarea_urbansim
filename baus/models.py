@@ -1103,7 +1103,7 @@ def local_pois(accessibility_settings):
 
     cols = {}
 
-    locations = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'accessibility/pandana/bart_stations.csv'))
+    locations = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'accessibility/pandana/bart_stations_2020.csv'))
     n.set_pois("tmp", locations.lng, locations.lat)
     cols["bartdist"] = n.nearest_pois(3000, "tmp", num_pois=1)[1]
 
