@@ -1,8 +1,8 @@
 # list the columns defining the parcel classes
 zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]
 
-input_file: "/Volumes/Data/Models/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/fbp_urbansim_parcel_classes.csv"
-output_file: "/Volumes/Data/Models/urban_modeling/baus/BAUS Inputs/plan_strategies/zoning_mods_PBA50Plus_FBP_feb2025.csv"
+input_file: "basis_inputs/crosswalks/fbp_urbansim_parcel_classes.csv"
+output_file: "plan_strategies/zoning_mods_PBA50Plus_FBP_feb21_2025.csv"
 
 zoning_modifications:
   - category: GG_TRA1_HRA_NonRes
