@@ -710,7 +710,8 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
         strategy_zoning,
         on=join_col,
         how="outer",
-        indicator='src'
+        indicator='src',
+        validate="m:1"
     )
 
     pg = pg.set_index('parcel_id') 
