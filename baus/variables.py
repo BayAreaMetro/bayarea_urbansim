@@ -980,13 +980,13 @@ HEIGHT_PER_STORY = 12.0
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def zoned_du(parcels, parcels_zoning_calculations):
-    return parcels_zoning_calculations.max_dua * parcels.parcel_acres
+    return parcels.max_dua * parcels.parcel_acres
 
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def zoned_du_vacant(parcels, parcels_zoning_calculations):
     # zoned du capacity for vacant parcels only
-    return parcels_zoning_calculations.max_dua * \
+    return parcels.max_dua * \
         parcels.parcel_acres * ~parcels.nodev * (parcels.total_sqft == 0)
 
 
@@ -1028,7 +1028,7 @@ def effective_max_dua(zoning_existing, parcels):
 @orca.column('parcels_zoning_calculations')
 def zoned_far(parcels, parcels_zoning_calculations):
     # adding to help look at nonres capacity in model outputs
-    return parcels_zoning_calculations.max_far * parcels.parcel_size
+    return parcels.max_far * parcels.parcel_size
 
 
 @orca.column('parcels_zoning_calculations', cache=True)
