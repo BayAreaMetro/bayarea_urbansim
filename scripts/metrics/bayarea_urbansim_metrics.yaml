@@ -1,0 +1,24 @@
+# The metrics are run separately from the BAUS run time and can run on more 
+# recent python / pandas versions. 
+
+# Install this environment by running `conda env create -f bayarea_urbansim_metrics.yaml`
+
+name: bayarea_urbansim_metrics
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pandas
+  - geopandas
+  - openpyxl
+  - xlwings
+  - pyyaml
+  - shutil
+  - argparse
+  - logging
+  - os
+  - pathlib
+  - sys
+  - getpass
+  - datetime
+  - pip
