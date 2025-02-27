@@ -18,15 +18,9 @@ parcel_taz_sd_crosswalk_df      = pd.DataFrame() # parcel -> taz1 and superdistr
 
 pba50_geography_crosswalk_df = pd.DataFrame() # parcel -> PBA50 growth geographies for use in rtp2025 metrics
 
-rtp2025_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
-rtp2025_dbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
-
 rtp2021_tract_crosswalk_df      = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA, PPA
 rtp2021_pda_crosswalk_df        = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
 rtp2021_geography_crosswalk_df  = pd.DataFrame() # parcel -> parcel category (fbpchcat -> growth geog, hra, tra), jurisdiction
-
-rtp2021_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
-rtp2021_fbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 
 PARCEL_AREA_FILTERS = {
     'RTP2021': {
@@ -96,9 +90,10 @@ def load_data_for_runs(
 
     Returns:
     - dict with year -> {
-        "parcel" -> parcel DataFrame, 
-        "county" -> county DataFrame,
-        "TAZ1454"-> taz DataFrame (necessary for totpop, which is only tabulated for TAZs)
+        "parcel"    -> parcel DataFrame,
+        "buildings" -> buildings DataFrame, 
+        "county"    -> county DataFrame,
+        "TAZ1454"   -> taz DataFrame (necessary for totpop, which is only tabulated for TAZs)
       }
     
     """
@@ -111,15 +106,11 @@ def load_data_for_runs(
 
     global rtp2025_parcel_taz_crosswalk_df
     global parcel_taz_sd_crosswalk_df
-    global rtp2025_np_parcel_inundation_df
-    global rtp2025_dbp_parcel_inundation_df
     global pba50_geography_crosswalk_df
 
     global rtp2021_geography_crosswalk_df
     global rtp2021_tract_crosswalk_df
     global rtp2021_pda_crosswalk_df
-    global rtp2021_np_parcel_inundation_df
-    global rtp2021_fbp_parcel_inundation_df
 
     CROSSWALKS_DIR = M_DRIVE / "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks"
 
@@ -362,19 +353,6 @@ def load_data_for_runs(
 
             logging.debug("rtp2025_parcel_taz_crosswalk_df.head():\n{}".format(rtp2025_parcel_taz_crosswalk_df))
             logging.debug("rtp2025_parcel_taz_crosswalk_df.dtypes():\n{}".format(rtp2025_parcel_taz_crosswalk_df.dtypes))
-            
-            
-        if len(rtp2025_np_parcel_inundation_df) == 0:
-            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_NP.csv"
-            rtp2025_np_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_np_parcel_inundation_df), PARCEL_INUNDATION_FILE))
-            logging.debug("  rtp2025_np_parcel_inundation_df.head():\n{}".format(rtp2025_np_parcel_inundation_df.head()))
-
-        if len(rtp2025_dbp_parcel_inundation_df) == 0:
-            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_DBP.csv"
-            rtp2025_dbp_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_dbp_parcel_inundation_df), PARCEL_INUNDATION_FILE))
-            logging.debug("  rtp2025_dbp_parcel_inundation_df.head():\n{}".format(rtp2025_dbp_parcel_inundation_df.head()))
 
         # define analysis years
         if skip_base_year:
@@ -385,6 +363,8 @@ def load_data_for_runs(
                 modelrun_data[2025] = {}  # for later interpolation to 2023
         modelrun_data[2050]  = {}
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
+        buildings_pattern    = "core_summaries/*_building_summary_{}.csv"
+        slr_parcel_pattern   = "hazards_summaries/*_slr_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
         taz1_summary_pattern = "travel_model_summaries/*_taz1_summary_{}.csv"
         taz1_interim_summary_pattern = "core_summaries/*_interim_zone_output_{}.csv"
@@ -504,7 +484,9 @@ def load_data_for_runs(
         if len(rtp2021_geography_crosswalk_df) == 0:
             # pba50_metrics.py called this "parcel_geography_file" - use it to get fbpchcat
             GEOGRAPHY_CROSSWALK_FILE = METRICS_DIR / "metrics_input_files" / "2021_02_25_parcels_geography.csv"
-            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID','fbpchcat','ppa_id','eir_coc_id', 'juris_name_full'])
+            rtp2021_geography_crosswalk_df = pd.read_csv(GEOGRAPHY_CROSSWALK_FILE, usecols=['PARCEL_ID', 'ACRES', 'fbpchcat','ppa_id','eir_coc_id', 'juris_name_full', 'urbanized'])
+            # match RTP2025 column name
+            rtp2021_geography_crosswalk_df.rename(columns={"urbanized": "in_urban_area"}, inplace=True)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_geography_crosswalk_df), GEOGRAPHY_CROSSWALK_FILE))
             logging.debug("  rtp2021_geography_crosswalk_df.head():\n{}".format(rtp2021_geography_crosswalk_df.head()))
 
@@ -531,29 +513,19 @@ def load_data_for_runs(
             rtp2021_geography_crosswalk_df['jurisdiction'] = rtp2021_geography_crosswalk_df.jurisdiction.str.replace("St ","St. ") # St. Helena
             logging.debug(f"rtp2021_geography_crosswalk_df.jurisdiction.value_counts(dropna=False):\n{rtp2021_geography_crosswalk_df.jurisdiction.value_counts(dropna=False)}")
 
-        if len(rtp2021_np_parcel_inundation_df) == 0:
-            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50_NP.csv"
-            rtp2021_np_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
-            logging.info("  Read {:,} rows from file {}".format(len(rtp2021_np_parcel_inundation_df), PARCEL_INUNDATION_FILE))
-            logging.debug("  rtp2021_np_parcel_inundation_df.head():\n{}".format(rtp2021_np_parcel_inundation_df.head()))
-
-        if len(rtp2021_fbp_parcel_inundation_df) == 0:
-            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50_FBP.csv"
-            rtp2021_fbp_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
-            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_fbp_parcel_inundation_df), PARCEL_INUNDATION_FILE))
-            logging.debug("  rtp2021_fbp_parcel_inundation_df.head():\n{}".format(rtp2021_fbp_parcel_inundation_df.head()))
-
         # define analysis years
         modelrun_data[2015] = {}
         modelrun_data[2050] = {}
         parcel_pattern       = "*_parcel_data_{}.csv"
+        slr_parcel_pattern   = "*_slr_parcel_summary_{}.csv"
+        buildings_pattern    = "*_building_data_{}.csv"        
         geo_summary_pattern  = "*_county_summaries_{}.csv"
         taz1_summary_pattern = "*_taz_summaries_{}.csv"
 
     else:
         raise ValueError(f"Unrecognized plan: {rtp}")
 
-    # Load parcels summaries
+    # Load parcel summaries
     for year in sorted(modelrun_data.keys()):
         # handle RTP2021 hacks
         if (rtp=="RTP2021") and (year == 2050) and (modelrun_alias=="No Project"):
@@ -576,6 +548,24 @@ def load_data_for_runs(
         logging.info("  Read {:,} rows from parcel file {}".format(len(parcel_df), file))
         logging.debug("Head:\n{}".format(parcel_df.head()))
         logging.debug("preserved_units.value_counts():\n{}".format(parcel_df['preserved_units'].value_counts(dropna=False)))
+
+        # also add parcel-level sea level rise summaries and merge them to the parcels table
+        logging.debug("Looking for sea level rise parcel data matching {}".format(slr_parcel_pattern).format(year))
+        file = next(run_directory_path.glob(slr_parcel_pattern.format(year)))
+        logging.debug(f"Found {file}")
+        slr_parcel_df = pd.read_csv(file)
+        logging.info("  Read {:,} rows from slr parcel file {}".format(len(slr_parcel_df), file))
+        logging.debug("Head:\n{}".format(slr_parcel_df.head()))
+        parcel_df = pd.merge(
+            left     = parcel_df,
+            right    = slr_parcel_df,
+            how      = "left",
+            left_on  = "parcel_id",
+            right_on = "parcel_id",
+            validate = "one_to_one"
+        )
+        logging.debug("Head after merge with slr_parcel_df:\n{}".format(parcel_df.head()))
+        logging.debug("slr_parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
 
         if rtp == "RTP2025":
             # add geography crosswalk for zoning categories
@@ -649,29 +639,6 @@ def load_data_for_runs(
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_urban_area_crosswalk_df:\n{}".format(parcel_df.head()))
 
-            # add parcel sea level rise inundation based on the Plan scenario
-            this_modelrun_alias = classify_runid_alias(modelrun_alias)
-            if this_modelrun_alias == "NP":
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2025_np_parcel_inundation_df,
-                    how      = "left",
-                    on       = "parcel_id",
-                    validate = "one_to_one"
-                )
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-                logging.debug("Head after merge with rtp2025_np_parcel_inundation_df:\n{}".format(parcel_df.head()))
-            elif this_modelrun_alias == "DBP":
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2025_dbp_parcel_inundation_df,
-                    how      = "left",
-                    on       = "parcel_id",
-                    validate = "one_to_one"
-                )
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-                logging.debug("Head after merge with rtp2025_dbp_parcel_inundation_df:\n{}".format(parcel_df.head()))
-
             # rtp2025_tract_crosswalk_df.columns should all be ints -- convert
             cols_int64 = ['tract10','tract20']
             cols_int   = ['tract20_epc','tract20_growth_geo','tract20_tra','tract20_hra','tract10_DispRisk','in_urban_area']
@@ -722,29 +689,6 @@ def load_data_for_runs(
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_tract_crosswalk_df:\n{}".format(parcel_df.head()))
 
-            # add parcel sea level rise inundation *input* based on the scenario
-            this_modelrun_alias = classify_runid_alias(modelrun_alias)
-            if this_modelrun_alias == "NP":
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2021_np_parcel_inundation_df,
-                    how      = "left",
-                    on       = "parcel_id",
-                    validate = "one_to_one"
-                )
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-                logging.debug("Head after merge with rtp2021_np_parcel_inundation_df:\n{}".format(parcel_df.head()))
-            else:
-                parcel_df = pd.merge(
-                    left     = parcel_df,
-                    right    = rtp2021_fbp_parcel_inundation_df,
-                    how      = "left",
-                    on       = "parcel_id",
-                    validate = "one_to_one"
-                )
-                logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
-                logging.debug("Head after merge with rtp2021_fbp_parcel_inundation_df:\n{}".format(parcel_df.head()))
-
             # Merge the tract and coc crosswalks
             parcel_df = parcel_df.merge(rtp2021_tract_crosswalk_df, on="parcel_id", how="left")
             logging.debug("parcel_df after first merge with tract crosswalk:\n{}".format(parcel_df.head(30)))
@@ -755,6 +699,8 @@ def load_data_for_runs(
             # Retain only a subset of columns after merging
             columns_to_keep = ['parcel_id', 'tract10', 'fbpchcat', 
                                 'gg_id', 'tra_id', 'hra_id', 'dis_id', 'ppa_id', 'eir_coc_id','jurisdiction',
+                                # greenfield columns
+                                'in_urban_area', 'ACRES',
                                 'zone_id', 'county', 'superdistrict',
                                 'hhq1', 'hhq2', 'hhq3', 'hhq4', 
                                 'tothh', 'totemp',
@@ -771,13 +717,43 @@ def load_data_for_runs(
                                 # use after may 3 2024
                                 'np','cur','dbp',
                                 
-                                # sea level rise column
-                                "inundation"]
+                                # sea level rise columns
+                                "slr_nodev", "slr_mitigation"]
 
             parcel_df = parcel_df[columns_to_keep]
             logging.debug("parcel_df:\n{}".format(parcel_df.head(30)))
 
         modelrun_data[year]['parcel'] = parcel_df
+
+    # Load building data for horizon year
+    horizon_year = sorted(modelrun_data.keys())[-1]
+    logging.debug("Looking for buildings summary matching {}".format(buildings_pattern.format(horizon_year)))
+    file = next(run_directory_path.glob(buildings_pattern.format(horizon_year)))
+    logging.debug(f"Found {file}")
+    buildings_df = pd.read_csv(file)
+    logging.info("  Read {:,} rows from buildinsg summary {}".format(len(buildings_df), file))
+    logging.debug("Head:\n{}".format(buildingss_df))
+
+    # merge parcel information for horizon year onto buildings
+    parcel_df = modelrun_data[horizon_year]['parcel']
+    # if RTP2021 get non_residential_sqft from the buildings table
+    if rtp=="RTP2021":
+        parcel_df = parcel_df.merge(buildings_df[['parcel_id', 'non_residential_sqft']].groupby(['parcel_id']).sum(), on='parcel_id', how='left')
+    # distinguish the column names from the buildings table names (these are parcel totals)
+    parcels = parcel_df[['parcel_id', 'residential_units', 'non_residential_sqft', 'ACRES', 'in_urban_area']].\
+                          rename(columns={"residential_units": "residential_units_total", "non_residential_sqft": "non_residential_sqft_total",
+                                          "ACRES": "parcel_acres"})
+    buildings_df = pd.merge(
+        left     = buildings_df,
+        right    = parcels,
+        how      = "left",
+        on       = "parcel_id",
+        validate = "many_to_one"
+        )   
+    logging.debug("Head after merge with parcel_df:\n{}".format(buildings_df.head()))
+    logging.debug("Length after merge with parcel_df:\n{}".format(len(buildings_df)))
+
+    modelrun_data[horizon_year]['buildings'] = buildings_df  
 
     # Load county summaries
     for year in sorted(modelrun_data.keys()):
@@ -877,7 +853,7 @@ def load_data_for_runs(
 
             df = df1.copy()
             for col in df.columns:
-                if pd.api.types.is_numeric_dtype(df[col]):
+                if (type(df[col]) == int) or (type(df[col]) == float):
                     # Long way to write 3/5 but maybe it'll pay off in future... :)
                     df[col] = df1[col] + ((2023 - t1) / (t2 - t1))*(df2[col] - df1[col])
 

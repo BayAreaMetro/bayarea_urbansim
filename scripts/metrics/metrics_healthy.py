@@ -129,92 +129,62 @@ def non_greenfield_development_share(
         modelrun_alias: str,
         modelrun_id: str,
         modelrun_data: dict,
-        run_directory_path: pathlib.Path,
         output_path: pathlib.Path,
         append_output: bool
     ):
     '''
-    Calculate and export the share of development that falls within the 2020 urban area footprint
-    (or is outside the urban area footprint but suitably low-density as to be rural in character).
+    Calculate and export the share of non-greenfield development in the final model year, 
+    with greenfield development defined as development that falls outside of the 2020 urban area footprint 
+    and has a dwelling unit (or non-residential equivalent) per acre greater than 1.
     
     Parameters:
     - rtp (str): RTP2021 or RTP2025.
     - modelrun_alias (str): Alias for the model run, used for labeling output.
     - modelrun_id (str): Identifier for the model run.
     - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
-    - run_directory_path (Path): The directory path for this model run.
     - output_path (Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing.
     '''
     logging.info("Calculating non_greenfield_development_share")
 
-    # Guard clause: this metric is implemented for RTP2025 / PBA50+ only
-    if rtp != 'RTP2025':
-        logging.info("  RTP2021 is not supported - skipping")
-        return
-
     # Define a potentially very impactful constant used to convert residential units to non-residential sqft and vice versa
     SQFT_PER_UNIT = 1750  # close to the weighted average size of developer-model units in a recent BAUS run
 
-    # Read in and select new buildings post 2020
-    modelrun_name = modelrun_id
-    # Sometimes the modelrun_id is a whole file path
-    # Handle both forms of slashes in this field
-    if '\\' in modelrun_id:
-        modelrun_name = modelrun_id.split('\\')[-1]
-    if '/' in modelrun_id:
-        modelrun_name = modelrun_id.split('/')[-1]
-    NEW_BUILDINGS_PATH = pathlib.Path(run_directory_path) / f'core_summaries/{modelrun_name}_new_buildings_summary.csv'
-    logging.info(f'  Reading new_buildings_summary from {NEW_BUILDINGS_PATH}...')
-    new_buildings = pd.read_csv(
-        NEW_BUILDINGS_PATH,
-        usecols=['parcel_id', 'year_built', 'building_sqft', 'residential_units'],
-        dtype={'parcel_id': int}
-    )
-    new_buildings = new_buildings[new_buildings['year_built'] > 2020]
-    logging.debug(f'  {len(new_buildings)} buildings built after 2020')
+    # get parcel and buildings data for horizon year
+    year_horizon = sorted(modelrun_data.keys())[-1]
+    buildings_horizon_year = modelrun_data[year_horizon]["buildings"]
+    # only look at buildings built after the Plan's initial year
+    year_initial = sorted(modelrun_data.keys())[0]
+    buildings_df = buildings_horizon_year.loc[buildings_horizon_year.year_built > year_initial]
 
-    # Some residential buildings (from the development pipeline) have no building_sqft);
-    # convert residential units to sqft equivalent so we can summarize "all development"
-    new_buildings.loc[new_buildings['building_sqft'] == 0, 'building_sqft'] = \
-        new_buildings.loc[new_buildings['building_sqft'] == 0, 'residential_units'] * SQFT_PER_UNIT
-    
-    # We are interested in development on any parcel:
+    # we are interested in development on any parcel:
     # 1. outside the 2020 urban area footprint AND
     # 2. greater than 1 DU-equivalent per acre in 2050
-    parcel_df = modelrun_data[2050]['parcel'].copy()
-    parcel_df['du_equiv_per_acre'] = (parcel_df['residential_units'] + (parcel_df['non_residential_sqft'] / SQFT_PER_UNIT)) \
-                                     / parcel_df['ACRES']
-    dense_greenfield_parcels = parcel_df.loc[
-        (parcel_df['du_equiv_per_acre'] > 1.0) & (parcel_df['in_urban_area'] == 0),
-        'parcel_id'
-    ]
+    buildings_df['du_equiv_per_acre'] = (buildings_df['residential_units_total'] + (buildings_df['non_residential_sqft_total'] / SQFT_PER_UNIT)) /\
+                                         buildings_df['parcel_acres']
+    dense_greenfield = buildings_df.loc[(buildings_df['du_equiv_per_acre'] > 1.0) & (buildings_df['in_urban_area'] == 0)]
 
-    # Calculate share of "all development" (in terms of building_sqft) that occurred on "dense greenfield parcels"
-    total_development = new_buildings['building_sqft'].sum()
-    dense_greenfield_development = new_buildings.loc[
-        new_buildings['parcel_id'].isin(dense_greenfield_parcels),
-        'building_sqft'
-    ].sum()
-    greenfield_development_pct = dense_greenfield_development / total_development
+    # then calculate the share of denser greenfield development parcel avres as a proportion of all development parcel acres 
+    dense_greenfield_development_share = dense_greenfield.drop_duplicates(['parcel_id'])['parcel_acres'].sum() /\
+        buildings_df.drop_duplicates(['parcel_id'])['parcel_acres'].sum()
 
     # Add metadata, format, and export to CSV
-    greenfield_development_df = pd.DataFrame({
+    non_greenfield_development_df = pd.DataFrame({
         'modelrun_id': modelrun_id,
         'modelrun_alias': modelrun_alias,
         'area_alias': 'Regionwide',
         'area': 'all',
-        'development_in_urban_footprint_pct': 1 - greenfield_development_pct
+        'non_greenfield_development_share': 1 - dense_greenfield_development_share
     }, index=[0])
     out_file = pathlib.Path(output_path) / 'metrics_healthy2_development_in_urban_footprint.csv'
-    greenfield_development_df.to_csv(
+    non_greenfield_development_df.to_csv(
         out_file,
         mode='a' if append_output else 'w',
         header=False if append_output else True,
         index=False,
     )
-    logging.info(f"{'Appended' if append_output else 'Wrote'} {len(greenfield_development_df)} " \
-                 + f"line{'s' if len(greenfield_development_df) > 1 else ''} to {out_file}")
+    logging.info(f"{'Appended' if append_output else 'Wrote'} {len(non_greenfield_development_df)} " \
+                 + f"line{'s' if len(non_greenfield_development_df) > 1 else ''} to {out_file}")
     
     
 def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path, append_output):
@@ -222,6 +192,11 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
     Calculates the percentage of households that are protected by sea level rise mitigation, 
     as a percentage of all households in sea level rise areas and a percentage of all 
     households in sea level rise areas that are EPCs.
+
+    To run for PBA50, move the files from "Box\Plan Bay Area 2050+\Performance and Equity\/
+    Plan Performance\Equity_Performance_Metrics\PBA50_reproduce_for_QA\slr_metrics_inputs"
+    to the relevant Plan run outputs folder, since these model output files were generated 
+    post-Plan run to use in these standalone metrics.
 
     Parameters:
     - rtp (str): RTP2021 or RTP2025.
@@ -231,7 +206,8 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
 
-    Writes metrics_slrProtection.csv to output_path, appending if append_output is True. Columns are:
+    Writes metrics_healthy1_hazard_resilience_SLR.csv to output_path, appending if append_output is True. Columns are:
+    - modelrun_id
     - modelrun_alias
     - hazard
     - area_alias
@@ -250,8 +226,9 @@ def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path,
     geog_name = 'eir_coc_id' if rtp=="RTP2021" else 'epc_id'
 
     # SLR parcels - all parcels in the SLR input files that are inundated or mitigated
-    slr_area = [df.inundation.isin([12,24,10,20,100]), (df.inundation.isin([12,24,10,20,100]) & (df[geog_name].notnull()))]
-    slr_protected_area = [df.inundation == 100, (df.inundation == 100) & (df[geog_name].notnull())]
+    slr_area = [((df.slr_nodev == True) | (df.slr_mitigation == True)), 
+                (((df.slr_nodev == True) | (df.slr_mitigation == True)) & (df[geog_name].notnull()))]
+    slr_protected_area = [df.slr_mitigation == True, ((df.slr_mitigation == True) & (df[geog_name].notnull()))]
 
     protected_households_pct = []
     for slr, slr_protected in zip(slr_area, slr_protected_area):
