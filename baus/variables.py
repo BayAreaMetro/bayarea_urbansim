@@ -662,6 +662,11 @@ def parcel_is_allowed(form):
     # to know if specific forms are allowed
     zoning_existing = orca.get_table("zoning_existing")
     zoning_strategy = orca.get_table("zoning_strategy")
+
+    zst = zoning_strategy.to_frame()
+
+    print('Check zoningmodcats on parcels w/o dua_up')
+    print(zst[zst.dua_up.isna()].zoningmodcat.value_counts())
     parcels = orca.get_table("parcels")
 
     allowed = pd.Series(0, index=parcels.index)
@@ -993,35 +998,43 @@ def zoned_du_vacant(parcels, parcels_zoning_calculations):
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def effective_max_dua(zoning_existing, parcels):
-
+    
+    # Calculate maximum density based on FAR and height
     max_dua_from_far = zoning_existing.max_far * 43560 / GROSS_AVE_UNIT_SIZE
 
     max_far_from_height = (zoning_existing.max_height / HEIGHT_PER_STORY) * PARCEL_USE_EFFICIENCY
-
     max_dua_from_height = max_far_from_height * 43560 / GROSS_AVE_UNIT_SIZE
 
-    s = pd.concat([zoning_existing.max_dua, max_dua_from_far, max_dua_from_height], axis=1).min(axis=1)
+    # Print descriptions for key DataFrames
+    print("zoning_existing.describe():\n", zoning_existing.local.describe())
+    print("max_dua_from_far.describe():\n", max_dua_from_far.describe())
+    print("max_dua_from_height.describe():\n", max_dua_from_height.describe())
 
-    # take the max dua IFF the upzone value is greater than the current value
-    # i.e. don't let the upzoning operation accidentally downzone
-
-    strategy_max_dua = orca.get_table("zoning_strategy").dua_up
-
-    s = pd.concat([s, strategy_max_dua], axis=1).max(axis=1)
-
-    # take the min dua IFF the downzone value is less than the current value
-    # i.e. don't let the downzoning operation accidentally upzone
-
-    strategy_min_dua = orca.get_table("zoning_strategy").dua_down
-
-    s = pd.concat([
-        s,
-        strategy_min_dua
+    # Minimum of max_dua, FAR-based DUA, and height-based DUA
+    s_base = pd.concat([
+        zoning_existing.max_dua, max_dua_from_far, max_dua_from_height
     ], axis=1).min(axis=1)
 
-    s3 = parcel_is_allowed('residential')
+    # Ensure upzoning does not inadvertently downzone when value is smaller
+    zoning_strategy = orca.get_table("zoning_strategy")
+    strategy_max_dua = zoning_strategy.dua_up
+    strategy_min_dua = zoning_strategy.dua_down
 
-    return (s.fillna(0) * s3).reindex(parcels.index).fillna(0).astype('float')
+    print("zoning_strategy.dua_up.describe():\n", zoning_strategy.dua_up.describe())
+
+    # Apply upzoning (max) and downzoning (min) constraints
+    s_base_with_strategy = pd.concat([s_base, strategy_max_dua], axis=1).max(axis=1)
+    s_final_dua = pd.concat([s_base_with_strategy, strategy_min_dua], axis=1).min(axis=1)
+
+    # Check if residential use is allowed
+    res_allowed = parcel_is_allowed('residential')
+
+    output = (s_final_dua.fillna(0) * res_allowed).reindex(parcels.index).fillna(0).astype('float')
+
+    print("zoning_strategy w res allowed.max_dua.describe():\n", output.describe())
+
+    return output
+
 
 
 @orca.column('parcels_zoning_calculations')
