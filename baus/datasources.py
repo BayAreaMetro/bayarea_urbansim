@@ -818,7 +818,8 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
         "basis_inputs/crosswalks/",
         run_setup["parcels_geography_file"],
     )
-    df = (pd.read_csv(file, dtype=parcel_dtypes)
+    df = (pd.read_csv(file, dtype=parcel_dtypes, 
+                      na_values=['NA','nan','NaN'])
         .rename(columns={'PARCEL_ID': 'parcel_id'})
         .set_index("parcel_id")
         )
@@ -841,7 +842,7 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
     # assert no empty juris values
     assert True not in df.juris_name.isnull().value_counts()
 
-    for col in run_setup["parcels_geography_cols"]:
+    for col in run_setup["zoningmodcat_cols"]:
         # PBA50 parcels_geography code used this lower case line
         # which corresponds to PBA50 inputs so preserving it for now
         df[col] = df[col].astype(str).str.lower()
@@ -849,7 +850,7 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
 
     # also add the columns to the feasibility "pass_through" columns
     developer_settings["feasibility"]["pass_through"].extend(
-        run_setup["parcels_geography_cols"]
+        run_setup["zoningmodcat_cols"]
     )
 
     if 'zoningmodcat' in df:
