@@ -162,9 +162,9 @@ def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.Da
     for p in root_dir.rglob("*run_setup*.yaml"):
         print(p)
 
-        # we skip the occasional run_setup.yaml without suffixes as not being actual run logs
-        # as well as any repo yaml
-        if p.name == 'run_setup.yaml' or 'bayarea_urbansim' in str(p.parent):
+        # we skip the occasional boilerplate repo run_setup.yaml without suffixes in the name as not being 
+        # actual run logs, vs code save history copies, as well as any repo yaml
+        if p.name == 'run_setup.yaml' or 'bayarea_urbansim' in str(p.parent) or '.history' in str(p.parent):
             print(f'Skipping {p}')
             continue
 
