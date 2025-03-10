@@ -1,7 +1,8 @@
 # list the columns defining the parcel classes
 zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]
 
-input_file: "basis_inputs/crosswalks/fbp_urbansim_parcel_classes.csv"
+#input_file: "basis_inputs/crosswalks/fbp_urbansim_parcel_classes.csv"
+input_file: "basis_inputs/crosswalks/fbp_urbansim_parcel_classes_ot50pct.csv"
 #output_file: "plan_strategies/zoning_mods_PBA50Plus_FBP_MAR7_2025.csv"
 output_file: "plan_strategies/zoning_mods_PBA50Plus_FBP_MAR10_2025.csv"
 
@@ -171,13 +172,26 @@ zoning_modifications:
 
 inclusionary:
   - category: GG_TRA_HRA
-    conditions: ["gg_id == 'GG'", "tra_id != 'No_TRA'", "hra_id == 'HRA' "]
+    conditions: ["gg_id == 'GG'", "(tra_id=='tra_1' or tra_id=='tra_2' or tra_id=='tra_3' or tra_id=='tra_4' or tra_id=='tra_5')", "hra_id == 'HRA' "]
     value: .20 
 
-  - category: GG_TRA_NO_HRA
-    conditions: ["gg_id == 'GG'", "tra_id=='tra_1' or tra_id=='tra_2'" , "hra_id != 'HRA' "]
+  - category: GG_TRA5_NO_HRA
+    conditions: ["gg_id == 'GG'", "(tra_id=='tra_1' or tra_id=='tra_2' or tra_id=='tra_3' or tra_id=='tra_4' or tra_id=='tra_5')" , "hra_id != 'HRA' "]
+    value: .15 
+  - category: GG_TRA6_HRA
+    conditions: ["gg_id == 'GG'", "(tra_id=='tra_6')" , "hra_id == 'HRA' "]
     value: .15 
 
   - category: GG_HRA_NO_TTS
     conditions: ["gg_id == 'GG'","~(tra_id=='tra_1' or tra_id=='tra_2')", "hra_id == 'HRA' "]
     value: .15 
+
+  - category: REMAINDER
+    conditions: 
+      - >
+        (gg_id == 'GG' and not (
+        (tra_id in ['tra_1', 'tra_2', 'tra_3', 'tra_4', 'tra_5'] and hra_id == 'HRA') or 
+        (tra_id in ['tra_1', 'tra_2', 'tra_3', 'tra_4', 'tra_5'] and hra_id != 'HRA') or 
+        (tra_id == 'tra_6' and hra_id == 'HRA')
+        )) or (gg_id != 'GG')
+    value: 0.10
