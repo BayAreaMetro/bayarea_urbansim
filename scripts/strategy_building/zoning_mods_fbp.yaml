@@ -2,7 +2,8 @@
 zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]
 
 input_file: "basis_inputs/crosswalks/fbp_urbansim_parcel_classes.csv"
-output_file: "plan_strategies/zoning_mods_PBA50Plus_FBP_feb21_2025.csv"
+#output_file: "plan_strategies/zoning_mods_PBA50Plus_FBP_MAR7_2025.csv"
+output_file: "plan_strategies/zoning_mods_PBA50Plus_FBP_MAR10_2025.csv"
 
 zoning_modifications:
   - category: GG_TRA1_HRA_NonRes
@@ -156,15 +157,27 @@ zoning_modifications:
       dua_up: 35
       add_bldg: 'HM MR'
 
+# constrain development outside ugbs
+  - category: UGB_Zoning
+    conditions: ["ugb_id != 'UGB' "]
+    updates:
+      dua_down: 0
+      far_down: 0
+      far_up: null
+      dua_up: null
+      add_bldg: null
+      drop_bldg: null
 
-  # - category: UGB_Zoning
-  #   conditions: ["ugb_id == 'UGB' "]
-  #   updates:
-  #     dua_down: 0
-  #     far_down: 0
-  #     far_up: null
-  #     dua_up: null
-  #     add_bldg: null
-  #     drop_bldg: null
 
+inclusionary:
+  - category: GG_TRA_HRA
+    conditions: ["gg_id == 'GG'", "tra_id != 'No_TRA'", "hra_id == 'HRA' "]
+    value: .20 
 
+  - category: GG_TRA_NO_HRA
+    conditions: ["gg_id == 'GG'", "tra_id=='tra_1' or tra_id=='tra_2'" , "hra_id != 'HRA' "]
+    value: .15 
+
+  - category: GG_HRA_NO_TTS
+    conditions: ["gg_id == 'GG'","~(tra_id=='tra_1' or tra_id=='tra_2')", "hra_id == 'HRA' "]
+    value: .15 

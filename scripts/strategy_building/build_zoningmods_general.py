@@ -35,6 +35,7 @@ def apply_zoning_modifications(zoningmods, modifications):
 
     return zoningmods
 
+
 def baus_basis_dir():
     import pathlib
     import os
@@ -42,6 +43,27 @@ def baus_basis_dir():
     M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
     return M_DRIVE / 'urban_modeling/baus/BAUS Inputs'
 
+def apply_inclusionary_modifications(zoningmods, incl_modifications):
+    for mod in incl_modifications:
+        conditions = mod['conditions']
+        category = mod['category']
+        val = mod['value']
+        mask_dict = {}
+
+        # Start with all zoningmod rows selected
+        mask = pd.Series(True, index=zoningmods.index)
+        
+        # Apply each filter condition (column-wise filtering - all need to be true)
+        # (conditions are separate column - value pairs)
+        for cond in conditions:
+            print(cond)
+            mask &= zoningmods.eval(cond)
+
+        # Set the component column updates for relevant mask records
+        # Apply updates only to the filtered rows
+        zoningmods.loc[mask, 'inclusionary'] = val
+    return zoningmods
+    
 def load_yaml(yaml_path):
     with open(yaml_path, 'r') as file:
         return yaml.safe_load(file)
@@ -88,7 +110,13 @@ def main(yaml_path):
         zoningmods[col] = np.nan
 
     print(f"Zoning modifications saved to {mods_output_file}")
-    zoningmods.to_csv(basis_dir / mods_output_file, index=False)
+    #zoningmods.to_csv(basis_dir / mods_output_file, index=False)
+
+    # # Apply inclusionary mods
+    # print('Applying inclusionary mods')
+    # inclmods = apply_inclusionary_modifications(zoningmods, config['inclusionary'])
+    # inclmods = inclmods[['zoningmodcat','inclusionary']].dropna()
+    # print(inclmods)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Apply zoning modifications from a YAML configuration.")
