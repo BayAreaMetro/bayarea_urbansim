@@ -173,7 +173,15 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
 
     # ADD JOBS BY TRANSIT ZONES
     jobs_by_ec5 = jobs.groupby(['zone_id','is_transit_hub']).size().unstack(1).fillna(0).astype(int)
+    jobs_detail_by_ec5 = jobs.groupby(['zone_id','empsix','is_transit_hub']).size().unstack([2,1])
+    
+    # add sector detail
+    jobs_detail_by_ec5.columns = ['_'.join(map(str,col)).strip() for col in jobs_detail_by_ec5.columns.values]
+    jobs_detail_by_ec5 = jobs_detail_by_ec5.fillna(0).astype(int)
+    
+    # merge the two in turn
     zones = zones.merge(jobs_by_ec5, how='left',left_index=True,right_index=True)
+    zones = zones.merge(jobs_detail_by_ec5, how='left',left_index=True,right_index=True)
 
     zones['non_residential_sqft'] = buildings.groupby('zone_id').non_residential_sqft.sum()
     zones['non_residential_sqft_office'] = buildings.query('building_type=="OF"').groupby('zone_id').non_residential_sqft.sum()
