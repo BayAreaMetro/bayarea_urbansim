@@ -69,7 +69,7 @@ M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.P
 USERNAME = getpass.getuser()
 HOME_DIR = pathlib.Path.home()
 
-if USERNAME.lower() in ['lzorn']:
+if USERNAME.lower() in ['lzorn', 'jahrenholtz']: # need to standardize to E:Box
     BOX_DIR = pathlib.Path("E:/Box")
 elif USERNAME.lower() in ['aolsen']:
     BOX_DIR = HOME_DIR /'Library/CloudStorage/Box-Box'

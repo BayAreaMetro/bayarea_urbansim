@@ -64,7 +64,7 @@ def main():
     M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 
 
-    if USERNAME.lower() in ['lzorn']:
+    if USERNAME.lower() in ['lzorn', 'jahrenholtz']: # need to standardize to E:Box
         BOX_DIR = pathlib.Path("E:/Box")
     else:
         BOX_DIR = HOME_DIR / 'Box'
