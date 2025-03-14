@@ -100,7 +100,6 @@ zoning_modifications:
       dua_up: 30
       add_bldg: 'HM MR'
 
-# Should there be a GG_TRA5_HRA_Res and _NonRes here?
   - category: GG_TRA5_HRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id == 'HRA'", "exd_id != 'exd'"]
     updates:
@@ -140,7 +139,7 @@ zoning_modifications:
       dua_up: 20
       add_bldg: 'HM MR'
 
-  - category: PPA_Zoning # This is category is associated with GG+PPA in the excel sheet?  
+  - category: PPA_Zoning # Is this category associated with GG+PPA in the excel sheet?  
     conditions: ["ppa_id == 'PPA'"]
     updates:
       far_up: 0.35 
