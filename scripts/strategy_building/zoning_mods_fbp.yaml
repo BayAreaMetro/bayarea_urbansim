@@ -10,8 +10,8 @@ zoning_modifications:
   - category: GG_TRA1_HRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_1'", "hra_id == 'HRA'", "exd_id != 'exd'"]
     updates:
-      dua_up: 200
-      far_up: 10
+      dua_up: 300
+      far_up: 30
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA1_HRA_Res
@@ -23,8 +23,8 @@ zoning_modifications:
   - category: GG_TRA1_NonHRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_1'", "hra_id != 'HRA'", "exd_id != 'exd'"]
     updates:
-      dua_up: 150
-      far_up: 10
+      dua_up: 250
+      far_up: 30
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA1_NonHRA_Res
@@ -36,8 +36,8 @@ zoning_modifications:
   - category: GG_TRA2_HRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_2'", "hra_id == 'HRA'", "exd_id != 'exd'"]
     updates:
-      dua_up: 100
-      far_up: 5
+      dua_up: 250
+      far_up: 25
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA2_HRA_Res
@@ -49,8 +49,8 @@ zoning_modifications:
   - category: GG_TRA2_NonHRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_2'", "hra_id != 'HRA'", "exd_id != 'exd'"]
     updates:
-      dua_up: 75
-      far_up: 5
+      dua_up: 200
+      far_up: 25
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA2_NonHRA_Res
@@ -62,8 +62,8 @@ zoning_modifications:
   - category: GG_TRA3_HRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_3'", "hra_id == 'HRA'", "exd_id != 'exd'"]
     updates:
-      dua_up: 50
-      far_up: 2
+      dua_up: 200
+      far_up: 15
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA3_HRA_Res
@@ -72,11 +72,13 @@ zoning_modifications:
       dua_up: 50
       add_bldg: 'HM MR'
 
+# Should there be a GG_TRA3_NonHRA here?
+
   - category: GG_TRA4_HRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_4'", "hra_id == 'HRA'", "exd_id != 'exd'"]
     updates:
-      dua_up: 50
-      far_up: 3
+      dua_up: 100
+      far_up: 5
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA4_HRA_Res
@@ -88,66 +90,60 @@ zoning_modifications:
   - category: GG_TRA4_NonHRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_4'", "hra_id != 'HRA'", "exd_id != 'exd'"]
     updates:
-      dua_up: 35
-      far_up: 2
+      dua_up: 100
+      far_up: 5
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA4_NonHRA_Res
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_4'", "hra_id != 'HRA'", "exd_id == 'exd'"]
     updates:
-      dua_up: 35
+      dua_up: 30
+      add_bldg: 'HM MR'
+
+# Should there be a GG_TRA5_HRA_Res and _NonRes here?
+  - category: GG_TRA5_HRA_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id == 'HRA'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 75
+      far_up: 2.5
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA5_HRA_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id == 'HRA'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 30
       add_bldg: 'HM MR'
 
   - category: GG_TRA5_NonHRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id != 'HRA'", "exd_id != 'exd'"]
     updates:
-      dua_up: 35
-      far_up: 2
+      dua_up: 50
+      far_up: 2.5
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA5_NonHRA_Res
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id != 'HRA'", "exd_id == 'exd'"]
     updates:
-      dua_up: 35
+      dua_up: 25
       add_bldg: 'HM MR'
 
   - category: GG_TRA6_NonHRA_NonRes
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "hra_id != 'HRA'", "exd_id != 'exd'"]
     updates:
       dua_up: 35
-      far_up: 2
+      far_up: 2 # Sheet says "Local Zoning"
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
   - category: GG_TRA6_NonHRA_Res
     conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "hra_id != 'HRA'", "exd_id == 'exd'"]
     updates:
-      dua_up: 35
+      dua_up: 20
       add_bldg: 'HM MR'
 
-  - category: GG_TRA5_HRA_NonRes
-    conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id == 'HRA'", "exd_id != 'exd'"]
-    updates:
-      dua_up: 50
-      far_up: 2
-      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
-
-  - category: GG_TRA5_HRA_Res
-    conditions: ["gg_id == 'GG'", "tra_id == 'tra_5'", "hra_id == 'HRA'", "exd_id == 'exd'"]
-    updates:
-      dua_up: 50
-      add_bldg: 'HM MR'
-
-  - category: GG_TRA6_HRA_NonRes
-    conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "hra_id == 'HRA'", "exd_id != 'exd'"]
-    updates:
-      dua_up: 50
-      far_up: 1.5
-      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
-
-  - category: PPA_Zoning
+  - category: PPA_Zoning # This is category is associated with GG+PPA in the excel sheet?  
     conditions: ["ppa_id == 'PPA'"]
     updates:
-      far_up: 2
+      far_up: 0.35 
       add_bldg: 'IW'
       drop_bldg: 'HT HM OF HO SC RS RB MR MT ME'
       dua_up: null
@@ -155,7 +151,7 @@ zoning_modifications:
   - category: GG_No_TRA_HRA_Res
     conditions: ["gg_id == 'GG'", "tra_id == 'No_TRA'", "hra_id == 'HRA'", "exd_id == 'exd'"]
     updates:
-      dua_up: 35
+      dua_up: 35 # Sheet says "Local Zoning"
       add_bldg: 'HM MR'
 
 # constrain development outside ugbs
