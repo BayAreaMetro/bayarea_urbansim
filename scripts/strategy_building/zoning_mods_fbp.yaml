@@ -138,15 +138,15 @@ zoning_modifications:
       dua_up: 25
       add_bldg: 'HM MR'
 
-  - category: GG_TRA6_NonHRA_NonRes
-    conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "hra_id != 'HRA'", "exd_id != 'exd'"]
+  - category: GG_TRA6_NonRes
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'",  "exd_id != 'exd'"]
     updates:
       dua_up: 35
       far_up: null
       add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
 
-  - category: GG_TRA6_NonHRA_Res
-    conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "hra_id != 'HRA'", "exd_id == 'exd'"]
+  - category: GG_TRA6_Res
+    conditions: ["gg_id == 'GG'", "tra_id == 'tra_6'", "exd_id == 'exd'"]
     updates:
       dua_up: 20
       add_bldg: 'HM MR'
