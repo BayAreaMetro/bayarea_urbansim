@@ -68,6 +68,7 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
     if not year > initial_summary_year:
         return
     
+    print('Preserving units')
     # join several geography columns to units table so that we can apply units
     res_units = residential_units.to_frame()
     bldgs = buildings.to_frame()
@@ -88,6 +89,7 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
     
     # apply deed-restriced units by geography (county here)
     for geog, value in s.items(): 
+        print(f'{geog}')
 
         # apply deed-restriced units by filters within each geography 
         l = ['first', 'second', 'third', 'fourth']
@@ -99,7 +101,8 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
             
             filter_nm = value[item+"_unit_filter"]
             unit_target = value[item+"_unit_target"]
-
+            print(f'Current Filter: {filter_nm} and target {unit_target}')
+            
             # exclude units that have been preserved through this loop
             res_units = res_units[~res_units.index.isin(dr_units)]
 
@@ -108,6 +111,7 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
             geog_units = res_units.loc[res_units[geography] == geog]
             # subset units to the filters within the geography
             filter_units = geog_units.query(filter_nm)
+            print(f'Units in scope for preservation: {len(filter_units)}')
 
             # pull a random set of units based on the target except in cases
             # where there aren't enough units in the filtered geography or
@@ -218,6 +222,9 @@ def inclusionary_housing_revenue_reduction(feasibility, units):
     h = orca.merge_tables("households", [households, buildings, parcels_geography], columns=["income", geog])
     AMI = h.groupby(h[geog]).income.quantile(.5)
 
+    print(f'Household income by {geog} category')
+    print(AMI.describe())
+
     # per Aksel Olsen (@akselx)
     # take 90% of AMI and multiple by 33% to get the max amount a
     # household can pay per year, divide by 12 to get monthly amt,
@@ -226,12 +233,12 @@ def inclusionary_housing_revenue_reduction(feasibility, units):
     monthly_condo_fee = 250
     monthly_affordable_payment = AMI * .9 * .33 / 12 - monthly_condo_fee
 
-    def value_can_afford(monthly_payment):
+    def value_can_afford_func(monthly_payment):
         # this is a 10 year average freddie mac interest rate
         ten_year_average_interest = .055
         return np.npv(ten_year_average_interest/12, [monthly_payment]*30*12)
 
-    value_can_afford = {k: value_can_afford(v) for k, v in
+    value_can_afford = {k: value_can_afford_func(v) for k, v in
                         monthly_affordable_payment.to_dict().items()}
     value_can_afford = pd.Series(value_can_afford)
 
@@ -619,6 +626,7 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
     # step 2
     feasibility = feasibility.replace([np.inf, -np.inf], np.nan)
     feasibility = feasibility[feasibility.max_profit < 0]
+    print(f'For {policy_name}, there are {len(feasibility)} parcels in feasibility table')
 
     # step 3
     feasibility['ave_sqft_per_unit'] = parcels.ave_sqft_per_unit
@@ -645,7 +653,11 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
        
     # step 5
     if "receiving_buildings_filter" in acct_settings:
+        print('Applying Feasibility filter per `receiving_buildings_filter` setting:')
+        print('    Feasibility size before: ',len(feasibility))
         feasibility = feasibility.query(acct_settings["receiving_buildings_filter"])
+        print('    Feasibility size after: ',len(feasibility))
+        
     else:
         # otherwise all buildings are valid
         pass
@@ -682,7 +694,7 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
         df.columns = pd.MultiIndex.from_tuples(
             [("residential", col) for col in df.columns])
         # disable stdout since developer is a bit verbose for this use case
-        sys.stdout, old_stdout = StringIO(), sys.stdout
+        #sys.stdout, old_stdout = StringIO(), sys.stdout
 
         kwargs = developer_settings['residential_developer']
         # step 9
@@ -700,7 +712,7 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
             add_more_columns_callback=add_extra_columns_func,
             profit_to_prob_func=profit_to_prob_func,
             **kwargs)
-        sys.stdout = old_stdout
+        #sys.stdout = old_stdout
         buildings = orca.get_table("buildings")
 
         if new_buildings is None:
@@ -787,6 +799,11 @@ def subsidized_residential_feasibility(parcels, developer_settings, parcel_sales
     config.cap_rate = developer_settings["cap_rate"]
 
     # step 1
+    yr = orca.get_injectable("year")
+    print('Subsidized residential feasibility for ',yr)
+    print('Parcel filter: ',kwargs['parcel_filter'])
+    print('   Parcels in scope for subsidized feasibility calc:', len(parcels.to_frame().query(kwargs['parcel_filter'])))
+
     utils.run_feasibility(parcels,
                           parcel_sales_price_sqft_func,
                           parcel_is_allowed_func,
@@ -884,13 +901,26 @@ def subsidized_residential_developer_lump_sum_accts(run_setup, households, build
         if not run_setup[acct["name"]]:
             continue
 
-        print("Running the subsidized developer for acct: %s" % acct["name"])
+        print(f"Running the subsidized developer for acct: {acct['name']} in {year}")
 
         # need to rerun the subsidized feasibility every time and get new
         # results - this is not ideal and is a story to fix in pivotal,
         # but the only cost is in time - the results should be the same
+        
+        #TEST - to be removed until END TEST
+        
+        if orca.is_injectable('feasibility'):
+    
+            feasibility = orca.get_table("feasibility").to_frame()
+            print(f'Feasibility before calling `subsidized_residential_feasibility`: {feasibility.shape}')
+
+        #END TEST
+
         orca.eval_step("subsidized_residential_feasibility")
+        
         feasibility = orca.get_table("feasibility").to_frame()
+        print(f'Feasibility after calling `subsidized_residential_feasibility`: {feasibility.shape}')
+        
         feasibility = feasibility.stack(level=0).reset_index(level=1, drop=True)
 
         run_subsidized_developer(feasibility,
@@ -956,7 +986,7 @@ def subsidized_office_developer_lump_sum_accts(run_setup, buildings, year, add_e
     
     for key, acct in account_strategies["acct_settings"]["office_lump_sum_accounts"].items():
 
-        print("Running the subsidized office developer for acct: %s" % acct["name"])
+        print(f"Running the subsidized office developer for acct: %s" % acct["name"])
 
         orca.eval_step("alt_feasibility")
         feasibility = orca.get_table("feasibility").to_frame()
