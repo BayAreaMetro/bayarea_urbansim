@@ -93,6 +93,7 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
 
         # apply deed-restriced units by filters within each geography 
         l = ['first', 'second', 'third', 'fourth']
+        accounting = {}
         for item in l:
 
             # both filter and associated value need to be defined to continue
@@ -119,13 +120,18 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
             if len(filter_units) == 0:
                 dr_units_set = []
                 print("%s %s: target is %d but no units are available" % (geog, filter_nm, unit_target))
+                accounting[(item,geog,filter_nm)]=(unit_target,len(filter_units))
             elif unit_target > len(filter_units):
                  dr_units_set = filter_units.index
                  print("%s %s: target is %d but only %d units are available" % (geog, filter_nm, unit_target, len(filter_units)))
+                 accounting[(item,geog,filter_nm)]=(unit_target,len(filter_units))
             else:
                 dr_units_set = np.random.choice(filter_units.index, unit_target, replace=False)
 
             dr_units.extend(dr_units_set)
+        accounting = pd.Series(accounting).apply(pd.Series,index=['target','actual'])
+        print('Preservation accounting: ')
+        print(accounting)
 
     # mark units as deed restriced in residential units table
     residential_units = residential_units.to_frame()
