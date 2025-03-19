@@ -51,6 +51,10 @@ def outputs_dir(run_setup):
 def viz_dir(run_setup):
     return os.path.join(run_setup["viz_dir"])
 
+@orca.injectable("inv_dir", cache=True)
+def inv_dir(run_setup):
+    inv_dir = os.path.join(run_setup.get("inv_dir","."))
+    return inv_dir
 
 @orca.injectable("emp_reloc_rates_adj_file", cache=True)
 def emp_reloc_rates_adj_file(run_setup):
@@ -673,6 +677,7 @@ def tm1_tm2_maz_forecast_inputs(tm1_tm2_regional_demographic_forecast):
 @orca.table(cache=True)
 def zoning_strategy(parcels_geography, mapping, run_setup):
 
+    print(f'Loading zoning strategy file: {run_setup["zoning_mods_file"]}')
     strategy_zoning = pd.read_csv(
         os.path.join(
             orca.get_injectable("inputs_dir"),
@@ -697,6 +702,8 @@ def zoning_strategy(parcels_geography, mapping, run_setup):
 
     join_col = "zoningmodcat"
     print("join_col of zoningmods is {}".format(join_col))
+    print(f'Columns defining zoningmodcat:  {", ".join(run_setup["zoningmodcat_cols"])}')
+    
 
     print(
         "length of parcels table before merging the zoning strategy table is {}".format(
@@ -842,7 +849,8 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
     # assert no empty juris values
     assert True not in df.juris_name.isnull().value_counts()
 
-    for col in run_setup["zoningmodcat_cols"]:
+    # format any and all columns in the zoningmodcat and parcel geo cols
+    for col in set(run_setup["zoningmodcat_cols"] + run_setup["parcels_geography_cols"]):
         # PBA50 parcels_geography code used this lower case line
         # which corresponds to PBA50 inputs so preserving it for now
         df[col] = df[col].astype(str).str.lower()
@@ -850,11 +858,12 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
 
     # also add the columns to the feasibility "pass_through" columns
     developer_settings["feasibility"]["pass_through"].extend(
-        run_setup["zoningmodcat_cols"]
+        set(run_setup["zoningmodcat_cols"] + run_setup["parcels_geography_cols"])
     )
 
     if 'zoningmodcat' in df:
         print("{} zoningmodcat format is".format(df["zoningmodcat"]))
+        print(f"Columns: {run_setup['zoningmodcat_cols']}")
     else:    
         
         # If not present, generate zoningmodcat
@@ -869,7 +878,6 @@ def parcels_geography(parcels, parcels_jurisdiction, run_setup, developer_settin
             .str.lower() 
         )
         
-        print("{} zoningmodcat format is".format(df["zoningmodcat"]))
 
     return df
 

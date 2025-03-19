@@ -17,6 +17,8 @@ def hazards_slr_summary(run_setup, run_name, year):
     if not run_setup['run_slr']:
         return
     
+    # careful - this could mean that if there are no records in slr_demonish in 2035, 
+    # this wouldn't be run and slr_demolish won't be written to slr_demolish_tot.
     if len(orca.get_table("slr_demolish")) < 1:
         return
     
