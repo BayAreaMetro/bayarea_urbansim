@@ -22,6 +22,8 @@ rtp2025_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level
 rtp2025_dbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 rtp2025_fbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 
+rtp2025_parcel_toc_crosswalk_df = pd.DataFrame() # parcel -> TOC service tiers for use in rtp2025 metrics
+
 
 rtp2021_tract_crosswalk_df      = pd.DataFrame() # parcel -> tracts, including coc/epc, displacement, growth geography, HRA, TRA, PPA
 rtp2021_pda_crosswalk_df        = pd.DataFrame() # parcel -> PDA (pda_id_pba50_fb)
@@ -59,7 +61,9 @@ PARCEL_AREA_FILTERS = {
             'EPC_22'    : lambda df: df['tract20_epc'] == 1,
             'nonEPC_22' : lambda df: df['tract20_epc'] != 1,
             'PPA'       : lambda df: df['ppa_id'] == 'PPA',
-            'Region'    : None
+            'Region'    : None,
+            'TOC'       : lambda df: pd.notna(df['service_tier']), # may want to exapnd across each tier
+            'nonTOC'    : lambda df: pd.isna(df['service_tier'])
     }
 }
 
@@ -122,6 +126,7 @@ def load_data_for_runs(
     global rtp2025_dbp_parcel_inundation_df
     global rtp2025_fbp_parcel_inundation_df
     global pba50_geography_crosswalk_df
+    global rtp2025_parcel_toc_crosswalk_df
 
     global rtp2021_geography_crosswalk_df
     global rtp2021_tract_crosswalk_df
@@ -418,6 +423,25 @@ def load_data_for_runs(
 
             logging.debug("rtp2025_parcel_taz_crosswalk_df.head():\n{}".format(rtp2025_parcel_taz_crosswalk_df))
             logging.debug("rtp2025_parcel_taz_crosswalk_df.dtypes():\n{}".format(rtp2025_parcel_taz_crosswalk_df.dtypes))
+
+        
+        if len(rtp2025_parcel_toc_crosswalk_df) == 0:
+
+            # parcels to TOC crosswalk needed for TOC service tier summaries 
+
+            PARCEL_TOC_FILE = METRICS_DIR / "metrics_input_files" / "urbansim_toc.csv"
+            rtp2025_parcel_toc_crosswalk_df = pd.read_csv(PARCEL_TOC_FILE, usecols=['parcel_id','service_tier'])
+
+            # make parcel id int
+            rtp2025_parcel_toc_crosswalk_df['parcel_id'] = rtp2025_parcel_toc_crosswalk_df['parcel_id'].astype(int)
+            # replace numerical tiers with categories
+            rtp2025_parcel_toc_crosswalk_df['service_tier'].replace(
+                {1: 'TOC1', 2: 'TOC2', 3: 'TOC3', 4: 'TOC4'},
+                inplace=True
+            )
+
+            logging.debug("rtp2025_parcel_toc_crosswalk_df.head():\n{}".format(rtp2025_parcel_toc_crosswalk_df))
+            logging.debug("rtp2025_parcel_toc_crosswalk_df.dtypes():\n{}".format(rtp2025_parcel_toc_crosswalk_df.dtypes))
             
 
         if len(rtp2025_np_parcel_inundation_df) == 0:
@@ -714,6 +738,19 @@ def load_data_for_runs(
             logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
             logging.debug("Head after merge with rtp2025_parcel_taz_crosswalk_df:\n{}".format(parcel_df.head()))
             logging.debug('debug EPC parcel_df 3: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
+
+
+            # add parcel lookup for TOC service tiers
+            parcel_df = pd.merge(
+                left     = parcel_df,
+                right    = rtp2025_parcel_toc_crosswalk_df,
+                how      = "left",
+                on       = "parcel_id",
+                validate = "one_to_one"
+            )
+            logging.debug("parcel_df.dtypes:\n{}".format(parcel_df.dtypes))
+            logging.debug("Head after merge with rtp2025_parcel_toc_crosswalk_df:\n{}".format(parcel_df.head()))
+
 
             # add parcel lookup for 2020 urban area footprint
             parcel_df = pd.merge(
