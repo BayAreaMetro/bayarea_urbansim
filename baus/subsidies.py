@@ -63,21 +63,29 @@ def coffer(account_strategies, run_setup):
 
 @orca.step()
 def preserve_affordable(year, base_year, preservation, residential_units, taz_geography,
-                        buildings, parcels_geography, initial_summary_year):
+                        buildings, parcels_geography, initial_summary_year,run_setup):
 
-    if not year > initial_summary_year:
-        return
+    # if not year > initial_summary_year:
+    #     return
     
     print('Preserving units')
     # join several geography columns to units table so that we can apply units
-    res_units = residential_units.to_frame()
-    bldgs = buildings.to_frame()
-    parcels_geog = parcels_geography.to_frame()
-    taz_geog = taz_geography.to_frame()
+    # res_units = residential_units.to_frame()
+    # bldgs = buildings.to_frame()
+    # parcels_geog = parcels_geography.to_frame()
+    # taz_geog = taz_geography.to_frame()
 
-    res_units = res_units.merge(bldgs[['parcel_id']], left_on='building_id', right_index=True, how='left').\
-        merge(parcels_geog, left_on='parcel_id', right_index=True, how='left').\
-        merge(taz_geog, left_on='zone_id', right_index=True, how='left')
+    gg_cols = run_setup['parcels_geography_cols']
+    target_cols = ['deed_restricted', 'county_name'] + gg_cols
+
+    res_units = orca.merge_tables(
+        'residential_units',
+        [residential_units, buildings, parcels, parcels_geography, taz_geography],
+        columns=target_cols
+    )
+
+    #res_units = res_units.to_frame()
+
 
     s = preservation["housing_preservation"]["settings"]
 
@@ -102,17 +110,19 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
             
             filter_nm = value[item+"_unit_filter"]
             unit_target = value[item+"_unit_target"]
-            print(f'Current Filter: {filter_nm} and target {unit_target}')
+            print(f'Current Filter: {item} cut: {filter_nm} and target {unit_target}')
             
-            # exclude units that have been preserved through this loop
-            res_units = res_units[~res_units.index.isin(dr_units)]
-
             # subset units to the geography
             geography = preservation["housing_preservation"]["geography"]
             geog_units = res_units.loc[res_units[geography] == geog]
             # subset units to the filters within the geography
             filter_units = geog_units.query(filter_nm)
-            print(f'Units in scope for preservation: {len(filter_units)}')
+            print(f'Units in scope for preservation pre-selection: {len(filter_units)}')
+
+            # exclude units that have been preserved through this loop
+            if len(dr_units)>0:
+                filter_units = filter_units[~filter_units.index.isin(dr_units)]
+                print(f'Units in scope for preservation post-selection: {len(filter_units)}')
 
             # pull a random set of units based on the target except in cases
             # where there aren't enough units in the filtered geography or
