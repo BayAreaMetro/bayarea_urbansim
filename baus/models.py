@@ -56,8 +56,8 @@ def elcm_simulate_ec5(jobs, buildings, aggregations, year):
         # hold off until 2030 simulation
         return
 
-    #spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
-    spec_path = os.path.join("location_choice",'elcm_ec5.yaml')
+    spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
+    #spec_path = os.path.join("location_choice",'elcm_ec5.yaml')
     
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
@@ -404,11 +404,19 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
 
     rates = household_relocation_rates.local
+    print('Renter relocation rate medians')
+    print(rates.groupby(['tenure',"base_income_quartile"]).median())
+    
     # update the relocation rates with the renter protections strategy if applicable
     if run_setup["run_renter_protections_strategy"]:
         renter_protections_relocation_rates = orca.get_table("renter_protections_relocation_rates")
+        print()
         rates = pd.concat([rates, renter_protections_relocation_rates.to_frame()]).drop_duplicates(subset=["zone_id", "base_income_quartile", "tenure"], keep="last")
         rates = rates.reset_index(drop=True)
+        print('Renter relocation rate medians - after H1')
+        print(rates.groupby(['tenure',"base_income_quartile"]).median())
+    
+    
     
     df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure"]), rates, on=["zone_id", "base_income_quartile", "tenure"], how="left")
     df.index = households.index
@@ -578,6 +586,8 @@ def add_extra_columns_func(df):
 def alt_feasibility(parcels, developer_settings,
                     parcel_sales_price_sqft_func,
                     parcel_is_allowed_func):
+    
+    print('Running alt_feasibility step...')
     kwargs = developer_settings['feasibility']
     config = sqftproforma.SqFtProFormaConfig()
     config.parking_rates["office"] = 1.5
@@ -586,6 +596,11 @@ def alt_feasibility(parcels, developer_settings,
     config.parcel_coverage = .85
     # use the cap rate from settings.yaml
     config.cap_rate = developer_settings["cap_rate"]
+
+    yr = orca.get_injectable("year")
+    print('Market rate residential feasibility for ',yr)
+    print('Parcel filter: ',kwargs['parcel_filter'])
+    print('   Parcels in scope for market rate feasibility calc:', len(parcels.to_frame().query(kwargs['parcel_filter'])))
 
     utils.run_feasibility(parcels,
                           parcel_sales_price_sqft_func,
@@ -610,6 +625,8 @@ def residential_developer(feasibility, households, buildings, parcels, year,
                           add_extra_columns_func, parcels_geography,
                           limits_settings, final_year, run_setup):
 
+    orca.eval_step("alt_feasibility")
+        
     kwargs = developer_settings['residential_developer']
 
     if run_setup["residential_vacancy_rate_mods"]:
@@ -739,6 +756,8 @@ def residential_developer(feasibility, households, buildings, parcels, year,
 def retail_developer(jobs, buildings, parcels, nodes, feasibility,
                      developer_settings, summary, add_extra_columns_func, net):
 
+    orca.eval_step("alt_feasibility")
+    
     dev_settings = developer_settings['non_residential_developer']
     all_units = dev.compute_units_to_build(
         len(jobs),
@@ -817,6 +836,7 @@ def office_developer(feasibility, jobs, buildings, parcels, year,
                      add_extra_columns_func, parcels_geography,
                      limits_settings):
 
+    orca.eval_step("alt_feasibility")
     dev_settings = developer_settings['non_residential_developer']
 
     # I'm going to try a new way of computing this because the math the other
