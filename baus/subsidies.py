@@ -63,17 +63,12 @@ def coffer(account_strategies, run_setup):
 
 @orca.step()
 def preserve_affordable(year, base_year, preservation, residential_units, taz_geography,
-                        buildings, parcels_geography, initial_summary_year,run_setup):
+                        buildings, parcels, parcels_geography, initial_summary_year,run_setup):
 
-    # if not year > initial_summary_year:
-    #     return
+    if not year > initial_summary_year:
+        return
     
     print('Preserving units')
-    # join several geography columns to units table so that we can apply units
-    # res_units = residential_units.to_frame()
-    # bldgs = buildings.to_frame()
-    # parcels_geog = parcels_geography.to_frame()
-    # taz_geog = taz_geography.to_frame()
 
     gg_cols = run_setup['parcels_geography_cols']
     target_cols = ['deed_restricted', 'county_name'] + gg_cols
@@ -84,64 +79,70 @@ def preserve_affordable(year, base_year, preservation, residential_units, taz_ge
         columns=target_cols
     )
 
-    #res_units = res_units.to_frame()
-
 
     s = preservation["housing_preservation"]["settings"]
 
     # only preserve units that are not already deed-restricted
     res_units = res_units.loc[res_units.deed_restricted != 1]
 
-    # initialize list of units to mark deed restricted
-    dr_units = []
-    
-    # apply deed-restriced units by geography (county here)
+    # apply deed-restricted units by geography (county here)
+    dr_units = set()  # instead of a list, use a set to prevent duplicate selections across iterations
+    accounting = {}   
+
     for geog, value in s.items(): 
         print(f'{geog}')
 
-        # apply deed-restriced units by filters within each geography 
+        # apply deed-restricted units by filters within each geography 
         l = ['first', 'second', 'third', 'fourth']
-        accounting = {}
         for item in l:
 
             # both filter and associated value need to be defined to continue
             if value.get(item+"_unit_filter") is None or value.get(item+"_unit_target") is None:
                 continue
-            
+
             filter_nm = value[item+"_unit_filter"]
             unit_target = value[item+"_unit_target"]
             print(f'Current Filter: {item} cut: {filter_nm} and target {unit_target}')
-            
+
             # subset units to the geography
             geography = preservation["housing_preservation"]["geography"]
             geog_units = res_units.loc[res_units[geography] == geog]
+
+            print(f'Units in scope for preservation in {geog}: {len(geog_units):,.0f}')
+
             # subset units to the filters within the geography
             filter_units = geog_units.query(filter_nm)
-            print(f'Units in scope for preservation pre-selection: {len(filter_units)}')
+            print(f'Units in scope for preservation in {geog} pre-selection: {len(filter_units):,.0f}')
 
-            # exclude units that have been preserved through this loop
-            if len(dr_units)>0:
-                filter_units = filter_units[~filter_units.index.isin(dr_units)]
-                print(f'Units in scope for preservation post-selection: {len(filter_units)}')
+            # exclude units that have already been preserved
+            filter_units = filter_units.loc[~filter_units.index.isin(dr_units)]
+            print(f'Units in scope for preservation in {geog} post-selection: {len(filter_units):,.0f}')
 
-            # pull a random set of units based on the target except in cases
-            # where there aren't enough units in the filtered geography or
-            # they're already marked as deed restricted
+            # select units based on the target while ensuring no over-selection
             if len(filter_units) == 0:
-                dr_units_set = []
-                print("%s %s: target is %d but no units are available" % (geog, filter_nm, unit_target))
-                accounting[(item,geog,filter_nm)]=(unit_target,len(filter_units))
+                dr_units_set = set()
+                print(f"{geog} {filter_nm}: target is {unit_target} but no units are available")
             elif unit_target > len(filter_units):
-                 dr_units_set = filter_units.index
-                 print("%s %s: target is %d but only %d units are available" % (geog, filter_nm, unit_target, len(filter_units)))
-                 accounting[(item,geog,filter_nm)]=(unit_target,len(filter_units))
+                # target is larger than units in scope - select all of them
+                dr_units_set = set(filter_units.index)
+                print(f"{geog} {filter_nm}:\n\ttarget is {unit_target:,} but only {len(filter_units):,} units are available")
             else:
-                dr_units_set = np.random.choice(filter_units.index, unit_target, replace=False)
+                dr_units_set = set(np.random.choice(filter_units.index, unit_target, replace=False))
+                print(f"{geog} {filter_nm}:\n\ttarget is {unit_target:,} while {len(filter_units):,} units are available")
+            
+            # update the global set to prevent duplicate selections where filters overlap
+            dr_units.update(dr_units_set)
 
-            dr_units.extend(dr_units_set)
-        accounting = pd.Series(accounting).apply(pd.Series,index=['target','actual'])
-        print('Preservation accounting: ')
-        print(accounting)
+            # store accounting with unique counts only
+            accounting[(item, geog, filter_nm)] = (unit_target, len(dr_units_set))
+
+    # convert accounting to a DataFrame and save
+    accounting = pd.DataFrame.from_dict(accounting, orient='index', columns=['target', 'actual'])
+    print('Preservation accounting: ')
+    output_dir = orca.get_injectable("outputs_dir")
+    accounting_path = f'{output_dir}/preservation_accounting_{year}.csv'
+    accounting.to_csv(accounting_path)
+    print(accounting)
 
     # mark units as deed restriced in residential units table
     residential_units = residential_units.to_frame()
