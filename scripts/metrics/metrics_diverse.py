@@ -5,6 +5,7 @@
 import pandas as pd
 import logging, pathlib
 import metrics_utils
+import numpy as np
 
 def low_income_households_share(
         rtp: str,
@@ -170,12 +171,49 @@ def gentrify_displacement_tracts(
         logging.debug(f"Processing tract_id {tract_id}; tract_keys={tract_keys[tract_id]}")
 
         for year in SUMMARY_YEARS:
-            # summarize to tract_id and the tract-level variables
-            tract_summary_year_df = modelrun_data[year]['parcel'].groupby(
-                sorted(list(tract_keys[tract_id]))).aggregate({
-                'hhq1' :'sum',
-                'tothh':'sum',
-            })
+            # Backout UBI in 2050 explicitly because it distorts the gentrifcation/displacement metric
+            if year == 2050:
+                # Extract parcels
+                tract_summary_year_df = modelrun_data[year]['parcel']
+
+                logging.debug("Number of Q1 households in year {} is {}".format(year, tract_summary_year_df.hhq1.sum()))
+                logging.debug("Number of Q2 households in year {} is {}".format(year, tract_summary_year_df.hhq2.sum()))
+
+                # An estimated 11.6% of Q1 HH moved into Q2 (refer to PBA2050 modeling report footnote 13)
+                # Declare number of HH to be reassigned
+                num_hh_to_move = round(tract_summary_year_df['hhq1'].sum()*.116)
+
+                # Randomly select parcels to adjust
+                np.random.seed(42)
+                ids_to_move = np.random.choice(
+                    tract_summary_year_df.loc[tract_summary_year_df.hhq1 > 0].parcel_id, 
+                    num_hh_to_move, replace=False
+                    )
+                
+                # Reasign HH from Q2 to Q1, effectively backing out estimated effect of UBI
+                tract_summary_year_df.loc[tract_summary_year_df.parcel_id.isin(ids_to_move), "hhq2"] = tract_summary_year_df.hhq2 - 1
+                tract_summary_year_df.loc[tract_summary_year_df.parcel_id.isin(ids_to_move), "hhq1"] = tract_summary_year_df.hhq1.fillna(0) + 1
+
+                logging.debug("Number of Q1 households in year {} with UBI backed out is {}".format(year, tract_summary_year_df.hhq1.sum()))
+                logging.debug("number of Q2 households in year {} with UBI backed out is {}".format(year, tract_summary_year_df.hhq2.sum()))
+
+                # Summarize to tract_id and the tract-level variables for 2050
+                tract_summary_year_df = tract_summary_year_df.groupby( # Make this a convenience function
+                    sorted(list(tract_keys[tract_id]))).aggregate({
+                    'hhq1' :'sum',
+                    'tothh':'sum',
+                })
+
+            else:
+                # Summarize to tract_id and the tract-level variables for 2023
+                tract_summary_year_df = modelrun_data[year]['parcel'].groupby(
+                    sorted(list(tract_keys[tract_id]))).aggregate({
+                    'hhq1' :'sum',
+                    'tothh':'sum',
+                })
+
+
+            # now calculate the share
             tract_summary_year_df['hhq1_share'] = tract_summary_year_df.hhq1 / tract_summary_year_df.tothh
             logging.debug('tract_summary_year_df by {} {:,} rows:\n{}'.format(
                 tract_id, len(tract_summary_year_df), tract_summary_year_df))
