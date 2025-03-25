@@ -1472,7 +1472,7 @@ def eq_retrofit_lookup():
 def ec5_parcels():
     ec5 = pd.read_csv(
         os.path.join(
-            orca.get_injectable("inputs_dir"), "plan_strategies/parcels_p10_x_ec5.csv"
+            orca.get_injectable("inputs_dir"), "plan_strategies/parcels_p10_x_ec5_v2.csv"
         ),
         index_col="parcel_id",
     )
