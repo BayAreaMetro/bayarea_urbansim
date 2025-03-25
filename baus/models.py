@@ -48,7 +48,7 @@ def elcm_simulate(jobs, buildings, aggregations):
 
 
 @orca.step()
-def elcm_simulate_ec5(jobs, buildings, aggregations, year):
+def elcm_simulate_ec5(jobs, buildings, aggregations, year, run_setup):
     """
     testing docstring documentation for automated documentation creation
     """
@@ -56,8 +56,9 @@ def elcm_simulate_ec5(jobs, buildings, aggregations, year):
         # hold off until 2030 simulation
         return
 
-    spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
-    #spec_path = os.path.join("location_choice",'elcm_ec5.yaml')
+    ec5_spec_file = run_setup.get("ec5_spec_file", "elcm.yaml")
+    spec_path = os.path.join("location_choice",ec5_spec_file)
+    print(f'Loading EC5: {spec_path}')
     
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
