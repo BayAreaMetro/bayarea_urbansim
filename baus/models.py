@@ -52,7 +52,7 @@ def elcm_simulate_ec5(jobs, buildings, aggregations, year, run_setup):
     """
     testing docstring documentation for automated documentation creation
     """
-    if year<=2030:
+    if year<2030:
         # hold off until 2030 simulation
         return
 
