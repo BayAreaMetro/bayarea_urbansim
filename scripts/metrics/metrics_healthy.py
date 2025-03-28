@@ -7,6 +7,111 @@ import pandas as pd
 import openpyxl
 import xlwings
 import metrics_utils
+import geopandas as gpd
+import fiona
+import os, getpass
+from shapely.validation import explain_validity
+import numpy as np
+
+def geoprocess_park_data():
+    current_dir = os.getcwd()
+    proj_dir = os.path.dirname(os.path.dirname(current_dir))
+    temp_data_dir = os.path.join(proj_dir, "data_temp")
+    
+    # Set common CRS
+    crs=2227
+
+    # CPAD data - parks and open spaces
+    cpad_file = os.path.join(temp_data_dir, 'cpad_2024b_release', 'CPAD_2024b_SuperUnits.shp')
+    cpad = gpd.read_file(cpad_file).to_crs(crs)
+
+
+    # FMMP GDB - urban/built out areas
+    fmmp_gdb = os.path.join(temp_data_dir, "Important_Farmland_2020.gdb") 
+
+    layers = fiona.listlayers(fmmp_gdb)
+    print("Available layers:", layers) # 
+
+    # GDB does not include SF, will need to account for downstream
+    fmmp_layers = ['alameda2020', 'contracosta2020', 'marin2020', 'napa2020', 
+                'sanmateo2020','santaclara2020', 'solano2020', 'sonoma2020', ] 
+
+    # Extract layers and bind
+    fmmp_list = []
+    for layer in fmmp_layers:
+        print(f"Reading FMMP layer: {layer}")
+        fmmp_gdf = gpd.read_file(fmmp_gdb, layer=layer)
+        # Reduce to urban and built out
+        fmmp_gdf = fmmp_gdf[fmmp_gdf['polygon_ty'] == 'D']
+        fmmp_list.append(fmmp_gdf)
+    fmmp =pd.concat(fmmp_list, ignore_index=True).to_crs(crs)
+
+
+    # EPC data
+    epc18 = gpd.read_file("https://services3.arcgis.com/i2dkYWmb4wHvYPda/arcgis/rest/services/equity_priority_communities_2025_acs2018/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson").to_crs(crs)
+    epc22 = gpd.read_file("https://services3.arcgis.com/i2dkYWmb4wHvYPda/arcgis/rest/services/draft_equity_priority_communities_pba2050plus_acs2022a/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson").to_crs(crs)
+
+    epc_dict = {
+        "epc18": epc18,
+        "epc22": epc22
+    }
+
+    for name, epc in epc_dict.items():
+        # Replace "NA" with np.nan
+        epc.replace("NA", np.nan, inplace=True)
+        # Filter rows where "epc_class" is not null
+        epc_dict[name] = epc[epc["epc_class"].notnull()]
+
+    # Bay county data
+    bay_cnty = gpd.read_file("https://services3.arcgis.com/i2dkYWmb4wHvYPda/arcgis/rest/services/region_county_clp/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson").to_crs(crs)
+    bay_cnty = bay_cnty.loc[:, ['coname', 'geometry']].rename(columns={'coname': 'county'}).reset_index(drop=True)
+
+
+    # Clip CPAD to urban
+    cpad.geometry = cpad.geometry.buffer(0) # To handle invalid geometries
+    for geom in cpad.geometry:
+        print(explain_validity(geom))
+    cpad_urban = cpad.clip(fmmp) 
+
+
+    # Add SF parks, since FMMP does not cover SF
+    sf = bay_cnty[bay_cnty['county'] == 'San Francisco']
+    cpad_sf_clip = cpad.clip(sf)
+    cpad_urban = pd.concat([cpad_urban, cpad_sf_clip], axis = 0)
+
+
+    # Clip urban parks to EPCs
+    cpad_epc18 = cpad_urban.clip(epc_dict['epc18'])
+    cpad_epc22 = cpad_urban.clip(epc_dict['epc22'])
+
+
+    # Map area type to parks
+    cpad_mapping = {
+    "All Areas": cpad_urban,
+    "EPC_18": cpad_epc18,
+    "EPC_22": cpad_epc22
+    }
+    def add_area_type(cpad_mapping):
+        cpad_list = []
+        for area_type, cpad in cpad_mapping.items():
+            cpad.loc[:,'area_type'] = area_type
+            cpad_list.append(cpad[['area_type', 'geometry']])
+        return pd.concat(cpad_list, axis=0) 
+    cpad_df = add_area_type(cpad_mapping)
+
+    # Join the county attribute
+    cpad_df = cpad_df.sjoin(bay_cnty, how='inner', predicate='intersects')
+
+
+    # Calculate area - EPSG 2227 units in square feet, then to acres
+    cpad_df['area_sq_ft'] = cpad_df.geometry.area
+    cpad_df['acres'] = cpad_df['area_sq_ft'] / 43560
+
+    # Summarize urban park acres by county and area_type
+    park_acre_summary = cpad_df.groupby(['county', 'area_type'])['acres'].sum().reset_index()
+
+    return park_acre_summary
+
 
 def urban_park_acres(
         BOX_DIR: pathlib.Path,
