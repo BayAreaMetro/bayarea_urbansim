@@ -4,6 +4,7 @@ import pathlib
 import yaml
 import datetime
 import os
+from typing import Optional
 
 
 # Script recursively searches for yaml run setup files and extracts the key BAUS run setup information
@@ -144,7 +145,8 @@ def is_new_style_log(p_log_path: Path) -> bool:
         return False
     
 
-def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.DataFrame:
+def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Optional[Path] = None) -> pd.DataFrame:
+    
     """
     Builds a DataFrame of run logs from a directory.
 
@@ -172,7 +174,7 @@ def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.Da
         this_stat = p.stat()
 
         # keep timestamp
-        file_birth_ts = this_stat.st_birthtime
+        file_birth_ts = this_stat.st_birthtime if 'st_birthtime' in this_stat else this_stat.st_ctime
 
         file_birth_dt = datetime.datetime.fromtimestamp(file_birth_ts)
         ts_iso = file_birth_dt.isoformat()
@@ -228,7 +230,8 @@ def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Path) -> pd.Da
 
         # write the file to disk (box and M)
         df.to_csv(m_out_path, index=False)
-        df.to_csv(box_out_path, index=False)
+        if box_out_path is not None:
+            df.to_csv(box_out_path, index=False)
     else:
         print('No runs found - check your file system / input path')
 
@@ -256,4 +259,5 @@ if __name__ == "__main__":
 
 
     # call the function
-    build_run_log(root_dir, m_out_path, box_out_path)
+    #build_run_log(root_dir, m_out_path, box_out_path)
+    build_run_log(root_dir, m_out_path)
