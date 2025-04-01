@@ -48,8 +48,8 @@ PARCEL_AREA_FILTERS = {
     },
     'RTP2025': {
             'HRA'       : lambda df: df['hra_id'] == 'HRA',
-            'TRA'       : lambda df: df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3']),
-            'HRAandTRA' : lambda df: (df['tra_id'].isin(['TRA1', 'TRA2', 'TRA3'])) & (df['hra_id'] == 'HRA'),
+            'TRA'       : lambda df: df['tra_id'].isin(['tra_4', 'tra_5', 'tra_6', 'tra_3', 'tra_1', 'tra_2']),
+            'HRAandTRA' : lambda df: (df['tra_id'].isin(['tra_4', 'tra_5', 'tra_6', 'tra_3', 'tra_1', 'tra_2'])) & (df['hra_id'] == 'HRA'),
             'GG'        : lambda df: df['gg_id'] == 'GG',
             'nonGG'     : lambda df: df['gg_id'] != 'GG',
             'PBA50GG'   : lambda df: df['pba50_gg_id'] == 'GG',
@@ -187,8 +187,25 @@ def load_data_for_runs(
          
     if rtp == "RTP2025":
         if len(rtp2025_geography_crosswalk_df) == 0:
-            PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "parcels_geography_2024_02_14.csv"
-            rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE, usecols=['PARCEL_ID','ACRES','dis_id','tra_id','gg_id','pda_id','hra_id','epc_id','ppa_id','ugb_id','juris'])
+            # First we keep the legacy file here as that has a few cols not present in the FBP gg classes file
+            PARCEL_CROSSWALK_FILE_AUX = CROSSWALKS_DIR / "parcels_geography_2024_02_14.csv"
+            rtp2025_geography_aux_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE_AUX, 
+                                                             usecols=['PARCEL_ID','ACRES','epc_id','juris'])
+            
+            logging.info("  Read {:,} rows from legacy gg crosswalk for select fields {}".format(len(rtp2025_geography_aux_crosswalk_df), PARCEL_CROSSWALK_FILE_AUX))
+            
+            # add the FBP version of GGs
+            PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "fbp_urbansim_parcel_classes_ot50pct.csv"
+            rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE) 
+            rtp2025_geography_crosswalk_df.rename(columns={'parcel_id':'PARCEL_ID'}, inplace=True)
+            pg_2025_usecols=['PARCEL_ID','dis_id','tra_id','gg_id','pda_id','hra_id',
+                             'ppa_id','ugb_id',
+                             #'juris','ACRES','epc_id'
+                             ]
+
+            rtp2025_geography_crosswalk_df = rtp2025_geography_crosswalk_df[pg_2025_usecols]
+            rtp2025_geography_crosswalk_df = pd.merge(rtp2025_geography_crosswalk_df, rtp2025_geography_aux_crosswalk_df, on='PARCEL_ID', how='left', validate='one_to_one') 
+
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_geography_crosswalk_df), PARCEL_CROSSWALK_FILE))
             logging.debug("  rtp2025_geography_crosswalk_df.head():\n{}".format(rtp2025_geography_crosswalk_df.head()))
             logging.debug(f"  rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)=\n{rtp2025_geography_crosswalk_df['ppa_id'].value_counts(dropna=False)}")
