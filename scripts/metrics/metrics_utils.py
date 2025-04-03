@@ -48,8 +48,8 @@ PARCEL_AREA_FILTERS = {
     },
     'RTP2025': {
             'HRA'       : lambda df: df['hra_id'] == 'HRA',
-            'TRA'       : lambda df: df['tra_id'].isin(['tra_4', 'tra_5', 'tra_6', 'tra_3', 'tra_1', 'tra_2']),
-            'HRAandTRA' : lambda df: (df['tra_id'].isin(['tra_4', 'tra_5', 'tra_6', 'tra_3', 'tra_1', 'tra_2'])) & (df['hra_id'] == 'HRA'),
+            'TRA'       : lambda df: df['tra_id'].isin(['tra_1', 'tra_2', 'tra_3', 'tra_4', 'tra_5']),
+            'HRAandTRA' : lambda df: (df['tra_id'].isin(['tra_1', 'tra_2', 'tra_3', 'tra_4', 'tra_5'])) & (df['hra_id'] == 'HRA'),
             'GG'        : lambda df: df['gg_id'] == 'GG',
             'nonGG'     : lambda df: df['gg_id'] != 'GG',
             'PBA50GG'   : lambda df: df['pba50_gg_id'] == 'GG',
