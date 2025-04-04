@@ -26,9 +26,12 @@ logger = logging.getLogger(__name__)
 # define new settings files- these have been subdivided from the
 # general settings file
 # this is similar to the code for settings in urbansim_defaults
+
 @orca.injectable("run_setup", cache=True)
 def run_setup():
-    with open("run_setup.yaml") as f:
+    setup_path = orca.get_injectable('run_setup_path')
+    print(f'Loading {setup_path}')
+    with open(setup_path) as f:
         return yaml.load(f)
 
 
@@ -986,7 +989,7 @@ def get_dev_projects_table(parcels, run_setup):
         df = pd.concat([df, he_pipe], axis=0)
 
     # Append zero or more plan strategy dev pipeline tables (EC2, EC6, H6/H8)
-    if run_setup["dev_pipeline_strategies"] is not None:
+    if run_setup.get("dev_pipeline_strategies") is not None:
         for filename in run_setup["dev_pipeline_strategies"]:
             print(f"Appending {filename} to development pipeline...")
             in_df = pd.read_csv(

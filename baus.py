@@ -25,11 +25,10 @@ import orca
 import orca_test
 import pandana
 import shutil
+import yaml
 import logging
 
-from logging_setup import setup_logging
-
-
+from logging_setup import setup_logging, get_log_level
 
 MODE = "simulation"
 EVERY_NTH_YEAR = 5
@@ -50,12 +49,28 @@ if SLACK:
 
 parser = argparse.ArgumentParser(description='Run UrbanSim models.')
 
+parser.add_argument('-p','--yaml_path', default='run_setup.yaml', dest='yaml', help='Path to the YAML file with simulation setup details')
 parser.add_argument('--mode', action='store', dest='mode', help='which mode to run (see code for mode options)')
 parser.add_argument('-i', action='store_true', dest='interactive', help='enter interactive mode after imports')
-parser.add_argument('--set-random-seed', action='store_true', dest='set_random_seed', help='set a random seed for consistent stochastic output')
-parser.add_argument('--disable-slack', action='store_true', dest='no_slack', help='disable slack outputs')
+parser.add_argument('--set-random-seed', action='store_true', dest='set_random_seed', default=True, help='set a random seed for consistent stochastic output')
+parser.add_argument('--disable-slack', action='store_true', dest='no_slack', default=False, help='disable slack outputs')
 parser.add_argument('--enable-asana', action='store_true', dest='use_asana', default=False, help='disable Asana task creation')
-
+parser.add_argument(
+    '--logging-detail',
+    action='store',
+    dest='logging_detail',
+    default='medium',
+    choices=['low', 'medium', 'high'],
+    help='Set format detail to low / medium / high'
+)
+parser.add_argument(
+    '--logging-level',
+    action='store',
+    dest='logging_level',
+    default='INFO',  # Default log level
+    choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+    help='Set log level detail'
+)
 
 options = parser.parse_args()
 
@@ -88,6 +103,8 @@ else:
 orca.add_injectable("years_per_iter", EVERY_NTH_YEAR)
 orca.add_injectable("base_year", IN_YEAR)
 orca.add_injectable("final_year", OUT_YEAR)
+orca.add_injectable("run_setup_path", options.yaml)
+
 
 run_setup = orca.get_injectable("run_setup")
 run_name = orca.get_injectable("run_name")
@@ -99,14 +116,16 @@ outputs_dir.mkdir(parents=True, exist_ok=True)
 # Get the outputs directory and run name
 log_file_path = os.path.join(orca.get_injectable("outputs_dir"), f"{run_name}.log")
 
-logger = setup_logging(log_file_path, logging.DEBUG)
+log_level = get_log_level(options.logging_level)
 
+logger = setup_logging(log_file_path, log_level, detail_level=options.logging_detail)
 
 logger.info("***The standard stream is being written to the log file***")
 
 logger.info("Started: %s", time.ctime())
 logger.info("Current Branch: %s", CURRENT_BRANCH)
 logger.info("Current Commit: %s", CURRENT_COMMIT)
+logger.info("Local Clone Location: %s", os.path.abspath(sys.argv[0]))
 logger.info("Set Random Seed: %s", SET_RANDOM_SEED)
 logger.info("Python version: %s", sys.version.split('|')[0])
 logger.info("UrbanSim version: %s", urbansim.__version__)
@@ -116,10 +135,15 @@ logger.info("Orca Test version: %s", orca_test.__version__)
 logger.info("Pandana version: %s", pandana.__version__)
 logger.info("Numpy version: %s", np.__version__)
 logger.info("Pandas version: %s", pd.__version__)
+logger.info("run_setup.yaml config: %s", options.yaml)
 
 logger.info("SLACK: %s", SLACK)
 logger.info("MODE: %s", MODE)
 
+# Memorialize the run config with the outputs - goes by run name attribute
+
+logger.info(f'***Copying {options.yaml} to output directory')
+shutil.copyfile(options.yaml, os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 
 def run_models(mode, run_setup, years_to_run):
@@ -279,21 +303,22 @@ def run_models(mode, run_setup, years_to_run):
                 "office_lump_sum_accounts",
                 "subsidized_office_developer_lump_sum_accts",
 
-                "alt_feasibility",
+                "alt_feasibility", # instead - we do orca.eval_step("alt_feasibility") inside each developer model
+    
                 "subsidized_residential_feasibility",
                 "subsidized_residential_developer_vmt",
         #        "subsidized_residential_feasibility",
         #        "subsidized_residential_developer_jobs_housing",
 
-                "alt_feasibility",
+                #"alt_feasibility", this could override the feasib calcs from "subsidized_residential_feasibility",
                 "residential_developer",
                 "developer_reprocess",
 
-                "alt_feasibility",
+                #"alt_feasibility", this could override the feasib calcs from "subsidized_residential_feasibility",
                 
                 "retail_developer",
 
-                "alt_feasibility",
+                #"alt_feasibility", this could override the feasib calcs from "subsidized_residential_feasibility",
                 
                 "office_developer",
                 "subsidized_office_developer_vmt",
@@ -413,6 +438,8 @@ def run_models(mode, run_setup, years_to_run):
                 "maz_growth_summary",
             ]
 
+            if not run_setup["run_slr_summaries"]:
+                simulation_summary_models.remove("hazards_slr_summary")
             return simulation_summary_models
         
 
@@ -477,18 +504,13 @@ def run_models(mode, run_setup, years_to_run):
 
 
 if ASANA:
-    # We can do this before the shutil copy step and just use the native run_setup.yaml in the same dir as baus.py
-    task_handle = create_asana_task_from_yaml('run_setup.yaml', run_name, ASANA_SECTION_NAME)
+    # Get run_setup.yaml from options.yaml
+    task_handle = create_asana_task_from_yaml(options.yaml, run_name, ASANA_SECTION_NAME)
 
     # Get task identifer for later comment posting 
     task_gid = task_handle['gid']
 
     logger.info(f"Creating asana run task with URL: {task_handle['permalink_url']}")
-
-# Memorialize the run config with the outputs - goes by run name attribute
-
-logger.info('***Copying run_setup.yaml to output directory')
-shutil.copyfile("run_setup.yaml", os.path.join(orca.get_injectable("outputs_dir"), f'run_setup_{run_name}.yaml'))
 
 
 if SLACK and MODE == "estimation":
