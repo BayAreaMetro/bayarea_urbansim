@@ -135,14 +135,16 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     orca.add_table('parcels', parcels)
     parcels = orca.get_table("parcels")
 
+
     households = orca.merge_tables('households', 
                                    [parcels, buildings, households], columns=['zone_id', 'zone_id_x', 'base_income_quartile'])
     households["zone_id"] = households.zone_id_x
-    
+
+
     jobs = orca.merge_tables('jobs', [parcels, buildings, jobs],
                          columns=['zone_id', 'zone_id_x', 'empsix', "ec5_cat"])
     jobs["zone_id"] = jobs.zone_id_x
-    jobs['is_transit_hub'] = (jobs.ec5_cat=="Transit_Hub").map({True:'job_in_transit_hub',False:'job_not_in_transit_hub'})
+    jobs['is_transit_hub'] = (jobs.ec5_cat=="EC5 Target Area").map({True:'job_in_ec5_area',False:'job_not_in_ec5_area'})
 
     parcels = parcels.to_frame()
     parcels = parcels.join(parcels_zoning_calculations.to_frame(), lsuffix='parcels')
@@ -198,6 +200,15 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     coresum_output_dir.mkdir(parents=True, exist_ok=True)
     zones.to_csv(coresum_output_dir / f"{run_name}_interim_zone_output_{year}.csv")
 
+    extra_hh_cols = ['base_income_quartile',
+    'building_id',
+    'tenure',
+    'unittype',
+    'unit_num',
+    'unit_id']
+    households_df = orca.get_table('households').to_frame()
+
+    households_df[extra_hh_cols].to_csv(coresum_output_dir / f"{run_name}_households_output_{year}.csv")
     # now add all interim zone output to a single dataframe
 
     zones = zones.add_suffix("_"+str(year))
@@ -210,6 +221,7 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     all_years = all_years.merge(zones, left_index=True, right_index=True)
     orca.add_table("interim_zone_output_all", all_years)
 
+    
     if year == final_year:
         coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
         coresum_output_dir.mkdir(parents=True, exist_ok=True)
