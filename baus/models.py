@@ -24,7 +24,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 @orca.step()
-def elcm_simulate(jobs, buildings, aggregations):
+def elcm_simulate(jobs, buildings, aggregations, year):
     """
     testing docstring documentation for automated documentation creation
     """
@@ -34,16 +34,17 @@ def elcm_simulate(jobs, buildings, aggregations):
     
     spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
     
-    print(f'Simulating elcm with {spec_path}')
-    print('Agents:')
-    print('\tJobs:',jobs.to_frame().shape[0])
-    print('\tBuildings:',buildings.to_frame().shape[0])
-    print('Office rents - before estimation', buildings.to_frame().query('building_type=="OF"').non_residential_rent.describe())
+    logger.debug(f'Simulating elcm with {spec_path}')
+    logger.debug('Agents:')
+    logger.debug('\tJobs: {}'.format(jobs.to_frame().shape[0]))
+    logger.debug('\tBuildings: {}'.format(buildings.to_frame().shape[0]))
+    logger.debug('Office rents - before estimation:\n{}'.format(buildings.to_frame().query('building_type=="OF"').non_residential_rent.describe()))
 
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
                               "building_id", "job_spaces",
-                              "vacant_job_spaces", cast=True)
+                              "vacant_job_spaces", cast=True,
+                              move_in_year=year)
     return elcm
 
 
@@ -58,11 +59,12 @@ def elcm_simulate_ec5(jobs, buildings, aggregations, year):
 
     #spec_path = os.path.join("location_choice", orca.get_injectable("elcm_spec_file"))
     spec_path = os.path.join("location_choice",'elcm_ec5.yaml')
-    
+
+    logger.debug("Running utils.lcm_simulate() with cfg={} choosers=jobs buildings=buildings out_fname=building_id".format(spec_path))
     elcm = utils.lcm_simulate(spec_path, 
                               jobs, buildings, aggregations,
                               "building_id", "job_spaces",
-                              "vacant_job_spaces", cast=True)
+                              "vacant_job_spaces", cast=True, move_in_year=year)
     return elcm
 
 
@@ -191,11 +193,11 @@ def households_transition(households, household_controls, year, transition_reloc
 # this is a list of parcel_ids which are to be treated as static
 @orca.injectable()
 def static_parcels(developer_settings, parcels):
-    # list of geom_ids to not relocate
-    static_parcels = developer_settings["static_parcels"]
-    # geom_ids -> parcel_ids
-    return geom_id_to_parcel_id(
-        pd.DataFrame(index=static_parcels), parcels).index.values
+    # list of parcel ids to not relocate
+    static_parcels_list = developer_settings["static_parcels"]
+    print("static_parcels(): {}".format(static_parcels_list))
+
+    return static_parcels_list
 
 
 def _proportional_jobs_model(
@@ -368,7 +370,7 @@ def proportional_elcm(jobs, households, buildings, parcels, proportional_retail_
 
 @orca.step()
 def jobs_relocation(jobs, employment_relocation_rates, run_setup, employment_relocation_rates_adjusters, years_per_iter, settings, 
-	                static_parcels, buildings):
+	                static_parcels, buildings, year):
 
     # get buildings that are on those parcels
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
@@ -391,14 +393,14 @@ def jobs_relocation(jobs, employment_relocation_rates, run_setup, employment_rel
 
     # get the index of the moving jobs
     index = jobs.index[move]
-    print("{} jobs are relocating".format(len(index)))
+    print("{:,} jobs are relocating in {}".format(len(index), year))
 
     # set jobs that are moving to a building_id of -1 (means unplaced)
     jobs.update_col_from_series("building_id", pd.Series(-1, index=index))
 
 
 @orca.step()
-def household_relocation(households, household_relocation_rates, run_setup, static_parcels, buildings):
+def household_relocation(households, household_relocation_rates, run_setup, static_parcels, buildings, year):
 
     # get buildings that are on those parcels
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
@@ -407,11 +409,18 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
     # update the relocation rates with the renter protections strategy if applicable
     if run_setup["run_renter_protections_strategy"]:
         renter_protections_relocation_rates = orca.get_table("renter_protections_relocation_rates")
-        rates = pd.concat([rates, renter_protections_relocation_rates.to_frame()]).drop_duplicates(subset=["zone_id", "base_income_quartile", "tenure"], keep="last")
+        rates = pd.concat([rates, renter_protections_relocation_rates.to_frame()]).drop_duplicates(
+            subset=["zone_id", "base_income_quartile", "tenure"], keep="last")
         rates = rates.reset_index(drop=True)
     
-    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure"]), rates, on=["zone_id", "base_income_quartile", "tenure"], how="left")
+    df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure", "move_in_year"]), 
+                  rates, 
+                  on=["zone_id", "base_income_quartile", "tenure"],
+                  how="left")
     df.index = households.index
+
+    # set random seed using year
+    np.random.seed(seed=year)
 
     # get random floats and move households if they're less than the rate
     move = np.random.random(len(df.rate)) < df.rate
@@ -439,22 +448,28 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     # eg 2015 pulls 2015-2010
     # this should be improved in the future so that the base year
     # also runs SDEM, eg 2015 pulls 2015-2014, while 2010 pulls 2010 projects
-    if year == (base_year + years_per_iter):
+
+    # TODO: Only doing this special casing for 2010
+    if year == (2010 + years_per_iter):
         demolish = demolish_events.to_frame().query("%d <= year_built <= %d" % (year - years_per_iter, year))
     else:
         demolish = demolish_events.to_frame().query("%d < year_built <= %d" % (year - years_per_iter, year))
-    print("Demolishing/building %d buildings" % len(demolish))
+    logging.debug("Demolishing/building {:,} buildings".format(len(demolish)))
+    logging.debug("demolish dataframe:\n{}".format(demolish[sorted(demolish.columns.tolist())]))
 
     l1 = len(buildings)
     # the following function has `demolish` as an input, but it is not removing the buildings in the 'demolish' table,
     # instead, it removes existing buildings on parcels to be occupied by buildings in 'demolish'   
     buildings = utils._remove_developed_buildings(buildings.to_frame(buildings.local_columns), demolish,
                                                   unplace_agents=["households", "jobs"])
-    orca.add_injectable('static_parcels', np.append(static_parcels, demolish.loc[demolish.action == 'build', 'parcel_id']))
+    # TODO: I don't know if this line makes sense; why would this go on static_parcels?
+    # For 2020 start testing, let's not do this until 2020 anyway (lmz)
+    if year >= 2020:
+        orca.add_injectable('static_parcels', np.append(static_parcels, demolish.loc[demolish.action == 'build', 'parcel_id']))
     orca.add_table("buildings", buildings)
     buildings = orca.get_table("buildings")
-    print("Demolished %d buildings" % (l1 - len(buildings)))
-    print("    (this number is smaller when parcel has no existing buildings)")
+    logging.debug("Demolished {:,} - {:,} = {:,} buildings".format(l1, len(buildings), l1 - len(buildings)))
+    logging.debug("    (this number is smaller when parcel has no existing buildings)")
 
     # then build
     # 6/3/20: current approach is to grab projects from the simulation year
@@ -462,7 +477,9 @@ def scheduled_development_events(buildings, development_projects, demolish_event
     # eg 2015 pulls 2015-2010
     # this should be improved in the future so that the base year
     # also runs SDEM, eg 2015 pulls 2015-2014, while 2010 pulls 2010 projects
-    if year == (base_year + years_per_iter):
+
+    # TODO: Only doing this special casing for 2010
+    if year == (2010 + years_per_iter):
         dps = development_projects.to_frame().query("%d <= year_built <= %d" % (year - years_per_iter, year))
     else:
         dps = development_projects.to_frame().query("%d < year_built <= %d" % (year - years_per_iter, year))
@@ -537,21 +554,21 @@ def add_extra_columns_func(df):
     if "deed_restricted_units" not in df.columns:
         df["deed_restricted_units"] = 0
     else:
-        print("Number of deed restricted units built = %d" %
-              df.deed_restricted_units.sum())
+        logger.debug("Number of deed restricted units built = {:,}".format(
+            df.deed_restricted_units.sum()))
     df["preserved_units"] = 0.0
 
     if "inclusionary_units" not in df.columns:
         df["inclusionary_units"] = 0
     else:
-        print("Number of inclusionary units built = %d" %
-              df.inclusionary_units.sum())
+        logger.debug("Number of inclusionary units built = {:,}".format(
+              df.inclusionary_units.sum()))
 
     if "subsidized_units" not in df.columns:
         df["subsidized_units"] = 0
     else:
-        print("Number of subsidized units built = %d" %
-              df.subsidized_units.sum())
+        logger.debug("Number of subsidized units built = {:,}".format(
+              df.subsidized_units.sum()))
 
     df["redfin_sale_year"] = 2012
     df["redfin_sale_price"] = np.nan
@@ -608,7 +625,7 @@ def alt_feasibility(parcels, developer_settings,
 def residential_developer(feasibility, households, buildings, parcels, year,
                           developer_settings, summary, form_to_btype_func,
                           add_extra_columns_func, parcels_geography,
-                          limits_settings, final_year, run_setup):
+                          limits_settings, base_year, final_year, run_setup):
 
     #TODO: REMOVE
     #feas_path = os.path.join(orca.get_injectable("outputs_dir"),f'feasibility_residential_developer_start_{year}.csv')
@@ -631,29 +648,36 @@ def residential_developer(feasibility, households, buildings, parcels, year,
     typ = "Residential"
     # now apply limits - limits are assumed to be yearly, apply to an
     # entire jurisdiction and be in terms of residential_units or job_spaces
-    if typ in limits_settings:
+    if typ in sorted(limits_settings.keys()):
 
         juris_name = parcels_geography.juris_name.\
             reindex(parcels.index).fillna('Other')
 
-        juris_list = limits_settings[typ].keys()
-        for juris, limit in limits_settings[typ].items():
+        juris_list = sorted(limits_settings[typ].keys())
+        for juris in juris_list:
+            limit = limits_settings[typ][juris]
 
             # the actual target is the limit times the number of years run
             # so far in the simulation (plus this year), minus the amount
             # built in previous years - in other words, you get rollover
             # and development is lumpy
 
+            # TODO: 2010 should be base_year but this is for reproducing the 
+            # the 2010 base_year
+            effective_base_year = 2010
             current_total = parcels.total_residential_units[
-                (juris_name == juris) & (parcels.newest_building >= 2010)]\
+                (juris_name == juris) & (parcels.newest_building >= effective_base_year)]\
                 .sum()
 
-            target = (year - 2010 + 1) * limit - current_total
+            target = (year - effective_base_year + 1) * limit - current_total
             # make sure we don't overshoot the total development of the limit
             # for the horizon year - for instance, in Half Moon Bay we have
             # a very low limit and a single development in a far out year can
             # easily build over the limit for the total simulation
-            max_target = (final_year - 2010 + 1) * limit - current_total
+            max_target = (final_year - effective_base_year + 1) * limit - current_total
+            logger.debug("  type={} jurisdiction {} year={} effective_base_year={} final_year={} limit={:,} current_total={:,} target={:,} max_target={:,}".format(
+                typ, juris, year, effective_base_year, final_year, limit, current_total, target, max_target
+            ))
 
             if target <= 0:
                 continue
@@ -671,14 +695,14 @@ def residential_developer(feasibility, households, buildings, parcels, year,
 
     for parcel_mask, target, final_target, juris in targets:
 
-        print("Running developer for %s with target of %d" %
-              (str(juris), target))
+        logger.debug("Running developer for juris={}, target={}, final_target={}, parcel_mask=\n{}".format(
+            juris, target, final_target, parcel_mask))
 
         # this was a fairly heinous bug - have to get the building wrapper
         # again because the buildings df gets modified by the run_developer
         # method below
         buildings = orca.get_table('buildings')
-        print('Stats of buildings before run_developer(): \n{}'.format(
+        logger.debug('Stats of buildings before utils.run_developer(): \n{}'.format(
              buildings.to_frame()[['deed_restricted_units','preserved_units','inclusionary_units']].sum()))
         new_buildings = utils.run_developer(
             ["residential"],#, "mixedresidential"],
@@ -695,7 +719,9 @@ def residential_developer(feasibility, households, buildings, parcels, year,
             num_units_to_build=int(target),
             profit_to_prob_func=subsidies.profit_to_prob_func,
             **kwargs)
-        print('Stats of buildings after run_developer(): \n{}'.format(
+
+        logger.debug('Stats of buildings after run_developer(): \n{}'.format(
+
              buildings.to_frame()[['deed_restricted_units','preserved_units','inclusionary_units']].sum()))
 
         buildings = orca.get_table('buildings')

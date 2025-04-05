@@ -39,32 +39,32 @@ feasibility:
     - vmt_res_cat
     - vmt_nonres_cat
 
-# a list of parcel geom ids which urbansim doesn't touch - this are viewed as exceptions
-# and are often dealt with using specific models (SDEM and possibly proportional jobs model)
+# a list of parcel ids which urbansim doesn't touch - these are viewed as exceptions
+# and are often dealt with using specific models (SDEM, household_relocation, and possibly proportional jobs model)
 # which ignore this list
 static_parcels:
-  - 2489683204304 # ala fairgrounds 378337
-  - 7356107932567 # ala fairgrounds 378336
-  - 14880815967518 # mark said remove
-  - 11280465768398 # city hall
-  - 2240580234395 # sf state
-  - 7299494955245 # sj state
-  - 13202883289710 # sj state
-  - 6193503633797 # sj state
-  - 8603860488630 # sj state
-  - 8173572322083 # ucb
-  - 14259504015679 # labs
-  - 3473860030354 # sfo
-  - 11976417381057 # sf general
-  - 5600199824880 # more sf gen
-  - 9143399820283
-  - 2161358104676
-  - 15636310238820
-  - 14512305680993 # sonoma state
-  - 15424804982410 # cal state east bay
-  - 7414256675266 # cal state east bay
-  - 8817315949318 # san quentin
-  - 12668875358422 # san quentin
+  - 378337  # 2489683204304 # ala fairgrounds 378337
+  - 378336  # 7356107932567 # ala fairgrounds 378336
+  - 358920  # 14880815967518 # mark said remove
+  - 901994  # 11280465768398 # city hall
+  - 1040222 # 2240580234395 # sf state
+  - 1548212 # 7299494955245 # sj state
+  - 1548677 # 13202883289710 # sj state
+  - 1548211 # 6193503633797 # sj state
+  - 1548676 # 8603860488630 # sj state
+  - 114502  # 8173572322083 # ucb
+  - 98073   # 14259504015679 # labs
+  - 1226840 # 3473860030354 # sfo
+  - 986192  # 11976417381057 # sf general
+  - 984911  # 5600199824880 # more sf gen
+  - 984915  # 9143399820283
+  - 985714  # 2161358104676
+  - 986845  # 15636310238820
+  - 1931998 # 14512305680993 # sonoma state
+  - 277660  # 15424804982410 # cal state east bay
+  - 184471  # 7414256675266 # cal state east bay
+  - 760696  # 8817315949318 # san quentin
+  - 760703  # 12668875358422 # san quentin
 
 
 # settings that get passed to the residential developer as kwargs

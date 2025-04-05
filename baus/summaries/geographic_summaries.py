@@ -51,13 +51,14 @@ def parcel_transitions(parcels, year, initial_summary_year, final_year, run_name
     # get buildings - first and last year data
     coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
     
-    buildings_start_path = coresum_output_dir / f"{run_name}_building_summary_{initial_summary_year}.csv"
+    # if we're already reading disaggregate output files, shouldn't this just be a post-process rather than a model step?
+    buildings_start_path = coresum_output_dir / f"building_table_{initial_summary_year}.csv"
     print(f'Loading {buildings_start_path}')
     
     buildings_start = pd.read_csv(buildings_start_path, 
         index_col='building_id')
     
-    buildings_end_path = coresum_output_dir / f"{run_name}_building_summary_{final_year}.csv"
+    buildings_end_path = coresum_output_dir / f"building_table_{final_year}.csv"
     print(f'Loading {buildings_end_path}')
     
     buildings_end = pd.read_csv(buildings_end_path, 
@@ -154,7 +155,7 @@ def parcel_transitions(parcels, year, initial_summary_year, final_year, run_name
         joined[geography] = parcels_df[geography]
     
         out = joined.groupby([geography,'transition_type']).building_sqft_demo.sum().unstack('transition_type').fillna(0)
-        out_path = redev_output_dir / f"{run_name}_{geography}_redev_summary_growth.csv"
+        out_path = redev_output_dir / f"{geography}_redev_summary_growth.csv"
         out.to_csv(out_path)
 
 
@@ -204,7 +205,7 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
     region['non_residential_sqft'] = buildings_df.non_residential_sqft.sum()
     geosum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "geographic_summaries"
     geosum_output_dir.mkdir(parents=True, exist_ok=True)
-    region.to_csv(geosum_output_dir / f"{run_name}_region_summary_{year}.csv")
+    region.to_csv(geosum_output_dir / f"region_summary_{year}.csv")
 
     #### summarize by sub-regional geography ####
     geographies = ['juris', 'superdistrict', 'county', 'subregion']
@@ -272,7 +273,7 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
 
         summary_table.index.name = geography
         summary_table = summary_table.sort_index()
-        summary_table.fillna(0).to_csv(geosum_output_dir / f"{run_name}_{geography}_summary_{year}.csv")
+        summary_table.fillna(0).to_csv(geosum_output_dir / f"{geography}_summary_{year}.csv")
 
 # office vacancy
     # note that the rate is calculated using spaces, not square feet, consistent
@@ -297,8 +298,8 @@ def geographic_growth_summary(year, final_year, initial_summary_year, run_name):
     for geography in geographies:
 
         # use 2015 as the base year
-        year1 = pd.read_csv(geosum_output_dir / f"{run_name}_{geography}_summary_{initial_summary_year}.csv")
-        year2 = pd.read_csv(geosum_output_dir / f"{run_name}_{geography}_summary_{final_year}.csv")
+        year1 = pd.read_csv(geosum_output_dir / f"{geography}_summary_{initial_summary_year}.csv")
+        year2 = pd.read_csv(geosum_output_dir / f"{geography}_summary_{final_year}.csv")
 
         geog_growth = year1.merge(year2, on=geography, suffixes=("_"+str(initial_summary_year), "_"+str(final_year)))
 
@@ -330,4 +331,4 @@ def geographic_growth_summary(year, final_year, initial_summary_year, run_name):
             geog_growth[col+'_regional_share_change'] = (geog_growth[col+"_"+str(final_year)+"_regional_share"] - 
                                                          geog_growth[col+"_"+str(initial_summary_year)+"_regional_share"])
     
-        geog_growth.fillna(0).to_csv(geosum_output_dir / f"{run_name}_{geography}_summary_growth.csv")
+        geog_growth.fillna(0).to_csv(geosum_output_dir / f"{geography}_summary_growth.csv")

@@ -141,7 +141,7 @@ def acct_settings(account_strategies):
 
 
 @orca.step()
-def lump_sum_accounts(year, years_per_iter, run_setup):
+def lump_sum_accounts(year, base_year, years_per_iter, run_setup, logger):
 
     if not run_setup["run_housing_bond_strategy"]:
         return
@@ -158,10 +158,15 @@ def lump_sum_accounts(year, years_per_iter, run_setup):
         amt = float(acct["total_amount"])
         amt *= years_per_iter
 
-        metadata = {"description": "%s subsidies" % acct["name"], "year": year}
+        # TODO: special case for 2020 base year to match 2010 base year -- add lump sum for 2015
+        # I think this can be removed
+        if base_year==2020 and year==2020:
+            metadata = {"description": f"{acct['name']} subsidies", "year": 2015}
+            coffer[acct["name"]].add_transaction(amt, subaccount=1, metadata=metadata, logger=logger)
 
+        metadata = {"description": f"{acct['name']} subsidies", "year": year}
         # the subaccount is meaningless here (it's a regional account) but the subaccount number is referred to below
-        coffer[acct["name"]].add_transaction(amt, subaccount=1, metadata=metadata)
+        coffer[acct["name"]].add_transaction(amt, subaccount=1, metadata=metadata, logger=logger)
 
 
 @orca.step()
@@ -184,7 +189,7 @@ def office_lump_sum_accounts(run_setup, year, years_per_iter):
 
         # the subaccount is meaningless here (it's a regional account) -
         # but the subaccount number is referred to below
-        coffer[acct["name"]].add_transaction(amt, subaccount="regional", metadata=metadata)
+        coffer[acct["name"]].add_transaction(amt, subaccount="regional", metadata=metadata, logger=logger)
 
 # this will compute the reduction in revenue from a project due to
 # inclustionary housing - the calculation will be described in thorough
@@ -435,7 +440,7 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
 
     # the subaccount is meaningless here (it's a regional account) - but the subaccount number is referred to below
     # adds the total fees collected to the coffer for residential dev
-    coffer["vmt_res_acct"].add_transaction(total_fees, subaccount=1, metadata=metadata)
+    coffer["vmt_res_acct"].add_transaction(total_fees, subaccount=1, metadata=metadata, logger=logger)
 
     total_fees = 0
     if run_setup["run_vmt_fee_com_for_com_strategy"]:
@@ -459,7 +464,7 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
 
     print("Adding total vmt fees for com amount of $%.2f" % total_fees)
 
-    coffer["vmt_com_acct"].add_transaction(total_fees, subaccount="regional", metadata=metadata)
+    coffer["vmt_com_acct"].add_transaction(total_fees, subaccount="regional", metadata=metadata, logger=logger)
 
 
 @orca.step()
@@ -502,7 +507,7 @@ def calculate_jobs_housing_fees(account_strategies, year, coffer, summary, years
         metadata = {"description": "%s subsidies from jobs-housing development fees" % acct["name"], "year": year}
 
         # add to the subaccount in coffer
-        coffer[acct["name"]].add_transaction(total_fees, subaccount=acct["name"], metadata=metadata)
+        coffer[acct["name"]].add_transaction(total_fees, subaccount=acct["name"], metadata=metadata, logger=logger)
 
 
 #@orca.step()
@@ -566,7 +571,7 @@ def subsidized_office_developer(feasibility, coffer, formula, year, add_extra_co
             "index": dev_id
         }
 
-        coffer[coffer_acct_name].add_transaction(-1*amt, subaccount="regional", metadata=metadata)
+        coffer[coffer_acct_name].add_transaction(-1*amt, subaccount="regional", metadata=metadata, logger=logger)
 
         total_subsidy -= amt
 
@@ -607,7 +612,7 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
     acct_settings : Dict
         A dictionary of settings to parameterize the model.  Needs these keys: sending_buildings_subaccount_def - maps buildings to subaccounts
         receiving_buildings_filter - filter for eligible buildings
-    settings : Dict
+    developer_settings : Dict
         The overall settings
     account : Account
         The Account object to use for subsidization
@@ -646,6 +651,10 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
         the subsidized units, run through the standard code path, although it's very unlikely that there would be more subsidized housing than 
         demand)
     """
+    feas_cols = sorted(feasibility.columns.to_list())
+    logger.debug("run_subsidized_developer(): feasibility len={:,} dataframe=\n{}".format(
+        len(feasibility), feasibility[feas_cols]
+    ))
     # step 2
     feasibility = feasibility.replace([np.inf, -np.inf], np.nan)
     feasibility = feasibility[feasibility.max_profit < 0]
@@ -686,10 +695,10 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
     feasibility["subaccount"] = feasibility.eval(sending_bldgs)
     # step 6
     for subacct, amount in account.iter_subaccounts():
-        print("Subaccount: ", subacct)
+        logger.debug("Subaccount:{}; amount:${:,.2f}".format(subacct, amount))
 
         df = feasibility[feasibility.subaccount == subacct]
-        print("Number of feasible projects in receiving zone:", len(df))
+        logger.debug("Number of feasible projects in receiving zone: {:,}".format(len(df)))
 
         if len(df) == 0:
             continue
@@ -699,7 +708,6 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
         # df.to_csv('subsidized_units_%d_%s_%s.csv' % (orca.get_injectable("year"), account.name, subacct))
 
         # step 8
-        print("Amount in subaccount: ${:,.2f}".format(amount))
         num_bldgs = int((-1*df.max_profit).cumsum().searchsorted(amount))
 
         if num_bldgs == 0:
@@ -711,8 +719,6 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
 
         df.columns = pd.MultiIndex.from_tuples(
             [("residential", col) for col in df.columns])
-        # disable stdout since developer is a bit verbose for this use case
-        sys.stdout, old_stdout = StringIO(), sys.stdout
 
         kwargs = developer_settings['residential_developer']
         # step 9
@@ -730,7 +736,6 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
             add_more_columns_callback=add_extra_columns_func,
             profit_to_prob_func=profit_to_prob_func,
             **kwargs)
-        sys.stdout = old_stdout
         buildings = orca.get_table("buildings")
 
         if new_buildings is None:
@@ -779,26 +784,26 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
 
             metadata['deed_restricted_units'] = new_buildings.loc[index, 'deed_restricted_units']
             metadata['subsidized_units'] = new_buildings.loc[index, 'subsidized_units']
-            account.add_transaction(amt, subaccount=subacct, metadata=metadata)
+            account.add_transaction(amt, subaccount=subacct, metadata=metadata,  logger=logger)
 
         # turn off this assertion for the Draft Blueprint affordable housing policy since the number of deed restricted units
         # vs units from development projects looks reasonable
 #        assert np.all(buildings.local.deed_restricted_units.fillna(0) <=
 #                      buildings.local.residential_units.fillna(0))
 
-        print("Amount left after subsidy: ${:,.2f}".format(account.total_transactions_by_subacct(subacct)))
+        logger.debug("Amount left after subsidy: ${:,.2f}".format(account.total_transactions_by_subacct(subacct)))
 
         new_buildings_list.append(new_buildings)
 
     total_len = reduce(lambda x, y: x+len(y), new_buildings_list, 0)
     if total_len == 0:
-        print("No subsidized buildings")
+        logger.debug("No subsidized buildings")
         return
 
     new_buildings = pd.concat(new_buildings_list)
-    print("Built {} total subsidized buildings".format(len(new_buildings)))
-    print("    Total subsidy: ${:,.2f}".format(-1*new_buildings.max_profit.sum()))
-    print("    Total subsidized units: {:.0f}".format(new_buildings.residential_units.sum()))
+    logger.debug("Built {:,} total subsidized buildings".format(len(new_buildings)))
+    logger.debug("    Total subsidy: ${:,.2f}".format(-1*new_buildings.max_profit.sum()))
+    logger.debug("    Total subsidized units: {:.0f}".format(new_buildings.residential_units.sum()))
 
     new_buildings["subsidized"] = True
     new_buildings["policy_name"] = policy_name
