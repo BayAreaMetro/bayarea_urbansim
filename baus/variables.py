@@ -464,6 +464,17 @@ def stories(buildings):
     return buildings.stories.groupby(buildings.parcel_id).max()
 
 
+
+# get whether a parcel contains a building from the developer model
+@orca.column('parcels', cache=True)
+def bldg_source(buildings):
+    return buildings.source.groupby(buildings.parcel_id).first()
+
+@orca.column('parcels')
+def first_building_source(buildings):
+    df = buildings.to_frame(columns=['source', 'parcel_id'])
+    return df.groupby('parcel_id').source.first()
+
 @orca.column('parcels', cache=True)
 def height(parcels):
     return parcels.stories * 12  # hard coded 12 feet per story
@@ -609,6 +620,29 @@ def parcel_average_price(use, quantile=.5):
         return pd.Series(0, orca.get_table('parcels').index)
 
     return misc.reindex(orca.get_table('nodes')[use], orca.get_table('parcels').node_id)
+
+
+@orca.column('parcels', cache=True)
+def profit_adjustment_tier(parcels, parcels_geography, profit_adjustment_strategies):
+    
+    tier_cols = []
+    for key, policy in profit_adjustment_strategies["acct_settings"]["profitability_adjustment_policies"].items():
+
+        print(key)
+        formula_segment = policy["profitability_adjustment_formula"]
+        formula_value = policy["profitability_adjustment_value"]
+
+        pct_formula_segment = parcels_geography.local.eval(formula_segment).astype(int)
+        pct_modifications = pct_formula_segment.mul(1+formula_value)
+
+        this_tier = policy['shortname']
+        tier_cols.append(this_tier)
+        parcels_geography[this_tier] =   pct_formula_segment
+    hsg_tier_group = parcels_geography.to_frame(columns=tier_cols).groupby(tier_cols).ngroup()
+    hsg_tier_group =  hsg_tier_group.reindex(parcels.index)
+    hsg_tier_group.to_csv('hsg_tier_group.csv')
+    return hsg_tier_group
+
 
 
 #############################
@@ -820,22 +854,29 @@ def building_purchase_price_sqft(parcels, developer_settings):
     price = pd.Series(0, parcels.index)
     gentype = parcels.general_type
     cap_rate = developer_settings["cap_rate"]
-    # all of these factors are above one which does some discouraging of
-    # redevelopment - this will need to be recalibrated when the new
-    # developer model comes into play
-    for form in ["Office", "Retail", "Industrial", "Residential"]:
-        # convert to price per sqft from yearly rent per sqft
-        factor = 1.4 if form == "Residential" else (1/cap_rate)
-        # raise cost to convert from industrial
-        if form == "Industrial":
-            factor *= 3.0
-        if form == "Retail":
-            factor *= 2.0
-        if form == "Office":
-            factor *= 1.4
-        tmp = parcel_average_price(form.lower())
-        price += tmp * (gentype == form) * factor
 
+    # define factors for each form - the non-res ones are converted from rent to price based on the cap rate
+    factors = {
+        "Residential": 1.4,
+        "Industrial": 3.0 * (1 / cap_rate),
+        "Retail": 2.0 * (1 / cap_rate),
+        "Office": 1.4 * (1 / cap_rate),
+        #"Vacant": 1
+    }
+
+    # loop through each form, filtering parcels by general type first
+    for form, factor in factors.items():
+        mask = gentype == form
+        if len(mask)>0:  # then proceed only if there are any matching parcels
+            tmp = parcel_average_price(form.lower())
+            price.loc[mask] = tmp[mask] * factor
+
+    price_debug = (pd.concat([price, gentype],
+                            axis=1,
+                            keys=['price', 'type'])
+                .groupby(['type'])
+                .price.median())
+    #print('Describe of building_purchase_price_sqft by type before clip: ', price_debug)
     # this is not a very constraining clip
     return price.clip(150, 2500)
 
@@ -939,12 +980,13 @@ HEIGHT_PER_STORY = 12.0
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def zoned_du(parcels, parcels_zoning_calculations):
-    return parcels_zoning_calculations.effective_max_dua * parcels.parcel_acres
+    return parcels.max_dua * parcels.parcel_acres
 
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def zoned_du_vacant(parcels, parcels_zoning_calculations):
-    return parcels_zoning_calculations.effective_max_dua * \
+    # zoned du capacity for vacant parcels only
+    return parcels.max_dua * \
         parcels.parcel_acres * ~parcels.nodev * (parcels.total_sqft == 0)
 
 
@@ -957,16 +999,18 @@ def effective_max_dua(zoning_existing, parcels):
 
     max_dua_from_height = max_far_from_height * 43560 / GROSS_AVE_UNIT_SIZE
 
-    s = pd.concat([zoning_existing.max_dua, max_dua_from_far, max_dua_from_height], axis=1).min(axis=1)
+    s = pd.concat([zoning_existing.max_dua, 
+                   max_dua_from_far, 
+                   max_dua_from_height], axis=1).min(axis=1)
 
-    # take the max dua IFF the upzone value is greater than the current value
+    # take the max dua IF the upzone value is greater than the current value
     # i.e. don't let the upzoning operation accidentally downzone
 
     strategy_max_dua = orca.get_table("zoning_strategy").dua_up
 
     s = pd.concat([s, strategy_max_dua], axis=1).max(axis=1)
 
-    # take the min dua IFF the downzone value is less than the current value
+    # take the min dua IF the downzone value is less than the current value
     # i.e. don't let the downzoning operation accidentally upzone
 
     strategy_min_dua = orca.get_table("zoning_strategy").dua_down
@@ -984,7 +1028,7 @@ def effective_max_dua(zoning_existing, parcels):
 @orca.column('parcels_zoning_calculations')
 def zoned_far(parcels, parcels_zoning_calculations):
     # adding to help look at nonres capacity in model outputs
-    return parcels_zoning_calculations.effective_max_far * parcels.parcel_size
+    return parcels.max_far * parcels.parcel_size
 
 
 @orca.column('parcels_zoning_calculations', cache=True)
@@ -992,7 +1036,8 @@ def effective_max_far(zoning_existing, parcels):
 
     max_far_from_height = (zoning_existing.max_height / HEIGHT_PER_STORY) * PARCEL_USE_EFFICIENCY
 
-    s = pd.concat([zoning_existing.max_far, max_far_from_height], axis=1).min(axis=1)
+    s = pd.concat([zoning_existing.max_far, 
+                   max_far_from_height], axis=1).min(axis=1)
 
     # take the max far IFF the upzone value is greater than the current value
     # i.e. don't let the upzoning operation accidentally downzone
@@ -1043,22 +1088,21 @@ def zoned_du_underbuild(parcels, parcels_zoning_calculations):
 def zoned_du_build_ratio(parcels, parcels_zoning_calculations):
     # ratio of existing res built space to zoned res built space
     s = parcels.total_residential_units / \
-       (parcels_zoning_calculations.effective_max_dua * parcels.parcel_acres)
+       (parcels_zoning_calculations.zoned_du)
     return s.replace(np.inf, 1).clip(0, 1)
 
 
 @orca.column('parcels_zoning_calculations')
 def zoned_far_underbuild(parcels, parcels_zoning_calculations):
     # adding to help look at nonres capacity in model outputs
-    return parcels_zoning_calculations.zoned_far - parcels.total_non_residential_sqft
+    return (parcels_zoning_calculations.zoned_far - parcels.total_non_residential_sqft).clip(0)
 
 
 @orca.column('parcels_zoning_calculations')
 def zoned_far_build_ratio(parcels, parcels_zoning_calculations):
     # ratio of existing nonres built space to zoned nonres built space
     s = parcels.total_non_residential_sqft / \
-        (parcels_zoning_calculations.effective_max_far *
-         parcels.parcel_size)
+        parcels_zoning_calculations.zoned_far
     return s.replace(np.inf, 1).clip(0, 1)
 
 
@@ -1068,3 +1112,15 @@ def zoned_build_ratio(parcels_zoning_calculations):
     # build space
     return parcels_zoning_calculations.zoned_du_build_ratio + \
         parcels_zoning_calculations.zoned_far_build_ratio
+
+
+
+@orca.column('parcels_zoning_calculations')
+def parcel_softsite(parcels,parcels_zoning_calculations):
+
+    current_sqft = (parcels.total_non_residential_sqft.clip(0) 
+                    + parcels.total_residential_units / GROSS_AVE_UNIT_SIZE )
+    
+    # assume zoned far covers the envelope - including for residential
+    return (current_sqft / parcels_zoning_calculations.zoned_far).clip(0, 1)
+

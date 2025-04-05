@@ -329,7 +329,6 @@ def run_models(mode):
             "calculate_vmt_fees",
             "calculate_jobs_housing_fees",
         ]
-
         if not run_setup["run_jobs_to_transit_strategy_elcm"]:
             simulation_models.remove("elcm_simulate_ec5")
             print('Removing `elcm_simulate_ec5`')

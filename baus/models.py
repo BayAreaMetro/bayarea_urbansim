@@ -597,7 +597,7 @@ def alt_feasibility(parcels, developer_settings,
                     parcel_is_allowed_func):
     kwargs = developer_settings['feasibility']
     config = sqftproforma.SqFtProFormaConfig()
-    config.parking_rates["office"] = 1.5
+    config.parking_rates["office"] = 1
     config.parking_rates["retail"] = 1.5
     config.building_efficiency = .85
     config.parcel_coverage = .85
@@ -627,6 +627,10 @@ def residential_developer(feasibility, households, buildings, parcels, year,
                           add_extra_columns_func, parcels_geography,
                           limits_settings, base_year, final_year, run_setup):
 
+    #TODO: REMOVE
+    #feas_path = os.path.join(orca.get_injectable("outputs_dir"),f'feasibility_residential_developer_start_{year}.csv')
+    #feasibility.to_frame().to_csv(feas_path)
+    
     kwargs = developer_settings['residential_developer']
 
     if run_setup["residential_vacancy_rate_mods"]:
@@ -701,7 +705,7 @@ def residential_developer(feasibility, households, buildings, parcels, year,
         logger.debug('Stats of buildings before utils.run_developer(): \n{}'.format(
              buildings.to_frame()[['deed_restricted_units','preserved_units','inclusionary_units']].sum()))
         new_buildings = utils.run_developer(
-            "residential",
+            ["residential"],#, "mixedresidential"],
             households,
             buildings,
             "residential_units",
@@ -715,7 +719,9 @@ def residential_developer(feasibility, households, buildings, parcels, year,
             num_units_to_build=int(target),
             profit_to_prob_func=subsidies.profit_to_prob_func,
             **kwargs)
+
         logger.debug('Stats of buildings after run_developer(): \n{}'.format(
+
              buildings.to_frame()[['deed_restricted_units','preserved_units','inclusionary_units']].sum()))
 
         buildings = orca.get_table('buildings')
@@ -761,13 +767,21 @@ def residential_developer(feasibility, households, buildings, parcels, year,
 
 @orca.step()
 def retail_developer(jobs, buildings, parcels, nodes, feasibility,
-                     developer_settings, summary, add_extra_columns_func, net):
+                     developer_settings, summary, add_extra_columns_func, net, year):
 
+    #TODO: remove
+    #feasibility.to_frame().to_csv(f'M:/urban_modeling/baus/PBA50Plus/investigation/developer/feasibility_retail_developer_start_{year}.csv')
+    
+    #f_1 = feasibility.to_frame()
+    #f_1.to_csv('M:/urban_modeling/baus/PBA50Plus/investigation/developer/feas_before_retail.csv')
     dev_settings = developer_settings['non_residential_developer']
     all_units = dev.compute_units_to_build(
         len(jobs),
         buildings.job_spaces.sum(),
         dev_settings['kwargs']['target_vacancy'])
+
+    if all_units == 0:
+        return
 
     target = all_units * float(dev_settings['type_splits']["Retail"])
     # target here is in sqft

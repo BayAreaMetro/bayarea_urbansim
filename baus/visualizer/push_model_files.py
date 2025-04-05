@@ -12,7 +12,7 @@ def copy_files_to_viz_loc(run_name, outputs_dir, viz_dir):
     # and add a run_name column for use in Tableau
 
     # Create viz_dir if doesn't exist
-    viz_dir_path = pathlib.Path(viz_dir)
+    viz_dir_path = pathlib.Path(viz_dir) / 'STORAGE'
     viz_dir_path.mkdir(parents=True, exist_ok=True)
 
     outputs_dir_path = pathlib.Path(outputs_dir)

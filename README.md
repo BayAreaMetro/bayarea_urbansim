@@ -14,18 +14,21 @@ Bay Area UrbanSim is written in Python and runs in a command line environment. I
 7. Use `run_setup.yaml` to specify a path for model outputs to write to (it's helpful if the outputs folder name matches the model run name)
 8. Run `python baus.py` from the main model directory (more info about the command line arguments: `python baus.py --help`)
 
-
 ## Optional Slack Messenger 
-* Install the Slack SDK using `pip install slack_sdk`
-* Set environment variable `SLACK_TOKEN=token` (you will need an appropriate slack token from your MTC contact)
-* Set environment variable `URBANSIM_SLACK=TRUE`
+* The Slack SDK will be installed as part of the environment creation
+* Slack task integration is **enabled** by default (`--disable-slack` flag set to `False`).
+* Set environment variables as appropriate for API communication `SLACK_TOKEN` 
+* Set environment variable `URBANSIM_SLACK = TRUE`
 
+## Optional Asana Integration
+* The Asana SDK will be installed as part of the environment creation
+* Asana task integration is **disabled** by default (`--enable-asana` flag set to `False`).
+* Set environment variables as appropriate for API communication (`ASANA_TOKEN`, `ASANA_CLIENT_ID`, `ASANA_SECRET`)
 
 ## Optional Model Run Visualizer
-* Configure the location that BAUS will write the visualizer files to in `run_setup.yaml` (stored on MTC's servers for internal visualization)
+* Configure the location that BAUS will write the visualizer files to in `run_setup.yaml` (typically stored on the M-drive)
 * Open the visualizer from the BAUS repository to explore the model run, and/or
 * Open the visualizer from the BAUS repository and publish it to the web (hosted on MTC's Tableau account). At this time runs can be removed from `model_run_inventory.csv` to select the runs to be shown on the web tool
-
 
 ## Documentation
 * See the repository's `gh-pages` branch for instructions on installing the BAUS documentation packages and submitting documentation
