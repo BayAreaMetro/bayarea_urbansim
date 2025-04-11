@@ -38,11 +38,16 @@ Geographies", EC6 "Retain and Invest in Key Industrial Lands".
 	* In model step [subsidized_residential_developer_lump_sum_accts](https://github.com/BayAreaMetro/bayarea_urbansim/blob/ec85eb3f00bd3c2976531612ba14d2252da3224d/baus/subsidies.py#L906) - [run_subsidized_developer](https://github.com/BayAreaMetro/bayarea_urbansim/blob/ec85eb3f00bd3c2976531612ba14d2252da3224d/baus/subsidies.py#L586C5-L586C29), residential development projects that are not financially feasible ("almost feasible") under market conditions and are within the target geographies may qualify for subsidy. The model ranks these projects by how much per unit subsidy is needed to fill the feasibility gap, then starting from buildings that require the lowest per unit subsidy, draws funding from the corresponding county acount to fill the gap and build deed-restricted units, until either the account is depleted or the demand is met. 
     * Note that in reality, affordable housing finance typical does not work this way. This version of UrbanSim does not have an affordable housing submodel that mimics the funding structure of majority of the 100% affordable housing or mixed-income housing projects.  
 
+#### Housing Development Cost Reduction
+* PBA50+ Strategy: H3.
+* One way to (indirectly) subsidize housing is to reduce housing development cost reduction, for example, SB743 CEQA reform, lowering parking requirements, etc. This is defined in [profitability_adjustment_policies](https://github.com/BayAreaMetro/bayarea_urbansim/blob/3ecf457e3cf3661992a3a3c5dba126fe1b33db8a/configs/policy.yaml#L1246). The policies are scenario-based, as noted by "enable_in_scenarios". For each policy, [*profitabiity_adjustment_formula*](https://github.com/BayAreaMetro/bayarea_urbansim/blob/98f3b65ea4f29c1f2766659432e8a9d825eed56c/configs/policy.yaml#L1295) picks the parcels in a certain category (e.g. a certain type of geography) and then decreases the required profitability level needed for the model to build on those parcels, e.g. multiplying by 2.5% or 0.025 means to LOWER the required profit level by 2.5%. When a policy has an alternative version is different scenarios, may use 'alternative_geography_scenarios' and 'alternative_adjustment_formula' to consolidate the scenarios.
+
+
 #### Inclusionary Housing
 * PBA50+ Strategy: H5 "Integrate Affordable Housing into All Major Housing Projects".
 * `M:\urban_modeling\baus\BAUS Inputs\plan_strategies\inclusionary_strategy_[version].yaml`
 
-#### Strategy Projects (H6,H8,EC2,EC6)
+#### Strategy Projects (H6,H8,EC2,EC5,EC6)
 
 #### Job Location (EC5)
 
