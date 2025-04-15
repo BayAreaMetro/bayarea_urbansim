@@ -182,16 +182,11 @@ inclusionary:
   - category: GG_TRA_HRA
     conditions: ["gg_id == 'GG'", "(tra_id=='tra_1' or tra_id=='tra_2' or tra_id=='tra_3' or tra_id=='tra_4' or tra_id=='tra_5')", "hra_id == 'HRA' "]
     value: .20 
-
   - category: GG_TRA5_NO_HRA
     conditions: ["gg_id == 'GG'", "(tra_id=='tra_1' or tra_id=='tra_2' or tra_id=='tra_3' or tra_id=='tra_4' or tra_id=='tra_5')" , "hra_id != 'HRA' "]
     value: .15 
   - category: GG_TRA6_HRA
     conditions: ["gg_id == 'GG'", "(tra_id=='tra_6')" , "hra_id == 'HRA' "]
-    value: .15 
-
-  - category: GG_HRA_NO_TTS
-    conditions: ["gg_id == 'GG'","~(tra_id=='tra_1' or tra_id=='tra_2')", "hra_id == 'HRA' "]
     value: .15 
 
   - category: REMAINDER
