@@ -659,15 +659,20 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
     # large projects never get built, because it could be a 100 unit project
     # times a 500k subsidy per unit.  thus we're going to try filtering by
     # the maximum subsidy for a single development here
-    feasibility = feasibility[feasibility.max_profit > -50*1000000]
-
+    print('Size of feasibility')
+    print(f'\tbefore removing least profitable projects: {len(feasibility)}')
+    feasibility = feasibility[feasibility.max_profit > -50*1_000_000]
+    print(f'\tafter removing least profitable projects: {len(feasibility)}')
+    
     # step 4
     feasibility['subsidy_per_unit'] = -1 * feasibility['max_profit'] / feasibility['residential_units']
     # assumption that even if the developer says this property is almost
     # profitable, even the administration costs are likely to cost at least
     # 10k / unit
     feasibility['subsidy_per_unit'] = feasibility.subsidy_per_unit.clip(10000)
-       
+    
+    print('subsidy per unit describe:')
+    print(feasibility['subsidy_per_unit'].describe())
     # step 5
     if "receiving_buildings_filter" in acct_settings:
         print('Applying Feasibility filter per `receiving_buildings_filter` setting:')
