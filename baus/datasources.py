@@ -900,23 +900,16 @@ def parcels_subzone():
 
 @orca.table(cache=False)
 def taz_logsums(year, run_setup):
-
+    file_path = os.path.join(
+                orca.get_injectable("inputs_dir"),
+                "accessibility/travel_model")
     if year in run_setup["logsum_period1"]:
-        df = pd.read_csv(
-            os.path.join(
-                orca.get_injectable("inputs_dir"),
-                "accessibility/travel_model/subzone_logsums_for_BAUS_{}_{}.csv",
-            ).format(run_setup["logsum_file"], run_setup["logsum_year1"])
-        )
+        full_path = os.path.join(file_path,run_setup["logsum_file1"])
     elif year in run_setup["logsum_period2"]:
-        df = pd.read_csv(
-            os.path.join(
-                orca.get_injectable("inputs_dir"),
-                "accessibility/travel_model/subzone_logsums_for_BAUS_{}_{}.csv",
-            ).format(run_setup["logsum_file"], run_setup["logsum_year1"])
-        )
-
-    return df.set_index("taz_subzone")
+        full_path = os.path.join(file_path,run_setup["logsum_file2"])
+    
+    df = pd.read_csv(full_path, index_col="taz_subzone")
+    return df
 
 
 @orca.table(cache=True)
