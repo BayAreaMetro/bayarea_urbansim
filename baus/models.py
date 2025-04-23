@@ -591,6 +591,17 @@ def alt_feasibility(parcels, developer_settings,
     print('Running alt_feasibility step...')
     kwargs = developer_settings['feasibility']
     config = sqftproforma.SqFtProFormaConfig()
+    
+    # update config object with bespoke settings
+    if 'forms' in developer_settings:
+        config.forms = developer_settings["forms"]
+    if 'fars' in developer_settings:
+        config.fars = developer_settings["fars"]
+    if 'uses' in developer_settings:
+        config.uses = developer_settings["uses"]
+    if 'residential_uses' in developer_settings:
+        config.residential_uses = developer_settings["residential_uses"]
+    
     config.parking_rates["office"] = 1.5
     config.parking_rates["retail"] = 1.5
     config.building_efficiency = .85
@@ -646,12 +657,15 @@ def residential_developer(feasibility, households, buildings, parcels, year,
     # now apply limits - limits are assumed to be yearly, apply to an
     # entire jurisdiction and be in terms of residential_units or job_spaces
     if typ in limits_settings:
+        print('Residential found in limits settings')
 
         juris_name = parcels_geography.juris_name.\
             reindex(parcels.index).fillna('Other')
 
         juris_list = limits_settings[typ].keys()
         for juris, limit in limits_settings[typ].items():
+            print('Limits: ')
+            print(juris,limit)
 
             # the actual target is the limit times the number of years run
             # so far in the simulation (plus this year), minus the amount
@@ -677,9 +691,10 @@ def residential_developer(feasibility, households, buildings, parcels, year,
 
         # other cities not in the targets get the remaining target
         targets.append((~juris_name.isin(juris_list), num_units, None, "none"))
-
+        print('Limits: ', len(targets))
     else:
         # otherwise use all parcels with total number of units
+        print('Use full parcel dataset without limits applied from limits_settings')
         targets.append((parcels.index == parcels.index,
                         num_units, None, "none"))
 
