@@ -226,11 +226,18 @@ def cost_shifters():
 
 
 @orca.injectable("developer_settings", cache=True)
-def developer_settings():
-    with open(
-        os.path.join(misc.configs_dir(), "developer/developer_settings.yaml")
-    ) as f:
-        return yaml.load(f)
+def developer_settings(run_setup):
+    filepath = os.path.join(misc.configs_dir(), "developer", run_setup.get("developer_settings", "developer_settings.yaml"))
+    try:
+        print(f"Loading settings: {filepath}")
+        with open(filepath, 'r') as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        print(f"Error: Developer settings file not found at {filepath}")
+        return None
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML in {filepath}: {e}")
+        return None
 
 
 @orca.injectable("price_settings", cache=True)
