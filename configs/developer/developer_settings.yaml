@@ -5,13 +5,50 @@ cap_rate: 0.04
 # equal weights.  0.5 means profit is half as much as ROC
 profit_vs_return_on_cost_combination_factor: 0.5
 
+# which forms to run feasibility for
+forms:
+  retail:
+    retail: 1.0
+  industrial:
+    industrial: 1.0
+  office:
+    office: 1.0
+  residential:
+    residential: 1.0
+  # mixedresidential:
+  #   retail: .1,
+  #   residential: .9
+  # mixedoffice:
+  #   office: 0.7,
+  #   residential: 0.3
+
+# below list adds values above defaults, which end at 11, in 
+# https://github.com/UDST/urbansim/blob/dev/urbansim/developer/sqftproforma.py#L125
+        
+fars: [0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 1.8, 2.0, 2.25, 
+        2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.5, 5.0, 
+        5.5, 6.0, 6.5, 7.0, 9.0, 11.0, 13.0, 15.0, 17.0,
+        19.0, 20.0]
+# skipping values above 20 because of https://github.com/UDST/urbansim/blob/dev/urbansim/developer/sqftproforma.py#L215
+
+uses:
+  - retail
+  - industrial
+  - office
+  - residential
+residential_uses:
+  - False
+  - False
+  - False
+  - True
 
 # settings for the feasibility model - parcel_filter is very important and is a rule of
 # which parcels to consider - we don't consider nodev properties, historic properties, and
 # optionally we don't look at small lot single family
 # pass_through are columns not used by the developer but which go in the debug output
 feasibility:
-  parcel_filter: (nodev != 1 and manual_nodev != 1 and sdem != 1 and oldest_building > 1906
+  parcel_filter: >
+    (nodev != 1 and manual_nodev != 1 and sdem != 1 and oldest_building > 1906
     and oldest_building_age > 20 and (total_residential_units != 1 or parcel_acres > 1.0)
     and first_building_type != 'HO' and first_building_type != 'SC')
   residential_to_yearly: True
@@ -62,11 +99,12 @@ static_parcels:
   - 7414256675266 # cal state east bay
   - 8817315949318 # san quentin
   - 12668875358422 # san quentin
+  - 11891233387116 # legion of honor - 
 
 
 # settings that get passed to the residential developer as kwargs
 residential_developer:
-  target_vacancy: .03
+  target_vacancy: 0.03
   min_unit_size: 1000
   bldg_sqft_per_job: 400
   max_parcel_size: 150000000
@@ -74,7 +112,7 @@ residential_developer:
 # same as above for non-res
 non_residential_developer:
   kwargs:
-    target_vacancy: .05
+    target_vacancy: 0.05
     bldg_sqft_per_job: 400
   type_splits:
     Industrial: 0.0
