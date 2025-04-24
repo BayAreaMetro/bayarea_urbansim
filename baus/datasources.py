@@ -385,6 +385,21 @@ def fetch_from_s3(paths):
         key.get_contents_to_filename(file)
 
 
+# TODO: this is probably temporary until it enters the parcels geography datamodel directly
+@orca.table(cache=True)
+def cpad_parcels():
+    cpad =  pd.read_csv(
+        os.path.join(
+            orca.get_injectable("inputs_dir"),
+            "basis_inputs/crosswalks/NoDev_openspace_parcels.csv",
+        )
+    ).rename(columns={'PARCEL_ID':'parcel_id'})
+    # geom_ids in file are malformed from exporting from arc.
+    cpad["geom_id"] = parcel_id_to_geom_id(cpad.parcel_id)
+    cpad['is_cpad'] = 1
+    return cpad.set_index('parcel_id')
+
+
 # key locations in the Bay Area for use as attractions in the models
 @orca.table(cache=True)
 def landmarks():

@@ -768,6 +768,16 @@ def total_non_residential_sqft(parcels, buildings):
     return buildings.non_residential_sqft.groupby(buildings.parcel_id).sum().\
         reindex(parcels.index).fillna(0)
 
+# TODO: this is probably temporary until it enters the parcels geography datamodel directly
+@orca.column('parcels')
+def is_cpad(cpad_parcels, parcels):
+    cpad_parcels = (cpad_parcels.is_cpad
+                    .reindex(parcels.index)
+                    .fillna(0)
+                    .astype('bool')
+                    )
+    return cpad_parcels
+
 
 @orca.column('parcels')
 def nodev(zoning_existing, parcels, static_parcels):

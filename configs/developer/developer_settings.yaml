@@ -15,12 +15,14 @@ forms:
     office: 1.0
   residential:
     residential: 1.0
-  # mixedresidential:
-  #   retail: .1,
-  #   residential: .9
-  # mixedoffice:
-  #   office: 0.7,
-  #   residential: 0.3
+  mixedresidential:
+    retail: .1
+    residential: .9
+  mixedoffice:
+    office: 0.7
+    residential: 0.3
+
+
 
 # below list adds values above defaults, which end at 11, in 
 # https://github.com/UDST/urbansim/blob/dev/urbansim/developer/sqftproforma.py#L125
@@ -31,16 +33,16 @@ fars: [0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 1.8, 2.0, 2.25,
         19.0, 20.0]
 # skipping values above 20 because of https://github.com/UDST/urbansim/blob/dev/urbansim/developer/sqftproforma.py#L215
 
-uses:
-  - retail
-  - industrial
-  - office
-  - residential
-residential_uses:
-  - False
-  - False
-  - False
-  - True
+# uses:
+#   - retail
+#   - industrial
+#   - office
+#   - residential
+# residential_uses:
+#   - False
+#   - False
+#   - False
+#   - True
 
 # settings for the feasibility model - parcel_filter is very important and is a rule of
 # which parcels to consider - we don't consider nodev properties, historic properties, and
@@ -48,7 +50,7 @@ residential_uses:
 # pass_through are columns not used by the developer but which go in the debug output
 feasibility:
   parcel_filter: >
-    (nodev != 1 and manual_nodev != 1 and sdem != 1 and oldest_building > 1906
+    (is_cpad !=1 and nodev != 1 and manual_nodev != 1 and sdem != 1 and oldest_building > 1906
     and oldest_building_age > 20 and (total_residential_units != 1 or parcel_acres > 1.0)
     and first_building_type != 'HO' and first_building_type != 'SC')
   residential_to_yearly: True
@@ -107,7 +109,7 @@ residential_developer:
   target_vacancy: 0.03
   min_unit_size: 1000
   bldg_sqft_per_job: 400
-  max_parcel_size: 150000000
+  max_parcel_size: 150_000_000
 
 # same as above for non-res
 non_residential_developer:
