@@ -513,43 +513,36 @@ def transit_service_area_share_v2(
         # set boolean for baseyear status
         is_baseyear = int(year) in [2015, 2020, 2023]
 
-        if is_baseyear and is_baseyear_processed:
-            # if both true, we can skip this iteration
-            logging.info('A baseyear NP run is encountered - we skip.')
+        # Process baseyear for No Project only
+        if is_baseyear:
+            if modelrun_alias == 'No Project':
+                logging.info(f'Processing baseyear {year} for No Project.')
+            elif modelrun_alias in ['Draft Blueprint', 'Final Blueprint']:
+                logging.info(f'Skipping baseyear {year} for {modelrun_alias}.')
+                continue
+            else:
+                logging.info(f'Skipping baseyear {year} for {modelrun_alias}.')
+                continue
+
+        # Process 2050 for No Project, Draft Blueprint, and Final Blueprint
+        elif year == 2050:
+            if modelrun_alias in ['No Project', 'Draft Blueprint', 'Final Blueprint']:
+                logging.info(f'Processing {year} for {modelrun_alias}.')
+            else:
+                logging.info(f'Skipping {year} for {modelrun_alias}.')
+                continue
+
+        # Skip any other years
+        else:
+            logging.info(f'Skipping {year} for {modelrun_alias}.')
             continue
 
-        if is_baseyear:
-            transit_scenario = "cur"  # Existing stops buffers for base year
-
-            if modelrun_alias == 'Draft Blueprint':
-                # Skip Draft Blueprint for base year
-                logging.info('Skipping baseyear Draft Blueprint run.')
-                continue
-            elif modelrun_alias == 'No Project':
-                is_baseyear_processed = True  # Set only for No Project within a base year
-                logging.info('Encountered a baseyear No Project run - only processing one base year.')
-
-        # continue processing    
-        # get the transit scenario geographies to focus on (e.g., 'fbp' for final bluerprint), 'cur' for current / baseyear conditions
-        transit_scenario = transit_scenario_mapping.get(modelrun_alias,'dbp')
-
-        # set transit_scenario to cur (existing stops buffers) - this will override any value to 'cur'
-        if is_baseyear:
-            # overrides to "cur" if is_baseyear - meaning np only uses np buffers in the future year
-            transit_scenario = "cur" 
-            if modelrun_alias=='No Project':
-                logging.info('A baseyear NP run is encountered - setting is_baseyear_processed to True for subsequent skipping. We only need one baseyear run.')
-                is_baseyear_processed = True
-            elif modelrun_alias=='Draft Blueprint':
-                logging.info('A baseyear DBP run is encountered - we skip.')
-                continue
-
-
+        # Continue processing for each year and scenario
+        transit_scenario = transit_scenario_mapping.get(modelrun_alias, 'fbp') # Set default to fbp
         parcel_output = modelrun_data[year]["parcel"]
         # report shape of parcel_output df
         len_parcels = len(parcel_output)
-
-        logging.debug('Cols of parcels {} in connected func: {}'.format(year,parcel_output.columns))
+        logging.debug(f'Cols of parcels {year} in connected func: {parcel_output.columns}')
         logging.debug(f"Parcel output has {len_parcels:,} rows")
 
         # adding county field from tract ids
@@ -560,6 +553,10 @@ def transit_service_area_share_v2(
         # this returns different classifications for each - like the 5-way or 6-way service level (cat5, cat6)
         # several may be returned depending on how many are in the crosswalk
         # we summarize run data for each classification variable
+
+        # Ensure that we use the current transit universe for 2023 tabulations
+        if year == 2023:
+            transit_scenario = 'cur'
 
         transit_svcs_cols = parcel_output.filter(
             regex=transit_scenario
