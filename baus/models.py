@@ -589,12 +589,20 @@ def alt_feasibility(parcels, developer_settings,
                     parcel_is_allowed_func):
     
     print('Running alt_feasibility step...')
+    # calling this explicitly because the passed version was altered 
+    # for the forms property the second time around from a dict to a numpy array of floats
+    
     kwargs = developer_settings['feasibility']
     config = sqftproforma.SqFtProFormaConfig()
     
-    # update config object with bespoke settings
-    if 'forms' in developer_settings:
-        config.forms = developer_settings["forms"]
+    if "forms" in developer_settings:
+        forms_override = developer_settings["forms"]
+        if isinstance(forms_override, dict) and all(isinstance(v, dict) for v in forms_override.values()):
+            config.forms = forms_override
+        else:
+            logger.warning("Invalid structure for 'forms'; expected dict of dicts.")
+
+    
     if 'fars' in developer_settings:
         config.fars = developer_settings["fars"]
     if 'uses' in developer_settings:
