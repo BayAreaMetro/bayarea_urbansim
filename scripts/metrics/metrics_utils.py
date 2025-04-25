@@ -195,7 +195,7 @@ def load_data_for_runs(
             logging.info("  Read {:,} rows from legacy gg crosswalk for select fields {}".format(len(rtp2025_geography_aux_crosswalk_df), PARCEL_CROSSWALK_FILE_AUX))
             
             # add the FBP version of GGs
-            PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "fbp_urbansim_parcel_classes_ot50pct.csv"
+            PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "fbp_urbansim_parcel_classes_ot50pct_feb25_2025.csv"
             rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE) 
             rtp2025_geography_crosswalk_df.rename(columns={'parcel_id':'PARCEL_ID'}, inplace=True)
             pg_2025_usecols=['PARCEL_ID','dis_id','tra_id','gg_id','pda_id','hra_id',
@@ -248,10 +248,10 @@ def load_data_for_runs(
         
         if len(rtp2025_transit_service_df) == 0:
             import geopandas as gpd
-            PARCEL_TRANSITSERVICE_FILE = BOX_DIR / 'Plan Bay Area 2050+' / 'Blueprint' / \
-                'Draft Blueprint Modeling and Metrics' / \
-                'transportation' / "p10_x_transit_area_identity.csv"
-            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE, usecols=['parcel_id','cur','np', 'dbp'])
+            PARCEL_TRANSITSERVICE_FILE = pathlib.Path(BOX_DIR, 'Modeling and Surveys', 'Urban Modeling', 
+                'Spatial', 'transit', 'transit_service_levels', 'update_2025', 'outputs', 
+                'parcels10_x_high_quality_stop_buffer.csv')
+            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE, usecols=['parcel_id', 'cur', 'np', 'dbp', 'fbp'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
             logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
 
@@ -900,10 +900,7 @@ def load_data_for_runs(
                                 'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra',
                                 
                                 # transit-related columns
-                                #'area_type','Service_Level_np_cat5', 'Service_Level_fbp_cat5', 'Service_Level_current_cat5',
-                                
-                                # use after may 3 2024
-                                'np','cur','dbp',
+                                'np','dbp','fbp',
                                 
                                 # sea level rise column
                                 "inundation"]
