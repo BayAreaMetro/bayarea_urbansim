@@ -912,7 +912,10 @@ def subsidized_residential_developer_lump_sum_accts(run_setup, households, build
                                                     parcels, summary, form_to_btype_func, developer_settings):
     
 
-    if not run_setup["run_housing_bond_strategy"]:
+    if not (run_setup["run_housing_bond_strategy"] and year > run_setup['initial_summary_year']):
+        print('Skipping subsidized residential_developer_lump_sum: ')
+        print(f'simulation year is {year}')
+        print('run_housing_bond_strategy flag:', run_setup["run_housing_bond_strategy"])
         return
     
     account_strategies = orca.get_injectable("account_strategies")
