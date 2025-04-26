@@ -226,3 +226,13 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
         coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
         coresum_output_dir.mkdir(parents=True, exist_ok=True)
         all_years.to_csv(coresum_output_dir / f"{run_name}_interim_zone_output_allyears.csv")
+
+
+@orca.step()
+def account_summary(year,run_name):
+    acct_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
+    acct_output_dir.mkdir(parents=True, exist_ok=True)
+    
+    for acct_name, acct in orca.get_injectable("coffer").items():
+        fname = f"{run_name}_acctlog_{acct_name}_{year}.csv"
+        acct.to_frame().to_csv(acct_output_dir / fname)
