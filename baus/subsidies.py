@@ -13,6 +13,8 @@ from urbansim.utils import misc
 from baus.utils import add_buildings
 from urbansim.developer import sqftproforma
 
+import pathlib
+
 import logging
 
 # Get a logger specific to this module
@@ -184,7 +186,8 @@ def lump_sum_accounts(year, years_per_iter, run_setup):
 
         # the subaccount is meaningless here (it's a regional account) but the subaccount number is referred to below
         coffer[acct["name"]].add_transaction(amt, subaccount=1, metadata=metadata)
-
+        print(f'Adding funds for {year} - {acct["name"]}: ${amt:,.0f}')
+        print('Current balance: %0.f' %coffer[acct["name"]].total_transactions())
 
 @orca.step()
 def office_lump_sum_accounts(run_setup, year, years_per_iter):
@@ -700,7 +703,14 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
 
         # step 7
         df = df.sort_values(['subsidy_per_unit'], ascending=True)
-        # df.to_csv('subsidized_units_%d_%s_%s.csv' % (orca.get_injectable("year"), account.name, subacct))
+
+        # temp
+        import pathlib
+        acct_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
+        acct_output_dir.mkdir(parents=True, exist_ok=True)
+        fname = 'subsidized_units_%d_%s_%s.csv' % (year, account.name, subacct)
+        df.to_csv(acct_output_dir / fname)
+        # end temp
 
         # step 8
         print("Amount in subaccount: ${:,.2f}".format(amount))
@@ -738,6 +748,7 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
         buildings = orca.get_table("buildings")
 
         if new_buildings is None:
+            print('No new buildings made by subsidized developer in {year}')
             continue
 
         # keep track of partial subsidized untis so that we always get credit
@@ -806,6 +817,13 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
 
     new_buildings["subsidized"] = True
     new_buildings["policy_name"] = policy_name
+    
+
+    acct_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "debug_dir"
+    acct_output_dir.mkdir(parents=True, exist_ok=True)
+    new_buildings.to_csv(acct_output_dir / f'new_buildings_{year}_{policy_name}.csv')
+
+    
 
 
 @orca.step()
