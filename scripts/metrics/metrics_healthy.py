@@ -7,6 +7,160 @@ import pandas as pd
 import openpyxl
 import xlwings
 import metrics_utils
+import os
+
+
+M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
+
+
+def generate_parks_from_new_development(modelrun_id):
+    """
+    Creates a DataFrame estimating new park acres generated from residential 
+    development on parcels for a provided model run. This function processes building 
+    and parcel data to identify residential developments built between 2020 and 2050, 
+    categorizes parcels into acreage bins, and calculates the estimated park acreage
+    generated as a share of parcel size based on predefined assumptions.
+
+    This function reflects part 4 of off-model strategy EN6 - Expand Urban Greening in 
+    Communities.  Part 4 was introduced between DBP and FBP of PBA50+, so it should only be 
+    used with a FBP model run.  Parts 1-3 were provided in an Excel work book and are 
+    incorporated in the subsequent function, expand_urban_greening().
+    Args:
+        modelrun_id (str): The identifier for the model run, used to locate 
+            the corresponding new buildings summary file.  Should be a FBP run only.
+    Returns:
+        pandas.DataFrame: A DataFrame containing the following columns:
+            - parcel_id (int): The unique identifier for the parcel.
+            - county_name (str): The name of the county where the parcel is located.
+            - parcel_acres (float): The size of the parcel in acres.
+            - parcel_acres_bin (str): The acreage bin category of the parcel.
+            - share_devel_for_parks (float): The share of parcel development 
+              assumed to be allocated for parks.
+            - new_park_acres_pt4 (float): The estimated new park acreage 
+              generated from the parcel.
+    """
+    
+    
+    BUILDINGS_FILE = os.path.join(
+        M_DRIVE,
+        "urban_modeling",
+        "baus",
+        "PBA50Plus",
+        "PBA50Plus_FinalBlueprint",
+        modelrun_id,
+        "core_summaries",
+        f"{modelrun_id}_new_buildings_summary.csv"
+    )
+
+    PARCEL_X_CENSUS_FILE = os.path.join(
+        M_DRIVE,
+        "urban_modeling",
+        "baus",
+        "BAUS Inputs",
+        "basis_inputs",
+        "crosswalks",
+        "p10_census.csv"
+    )
+
+    # 1. Load buildings and crosswalk to counties
+    logging.info(f"Loading new building summary from {BUILDINGS_FILE}")
+    buildings = pd.read_csv(BUILDINGS_FILE)
+    logging.info(f"Loading parcel to census crosswalk from {PARCEL_X_CENSUS_FILE}")
+    parcel_x_census = pd.read_csv(PARCEL_X_CENSUS_FILE)
+
+    # Format county fips
+    parcel_x_census["county_fips"] = parcel_x_census["countyfp"].apply(lambda x: f"06{x:03d}")
+
+    # Map county_fips to county_name
+    county_fips_to_name = {
+        "06001": "Alameda",
+        "06013": "Contra Costa",
+        "06041": "Marin",
+        "06055": "Napa",
+        "06075": "San Francisco",
+        "06081": "San Mateo",
+        "06085": "Santa Clara",
+        "06095": "Solano",
+        "06097": "Sonoma"
+    }
+    parcel_x_census["county_name"] = parcel_x_census["county_fips"].map(county_fips_to_name)
+
+    # Reduce to required columns
+    parcel_x_county = parcel_x_census[["parcel_id", "county_fips", "county_name"]]
+
+    # Merge buildings and parcel_x_county
+    logging.info(f"Merging county names to buildings")
+    buildings_county = buildings.merge(parcel_x_county, on="parcel_id", how="left")
+
+
+    # 2. Keep only residential parcels with development between 2020 and 2050 and remove duplicate parcels
+    residential_types = ["HS", "HT", "HM", "MR"]
+    initial_year = 2020
+    logging.info(f"Reducing to residential buildings with type {residential_types} built {initial_year} to 2050")
+    res_buildings_county_20_50 = buildings_county[
+        (buildings_county["year_built"] >= initial_year) & 
+        (buildings_county["building_type"].isin(residential_types))
+    ]
+
+    # Log the number of parcels in before removing duplicates
+    initial_parcel_count = len(res_buildings_county_20_50)
+    logging.info(f"Initial number of parcels in {modelrun_id} new buildings summary: {initial_parcel_count}")
+
+    # Remove duplicate parcels since more the one building can be developled on a given parcel
+    res_parcel_county_20_50 = res_buildings_county_20_50.drop_duplicates(subset="parcel_id", keep="first")
+
+    # Log the number of duplicates removed and the resulting number of parcels
+    final_parcel_count = len(res_parcel_county_20_50)
+    duplicates_removed = initial_parcel_count - final_parcel_count
+    logging.info(f"Number of duplicates removed from {modelrun_id} new buildings summary: {duplicates_removed}")
+    logging.info(f"Number of parcels remaining after removing duplicates: {final_parcel_count}")
+
+
+    # 3. Define the parcel acre bins for assumed park generation from developed parcels
+    bin_data = {
+        "parcel_acre_bin": [
+            "Less than 1", "1-2", "2-3", "3-5", "5-10", "10-20", 
+            "20-50", "50-100", "100-150", "150-200", "200-300", "300+"
+        ],
+        "share_devel_for_parks": [
+            0, 0, .02, .03, .04, .05, .075, .10, .125, .15, .20, .20
+        ],
+        # "assumed_acres_of_bin": [
+        #     0, 1.5, 2.5, 4, 7.5, 15, 35, 60, 125, 175, 250, 400 # Not currently used
+        # ]
+    }
+    logging.info(f"Defining parcel acre bins for assumed park generation from developed parcels: {bin_data}")
+    bin_df = pd.DataFrame(bin_data, index=bin_data["parcel_acre_bin"])
+
+    # Define bins and labels
+    parcel_acre_bins = [0, 1, 2, 3, 5, 10, 20, 50, 100, 150, 200, 300, float("inf")]
+    parcel_acre_bin_labels = bin_data["parcel_acre_bin"]
+
+
+    # Bin the parcel acres column into a new column
+    res_parcel_county_20_50["parcel_acres_bin"] = pd.cut(
+        res_parcel_county_20_50["parcel_acres"], bins=parcel_acre_bins, labels=parcel_acre_bin_labels, right=False
+    )
+    res_parcel_county_20_50 = res_parcel_county_20_50.merge(bin_df.drop(columns=["parcel_acre_bin"]), left_on="parcel_acres_bin", right_index=True, how="left")
+
+    # 4. Calculate new park acres as share of parcel size
+    logging.info(f"Calculating park acres generated from new residential development")
+    res_parcel_county_20_50["new_park_acres_pt4"] = (
+        res_parcel_county_20_50["share_devel_for_parks"] * res_parcel_county_20_50["parcel_acres"] # Note: MG multiplies by assumed_acres_of_bin but since we have the actual parcel size, I think we should use that
+    )
+
+    # Keep only the necessary columns
+    res_parcel_county_20_50 = res_parcel_county_20_50[[
+        "parcel_id", "county_name", "parcel_acres", "parcel_acres_bin", 
+        "share_devel_for_parks", "new_park_acres_pt4"
+    ]]
+
+    return res_parcel_county_20_50
+
+
+
+
+
 
 def urban_park_acres(
         BOX_DIR: pathlib.Path,
