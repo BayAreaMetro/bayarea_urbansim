@@ -730,6 +730,14 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
 
         kwargs = developer_settings['residential_developer']
         # step 9
+
+        # set max subsidy per unit for the purposes of estimating units to ask the developer model to build
+        MAX_SUBSIDY_PER_UNIT = acct_settings['max_unit_subsidy']
+        DRAWDOWN_PERCENT = acct_settings['drawdown_percent']
+
+        print(f'Getting constants from account settings file:\n\t{MAX_SUBSIDY_PER_UNIT:,.0f}, with a drawdown percent of {DRAWDOWN_PERCENT:.1%}')
+        units_to_build = (amount  * DRAWDOWN_PERCENT) / MAX_SUBSIDY_PER_UNIT
+
         new_buildings = utils.run_developer(
             "residential",
             households,
@@ -743,6 +751,10 @@ def run_subsidized_developer(feasibility, parcels, buildings, households, acct_s
             form_to_btype_callback=form_to_btype_func,
             add_more_columns_callback=add_extra_columns_func,
             profit_to_prob_func=profit_to_prob_func,
+            
+            # added argument to ensure we build in all counties
+            num_units_to_build=units_to_build,
+            
             **kwargs)
         #sys.stdout = old_stdout
         buildings = orca.get_table("buildings")

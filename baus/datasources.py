@@ -129,7 +129,7 @@ def account_strategies(run_setup):
             run_setup["account_strategies_file"],
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("development_caps", cache=True)
