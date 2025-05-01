@@ -195,7 +195,7 @@ def load_data_for_runs(
             logging.info("  Read {:,} rows from legacy gg crosswalk for select fields {}".format(len(rtp2025_geography_aux_crosswalk_df), PARCEL_CROSSWALK_FILE_AUX))
             
             # add the FBP version of GGs
-            PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "fbp_urbansim_parcel_classes_ot50pct_feb25_2025.csv"
+            PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_update_2025.csv"
             rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE) 
             rtp2025_geography_crosswalk_df.rename(columns={'parcel_id':'PARCEL_ID'}, inplace=True)
             pg_2025_usecols=['PARCEL_ID','dis_id','tra_id','gg_id','pda_id','hra_id',
