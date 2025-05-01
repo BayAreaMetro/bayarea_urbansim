@@ -227,8 +227,8 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'healthy'):
-            metrics_healthy.urban_park_acres(
-                BOX_DIR, args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+            metrics_healthy.expand_urban_greening(
+                BOX_DIR, args.rtp, modelrun_data, OUTPUT_PATH, append_output=False)
             metrics_healthy.non_greenfield_development_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path,
                 OUTPUT_PATH, append_output)

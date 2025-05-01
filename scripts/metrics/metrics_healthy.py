@@ -11,9 +11,10 @@ import os
 
 
 M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
+BOX_DIR = pathlib.Path("E:/Box")
 
 
-def generate_parks_from_new_development(modelrun_id):
+def generate_parks_from_new_development(fbp_id):
     """
     Creates a DataFrame estimating new park acres generated from residential 
     development on parcels for a provided model run. This function processes building 
@@ -26,7 +27,7 @@ def generate_parks_from_new_development(modelrun_id):
     used with a FBP model run.  Parts 1-3 were provided in an Excel work book and are 
     incorporated in the subsequent function, expand_urban_greening().
     Args:
-        modelrun_id (str): The identifier for the model run, used to locate 
+        fbp_id (str): The identifier for the FBP model run, used to locate 
             the corresponding new buildings summary file.  Should be a FBP run only.
     Returns:
         pandas.DataFrame: A DataFrame containing the following columns:
@@ -47,9 +48,9 @@ def generate_parks_from_new_development(modelrun_id):
         "baus",
         "PBA50Plus",
         "PBA50Plus_FinalBlueprint",
-        modelrun_id,
+        fbp_id,
         "core_summaries",
-        f"{modelrun_id}_new_buildings_summary.csv"
+        f"{fbp_id}_new_buildings_summary.csv"
     )
 
     PARCEL_X_CENSUS_FILE = os.path.join(
@@ -62,7 +63,7 @@ def generate_parks_from_new_development(modelrun_id):
         "p10_census.csv"
     )
 
-    # 1. Load buildings and crosswalk to counties
+    # Load buildings and crosswalk to counties
     logging.info(f"Loading new building summary from {BUILDINGS_FILE}")
     buildings = pd.read_csv(BUILDINGS_FILE)
     logging.info(f"Loading parcel to census crosswalk from {PARCEL_X_CENSUS_FILE}")
@@ -93,7 +94,7 @@ def generate_parks_from_new_development(modelrun_id):
     buildings_county = buildings.merge(parcel_x_county, on="parcel_id", how="left")
 
 
-    # 2. Keep only residential parcels with development between 2020 and 2050 and remove duplicate parcels
+    # Keep only residential parcels with development between 2020 and 2050 and remove duplicate parcels
     residential_types = ["HS", "HT", "HM", "MR"]
     initial_year = 2020
     logging.info(f"Reducing to residential buildings with type {residential_types} built {initial_year} to 2050")
@@ -104,7 +105,7 @@ def generate_parks_from_new_development(modelrun_id):
 
     # Log the number of parcels in before removing duplicates
     initial_parcel_count = len(res_buildings_county_20_50)
-    logging.info(f"Initial number of parcels in {modelrun_id} new buildings summary: {initial_parcel_count}")
+    logging.info(f"Initial number of parcels in {fbp_id} new buildings summary: {initial_parcel_count}")
 
     # Remove duplicate parcels since more the one building can be developled on a given parcel
     res_parcel_county_20_50 = res_buildings_county_20_50.drop_duplicates(subset="parcel_id", keep="first")
@@ -112,11 +113,11 @@ def generate_parks_from_new_development(modelrun_id):
     # Log the number of duplicates removed and the resulting number of parcels
     final_parcel_count = len(res_parcel_county_20_50)
     duplicates_removed = initial_parcel_count - final_parcel_count
-    logging.info(f"Number of duplicates removed from {modelrun_id} new buildings summary: {duplicates_removed}")
+    logging.info(f"Number of duplicates removed from {fbp_id} new buildings summary: {duplicates_removed}")
     logging.info(f"Number of parcels remaining after removing duplicates: {final_parcel_count}")
 
 
-    # 3. Define the parcel acre bins for assumed park generation from developed parcels
+    # Define the parcel acre bins for assumed park generation from developed parcels
     bin_data = {
         "parcel_acre_bin": [
             "Less than 1", "1-2", "2-3", "3-5", "5-10", "10-20", 
@@ -143,7 +144,7 @@ def generate_parks_from_new_development(modelrun_id):
     )
     res_parcel_county_20_50 = res_parcel_county_20_50.merge(bin_df.drop(columns=["parcel_acre_bin"]), left_on="parcel_acres_bin", right_index=True, how="left")
 
-    # 4. Calculate new park acres as share of parcel size
+    # Calculate new park acres as share of parcel size
     logging.info(f"Calculating park acres generated from new residential development")
     res_parcel_county_20_50["new_park_acres_pt4"] = (
         res_parcel_county_20_50["share_devel_for_parks"] * res_parcel_county_20_50["parcel_acres"] # Note: MG multiplies by assumed_acres_of_bin but since we have the actual parcel size, I think we should use that
@@ -159,10 +160,228 @@ def generate_parks_from_new_development(modelrun_id):
 
 
 
+def expand_urban_greening(
+        BOX_DIR: pathlib.Path,
+        rtp: str,
+        modelrun_data: dict,
+        output_path: str,
+        append_output: bool
+    ):
+    """
+    Calculates urban greening metrics for PBA50+ off-model strategy EN6. The function generates a summary of urban park acreage, 
+    trail miles, and accessible open space acreage per 1000 residents for NP, DBP, and FBP.
+        Args:
+        - rtp (str): RTP2021 or RTP2025.
+        - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame}
+        - output_path (str): File path for saving the output results
+        - append_output (bool): True if appending output; False if writing
+        Returns:
+        - None: Saves the results to a CSV file.
+    """
+    logging.info("Calculating expand_urban_greening")
+    if rtp == 'RTP2021':
+        logging.info("  RTP2021 is not supported - skipping")
+        return
+
+
+    # File paths
+    EXISTING_PARK_ACRE_SUMMARY_FILE = os.path.join( # Generated from create_existing_park_summary.py
+        BOX_DIR,
+        "Modeling and Surveys",
+        "Urban Modeling",
+        "Spatial",
+        "parks",
+        "update_2025",
+        "outputs",
+        "existing_park_acres_summary.csv"
+    )
+
+    NEW_PARK_ACRE_SUMMARY_FILE = os.path.join(
+        BOX_DIR,
+        "Modeling and Surveys",
+        "Urban Modeling",
+        "Spatial",
+        "parks",
+        "update_2025",
+        "inputs",
+        "MG_estimated_park_data",
+        "estimated_new_park_acres_summary.csv"
+    )
+
+    TRAILS_OPEN_SPACE_SUMMARY_FILE = os.path.join(
+        BOX_DIR,
+        "Modeling and Surveys",
+        "Urban Modeling",
+        "Spatial",
+        "parks",
+        "update_2025",
+        "inputs",
+        "MG_estimated_park_data",
+        "trails_open_space_summary2.csv"
+    )
+
+    # Load data
+    logging.info("Loading existing and future park data")
+    existing_park_acre_summary = pd.read_csv(EXISTING_PARK_ACRE_SUMMARY_FILE)
+    parcel_devel_parks = generate_parks_from_new_development(fbp_id="PBA50Plus_Final_Blueprint_v65")
+    parcel_x_epc = modelrun_data[2050]["parcel"][["parcel_id", "tract10_epc", "tract20_epc"]]
+    parcel_devel_parks = parcel_devel_parks.merge(parcel_x_epc, how='left', on='parcel_id')
+
+    # Load and join new park acres (Parts 1 through 3 of strategy EN6)
+    new_park_acre_pt1_through_pt3 = pd.read_csv(NEW_PARK_ACRE_SUMMARY_FILE)
+
+    # Summarize new park acres generated from development (Part 4 of strategy EN6)
+    def summarize_new_park_acre_pt4(parcel_data, group_col, filter_col=None, filter_val=None):
+        if filter_col:
+            parcel_data = parcel_data[parcel_data[filter_col] == filter_val]
+        summary = parcel_data.groupby(group_col)['new_park_acres_pt4'].sum().reset_index()
+        return summary
+
+    new_park_acre_pt4_all_areas = summarize_new_park_acre_pt4(parcel_devel_parks, 'county_name')
+    new_park_acre_pt4_all_areas['area_type'] = "All areas"
+
+    new_park_acre_pt4_epc18 = summarize_new_park_acre_pt4(parcel_devel_parks, 'county_name', 'tract10_epc', 1)
+    new_park_acre_pt4_epc18['area_type'] = "EPC_18"
+
+    new_park_acre_pt4_epc22 = summarize_new_park_acre_pt4(parcel_devel_parks, 'county_name', 'tract20_epc', 1)
+    new_park_acre_pt4_epc22['area_type'] = "EPC_22"
+
+    new_park_acre_pt4_summary = pd.concat(
+        [new_park_acre_pt4_all_areas, new_park_acre_pt4_epc18, new_park_acre_pt4_epc22], 
+        ignore_index=True
+    )
+
+    # Merge Part 4 park acres with Parts 1 through 3
+    new_park_acre_summary = new_park_acre_pt1_through_pt3.merge(
+        new_park_acre_pt4_summary, on=["county_name", "area_type"], how="left"
+    )
+
+    # Calculate total new park acres: Parts 1-3 for DBP and Parts 1-4 for FBP
+    def calculate_new_park_acres_from_plan(data, parts):
+        data["new_park_acres"] = data[parts].sum(axis=1)
+        data = data.drop(columns=parts)
+        return data
+
+    logging.info("Calculating new park acres for Draft Blueprint and Final Bluprint")
+    parts = ['new_park_acres_pt1', 'new_park_acres_pt2', 'new_park_acres_pt3', 'new_park_acres_pt4']
+    new_park_acre_summary_dbp = calculate_new_park_acres_from_plan(new_park_acre_summary.copy(), parts[:-1])
+    new_park_acre_summary_fbp = calculate_new_park_acres_from_plan(new_park_acre_summary.copy(), parts)
+
+    # Summarize population data for initial and horizon year, by region and by EPC
+    logging.info("Loading and summarizing population data for initial and horizon year")
+    pop_summary = pd.DataFrame() 
+    for year_idx, year in enumerate(sorted(modelrun_data.keys())):
+        for area_type in ['', 'EPC_22', 'EPC_18']:
+            tazdata_df = modelrun_data[year]['TAZ1454']
+            if area_type == 'EPC_22':
+                epc_col = 'tract20_epc'
+                tazdata_df = tazdata_df.loc[tazdata_df[epc_col] == 1]
+            elif area_type == 'EPC_18':
+                epc_col = 'tract10_epc'
+                tazdata_df = tazdata_df.loc[tazdata_df[epc_col] == 1]
+            
+            county_summary_df = tazdata_df.groupby('COUNTY').agg({'TOTPOP': 'sum'}).reset_index()
+            county_summary_df['year'] = year
+            county_summary_df['area_type'] = 'All areas' if area_type == '' else area_type
+            logging.debug(f"  taz_county_summary_df for year {year}, segment {area_type}:\n{county_summary_df}")
+            pop_summary = pd.concat([pop_summary, county_summary_df])
+    pop_summary = pop_summary.rename(columns={'COUNTY': 'county_name', 'TOTPOP': 'tot_pop'})
+    
+    # Subset pop summaries to 2023 and 2050
+    pop_summary_2023 = pop_summary[pop_summary['year'] == 2023]
+    pop_summary_2050 = pop_summary[pop_summary['year'] == 2050]
+
+    # Create scenarios for NP 2023/2050, and DBP/FBP 2050
+    logging.info("Creating scenarios for no project and plan")
+    def create_scenario(existing_park_acres, new_park_acres, pop_data, alias, add_existing=False):
+        # Merge new park acres with population data
+        scenario = new_park_acres.merge(pop_data, on=["county_name", "area_type"], how="left")
+        if add_existing:
+            # Add existing park acres to new park acres (DBP and FBP)
+            existing_cols = existing_park_acres[['county_name', 'area_type', 'existing_park_acres']]
+            scenario = scenario.merge(existing_cols, on=['county_name', 'area_type'], how='left', suffixes=('', '_existing'))
+            scenario['tot_park_acres'] = scenario['new_park_acres'].fillna(0) + scenario['existing_park_acres'].fillna(0)
+        else:
+            # Existing park acres is unchanged (NP)
+            scenario = existing_park_acres.rename(columns={'existing_park_acres': 'tot_park_acres'})
+            scenario = scenario.merge(pop_data, on=["county_name", "area_type"], how="left")
+        
+        # Drop unnecessary columns
+        scenario = scenario.drop(columns=['new_park_acres', 'existing_park_acres'], errors='ignore')
+        scenario['alias'] = alias
+        return scenario
+
+    park_np23 = create_scenario(existing_park_acre_summary, existing_park_acre_summary, pop_summary_2023, "2023 No Project")
+    park_np50 = create_scenario(existing_park_acre_summary, existing_park_acre_summary, pop_summary_2050, "2050 No Project")
+    park_dbp50 = create_scenario(existing_park_acre_summary, new_park_acre_summary_dbp, pop_summary_2050, "2050 Draft Blueprint", add_existing=True)
+    park_fbp50 = create_scenario(existing_park_acre_summary, new_park_acre_summary_fbp, pop_summary_2050, "2050 Final Blueprint", add_existing=True)
+    
+    
+    # Prepare park acre summary for Tableau
+    def prepare_tableau_summary(data, alias_col):
+        summary = data.groupby(['area_type']).agg({
+            'tot_park_acres': 'sum',
+            'tot_pop': 'sum'
+        }).reset_index()
+        summary['tot_pop_per_1k'] = summary['tot_pop'] / 1000
+        summary["park_acre_per_1k"] = summary['tot_park_acres'] / summary["tot_pop_per_1k"]
+        #summary = summary.rename(columns={'tot_park_acres': 'tot_urban_park_acres'})
+        summary["alias"] = alias_col
+        return summary
+
+    region_park_np23 = prepare_tableau_summary(park_np23, "2023 No Project")
+    region_park_np50 = prepare_tableau_summary(park_np50, "2050 No Project")
+    region_park_dbp50 = prepare_tableau_summary(park_dbp50, "2050 Draft Blueprint")
+    region_park_fbp50 = prepare_tableau_summary(park_fbp50, "2050 Final Blueprint")
+
+    region_park_metrics = pd.concat([
+        region_park_np23,
+        region_park_np50,
+        region_park_dbp50,
+        region_park_fbp50
+    ], ignore_index=True)
+
+    region_park_metrics = region_park_metrics.melt(
+        id_vars=['area_type', 'alias'],
+        value_vars=['park_acre_per_1k'],
+        var_name='metric_name',
+        value_name='metric_value'
+    )
+
+    # Trails and open space (precalculated in a Workbook and read in)
+    logging.info("Loading trails and open space data (pre-calculated in workbook)")
+    trails_open_space = pd.read_csv(TRAILS_OPEN_SPACE_SUMMARY_FILE).merge(
+        pop_summary, on=["county_name", "area_type", "year"], how="left"
+    )
+    region_trail_open_space_metrics = trails_open_space.groupby(['year', 'area_type', 'modelrun_alias']).agg({
+        "open_space_acres": "sum",
+        "trail_miles": "sum",
+        "tot_pop": "sum"
+    }).reset_index()
+
+    region_trail_open_space_metrics['tot_pop_per_1k'] = region_trail_open_space_metrics['tot_pop'] / 1000
+    region_trail_open_space_metrics["open_space_acres_per_1k"] = region_trail_open_space_metrics["open_space_acres"] / region_trail_open_space_metrics['tot_pop_per_1k']
+    region_trail_open_space_metrics["trail_miles_per_1k"] = region_trail_open_space_metrics["trail_miles"] / region_trail_open_space_metrics['tot_pop_per_1k']
+
+    region_trail_open_space_metrics = region_trail_open_space_metrics.melt(
+        id_vars=['year', 'area_type', 'modelrun_alias'],
+        value_vars=['open_space_acres_per_1k', 'trail_miles_per_1k'],
+        var_name='metric_name',
+        value_name='metric_value'
+    )
+    region_trail_open_space_metrics['alias'] = region_trail_open_space_metrics['year'].astype(str) + " " + region_trail_open_space_metrics['modelrun_alias']
+    region_trail_open_space_metrics = region_trail_open_space_metrics.drop(columns=['modelrun_alias', 'year'])
+
+    # Combine and save
+    final_park_metrics_summary = pd.concat([region_park_metrics, region_trail_open_space_metrics], ignore_index=True)
+    filename = "metrics_healthy1_urban_parks.csv"
+    filepath = output_path / filename
+    logging.info(f"Writing urban parks output formatted for tableau to {filepath}")
+    final_park_metrics_summary.to_csv(filepath)
 
 
 
-def urban_park_acres(
+def urban_park_acres_in_workbook(
         BOX_DIR: pathlib.Path,
         rtp: str,
         modelrun_alias: str,
