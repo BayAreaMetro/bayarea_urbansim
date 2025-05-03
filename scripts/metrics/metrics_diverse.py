@@ -174,7 +174,7 @@ def gentrify_displacement_tracts(
             # Backout UBI in 2050 DBP and FBP explicitly because it distorts the gentrifcation/displacement metric
             if year == 2050 and modelrun_alias != "No Project":
                 # Extract parcels
-                tract_summary_year_df = modelrun_data[year]['parcel']
+                tract_summary_year_df = modelrun_data[year]['parcel'].copy(deep=True)
 
                 logging.debug("In {} {}, number of Q1 households is {} (includes UBI)".format(year, modelrun_alias, tract_summary_year_df.hhq1.sum()))
                 logging.debug("In {} {}, number of Q2 households is {} (includes UBI)".format(year, modelrun_alias, tract_summary_year_df.hhq2.sum()))
@@ -206,7 +206,9 @@ def gentrify_displacement_tracts(
 
             else:
                 # Summarize to tract_id and the tract-level variables for 2023 and 2050 No Project
-                tract_summary_year_df = modelrun_data[year]['parcel'].groupby(
+                tract_summary_year_df = modelrun_data[year]['parcel'].copy(deep=True)
+                
+                tract_summary_year_df = tract_summary_year_df.groupby(
                     sorted(list(tract_keys[tract_id]))).aggregate({
                     'hhq1' :'sum',
                     'tothh':'sum',

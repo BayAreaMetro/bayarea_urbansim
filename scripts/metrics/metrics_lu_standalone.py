@@ -173,13 +173,10 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, METRICS_DIR, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'diverse'):
-            metrics_diverse.gentrify_displacement_tracts(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-
             metrics_diverse.low_income_households_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-            
-            # commented out until tested
+            metrics_diverse.gentrify_displacement_tracts(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             metrics_diverse.lowinc_homeownership_share(
                    args.rtp, modelrun_alias, modelrun_id, M_DRIVE, BOX_DIR, OUTPUT_PATH, append_output)
             
