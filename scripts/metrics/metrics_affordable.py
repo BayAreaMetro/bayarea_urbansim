@@ -407,8 +407,10 @@ def housing_cost_share_of_income(
 
         if modelrun_alias == "No Project":
             BAUS_SCENARIO = "RTP2025_NP"
-        else:
+        elif modelrun_alias=="Draft Blueprint:
             BAUS_SCENARIO = "RTP2025_DBP"
+        else:
+            BAUS_SCENARIO = "RTP2025_FBP"
 
         # TODO: This is duplicate code because I think it should be removed
         # TODO: Deed restricted unit counts should come from deed_restricted_affordable_share() results
