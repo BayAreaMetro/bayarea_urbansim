@@ -407,7 +407,7 @@ def housing_cost_share_of_income(
 
         if modelrun_alias == "No Project":
             BAUS_SCENARIO = "RTP2025_NP"
-        elif modelrun_alias=="Draft Blueprint:
+        elif modelrun_alias=="Draft Blueprint":
             BAUS_SCENARIO = "RTP2025_DBP"
         else:
             BAUS_SCENARIO = "RTP2025_FBP"
