@@ -498,7 +498,7 @@ def urban_park_acres_in_workbook(
     logging.info(f"Refreshed {DEST_WORKBOOK} with xlwings")
 
 
-def non_greenfield_development_share(
+def ugb_development_share(
         rtp: str,
         modelrun_alias: str,
         modelrun_id: str,
@@ -508,8 +508,8 @@ def non_greenfield_development_share(
         append_output: bool
     ):
     '''
-    Calculate and export the share of development that falls within the 2020 urban area footprint
-    (or is outside the urban area footprint but suitably low-density as to be rural in character).
+    Calculate and export the share of development that falls on parcels within the urban growth boundary
+    (or is outside it but suitably low-density as to be rural in character).
     
     Parameters:
     - rtp (str): RTP2021 or RTP2025.
@@ -520,7 +520,7 @@ def non_greenfield_development_share(
     - output_path (Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing.
     '''
-    logging.info("Calculating non_greenfield_development_share")
+    logging.info("Calculating ugb_development_share")
 
     # Guard clause: this metric is implemented for RTP2025 / PBA50+ only
     if rtp != 'RTP2025':
@@ -554,13 +554,13 @@ def non_greenfield_development_share(
         new_buildings.loc[new_buildings['building_sqft'] == 0, 'residential_units'] * SQFT_PER_UNIT
     
     # We are interested in development on any parcel:
-    # 1. outside the 2020 urban area footprint AND
+    # 1. outside the UGBs AND
     # 2. greater than 1 DU-equivalent per acre in 2050
     parcel_df = modelrun_data[2050]['parcel'].copy()
     parcel_df['du_equiv_per_acre'] = (parcel_df['residential_units'] + (parcel_df['non_residential_sqft'] / SQFT_PER_UNIT)) \
                                      / parcel_df['ACRES']
     dense_greenfield_parcels = parcel_df.loc[
-        (parcel_df['du_equiv_per_acre'] > 1.0) & (parcel_df['in_urban_area'] == 0),
+        (parcel_df['du_equiv_per_acre'] > 1.0) & (parcel_df['ugb_id'] != 'UGB'),
         'parcel_id'
     ]
 
@@ -590,7 +590,7 @@ def non_greenfield_development_share(
     logging.info(f"{'Appended' if append_output else 'Wrote'} {len(greenfield_development_df)} " \
                  + f"line{'s' if len(greenfield_development_df) > 1 else ''} to {out_file}")
     
-    
+        
 def slr_protection(rtp, modelrun_alias, modelrun_id, modelrun_data, output_path, append_output):
     """
     Calculates the percentage of households that are protected by sea level rise mitigation, 
