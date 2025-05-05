@@ -173,16 +173,23 @@ def gentrify_displacement_tracts(
         for year in SUMMARY_YEARS:
             # Backout UBI in 2050 DBP and FBP explicitly because it distorts the gentrifcation/displacement metric
             if year == 2050 and modelrun_alias != "No Project":
+                logging.debug(f"Handling UBI adjustment for {year} {modelrun_alias} in {tract_id}")
+
                 # Extract parcels
                 tract_summary_year_df = modelrun_data[year]['parcel'].copy(deep=True)
 
-                logging.debug("In {} {}, number of Q1 households is {} (includes UBI)".format(year, modelrun_alias, tract_summary_year_df.hhq1.sum()))
-                logging.debug("In {} {}, number of Q2 households is {} (includes UBI)".format(year, modelrun_alias, tract_summary_year_df.hhq2.sum()))
-
                 # An estimated 11.6% of Q1 HH moved into Q2 (refer to PBA2050 modeling report footnote 13)
-                # Declare number of HH to be reassigned
-                num_hh_to_move = round(tract_summary_year_df['hhq1'].sum()*.116)
+                # Recover original pre-UBI Q1 HH
+                q1_ubi = tract_summary_year_df['hhq1'].sum()
+                logging.debug(f"Number of Q1 households with UBI in place: {q1_ubi}")
 
+                q2_ubi = tract_summary_year_df['hhq2'].sum()
+                logging.debug(f"Number of Q2 households with UBI in place: {q2_ubi}")
+
+                q1_no_ubi = round(q1_ubi / (1 - 0.116), ndigits=0)
+                num_hh_to_move = int(q1_no_ubi - q1_ubi)
+                logging.debug(f"Number of households moved from Q1 to Q2 because of UBI: {num_hh_to_move}")
+            
                 # Randomly select parcels to adjust
                 np.random.seed(42)
                 ids_to_move = np.random.choice(
@@ -194,11 +201,11 @@ def gentrify_displacement_tracts(
                 tract_summary_year_df.loc[tract_summary_year_df.parcel_id.isin(ids_to_move), "hhq2"] = tract_summary_year_df.hhq2 - 1
                 tract_summary_year_df.loc[tract_summary_year_df.parcel_id.isin(ids_to_move), "hhq1"] = tract_summary_year_df.hhq1.fillna(0) + 1
 
-                logging.debug("In {} {}, number of Q1 households is {} (with UBI backed out)".format(year, modelrun_alias, tract_summary_year_df.hhq1.sum()))
-                logging.debug("In {} {}, number of Q2 households is {} (with UBI backed out)".format(year, modelrun_alias, tract_summary_year_df.hhq2.sum()))
+                logging.debug("Number of Q1 households with UBI backed out: {}".format(tract_summary_year_df.hhq1.sum()))
+                logging.debug("Number of Q2 households with UBI backed out: {}".format(tract_summary_year_df.hhq2.sum()))
 
                 # Summarize to tract_id and the tract-level variables for 2050
-                tract_summary_year_df = tract_summary_year_df.groupby( # Make this a convenience function
+                tract_summary_year_df = tract_summary_year_df.groupby( 
                     sorted(list(tract_keys[tract_id]))).aggregate({
                     'hhq1' :'sum',
                     'tothh':'sum',
