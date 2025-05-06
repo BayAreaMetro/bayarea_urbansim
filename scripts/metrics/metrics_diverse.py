@@ -193,7 +193,7 @@ def gentrify_displacement_tracts(
                 # Randomly select parcels to adjust
                 np.random.seed(42)
                 ids_to_move = np.random.choice(
-                    tract_summary_year_df.loc[tract_summary_year_df.hhq1 > 0].parcel_id, 
+                    tract_summary_year_df.loc[tract_summary_year_df.hhq2 > 0].parcel_id, 
                     num_hh_to_move, replace=False
                     )
                 
