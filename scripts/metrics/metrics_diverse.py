@@ -471,11 +471,21 @@ def lowinc_homeownership_share(
     this_result = result_combo[variant_mapping[modelrun_alias]][2050]
 
     # collect results with relevant identifiers
+    no_project_modelrun_id = modelrun_id if "NoProject" in modelrun_id else None
+
     results_df = [{
         'modelrun_id': modelrun_id,
         'modelrun_alias': f"2050 {modelrun_alias}",
         'Home Ownership Rate _ Low Income': this_result,
-        'name': 'Regionwide'}]
+        'name': 'Regionwide'
+    }]
+    if no_project_modelrun_id is not None:
+        results_df.append({
+            'modelrun_id': no_project_modelrun_id,
+            'modelrun_alias': "2023 No Project",
+            'Home Ownership Rate _ Low Income': round(baseyear_q1_ownership_share, 3),
+            'name': 'Regionwide'
+        })
 
     results_df = pd.DataFrame(results_df)
 
