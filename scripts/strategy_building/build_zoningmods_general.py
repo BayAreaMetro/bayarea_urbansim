@@ -13,6 +13,7 @@ def setup_logging():
     )
 
 def apply_zoning_modifications(zoningmods, modifications):
+    #overlap_check = {}
     for mod in modifications:
         conditions = mod["conditions"]
         category = mod["category"]
@@ -26,7 +27,18 @@ def apply_zoning_modifications(zoningmods, modifications):
         for upd_key, upd_val in updates.items():
             zoningmods.loc[mask, upd_key] = upd_val
 
+        zoningmods.loc[mask,'yaml_category'] = category
+
+        # overlap_check[category]=mask
+
         logging.info(f"Applied modification: {category} on {mask.sum()} rows.")
+        logging.info
+
+    # oc= pd.concat(overlap_check)
+    # oc_count = oc[oc].unstack(0).sum(axis=1)
+    # repeat_categories = oc_count[oc_count>1]
+    # repeat_mods = zoningmods.iloc[repeat_categories.index][['zoningmodcat','yaml_category']]
+    # logging.info(f'zoningmodcats addressed more than once by the filters: \n{repeat_mods}')
 
     return zoningmods
 
@@ -44,6 +56,7 @@ def load_yaml(yaml_path):
         
 
 def apply_inclusionary_modifications(zoningmods, incl_modifications):
+    overlap_check = {}
     for mod in incl_modifications:
         conditions = mod["conditions"]
         category = mod["category"]
@@ -59,8 +72,18 @@ def apply_inclusionary_modifications(zoningmods, incl_modifications):
         zoningmods.loc[mask, "inclusionary"] = val
         zoningmods.loc[mask, "inclusionary_category"] = category
 
+        overlap_check[category]=mask.copy()
+
+        zoningmods = zoningmods.sort_index()
         logging.info(f"Applied inclusionary modification: {category} on {mask.sum()} rows.")
 
+    # instead of explicitly setting a filter for any remaining parcels - here's a fallback option for just setting 
+    # unset records with a base .1 level
+
+    remainder_mask = zoningmods.inclusionary.isna()
+    logging.info(f'Setting remaining unset zoningmodcats to 10% for {len(remainder_mask)} records')
+    zoningmods.loc[remainder_mask,['inclusionary_category','inclusionary']]= ['REMAINDER',.1]
+    
     return zoningmods
 
 def zoningmods_to_yaml(inclmods):
@@ -87,6 +110,14 @@ def zoningmods_to_yaml(inclmods):
 
     return yaml.dump({"inclusionary_housing_settings": inclusionary_housing_settings}, default_flow_style=False)
 
+# def mods_to_shape():
+#     import geopandas as gpd
+#     urbansim_parcels_topo_fix = gpd.read_parquet(BOX_DIR / 'Modeling and Surveys' / 'Urban Modeling' /
+#                                              'Bay Area UrbanSim' / 'BASIS' / 'PBA50Plus' / 'urbansim_parcels_topo_fix.parquet')
+
+#     urbansim_parcels_topo_fix = urbansim_parcels_topo_fix.set_index('parcel_id')
+#     urbansim_parcels_topo_fix = urbansim_parcels_topo_fix.to_crs('EPSG:26910')
+#     urbansim_parcels_topo_fix['geom_pt'] = urbansim_parcels_topo_fix.geometry.representative_point()
 
 def main(yaml_path, input_file, mods_output_file, incl_output_yaml_file, apply_inclusionary):
     setup_logging()
@@ -108,8 +139,10 @@ def main(yaml_path, input_file, mods_output_file, incl_output_yaml_file, apply_i
         .str.lower()
     )
 
-    pg[zoning_mod_cols] = pg[zoning_mod_cols].astype(str)
-
+    pg[zoning_mod_cols] = pg[zoning_mod_cols].astype(str)#.str.upper().replace('NAN','nan')
+    for col in zoning_mod_cols:
+        pg[col]=pg[col].str.lower()
+    
     zoningmods = pg.groupby(["zoningmodcat"] + zoning_mod_cols).size().reset_index(name="count")
 
     logging.info("Applying zoning modifications.")
@@ -117,8 +150,10 @@ def main(yaml_path, input_file, mods_output_file, incl_output_yaml_file, apply_i
 
     zoningmods.loc[:, zoning_mod_cols] = zoningmods.loc[:, zoning_mod_cols].replace("nan", np.nan)
 
+    # full list of cols that should be present in zoning mods file
     ancillary_cols = ["add_bldg", "drop_bldg", "dua_down", "far_down", "far_up", "dua_up"]
 
+    # if not present, add, set to nan
     for col in set(ancillary_cols) - set(zoningmods.columns):
         zoningmods[col] = np.nan
 
