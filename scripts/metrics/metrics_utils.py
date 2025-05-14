@@ -661,7 +661,7 @@ def load_data_for_runs(
             slr_lookup['NP'] = rtp2021_np_parcel_inundation_df
         
         if len(rtp2021_fbp_parcel_inundation_df) == 0:
-            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_FPB_JAN25.csv"
+            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50_FBP.csv"
             rtp2021_fbp_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_fbp_parcel_inundation_df), PARCEL_INUNDATION_FILE))
             logging.debug("  rtp2021_fbp_parcel_inundation_df.head():\n{}".format(rtp2021_fbp_parcel_inundation_df.head()))
