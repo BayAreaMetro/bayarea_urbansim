@@ -21,6 +21,7 @@ pba50_geography_crosswalk_df = pd.DataFrame() # parcel -> PBA50 growth geographi
 rtp2025_np_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 rtp2025_dbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 rtp2025_fbp_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
+rtp2025_eir_parcel_inundation_df    = pd.DataFrame() # parcel -> parcel sea level rise inundation
 
 rtp2025_parcel_toc_crosswalk_df = pd.DataFrame() # parcel -> TOC service tiers for use in rtp2025 metrics
 
@@ -125,6 +126,7 @@ def load_data_for_runs(
     global rtp2025_np_parcel_inundation_df
     global rtp2025_dbp_parcel_inundation_df
     global rtp2025_fbp_parcel_inundation_df
+    global rtp2025_eir_parcel_inundation_df
     global pba50_geography_crosswalk_df
     global rtp2025_parcel_toc_crosswalk_df
 
@@ -485,6 +487,14 @@ def load_data_for_runs(
             logging.debug("  rtp2025_fbp_parcel_inundation_df.head():\n{}".format(rtp2025_fbp_parcel_inundation_df.head()))
             slr_lookup['FBP'] = rtp2025_fbp_parcel_inundation_df
 
+        if len(rtp2025_eir_parcel_inundation_df) == 0:
+            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "urbansim_slr_MAR2025.csv"
+            
+            rtp2025_eir_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
+            logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_eir_parcel_inundation_df), PARCEL_INUNDATION_FILE))
+            logging.debug("  rtp2025_eir_parcel_inundation_df.head():\n{}".format(rtp2025_eir_parcel_inundation_df.head()))
+            slr_lookup['EIR'] = rtp2025_eir_parcel_inundation_df
+
         
         # define analysis years
         if skip_base_year:
@@ -651,7 +661,7 @@ def load_data_for_runs(
             slr_lookup['NP'] = rtp2021_np_parcel_inundation_df
         
         if len(rtp2021_fbp_parcel_inundation_df) == 0:
-            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50_FBP.csv"
+            PARCEL_INUNDATION_FILE = METRICS_DIR / "metrics_input_files" / "slr_parcel_inundation_PBA50Plus_FPB_JAN25.csv"
             rtp2021_fbp_parcel_inundation_df = pd.read_csv(PARCEL_INUNDATION_FILE)
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2021_fbp_parcel_inundation_df), PARCEL_INUNDATION_FILE))
             logging.debug("  rtp2021_fbp_parcel_inundation_df.head():\n{}".format(rtp2021_fbp_parcel_inundation_df.head()))
@@ -1051,5 +1061,7 @@ def classify_runid_alias(runid_alias):
         return "NP"
     elif ("final" in text and "blueprint" in text) or re.search(r"fbp|final", text):
         return "FBP"
+    elif "eir" in text:  # Check if EIR is in the text
+        return "EIR"
     else:
         return "Unknown"  # Default to Unknown
