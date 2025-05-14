@@ -792,6 +792,7 @@ def load_data_for_runs(
             logging.debug('debug EPC parcel_df 4: \n{}'.format(parcel_df[['tract20_epc','tract10_epc']].sum()))
             # add parcel sea level rise inundation based on the Plan scenario
             this_modelrun_alias = classify_runid_alias(modelrun_alias)
+            logging.debug(f"classify_runid_alias({modelrun_alias=}) -> {this_modelrun_alias=}")
             
             # simplify the merge with the sea level rise lookup, avoiding repetitive code
             # TODO: this could be used more widely in stead of conditionals

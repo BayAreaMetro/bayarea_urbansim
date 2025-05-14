@@ -382,6 +382,10 @@ def lowinc_homeownership_share(
         'DBP':'DBP',
         'Draft Blueprint':'DBP',
         'Final Blueprint':'DBP', # use DBP controls for Final Blueprint - they're unchanged
+        # these are the same as FBP so therefore DBP
+        'EIR Alt2':'DBP',
+        'EIR Alt2 Var1':'DBP',
+        'EIR Alt1':'DBP',
      }
 
     def pct(x): return x / x.sum()

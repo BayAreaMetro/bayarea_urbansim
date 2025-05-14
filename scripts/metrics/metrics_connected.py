@@ -76,8 +76,8 @@ def transit_service_area_share(
         "DBP": "fbp", # we map to FBP in the transit service class file
         "Alt1": "fbp",
         "Alt2": "fbp",
-        "EIR Alt 1":'fbp',
-        "EIR Alt 2":'fbp',
+        "EIR Alt1":'fbp',
+        "EIR Alt2":'fbp',
         "Current": "cur", # refers to existing conditions transit stops
     }
 
@@ -449,8 +449,9 @@ def transit_service_area_share_v2(
         "Alt1": "fbp",
         "Alt2": "fbp",
         'EIR': 'fbp',
-        'EIR Alt 2': 'fbp',
-        'EIR Alt 2 Var 1': 'fbp',
+        'EIR Alt1': 'fbp',
+        'EIR Alt2': 'fbp',
+        'EIR Alt2 Var1': 'fbp',
         "Current": "cur", # refers to existing conditions transit stops
     }
     
@@ -518,7 +519,7 @@ def transit_service_area_share_v2(
         if is_baseyear:
             if modelrun_alias == 'No Project':
                 logging.info(f'Processing baseyear {year} for No Project.')
-            elif modelrun_alias in ['Draft Blueprint', 'Final Blueprint', 'EIR Alt 2', 'EIR Alt 2 Var 1']:
+            elif modelrun_alias in ['Draft Blueprint', 'Final Blueprint', 'EIR Alt2', 'EIR Alt2 Var1']:
                 logging.info(f'Skipping baseyear {year} for {modelrun_alias}.')
                 continue
             else:
@@ -528,7 +529,7 @@ def transit_service_area_share_v2(
         # Process 2050 for No Project, Draft Blueprint, and Final Blueprint
         elif year == 2050:
             if modelrun_alias in ['No Project', 'Draft Blueprint', 'Final Blueprint', 
-                                  'EIR Alt 2', 'EIR Alt 2 Var 1']:
+                                  'EIR Alt1', 'EIR Alt2', 'EIR Alt2 Var1']:
                 logging.info(f'Processing {year} for {modelrun_alias}.')
             else:
                 logging.info(f'Skipping {year} for {modelrun_alias}.')
