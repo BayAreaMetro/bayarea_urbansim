@@ -102,7 +102,7 @@ def transit_service_area_share(
         # set transit_scenario to cur (existing stops buffers) 
         transit_scenario = "cur" if int(year) in [2015, 2020, 2023] else transit_scenario
 
-        parcel_output = modelrun_data[year]["parcel"]
+        parcel_output = modelrun_data[year]["parcel"].copy(deep=True)
         # report shape of parcel_output df
         len_parcels = len(parcel_output)
 
@@ -542,7 +542,7 @@ def transit_service_area_share_v2(
 
         # Continue processing for each year and scenario
         transit_scenario = transit_scenario_mapping.get(modelrun_alias, 'fbp') # Set default to fbp
-        parcel_output = modelrun_data[year]["parcel"]
+        parcel_output = modelrun_data[year]["parcel"].copy(deep=True)
         # report shape of parcel_output df
         len_parcels = len(parcel_output)
         logging.debug(f'Cols of parcels {year} in connected func: {parcel_output.columns}')
