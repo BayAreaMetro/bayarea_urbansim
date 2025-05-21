@@ -19,10 +19,11 @@ BOX_DIR = pathlib.Path("E:/Box")
 def generate_parks_from_new_development(fbp_id):
     """
     Creates a DataFrame estimating new park acres generated from residential
-    development on parcels for a provided model run. This function processes building
-    and parcel data to identify residential developments built between 2020 and 2050,
-    categorizes parcels into acreage bins, and calculates the estimated park acreage
-    generated as a share of parcel size based on predefined assumptions.
+    development on parcels for a provided model run. Conceptualized in
+    EN6_Metrics_FinalBlueprint_AdditionalDetail_UrbanParkAcres.xlsx and scripted here.
+    The function processes building and parcel data to identify residential developments 
+    built between 2020 and 2050, categorizes parcels into acreage bins, and calculates the 
+    estimated park acreage generated as a share of parcel size based on predefined assumptions.
 
     This function reflects part 4 of off-model strategy EN6 - Expand Urban Greening in
     Communities.  Part 4 was introduced between DBP and FBP of PBA50+, so it should only be
@@ -211,16 +212,23 @@ def generate_parks_from_new_development(fbp_id):
     return res_parcel_county_20_50
 
 
+
+# We only need parks from new development loaded once
+_PARKS_FROM_NEW_DEVELOPMENT_CACHE = None
+
 def expand_urban_greening(
     BOX_DIR: pathlib.Path,
     rtp: str,
+    modelrun_alias: str,
+    modelrun_id: str,
     modelrun_data: dict,
     output_path: str,
     append_output: bool,
 ):
     """
-    Calculates urban greening metrics for PBA50+ off-model strategy EN6. The function generates a summary of urban park acreage,
-    trail miles, and accessible open space acreage per 1000 residents for NP, DBP, and FBP.
+    Calculates urban greening metrics for PBA50+ off-model strategy EN6. The function generates a summary of 
+    urban park acreage, trail miles (calculated in EN6_Metrics_FinalBlueprint.xlsx), and accessible open space 
+    acreage (calculated in DraftBlueprint_ConservationMetrics.xlsx) per 1000 residents for NP, DBP, and FBP.
         Args:
         - rtp (str): RTP2021 or RTP2025.
         - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame}
@@ -273,21 +281,38 @@ def expand_urban_greening(
     )
 
     # Load data
-    logging.info("Loading existing and future park data")
-    existing_park_acre_summary = pd.read_csv(EXISTING_PARK_ACRE_SUMMARY_FILE)
-    parcel_devel_parks = generate_parks_from_new_development(
-        fbp_id="PBA50Plus_Final_Blueprint_v65"
-    )
+    logging.info("Loading existing park data")
+    existing_park_acre_summary = pd.read_csv(EXISTING_PARK_ACRE_SUMMARY_FILE).rename(columns={"year": "park_year"})
+    
+
+    global _PARKS_FROM_NEW_DEVELOPMENT_CACHE
+    if _PARKS_FROM_NEW_DEVELOPMENT_CACHE is None:
+        logging.info("Loading park acreage generated from new development (part 4 of EN6)")
+        _PARKS_FROM_NEW_DEVELOPMENT_CACHE = generate_parks_from_new_development(
+            fbp_id="PBA50Plus_Final_Blueprint_v65" # This would be better if FBP modelrun_id was passed at run time
+        )
+    parcel_devel_parks = _PARKS_FROM_NEW_DEVELOPMENT_CACHE.copy(deep=True)
+
+
+    logging.info("Loading parcel to EPC crosswalk")
     parcel_x_epc = modelrun_data[2050]["parcel"][
         ["parcel_id", "tract10_epc", "tract20_epc"]
-    ]
+    ].copy(deep=True)
+
+    logging.info("Merging park acreage generated from new development with EPC-tagged parcels")
     parcel_devel_parks = parcel_devel_parks.merge(
         parcel_x_epc, how="left", on="parcel_id"
     )
+    logging.info(
+        f"Total tract10_epc parcels: {parcel_devel_parks['tract10_epc'].sum(skipna=True)}"
+        f"Total tract20_epc parcels: {parcel_devel_parks['tract20_epc'].sum(skipna=True)}"
+    )
 
     # Load and join new park acres (Parts 1 through 3 of strategy EN6)
+    logging.info("Loading new park acreage (parts 1 through 3 of EN6)")
     new_park_acre_pt1_through_pt3 = pd.read_csv(NEW_PARK_ACRE_SUMMARY_FILE)
 
+    
     # Summarize new park acres generated from development (Part 4 of strategy EN6)
     def summarize_new_park_acre_pt4(
         parcel_data, group_col, filter_col=None, filter_val=None
@@ -299,30 +324,37 @@ def expand_urban_greening(
         )
         return summary
 
+    logging.info("Summarizing park acreage generated from new development by region, county and EPC")
     new_park_acre_pt4_all_areas = summarize_new_park_acre_pt4(
         parcel_devel_parks, "county_name"
     )
+
     new_park_acre_pt4_all_areas["area_type"] = "All areas"
+    logging.info(f"Parks acres from new development part 4 (Counties): \n {new_park_acre_pt4_all_areas}")
 
     new_park_acre_pt4_epc18 = summarize_new_park_acre_pt4(
         parcel_devel_parks, "county_name", "tract10_epc", 1
     )
     new_park_acre_pt4_epc18["area_type"] = "EPC_18"
+    logging.info(f"Parks acres from new development part 4 (EPC_18): \n {new_park_acre_pt4_epc18}")
 
-    new_park_acre_pt4_epc22 = summarize_new_park_acre_pt4(
+    new_park_acre_pt4_epc22 = summarize_new_park_acre_pt4( 
         parcel_devel_parks, "county_name", "tract20_epc", 1
     )
     new_park_acre_pt4_epc22["area_type"] = "EPC_22"
+    logging.info(f"Parks acres from new development part 4 (EPC_22): \n {new_park_acre_pt4_epc22}") 
 
     new_park_acre_pt4_summary = pd.concat(
         [new_park_acre_pt4_all_areas, new_park_acre_pt4_epc18, new_park_acre_pt4_epc22],
         ignore_index=True,
     )
+    logging.info(f"Combined summaries of park acreage generated from new development: \n {new_park_acre_pt4_summary}")
 
     # Merge Part 4 park acres with Parts 1 through 3
     new_park_acre_summary = new_park_acre_pt1_through_pt3.merge(
         new_park_acre_pt4_summary, on=["county_name", "area_type"], how="left"
     )
+    logging.info(f"Merged new park acreage summaries parts 1 through 4: \n {new_park_acre_summary}")
 
     # Calculate total new park acres: Parts 1-3 for DBP and Parts 1-4 for FBP
     def calculate_new_park_acres_from_plan(data, parts):
@@ -330,7 +362,6 @@ def expand_urban_greening(
         data = data.drop(columns=parts)
         return data
 
-    logging.info("Calculating new park acres for Draft Blueprint and Final Bluprint")
     parts = [
         "new_park_acres_pt1",
         "new_park_acres_pt2",
@@ -340,16 +371,20 @@ def expand_urban_greening(
     new_park_acre_summary_dbp = calculate_new_park_acres_from_plan(
         new_park_acre_summary.copy(), parts[:-1]
     )
+    logging.info(f"New park acres from draft blueprint (parts 1-3): \n {new_park_acre_summary_dbp}")
+
     new_park_acre_summary_fbp = calculate_new_park_acres_from_plan(
         new_park_acre_summary.copy(), parts
     )
+    logging.info(f"New park acres from final blueprint (parts 1-4): \n {new_park_acre_summary_fbp}")
 
     # Summarize population data for initial and horizon year, by region and by EPC
     logging.info("Loading and summarizing population data for initial and horizon year")
     pop_summary = pd.DataFrame()
     for year_idx, year in enumerate(sorted(modelrun_data.keys())):
         for area_type in ["", "EPC_22", "EPC_18"]:
-            tazdata_df = modelrun_data[year]["TAZ1454"]
+            logging.debug(f"Loading TAZ data for {year} {modelrun_alias} in {area_type}")
+            tazdata_df = modelrun_data[year]["TAZ1454"].copy(deep=True) 
             if area_type == "EPC_22":
                 epc_col = "tract20_epc"
                 tazdata_df = tazdata_df.loc[tazdata_df[epc_col] == 1]
@@ -364,23 +399,32 @@ def expand_urban_greening(
             county_summary_df["area_type"] = (
                 "All areas" if area_type == "" else area_type
             )
+
+            # For debugging
+            area_type_label = "Region" if area_type == "" else area_type
+            tot_pop = county_summary_df['TOTPOP'].sum()
             logging.debug(
-                f"  taz_county_summary_df for year {year}, segment {area_type}:\n{county_summary_df}"
+                f"Total population for {year} {modelrun_alias}, segment {area_type_label}: {tot_pop}"
             )
             pop_summary = pd.concat([pop_summary, county_summary_df])
+             
+
+    # Format population summary
     pop_summary = pop_summary.rename(
-        columns={"COUNTY": "county_name", "TOTPOP": "tot_pop"}
+        columns={"COUNTY": "county_name", "TOTPOP": "tot_pop", "year": "pop_year"} # Make pop year explicit because we will be joining 2050 pop with 2023 park acres for NP
     )
+    pop_summary["modelrun_alias"] = modelrun_alias
+    pop_summary["modelrun_id"] = modelrun_id
+
 
     # Subset pop summaries to 2023 and 2050
-    pop_summary_2023 = pop_summary[pop_summary["year"] == 2023]
-    pop_summary_2050 = pop_summary[pop_summary["year"] == 2050]
+    logging.info("Subsetting population summaries by initial and horizon year")
+    pop_summary_2023 = pop_summary[pop_summary["pop_year"] == 2023]
+    pop_summary_2050 = pop_summary[pop_summary["pop_year"] == 2050]
 
-    # Create scenarios for NP 2023/2050, and DBP/FBP 2050
-    logging.info("Creating scenarios for no project and plan")
-
+    # Function to create scenarios for NP 2023/2050, and DBP/FBP 2050
     def create_scenario(
-        existing_park_acres, new_park_acres, pop_data, alias, add_existing=False
+        existing_park_acres, new_park_acres, pop_data, add_existing=False
     ):
         # Merge new park acres with population data
         scenario = new_park_acres.merge(
@@ -413,40 +457,50 @@ def expand_urban_greening(
         scenario = scenario.drop(
             columns=["new_park_acres", "existing_park_acres"], errors="ignore"
         )
-        scenario["alias"] = alias
+        # scenario["alias"] = alias
         return scenario
+    
+    
+    if modelrun_alias == "No Project":
+        park_23 = create_scenario(
+            existing_park_acre_summary,
+            existing_park_acre_summary,
+            pop_summary_2023,
+        )
+        logging.info(f"Park acreage scenario for {park_23['pop_year'].unique()[0]} {modelrun_alias}: \n {park_23}")
 
-    park_np23 = create_scenario(
-        existing_park_acre_summary,
-        existing_park_acre_summary,
-        pop_summary_2023,
-        "2023 No Project",
-    )
-    park_np50 = create_scenario(
-        existing_park_acre_summary,
-        existing_park_acre_summary,
-        pop_summary_2050,
-        "2050 No Project",
-    )
-    park_dbp50 = create_scenario(
-        existing_park_acre_summary,
-        new_park_acre_summary_dbp,
-        pop_summary_2050,
-        "2050 Draft Blueprint",
-        add_existing=True,
-    )
-    park_fbp50 = create_scenario(
-        existing_park_acre_summary,
-        new_park_acre_summary_fbp,
-        pop_summary_2050,
-        "2050 Final Blueprint",
-        add_existing=True,
-    )
+        park_50 = create_scenario(
+            existing_park_acre_summary,
+            existing_park_acre_summary,
+            pop_summary_2050,
+        )
+        logging.info(f"Park acreage scenario for {park_50['pop_year'].unique()[0]} {modelrun_alias}: \n {park_50}")
 
-    # Prepare park acre summary for Tableau
-    def prepare_tableau_summary(data, alias_col):
+    elif modelrun_alias == "Draft Blueprint":
+        park_50 = create_scenario(
+            existing_park_acre_summary,
+            new_park_acre_summary_dbp,
+            pop_summary_2050,
+            add_existing=True,
+        ) 
+        logging.info(f"Park acreage scenario for {park_50['pop_year'].unique()[0]} {modelrun_alias}: \n {park_50}")
+        
+    else:
+        park_50 = create_scenario( #We'll use FBP park scenario for EIR Alt as well
+            existing_park_acre_summary,
+            new_park_acre_summary_fbp,
+            pop_summary_2050,
+            add_existing=True,
+        )
+        logging.info(f"Park acreage scenario for {park_50['pop_year'].unique()[0]} {modelrun_alias}: \n {park_50}")
+
+
+    
+
+    # Function to prepare park acre summary for Tableau
+    def prepare_tableau_summary(data):
         summary = (
-            data.groupby(["area_type"])
+            data.groupby(["area_type", "pop_year", "modelrun_alias", "modelrun_id"])
             .agg({"tot_park_acres": "sum", "tot_pop": "sum"})
             .reset_index()
         )
@@ -454,73 +508,117 @@ def expand_urban_greening(
         summary["park_acre_per_1k"] = (
             summary["tot_park_acres"] / summary["tot_pop_per_1k"]
         )
-        # summary = summary.rename(columns={'tot_park_acres': 'tot_urban_park_acres'})
-        summary["alias"] = alias_col
+        summary["modelrun_label"] = summary["pop_year"].astype("str") + " " + summary["modelrun_alias"].astype("str") 
         return summary
+    
 
-    region_park_np23 = prepare_tableau_summary(park_np23, "2023 No Project")
-    region_park_np50 = prepare_tableau_summary(park_np50, "2050 No Project")
-    region_park_dbp50 = prepare_tableau_summary(park_dbp50, "2050 Draft Blueprint")
-    region_park_fbp50 = prepare_tableau_summary(park_fbp50, "2050 Final Blueprint")
+    logging.info("Preparing Tableau summary metrics for park acreage")
+    if modelrun_alias == "No Project":
+        region_park_23 = prepare_tableau_summary(park_23)
+        logging.debug(f"Summarized park acres for {region_park_23['pop_year'].unique()[0]} {modelrun_alias}:\n {region_park_23}")
+        region_park_50 = prepare_tableau_summary(park_50)
+        logging.debug(f"Summarized park acres for {region_park_50['pop_year'].unique()[0]} {modelrun_alias}:\n {region_park_50}")
 
-    region_park_metrics = pd.concat(
-        [region_park_np23, region_park_np50, region_park_dbp50, region_park_fbp50],
-        ignore_index=True,
-    )
+        region_park_metrics = pd.concat(
+            [region_park_23, region_park_50],
+            ignore_index=True,
+        )
+    else:
+        region_park_50 = prepare_tableau_summary(park_50)
+        logging.debug(f"Summarized park acres for {region_park_50['pop_year'].unique()[0]} {modelrun_alias}:\n {region_park_50}")
+        region_park_metrics = region_park_50.copy()
 
     region_park_metrics = region_park_metrics.melt(
-        id_vars=["area_type", "alias"],
+        id_vars=["pop_year", "area_type", "modelrun_alias", "modelrun_id","modelrun_label"],
         value_vars=["park_acre_per_1k"],
         var_name="metric_name",
         value_name="metric_value",
     )
 
-    # Trails and open space (precalculated in a Workbook and read in)
-    logging.info("Loading trails and open space data (pre-calculated in workbook)")
-    trails_open_space = pd.read_csv(TRAILS_OPEN_SPACE_SUMMARY_FILE).merge(
-        pop_summary, on=["county_name", "area_type", "year"], how="left"
-    )
-    region_trail_open_space_metrics = (
-        trails_open_space.groupby(["year", "area_type", "modelrun_alias"])
+
+    # Trails and open space (precalculated by MG in workbooks and combined here with population scenarios)
+    trails = pd.read_csv(TRAILS_OPEN_SPACE_SUMMARY_FILE)
+    logging.info(f"Loaded trails and open space data (pre-calculated in workbook and combined here with park acreage): \n {trails}")
+
+    # Create subsets so we can match the correct population scenarios to off-model trails/openspace scenarios calculated in workbook
+    if modelrun_alias == "No Project":
+        trails_2023 = trails[(trails["year"] == 2023) & (trails["off_modelrun_alias"] == "No Project")].merge(
+            pop_summary_2023, on=["county_name", "area_type"], how="left").drop(
+                columns=["off_modelrun_alias"] # Once merged, no longer need the off-model alias
+            )
+        trails_2050 = trails[(trails["year"] == 2050) & (trails["off_modelrun_alias"] == "No Project")].merge(
+            pop_summary_2050, on=["county_name", "area_type"], how="left").drop(
+                columns=["off_modelrun_alias"]
+            )
+
+    elif modelrun_alias == "Draft Blueprint":
+        trails_2050 = trails[(trails["year"] == 2050) & (trails["off_modelrun_alias"] == "Draft Blueprint")].merge(
+            pop_summary_2050, on=["county_name", "area_type"], how="left").drop(
+                columns=["off_modelrun_alias"]
+            )
+
+    else:
+        trails_2050 = trails[(trails["year"] == 2050) & (trails["off_modelrun_alias"] == "Final Blueprint")].merge(
+            pop_summary_2050, on=["county_name", "area_type"], how="left").drop(
+                columns=["off_modelrun_alias"]
+            )
+
+    # Concatenate the scenarios if NP, otherwise we only need 2050
+    if modelrun_alias == "No Project":
+        trails_pop = pd.concat(
+            [trails_2023, trails_2050],
+            ignore_index=True
+        )
+    else:
+        trails_pop = trails_2050.copy(deep=True)
+
+    # Create the modelun label for Tableau
+    trails_pop["modelrun_label"] = trails_pop["pop_year"].astype("str") + " " + trails_pop["modelrun_alias"]
+
+    # Calculate metrics
+    logging.info("Calculating trails and open space per 1000 residents")
+    region_trail_metrics = (
+        trails_pop.groupby(["pop_year", "area_type", "modelrun_alias", "modelrun_id", "modelrun_label"])
         .agg({"open_space_acres": "sum", "trail_miles": "sum", "tot_pop": "sum"})
         .reset_index()
     )
 
-    region_trail_open_space_metrics["tot_pop_per_1k"] = (
-        region_trail_open_space_metrics["tot_pop"] / 1000
+    region_trail_metrics["tot_pop_per_1k"] = (
+        region_trail_metrics["tot_pop"] / 1000
     )
-    region_trail_open_space_metrics["open_space_acres_per_1k"] = (
-        region_trail_open_space_metrics["open_space_acres"]
-        / region_trail_open_space_metrics["tot_pop_per_1k"]
+    region_trail_metrics["open_space_acres_per_1k"] = (
+        region_trail_metrics["open_space_acres"]
+        / region_trail_metrics["tot_pop_per_1k"]
     )
-    region_trail_open_space_metrics["trail_miles_per_1k"] = (
-        region_trail_open_space_metrics["trail_miles"]
-        / region_trail_open_space_metrics["tot_pop_per_1k"]
+    region_trail_metrics["trail_miles_per_1k"] = (
+        region_trail_metrics["trail_miles"]
+        / region_trail_metrics["tot_pop_per_1k"]
     )
 
-    region_trail_open_space_metrics = region_trail_open_space_metrics.melt(
-        id_vars=["year", "area_type", "modelrun_alias"],
+    region_trail_metrics = region_trail_metrics.melt(
+        id_vars=["pop_year", "area_type", "modelrun_alias", "modelrun_id", "modelrun_label"],
         value_vars=["open_space_acres_per_1k", "trail_miles_per_1k"],
         var_name="metric_name",
         value_name="metric_value",
     )
-    region_trail_open_space_metrics["alias"] = (
-        region_trail_open_space_metrics["year"].astype(str)
-        + " "
-        + region_trail_open_space_metrics["modelrun_alias"]
-    )
-    region_trail_open_space_metrics = region_trail_open_space_metrics.drop(
-        columns=["modelrun_alias", "year"]
-    )
 
-    # Combine and save
-    final_park_metrics_summary = pd.concat(
-        [region_park_metrics, region_trail_open_space_metrics], ignore_index=True
+    logging.info("Combine park acreage, trails and open space metrics")
+    final_park_metrics = pd.concat(
+        [region_park_metrics, region_trail_metrics],
+        ignore_index=True
     )
+    # Now that plan scenarios have been created, change pop_year back to year for clarity
+    final_park_metrics = final_park_metrics.rename(columns={"pop_year": "year"})
+    logging.debug(f"Final urban park, trail, and open space metrics for {modelrun_alias}: \n {final_park_metrics}")
+
+
     filename = "metrics_healthy1_urban_parks.csv"
     filepath = output_path / filename
     logging.info(f"Writing urban parks output formatted for tableau to {filepath}")
-    final_park_metrics_summary.to_csv(filepath)
+    final_park_metrics.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
+    
+
+
 
 
 def urban_park_acres_in_workbook(
