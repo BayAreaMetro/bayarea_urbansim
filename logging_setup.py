@@ -27,7 +27,7 @@ def setup_logging(log_file, log_level=logging.INFO):
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-    # Redirect stdout and stderr to the logger
+    # Redirect stdout and stderr to the logger, capturing print statements for now
     sys.stdout = StreamToLogger(logging.getLogger('baus'), logging.INFO)
     sys.stderr = StreamToLogger(logging.getLogger('baus'), logging.ERROR)
 
