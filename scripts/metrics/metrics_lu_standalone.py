@@ -64,13 +64,13 @@ def main():
     M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 
 
-    if USERNAME.lower() in ['lzorn']:
+    if USERNAME.lower() in ['lzorn', 'jahrenholtz']: # need to standardize to E:Box
         BOX_DIR = pathlib.Path("E:/Box")
     else:
         BOX_DIR = HOME_DIR / 'Box'
     
     MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/")
-    METRICS_DIR        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
+    METRICS_DIR        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Final_Blueprint"
     RUN_INVENTORY_FILE = METRICS_DIR / "metrics_input_files/PBA50Plus_model_run_inventory.csv"
     OUTPUT_PATH        = METRICS_DIR
     LOG_FILENAME       = "metrics_lu_standalone_{}{}.log"  # loglevel
@@ -173,13 +173,10 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, METRICS_DIR, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'diverse'):
-            metrics_diverse.gentrify_displacement_tracts(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-
             metrics_diverse.low_income_households_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-            
-            # commented out until tested
+            metrics_diverse.gentrify_displacement_tracts(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             metrics_diverse.lowinc_homeownership_share(
                    args.rtp, modelrun_alias, modelrun_id, M_DRIVE, BOX_DIR, OUTPUT_PATH, append_output)
             
@@ -227,12 +224,12 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'healthy'):
-            metrics_healthy.urban_park_acres(
+            metrics_healthy.expand_urban_greening(
                 BOX_DIR, args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-            metrics_healthy.non_greenfield_development_share(
+            metrics_healthy.ugb_development_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path,
                 OUTPUT_PATH, append_output)
-            metrics_healthy.slr_protection(
+            metrics_healthy.slr_protection_v2(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
         # output files are started; append henceforth

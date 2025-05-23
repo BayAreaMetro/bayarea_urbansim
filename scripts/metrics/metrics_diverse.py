@@ -5,6 +5,7 @@
 import pandas as pd
 import logging, pathlib
 import metrics_utils
+import numpy as np
 
 def low_income_households_share(
         rtp: str,
@@ -39,7 +40,7 @@ def low_income_households_share(
     summary_list = []
     # Process each area and year
     for year in SUMMARY_YEARS:
-        for area in ['HRA','TRA','HRAandTRA','EPC','Region']:
+        for area in ['HRA','TRA','HRAandTRA','EPC_18','EPC_22','Region']:
             filter_condition = metrics_utils.PARCEL_AREA_FILTERS[rtp][area]
             if callable(filter_condition):  # Check if the filter is a function
                 df_area = modelrun_data[year]['parcel'].loc[filter_condition(modelrun_data[year]['parcel'])]
@@ -106,14 +107,25 @@ def gentrify_displacement_tracts(
     INITIAL_YEAR = SUMMARY_YEARS[0]
     HORIZON_YEAR = SUMMARY_YEARS[-1]
 
-    SUMMARIZATION_CATEGORIES = [
+    if rtp == 'RTP2021':
+        SUMMARIZATION_CATEGORIES = [
+            ('Region',          'all_region'), # Region != all_region for tableau aliasing 
+            ('Region',          'EPC'       ),
+            ('Region',          'DispRisk'  ),
+            ('GrowthGeography', 'all_gg'    ), # GrowthGeography != all_gg for tableau aliasing
+            ('GrowthGeography', 'HRA'       ),
+            ('GrowthGeography', 'TRA'       )
+        ]
+    elif rtp == 'RTP2025':
+        SUMMARIZATION_CATEGORIES = [
         ('Region',          'all_region'), # Region != all_region for tableau aliasing 
-        ('Region',          'EPC'       ),
+        ('Region',          'EPC_18'    ),
+        ('Region',          'EPC_22'    ),
         ('Region',          'DispRisk'  ),
         ('GrowthGeography', 'all_gg'    ), # GrowthGeography != all_gg for tableau aliasing
         ('GrowthGeography', 'HRA'       ),
         ('GrowthGeography', 'TRA'       )
-    ]
+        ]
 
     CATEGORY_TO_RTP_TRACT_ID = {
         # for RTP2021/PBA50, all tract lookups are relative to tract10
@@ -131,7 +143,8 @@ def gentrify_displacement_tracts(
         'RTP2025':{
             'Region':           None,
             'all_region':       'tract20',
-            'EPC':              'tract20_epc',
+            'EPC_18':           'tract10_epc',
+            'EPC_22':           'tract20_epc',
             'DispRisk':         'tract10_DispRisk',
             'GrowthGeography':  'tract20_growth_geo',
             'all_gg':           None, # no additional filter
@@ -148,7 +161,7 @@ def gentrify_displacement_tracts(
                 tract_keys['tract10'].add(CATEGORY_TO_RTP_TRACT_ID[rtp][cat])
             if CATEGORY_TO_RTP_TRACT_ID[rtp][cat].startswith('tract20'):
                 tract_keys['tract20'].add(CATEGORY_TO_RTP_TRACT_ID[rtp][cat])
-    logging.debug(f"{tract_keys=}")
+    logging.debug(f"{tract_keys}")
 
     # store results here to build dataframe
     summary_dict_list = []
@@ -158,12 +171,58 @@ def gentrify_displacement_tracts(
         logging.debug(f"Processing tract_id {tract_id}; tract_keys={tract_keys[tract_id]}")
 
         for year in SUMMARY_YEARS:
-            # summarize to tract_id and the tract-level variables
-            tract_summary_year_df = modelrun_data[year]['parcel'].groupby(
-                sorted(list(tract_keys[tract_id]))).aggregate({
-                'hhq1' :'sum',
-                'tothh':'sum',
-            })
+            # Backout UBI in 2050 DBP and FBP explicitly because it distorts the gentrifcation/displacement metric
+            if year == 2050 and modelrun_alias != "No Project":
+                logging.debug(f"Handling UBI adjustment for {year} {modelrun_alias} in {tract_id}")
+
+                # Extract parcels
+                tract_summary_year_df = modelrun_data[year]['parcel'].copy(deep=True)
+
+                # An estimated 11.6% of Q1 HH moved into Q2 (refer to PBA2050 modeling report footnote 13)
+                # Recover original pre-UBI Q1 HH
+                q1_ubi = tract_summary_year_df['hhq1'].sum()
+                logging.debug(f"Number of Q1 households with UBI in place: {q1_ubi}")
+
+                q2_ubi = tract_summary_year_df['hhq2'].sum()
+                logging.debug(f"Number of Q2 households with UBI in place: {q2_ubi}")
+
+                q1_no_ubi = round(q1_ubi / (1 - 0.116), ndigits=0)
+                num_hh_to_move = int(q1_no_ubi - q1_ubi)
+                logging.debug(f"Number of households moved from Q1 to Q2 because of UBI: {num_hh_to_move}")
+            
+                # Randomly select parcels to adjust
+                np.random.seed(42)
+                ids_to_move = np.random.choice(
+                    tract_summary_year_df.loc[tract_summary_year_df.hhq2 > 0].parcel_id, 
+                    num_hh_to_move, replace=False
+                    )
+                
+                # Reasign HH from Q2 to Q1, effectively backing out estimated effect of UBI
+                tract_summary_year_df.loc[tract_summary_year_df.parcel_id.isin(ids_to_move), "hhq2"] = tract_summary_year_df.hhq2 - 1
+                tract_summary_year_df.loc[tract_summary_year_df.parcel_id.isin(ids_to_move), "hhq1"] = tract_summary_year_df.hhq1.fillna(0) + 1
+
+                logging.debug("Number of Q1 households with UBI backed out: {}".format(tract_summary_year_df.hhq1.sum()))
+                logging.debug("Number of Q2 households with UBI backed out: {}".format(tract_summary_year_df.hhq2.sum()))
+
+                # Summarize to tract_id and the tract-level variables for 2050
+                tract_summary_year_df = tract_summary_year_df.groupby( 
+                    sorted(list(tract_keys[tract_id]))).aggregate({
+                    'hhq1' :'sum',
+                    'tothh':'sum',
+                })
+
+            else:
+                # Summarize to tract_id and the tract-level variables for 2023 and 2050 No Project
+                tract_summary_year_df = modelrun_data[year]['parcel'].copy(deep=True)
+                
+                tract_summary_year_df = tract_summary_year_df.groupby(
+                    sorted(list(tract_keys[tract_id]))).aggregate({
+                    'hhq1' :'sum',
+                    'tothh':'sum',
+                })
+
+
+            # now calculate the share
             tract_summary_year_df['hhq1_share'] = tract_summary_year_df.hhq1 / tract_summary_year_df.tothh
             logging.debug('tract_summary_year_df by {} {:,} rows:\n{}'.format(
                 tract_id, len(tract_summary_year_df), tract_summary_year_df))
@@ -217,7 +276,7 @@ def gentrify_displacement_tracts(
 
             cat1_tract_var = CATEGORY_TO_RTP_TRACT_ID[rtp][cat1]
             cat2_tract_var = CATEGORY_TO_RTP_TRACT_ID[rtp][cat2]
-            logging.debug(f"Summarizing ({cat1},{cat2}); {cat1_tract_var=} {cat2_tract_var=}")
+            logging.debug(f"Summarizing ({cat1},{cat2}); {cat1_tract_var} {cat2_tract_var}")
             # error if both not none and mismatching (e.g. can't summarize on tract10 and tract20 at the same time)
             if cat1_tract_var and cat2_tract_var:
                 # logging.debug(f"{cat1_tract_var[:7]} == {cat2_tract_var[:7]}")
@@ -233,7 +292,7 @@ def gentrify_displacement_tracts(
             elif cat1 == 'GrowthGeography':
                 category_tract_summary_df = multiyear_tract_summary_df.loc[multiyear_tract_summary_df[cat1_tract_var] == 1]  # tract[10|20]_growth_geo == 1
             else:
-                raise RuntimeError(f"{cat1=} not supported")
+                raise RuntimeError(f"{cat1} not supported")
 
             # filter to cat2
             if cat2.startswith('all'):
@@ -253,7 +312,7 @@ def gentrify_displacement_tracts(
             }
             for summarize_var in ['displacement','gentrification']:
                 tract_count_var = category_tract_summary_df[summarize_var].sum()  # sum coerces booleans to ints 0/1
-                logging.debug(f'  {summarize_var} for {cat1=} {cat2=}: {tract_count_var=} {tract_count_all=}')
+                logging.debug(f'  {summarize_var} for {cat1} {cat2}: {tract_count_var} {tract_count_all}')
 
                 # save it to summary_dict
                 summary_dict[f'{summarize_var}_tracts'      ] = tract_count_var
@@ -321,7 +380,11 @@ def lowinc_homeownership_share(
         'NP':'NP',
         'No Project':'NP',
         'DBP':'DBP',
-        'Draft Blueprint':'DBP'
+        'Draft Blueprint':'DBP',
+        'Final Blueprint':'DBP', # use DBP controls for Final Blueprint - they're unchanged
+        # these are the same as FBP so therefore DBP
+        'EIR Alt2':'DBP',
+        'EIR Alt1':'DBP',
      }
 
     def pct(x): return x / x.sum()
@@ -411,11 +474,21 @@ def lowinc_homeownership_share(
     this_result = result_combo[variant_mapping[modelrun_alias]][2050]
 
     # collect results with relevant identifiers
+    no_project_modelrun_id = modelrun_id if "NoProject" in modelrun_id else None
+
     results_df = [{
         'modelrun_id': modelrun_id,
         'modelrun_alias': f"2050 {modelrun_alias}",
         'Home Ownership Rate _ Low Income': this_result,
-        'name': 'Regionwide'}]
+        'name': 'Regionwide'
+    }]
+    if no_project_modelrun_id is not None:
+        results_df.append({
+            'modelrun_id': no_project_modelrun_id,
+            'modelrun_alias': "2023 No Project",
+            'Home Ownership Rate _ Low Income': round(baseyear_q1_ownership_share, 3),
+            'name': 'Regionwide'
+        })
 
     results_df = pd.DataFrame(results_df)
 

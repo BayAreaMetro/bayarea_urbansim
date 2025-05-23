@@ -69,8 +69,13 @@ def deed_restricted_affordable_share(
     HORIZON_YEAR = SUMMARY_YEARS[-1]
 
     summary_list = [] # list of dicts
+    area_list = [] # list of areas to summarize
+    if rtp == 'RTP2021':
+        area_list = ['HRA','EPC','Region']
+    elif rtp == 'RTP2025':
+        area_list = ['HRA','EPC_18','EPC_22','Region']
     for year in SUMMARY_YEARS:
-        for area in ['HRA','EPC','Region']:
+        for area in area_list:
             filter_condition = metrics_utils.PARCEL_AREA_FILTERS[rtp][area]
             if callable(filter_condition):
                 df_area = modelrun_data[year]['parcel'].loc[filter_condition(modelrun_data[year]['parcel'])]
@@ -89,7 +94,7 @@ def deed_restricted_affordable_share(
                     residential_units     = residential_units     + OFFMODEL[rtp]['HOMELESS']
                     preserved_units       = preserved_units       + OFFMODEL[rtp]['PRESERVED']
             # assume preserved units are all in EPC
-            if (area=="EPC") and (year==HORIZON_YEAR):
+            if (area[:3]=='EPC') and (year==HORIZON_YEAR):
                 deed_restricted_units = deed_restricted_units + OFFMODEL[rtp]['PRESERVED']
                 preserved_units       = preserved_units       + OFFMODEL[rtp]['PRESERVED']
 
@@ -323,7 +328,7 @@ def housing_cost_share_of_income(
     logging.debug(f"HOUSING_TYPE_SHARE_OF_QUARTILE_DF:\n{HOUSING_TYPE_SHARE_OF_QUARTILE_DF}")
     HOUSING_TYPES = HOUSING_TYPE_SHARE_OF_QUARTILE_DF.housing_type.unique().tolist()
     HOUSING_TYPES.append('market-rate')
-    logging.debug(f'  {HOUSING_TYPES=}')
+    # logging.debug(f'  {HOUSING_TYPES=}')
 
     # Share of income spent on housing by quartile and housing_type
     # TODO: What's the source for this?
@@ -348,7 +353,7 @@ def housing_cost_share_of_income(
     # TODO: This is from regional_forecast\housing_income_share_metric\scenario_specific_parameters.csv
     # TODO: What is it based upon?
     AVG_HU_PRICE_RATIO_HORIZON_TO_INITIAL = 0.8427
-    logging.debug(f"{AVG_HU_PRICE_RATIO_HORIZON_TO_INITIAL=}")
+    # logging.debug(f"{AVG_HU_PRICE_RATIO_HORIZON_TO_INITIAL=}")
 
     # Assume price-controlled share_income = MARKET_RATE_TO_PRICE_CONTROL_SHARE_INCOME x (market-rate share_income)
     MARKET_RATE_TO_PRICE_CONTROL_SHARE_INCOME = 0.857
@@ -374,7 +379,7 @@ def housing_cost_share_of_income(
         scenario_params_df.set_index('scenario', inplace=True)
         scenario_params_df = scenario_params_df[['rdr_units_2050','odr_units_2050','total_rpc_units_2050','total_opc_units_2050']]
         scenario_params_df = scenario_params_df.replace({' ':None}).astype('float')
-        logging.info(f"  Read {len(scenario_params_df)=:,} lines from {SCENARIO_PARAMS_FILE}")
+        logging.info(f"  Read {len(scenario_params_df)} lines from {SCENARIO_PARAMS_FILE}")
         logging.debug(f"\n{scenario_params_df}")
         logging.debug(f"\n{scenario_params_df.dtypes}")
 
@@ -402,8 +407,10 @@ def housing_cost_share_of_income(
 
         if modelrun_alias == "No Project":
             BAUS_SCENARIO = "RTP2025_NP"
-        else:
+        elif modelrun_alias=="Draft Blueprint":
             BAUS_SCENARIO = "RTP2025_DBP"
+        else:
+            BAUS_SCENARIO = "RTP2025_FBP"
 
         # TODO: This is duplicate code because I think it should be removed
         # TODO: Deed restricted unit counts should come from deed_restricted_affordable_share() results
@@ -415,7 +422,7 @@ def housing_cost_share_of_income(
         scenario_params_df.set_index('scenario', inplace=True)
         scenario_params_df = scenario_params_df[['rdr_units_2050','odr_units_2050','total_rpc_units_2050','total_opc_units_2050']]
         scenario_params_df = scenario_params_df.replace({' ':None}).astype('float')
-        logging.info(f"  Read {len(scenario_params_df)=:,} lines from {SCENARIO_PARAMS_FILE}")
+        # logging.info(f"  Read {len(scenario_params_df)=:,} lines from {SCENARIO_PARAMS_FILE}")
         logging.debug(f"\n{scenario_params_df}")
         logging.debug(f"\n{scenario_params_df.dtypes}")
 
@@ -440,7 +447,7 @@ def housing_cost_share_of_income(
     pums_baseyear_housing_cost_df = pd.read_csv(PUMS_BASEYEAR_HOUSING_COST_FILE)
     pums_baseyear_housing_cost_df['tenure'] = pums_baseyear_housing_cost_df.tenure.str.lower()
     pums_baseyear_housing_cost_df['tenure'] = pums_baseyear_housing_cost_df['tenure'].replace({'total':'all_tenures'})
-    logging.info(f"  Read {len(pums_baseyear_housing_cost_df)=:,} lines from {PUMS_BASEYEAR_HOUSING_COST_FILE}")
+    logging.info(f"  Read {len(pums_baseyear_housing_cost_df):,} lines from {PUMS_BASEYEAR_HOUSING_COST_FILE}")
     logging.debug(f"\n{pums_baseyear_housing_cost_df}")
     # columns are: quartile, tenure, aggregate_income, aggregate_rent, aggregate_owncosts, aggregate_costs, 
     #              households, share_income, short_name
@@ -542,10 +549,10 @@ def housing_cost_share_of_income(
     # for year_horizon, assume subsidized proportion for that tenure persists
     households_initial_year = int(household_year_totals_df.at[year_initial, 'households'])
     households_horizon_year = int(household_year_totals_df.at[year_horizon, 'households'])
-    logging.debug(f'  {households_initial_year=:,}  {households_horizon_year=:,}')
+    logging.debug(f'  {households_initial_year:,}  {households_horizon_year:,}')
     for tenure in ['renter','owner']:
         households_subsidized_initial_year = housingtype_df.at[(year_initial, tenure, 'subsidized'), 'households']
-        logging.debug(f'  for {tenure=}, applying proportion {households_subsidized_initial_year/households_initial_year}')
+        logging.debug(f'  for {tenure}, applying proportion {households_subsidized_initial_year/households_initial_year}')
         
         housingtype_df.at[ (year_horizon, tenure, 'subsidized'), 'households'] = \
             households_horizon_year*households_subsidized_initial_year/households_initial_year

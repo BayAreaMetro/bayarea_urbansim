@@ -473,7 +473,11 @@ def office_space_summary_bldg(
         cnty_dist_summary_dict, names=["year", "geography"]
     )
     cnty_dist_summary_df.index = cnty_dist_summary_df.index.set_names(
-        "area_detail", level=cnty_dist_summary_df.index.nlevels - 1
+        ["area_detail", "modelrun_id", "modelrun_alias"], 
+        level=[
+            cnty_dist_summary_df.index.nlevels-1,
+            cnty_dist_summary_df.index.nlevels-2,
+            cnty_dist_summary_df.index.nlevels-3]
     )
     cnty_dist_summary_df = cnty_dist_summary_df.reset_index()
 
@@ -598,7 +602,7 @@ def office_space_summary_zone(
         output_dict = {}
 
         for year in SUMMARY_YEARS:
-            logging.info(f"  Summarizing for {year=} {summary_geography=}")
+            logging.info(f"  Summarizing for {year} {summary_geography}")
 
             # superdistrict summaries will be from TAZ1454 table
             data_df = modelrun_data[year]["TAZ1454"].copy()
