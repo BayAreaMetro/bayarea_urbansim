@@ -230,10 +230,10 @@ def taz1_summary(parcels, households, jobs, buildings, zones, maz, year, base_ye
                  tm1_taz1_forecast_inputs, tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, 
                  tm1_tm2_regional_controls, initial_summary_year, final_year, interim_summary_years, run_name):
     
-    # Commenting this out so we get taz1 summaries for every year.
+
     # It's about 90 seconds a pop so not great, not terrible
-    # if year not in [initial_summary_year, final_year] + interim_summary_years:
-    #     return
+    if year not in [initial_summary_year, final_year] + interim_summary_years:
+        return
 
     # (1) add relevant geographies to TAZ summaries
     taz_df = pd.DataFrame(index=zones.index)

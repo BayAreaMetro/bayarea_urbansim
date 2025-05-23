@@ -284,8 +284,31 @@ def initial_summary_year(run_setup):
 
 
 @orca.injectable()
-def interim_summary_years():
-    return [2025, 2035]
+def interim_summary_years(run_setup):
+    interim_years = run_setup.get("interim_summary_years", None)
+    default_years = [2025, 2035]
+    
+    if interim_years is None:
+        # If key is not present in yaml, return default list
+        return default_years
+    else:
+        # Case: A key is present....
+        if isinstance(interim_years, list):
+            # ... but add a check here to ensure *all* elements in the list are integers
+            if all(isinstance(year, int) for year in interim_years):
+                return interim_years
+            else:
+                # If not all elements are integers, we revert to the default
+                print("Warning: interim_summary_years list contains non-integer values. Using default.")
+                return default_years
+    
+        elif isinstance(interim_years, int):
+            # A key is present, but there is just one integer - we place in a list
+            return [interim_years]
+        else:
+            # Else, log a warning
+            print(f"Warning: interim_summary_years has an unexpected type ({type(interim_years)}). Using default.")
+            return default_years
 
 
 @orca.injectable()
