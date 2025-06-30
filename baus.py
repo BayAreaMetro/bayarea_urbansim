@@ -437,6 +437,11 @@ def run_models(mode, run_setup, years_to_run):
                 "region_marginals",
                 "taz1_growth_summary",
                 "maz_growth_summary",
+
+                "maz_marginals_alt",
+                "maz_summary_alt",
+                "taz2_marginals_alt",
+                "county_marginals_alt",
             ]
 
             if not run_setup["run_slr_summaries"]:
