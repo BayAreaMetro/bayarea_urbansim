@@ -8,6 +8,7 @@ from baus.utils import round_series_match_target, scale_by_target, simple_ipf
 from baus import datasources
 
 import logging
+import gc
 
 # Get a logger specific to this module
 logger = logging.getLogger(__name__)
@@ -733,7 +734,6 @@ def load_tables_for_tm_summaries(run_name, year):
 
 
 
-@orca.step()
 def maz_marginals_alt(maz, year,
                   tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, 
                   run_name):
@@ -742,7 +742,7 @@ def maz_marginals_alt(maz, year,
         return
     
     # (1) intiialize maz dataframe
-    maz_m = maz.to_frame(['TAZ', 'county_name'])
+    maz_m = maz.to_frame(['TAZ', 'county_name']).copy(deep=True)
 
     # (2) add households by MAZ
     #hh_df = orca.merge_tables('households', [parcels, buildings, households], columns=['maz_id'])
@@ -753,7 +753,7 @@ def maz_marginals_alt(maz, year,
     maz_m = add_households(maz_m, maz_m.tothh.sum())
 
     # (3a) use maz forecast inputs to forecast group quarters
-    mazi = tm1_tm2_maz_forecast_inputs.to_frame()
+    mazi = tm1_tm2_maz_forecast_inputs.to_frame().copy(deep=True)
     mazi_yr = str(year)[2:]
     maz_m['gq_type_univ'] = mazi['gqpopu' + mazi_yr]
     maz_m['gq_typeil'] = mazi['gqpopm' + mazi_yr]
@@ -766,7 +766,7 @@ def maz_marginals_alt(maz, year,
     maz_m['hh_size_3'] = maz_m.tothh.fillna(0) * mazi.shrs3_2010
     maz_m['hh_size_4_plus'] = maz_m.tothh.fillna(0) * mazi.shs4_2010
     # (4b) adjust household size variables with the regional demographic forecast
-    rdf = tm1_tm2_regional_demographic_forecast.to_frame()
+    rdf = tm1_tm2_regional_demographic_forecast.to_frame().copy(deep=True)
     maz_m = adjust_hhsize(maz_m, year, rdf, maz_m.tothh.sum())
 
     tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
@@ -774,8 +774,11 @@ def maz_marginals_alt(maz, year,
     maz_m.fillna(0).to_csv(tmsum_output_dir / f"{run_name}_maz_marginals_{year}.csv")
     #orca.add_table("maz_marginals_df", maz_m)
 
+    del hh_df
+    gc.collect()
 
-@orca.step()
+
+
 def maz_summary_alt(maz, year, tm2_emp27_employment_shares, 
                 tm1_tm2_regional_controls, run_name):
     
@@ -783,7 +786,7 @@ def maz_summary_alt(maz, year, tm2_emp27_employment_shares,
         return
 
     # (1) intiialize maz dataframe
-    maz_df = maz.to_frame(['TAZ', 'county_name'])
+    maz_df = maz.to_frame(['TAZ', 'county_name']).copy(deep=True)
 
     # (2) get tothh from maz marginals dataframe
     # maz_marginals_df = orca.get_table("maz_marginals_df").to_frame()
@@ -810,10 +813,10 @@ def maz_summary_alt(maz, year, tm2_emp27_employment_shares,
     #                             columns=['maz_id', 'empsix'])
 
     # use the EMPSIX to EMP27 shares to disaggregate jobs
-    tm2_emp27_employment_shares = tm2_emp27_employment_shares.to_frame()
+    tm2_emp27_employment_shares_df = tm2_emp27_employment_shares.to_frame().copy(deep=True)
     def getsectorcounts(empsix, empsh):
         emp = jobs_df.query("empsix == '%s'" % empsix).groupby('maz_id').size()
-        return emp * tm2_emp27_employment_shares.loc[tm2_emp27_employment_shares.empsh == empsh, str(year)].values[0]
+        return emp * tm2_emp27_employment_shares_df.loc[tm2_emp27_employment_shares_df.empsh == empsh, str(year)].values[0]
     maz_df["ag"] = getsectorcounts("AGREMPN", "ag")
     maz_df["natres"] = getsectorcounts("AGREMPN", "natres")
     maz_df["fire"] = getsectorcounts("FPSEMPN", "fire")
@@ -855,14 +858,14 @@ def maz_summary_alt(maz, year, tm2_emp27_employment_shares,
     maz_df["hhpop"] = hh_df.groupby('maz_id').persons.sum()
     # use marginals dataframe to get gqpop
     maz_df['gqpop'] = maz_marginals_df['gq_tot_pop']
-    maz_df = add_population_tm2(maz_df, year, tm1_tm2_regional_controls.to_frame())
+    maz_df = add_population_tm2(maz_df, year, tm1_tm2_regional_controls.to_frame().copy(deep=True))
     maz_df['pop'] = maz_df.gqpop + maz_df.hhpop
 
     # (6) add density variables
     # pcl_df = parcels.to_frame(['maz_id', 'acres'])
-    pcl_df = parcels_df[["maz_id", "acres"]].copy()
+    pcl_df = parcels_df[["maz_id", "acres"]].copy(deep=True)
     # bldg_df = orca.merge_tables('buildings', [buildings, parcels], columns=['maz_id', 'residential_units'])
-    bldg_df = buildings_df.copy()
+    bldg_df = buildings_df.copy(deep=True)
     maz_df['ACRES'] = pcl_df.groupby('maz_id').acres.sum()
     maz_df['residential_units'] = bldg_df.groupby('maz_id').residential_units.sum()
     maz_df['DUDen'] = maz_df.residential_units / maz_df.ACRES
@@ -876,8 +879,11 @@ def maz_summary_alt(maz, year, tm2_emp27_employment_shares,
     maz_df.fillna(0).to_csv(tmsum_output_dir / f"{run_name}_maz_summary_{year}.csv")
     # orca.add_table("maz_summary_df", maz_df)
 
+    del hh_df, jobs_df, buildings_df, parcels_df
+    gc.collect()
 
-@orca.step()
+
+
 def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls, 
                    year, run_name):
     
@@ -885,7 +891,7 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
         return
 
     # (1) bring in taz2 dataframe
-    taz2 = pd.DataFrame(index=tm2_taz2_forecast_inputs.index)
+    taz2 = pd.DataFrame(index=tm2_taz2_forecast_inputs.index.copy(deep=True))
     taz2.index.name = 'TAZ2'
 
     # (2) summarize maz vars for household income and population
@@ -911,7 +917,7 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
     taz2['pop'] = taz2.pop_hhsize1 + taz2.pop_hhsize2 + taz2.pop_hhsize3 + taz2.pop_hhsize4
 
     # (3a) add person age, household workers, and presence of children using taz2 forecast inputs
-    t2fi = tm2_taz2_forecast_inputs.to_frame()
+    t2fi = tm2_taz2_forecast_inputs.to_frame().copy(deep=True)
     taz2['pers_age_00_19'] = taz2['hhpop'] * t2fi.shra1_2010
     taz2['pers_age_20_34'] = taz2['hhpop'] * t2fi.shra2_2010
     taz2['pers_age_35_64'] = taz2['hhpop'] * t2fi.shra3_2010
@@ -923,9 +929,9 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
     taz2['hh_kids_no'] = taz2['tothh'] * t2fi.shrn_2010
     taz2['hh_kids_yes'] = taz2['tothh'] * t2fi.shry_2010
     # (3b) adjust person age, household workers, and presence of children with the regional demographic forecast
-    rdf = tm1_tm2_regional_demographic_forecast.to_frame()
+    rdf = tm1_tm2_regional_demographic_forecast.to_frame().copy(deep=True)
     taz2 = adjust_hhwkrs(taz2, year, rdf, taz2.tothh.sum())
-    taz2 = adjust_page(taz2, year, tm1_tm2_regional_controls.to_frame())
+    taz2 = adjust_page(taz2, year, tm1_tm2_regional_controls.to_frame().copy(deep=True))
     taz2 = adjust_hhkids(taz2, year, rdf, taz2.tothh.sum())
 
     taz2 = taz2.fillna(0)
@@ -936,7 +942,7 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
     # orca.add_table("taz2_summary_df", taz2)
 
 
-@orca.step()
+
 def county_marginals_alt(tm2_occupation_shares, year, 
                      run_name):
 
@@ -964,7 +970,7 @@ def county_marginals_alt(tm2_occupation_shares, year,
                                                                                             'hh_wrks_2': 'sum',
                                                                                             'hh_wrks_3_plus': 'sum'})
     county['workers'] = (county.hh_wrks_1 + county.hh_wrks_2 * 2 + county.hh_wrks_3_plus * 3.474036).round(0)
-    cef = tm2_occupation_shares.to_frame()
+    cef = tm2_occupation_shares.to_frame().copy(deep=True)
     cef = cef.loc[cef.year == year].set_index('county_name')
     county['pers_occ_management'] = county.workers * cef.shr_occ_management
     county['pers_occ_management'] = round_series_match_target(county['pers_occ_management'], np.round(county['pers_occ_management'].sum()), 0)
