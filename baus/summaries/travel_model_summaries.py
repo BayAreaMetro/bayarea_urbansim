@@ -792,7 +792,10 @@ def maz_summary_alt(maz, year, tm2_emp27_employment_shares,
     # maz_marginals_df = orca.get_table("maz_marginals_df").to_frame()
     tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
     tmsum_output_dir.mkdir(parents=True, exist_ok=True)
-    maz_marginals_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_marginals_{year}.csv")
+    maz_marginals_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_marginals_{year}.csv",
+                               dtype={"MAZ": np.int64},
+                               index_col="MAZ"
+                               )
     maz_df['tothh'] = maz_marginals_df['tothh']
 
     # (3) summarize household data by MAZ
@@ -898,7 +901,10 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
     # maz_summary_df = orca.get_table("maz_summary_df").to_frame()
     tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
     tmsum_output_dir.mkdir(parents=True, exist_ok=True)
-    maz_summary_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_summary_{year}.csv")
+    maz_summary_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_summary_{year}.csv",
+                                 dtype={"TAZ": np.int64},
+                                 index_col="TAZ"
+                                 )
 
     taz2['county_name'] = maz_summary_df.groupby('TAZ').county_name.first()
     taz2['tothh'] = maz_summary_df.groupby('TAZ').tothh.sum()
@@ -908,7 +914,10 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
     taz2['hh_inc_100_plus'] = maz_summary_df.groupby('TAZ').hhincq4.sum().fillna(0)
     taz2['hhpop'] = maz_summary_df.groupby('TAZ').hhpop.sum()
     # maz_marginals_df = orca.get_table("maz_marginals_df").to_frame()
-    maz_marginals_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_marginals_{year}.csv")
+    maz_marginals_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_marginals_{year}.csv",
+                               dtype={"TAZ": np.int64},
+                               index_col="TAZ"
+                               )
 
     taz2['pop_hhsize1'] = maz_marginals_df.groupby('TAZ').hh_size_1.sum()
     taz2['pop_hhsize2'] = maz_marginals_df.groupby('TAZ').hh_size_2.sum() * 2
@@ -960,6 +969,9 @@ def county_marginals_alt(tm2_occupation_shares, year,
     
     # (1) initialize county dataframe
     county = pd.DataFrame(index=maz.county_name.unique())
+
+    maz = maz.set_index("county_name")
+    taz2 = taz2.set_index("county_name")
 
     # (2) add population
     county['gqpop'] = maz.groupby('county_name').gqpop.sum()
