@@ -1,1 +1,24 @@
-[{"version": "main", "title": "main", "aliases": ["latest"]}, {"version": "generic_tracing_tools", "title": "generic_tracing_tools", "aliases": []}, {"version": "basis_data_update", "title": "basis_data_update", "aliases": []}]
+[
+  {
+    "version": "main",
+    "title": "main",
+    "aliases": [
+      "latest"
+    ]
+  },
+  {
+    "version": "generic_tracing_tools",
+    "title": "generic_tracing_tools",
+    "aliases": []
+  },
+  {
+    "version": "fbp_mod_updates",
+    "title": "fbp_mod_updates",
+    "aliases": []
+  },
+  {
+    "version": "basis_data_update",
+    "title": "basis_data_update",
+    "aliases": []
+  }
+]
