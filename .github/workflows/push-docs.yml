@@ -1,0 +1,30 @@
+name: Push local gh-pages to origin
+
+on:
+  push:
+    paths:
+      - 'mkdocs.yml'
+      - 'docs/**'
+
+jobs:
+  push-gh-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout all branches
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push local gh-pages to remote
+        run: |
+          # Check if gh-pages branch exists locally
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git push origin gh-pages
+          else
+            echo "No local gh-pages branch to push."
+          fi
