@@ -17,6 +17,7 @@ nav:
     - Configuration: 'configuration.md'
     - Input: 'input.md'
     - Output: 'output.md'
+    - PBA50+: 'baus_inputs_pba50_plus.md'
 
 plugins:
   - autorefs
