@@ -19,7 +19,9 @@
   {
     "version": "docs_test",
     "title": "docs_test",
-    "aliases": []
+    "aliases": [
+      "alias=lastest"
+    ]
   },
   {
     "version": "basis_data_update",
