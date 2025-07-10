@@ -694,8 +694,24 @@ def region_marginals(year, initial_summary_year, final_year, interim_summary_yea
     region_m.to_csv(tmsum_output_dir / f"{run_name}_region_marginals_{year}.csv")
 
 
-##################################
 def load_tables_for_tm_summaries(run_name, year):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Loads and merges household, job, building, and parcel data from interim csv files for a given model run and year.
+    Only used for 2030 and 2040 travel model summaries.
+
+    Args:
+        run_name (str): Model run name
+        year (int): Model run year
+
+    Returns:
+        tuple:
+            hh_df (pd.DataFrame): Household table with building and parcel attributes.
+            jobs_df (pd.DataFrame): Jobs table with building and parcel attributes.
+            buildings_df (pd.DataFrame): Buildings table with parcel attributes.
+            parcels_df (pd.DataFrame): Parcels table.
+    """
 
     # Load households, parcels, and buildings
     interim_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "interim_output"
@@ -737,6 +753,18 @@ def load_tables_for_tm_summaries(run_name, year):
 def maz_marginals_alt(maz, year,
                   tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, 
                   run_name):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Generates MAZ marginals for years 2030 and 2040, and outputs csv.  Creates basic household and group quarters variables.
+
+    Args:
+        maz (orca.table): MAZ-TAZ-county xwalk
+        year (int): Model run year
+        tm1_tm2_maz_forecast_inputs (orca.table): Zone-level inputs to generate variables for the travel model.  More documentation needed.
+        tm1_tm2_regional_demographic_forecast (orca.table): REMI-derived regional-level inputs used to produce travel model variables.  More documentation needed.
+        run_name (str): Name of the model run
+    """
     
     if year not in [2030, 2040]:
         return
@@ -781,7 +809,20 @@ def maz_marginals_alt(maz, year,
 
 def maz_summary_alt(maz, year, tm2_emp27_employment_shares, 
                 tm1_tm2_regional_controls, run_name):
-    
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Builds on output from maz_marginals_alt, generating further MAZ marginals for years 2030 and 2040 and outputs to csv.  
+    Disaggregates households by income, jobs by sector, and adds population and density variables.
+
+    Args:
+        maz (orca.table): MAZ-TAZ-county xwalk
+        year (int): Model run year
+        tm2_emp27_employment_shares (orca.table): The forecasted share of jobs by 26 sectors by county. More doumentation needed.
+        tm1_tm2_regional_controls (orca.table): Controls from the regional forecast which give us employed residents and the age distribution by year.  More doumentation needed.
+        run_name (str): Name of the model run
+
+    """
     if year not in [2030, 2040]:
         return
 
@@ -889,6 +930,19 @@ def maz_summary_alt(maz, year, tm2_emp27_employment_shares,
 
 def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls, 
                    year, run_name):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Builds on output from maz_summary_alt, generating TAZ2 marginals for years 2030 and 2040 and outputs to csv.  
+    Creates further household/population demographic variables.
+
+    Args:
+        tm2_taz2_forecast_inputs (orca.table): TAZ2 zone-level inputs for generating travel model 2 variables.  More documentation needed.
+        tm1_tm2_regional_demographic_forecast (orca.table): REMI-derived regional-level inputs used to produce travel model variables.  More documentation needed.
+        tm1_tm2_regional_controls (orca.table): Controls from the regional forecast which give us employed residents and the age distribution by year.  More doumentation needed.
+        year (int): Model run year
+        run_name (str): Name of the model run
+    """
     
     if year not in [2030, 2040]:
         return
@@ -952,8 +1006,18 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
 
 
 
-def county_marginals_alt(tm2_occupation_shares, year, 
-                     run_name):
+def county_marginals_alt(tm2_occupation_shares, year, run_name):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Builds on output from maz_summary_alt and taz2_marginals_alt, generating county-level marginals for years 2030 and 2040 and 
+    outputs to csv.  Aggregates population and occupation characteristics.
+
+    Args:
+        tm2_occupation_shares (orca.table): The forecasted share of jobs by occupation and county, used for travel model 2.
+        year (int): Model run year
+        run_name (str): Name of the model run
+    """
 
     if year not in [2030, 2040]:
         return

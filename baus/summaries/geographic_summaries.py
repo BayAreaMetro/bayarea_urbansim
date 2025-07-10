@@ -171,6 +171,7 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
     interim_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Write tables needed for TM summary in 2030/2040 to interim dir
+    # This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
     if year in [2030, 2040]:
         for table_name, table in [('parcels', parcels), ('households', households), ('jobs', jobs), ('buildings', buildings)]:
             df = table.to_frame()
