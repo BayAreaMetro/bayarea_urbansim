@@ -166,6 +166,17 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
     # if year not in [initial_summary_year, final_year] + interim_summary_years:
     #      return
 
+    # Create an intermediate outputs dir
+    interim_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "interim_output"
+    interim_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write tables needed for TM summary in 2030/2040 to interim dir
+    # This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+    if year in [2030, 2040]:
+        for table_name, table in [('parcels', parcels), ('households', households), ('jobs', jobs), ('buildings', buildings)]:
+            df = table.to_frame()
+            df.to_csv(interim_output_dir / f"{run_name}_{table_name}_{year}.csv")
+
     households_df = orca.merge_tables('households', [parcels, buildings, households],
         columns=['juris', 'superdistrict', 'county', 'subregion', 'base_income_quartile',])
 

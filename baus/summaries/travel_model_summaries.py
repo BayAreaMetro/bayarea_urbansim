@@ -8,6 +8,7 @@ from baus.utils import round_series_match_target, scale_by_target, simple_ipf
 from baus import datasources
 
 import logging
+import gc
 
 # Get a logger specific to this module
 logger = logging.getLogger(__name__)
@@ -691,3 +692,375 @@ def region_marginals(year, initial_summary_year, final_year, interim_summary_yea
     tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
     tmsum_output_dir.mkdir(parents=True, exist_ok=True)
     region_m.to_csv(tmsum_output_dir / f"{run_name}_region_marginals_{year}.csv")
+
+
+def load_tables_for_tm_summaries(run_name, year):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Loads and merges household, job, building, and parcel data from interim csv files for a given model run and year.
+    Only used for 2030 and 2040 travel model summaries.
+
+    Args:
+        run_name (str): Model run name
+        year (int): Model run year
+
+    Returns:
+        tuple:
+            hh_df (pd.DataFrame): Household table with building and parcel attributes.
+            jobs_df (pd.DataFrame): Jobs table with building and parcel attributes.
+            buildings_df (pd.DataFrame): Buildings table with parcel attributes.
+            parcels_df (pd.DataFrame): Parcels table.
+    """
+
+    # Load households, parcels, and buildings
+    interim_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "interim_output"
+    households_file = interim_output_dir / f"{run_name}_households_{year}.csv"
+    jobs_file = interim_output_dir / f"{run_name}_jobs_{year}.csv"
+    buildings_file = interim_output_dir / f"{run_name}_buildings_{year}.csv"
+    parcels_file = interim_output_dir / f"{run_name}_parcels_{year}.csv"
+
+    # Define necessary columns for each table
+    households_cols = ["household_id", "building_id", "persons", "base_income_quartile"]
+    jobs_cols = ["empsix", "building_id"] 
+    buildings_cols = ["building_id", "parcel_id", "residential_units"]
+    parcels_cols = ["parcel_id", "maz_id", "acres"]
+
+    hh_df = pd.read_csv(households_file, usecols=households_cols)
+    jobs_df = pd.read_csv(jobs_file, usecols=jobs_cols)
+    buildings_df = pd.read_csv(buildings_file, usecols=buildings_cols)
+    parcels_df = pd.read_csv(parcels_file, usecols=parcels_cols)
+
+
+    # Merge buildings and parcels attributes with households
+    hh_df = pd.merge(hh_df, buildings_df, on="building_id", how="inner")
+    hh_df = pd.merge(hh_df, parcels_df, on="parcel_id", how="inner")
+
+    # Merge buildings and parcels attibutes with jobs
+    jobs_df = pd.merge(jobs_df, buildings_df, on="building_id", how="inner")
+    jobs_df = pd.merge(jobs_df, parcels_df, on="parcel_id", how="inner")
+
+    # Merge parcel attributes with buildings
+    buildings_df = pd.merge(buildings_df, parcels_df, on="parcel_id", how="inner")
+
+    # Apply fix to maz_id
+    hh_df.maz_id = hh_df.maz_id.fillna(213906)
+    
+    return hh_df, jobs_df, buildings_df, parcels_df
+
+
+
+def maz_marginals_alt(maz, year,
+                  tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, 
+                  run_name):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Generates MAZ marginals for years 2030 and 2040, and outputs csv.  Creates basic household and group quarters variables.
+
+    Args:
+        maz (orca.table): MAZ-TAZ-county xwalk
+        year (int): Model run year
+        tm1_tm2_maz_forecast_inputs (orca.table): Zone-level inputs to generate variables for the travel model.  More documentation needed.
+        tm1_tm2_regional_demographic_forecast (orca.table): REMI-derived regional-level inputs used to produce travel model variables.  More documentation needed.
+        run_name (str): Name of the model run
+    """
+    
+    if year not in [2030, 2040]:
+        return
+    
+    # (1) intiialize maz dataframe
+    maz_m = maz.to_frame(['TAZ', 'county_name']).copy(deep=True)
+
+    # (2) add households by MAZ
+    #hh_df = orca.merge_tables('households', [parcels, buildings, households], columns=['maz_id'])
+    hh_df = load_tables_for_tm_summaries(run_name, year)[0]
+    
+    maz_m["tothh"] = hh_df.groupby('maz_id').size()
+    maz_m['tothh'] = maz_m.tothh.fillna(0)
+    maz_m = add_households(maz_m, maz_m.tothh.sum())
+
+    # (3a) use maz forecast inputs to forecast group quarters
+    mazi = tm1_tm2_maz_forecast_inputs.to_frame().copy(deep=True)
+    mazi_yr = str(year)[2:]
+    maz_m['gq_type_univ'] = mazi['gqpopu' + mazi_yr]
+    maz_m['gq_typeil'] = mazi['gqpopm' + mazi_yr]
+    maz_m['gq_type_othnon'] = mazi['gqpopo' + mazi_yr]
+    maz_m['gq_tot_pop'] = maz_m['gq_type_univ'] + maz_m['gq_typeil'] + maz_m['gq_type_othnon']
+
+    # (4a) also add households size variables using maz forecast inputs
+    maz_m['hh_size_1'] = maz_m.tothh.fillna(0) * mazi.shrs1_2010
+    maz_m['hh_size_2'] = maz_m.tothh.fillna(0) * mazi.shrs2_2010
+    maz_m['hh_size_3'] = maz_m.tothh.fillna(0) * mazi.shrs3_2010
+    maz_m['hh_size_4_plus'] = maz_m.tothh.fillna(0) * mazi.shs4_2010
+    # (4b) adjust household size variables with the regional demographic forecast
+    rdf = tm1_tm2_regional_demographic_forecast.to_frame().copy(deep=True)
+    maz_m = adjust_hhsize(maz_m, year, rdf, maz_m.tothh.sum())
+
+    tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
+    tmsum_output_dir.mkdir(parents=True, exist_ok=True)
+    maz_m.fillna(0).to_csv(tmsum_output_dir / f"{run_name}_maz_marginals_{year}.csv")
+    #orca.add_table("maz_marginals_df", maz_m)
+
+    del hh_df
+    gc.collect()
+
+
+
+def maz_summary_alt(maz, year, tm2_emp27_employment_shares, 
+                tm1_tm2_regional_controls, run_name):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Builds on output from maz_marginals_alt, generating further MAZ marginals for years 2030 and 2040 and outputs to csv.  
+    Disaggregates households by income, jobs by sector, and adds population and density variables.
+
+    Args:
+        maz (orca.table): MAZ-TAZ-county xwalk
+        year (int): Model run year
+        tm2_emp27_employment_shares (orca.table): The forecasted share of jobs by 26 sectors by county. More doumentation needed.
+        tm1_tm2_regional_controls (orca.table): Controls from the regional forecast which give us employed residents and the age distribution by year.  More doumentation needed.
+        run_name (str): Name of the model run
+
+    """
+    if year not in [2030, 2040]:
+        return
+
+    # (1) intiialize maz dataframe
+    maz_df = maz.to_frame(['TAZ', 'county_name']).copy(deep=True)
+
+    # (2) get tothh from maz marginals dataframe
+    # maz_marginals_df = orca.get_table("maz_marginals_df").to_frame()
+    tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
+    tmsum_output_dir.mkdir(parents=True, exist_ok=True)
+    maz_marginals_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_marginals_{year}.csv",
+                               dtype={"MAZ": np.int64},
+                               index_col="MAZ"
+                               )
+    maz_df['tothh'] = maz_marginals_df['tothh']
+
+    # (3) summarize household data by MAZ
+    # hh_df = orca.merge_tables('households', [parcels, buildings, households],
+    #                                         columns=['persons', 'base_income_quartile', 'maz_id'])
+    hh_df, jobs_df, buildings_df, parcels_df = load_tables_for_tm_summaries(run_name, year)
+
+    def gethhcounts(filter):
+        return hh_df.query(filter).groupby('maz_id').size()
+    maz_df["hhincq1"] = gethhcounts("base_income_quartile == 1")
+    maz_df["hhincq2"] = gethhcounts("base_income_quartile == 2")
+    maz_df["hhincq3"] = gethhcounts("base_income_quartile == 3")
+    maz_df["hhincq4"] = gethhcounts("base_income_quartile == 4")
+
+    # (4) summarize jobs by MAZ
+    # jobs_df = orca.merge_tables('jobs',
+    #                             [parcels, buildings, jobs],
+    #                             columns=['maz_id', 'empsix'])
+
+    # use the EMPSIX to EMP27 shares to disaggregate jobs
+    tm2_emp27_employment_shares_df = tm2_emp27_employment_shares.to_frame().copy(deep=True)
+    def getsectorcounts(empsix, empsh):
+        emp = jobs_df.query("empsix == '%s'" % empsix).groupby('maz_id').size()
+        return emp * tm2_emp27_employment_shares_df.loc[tm2_emp27_employment_shares_df.empsh == empsh, str(year)].values[0]
+    maz_df["ag"] = getsectorcounts("AGREMPN", "ag")
+    maz_df["natres"] = getsectorcounts("AGREMPN", "natres")
+    maz_df["fire"] = getsectorcounts("FPSEMPN", "fire")
+    maz_df["serv_bus"] = getsectorcounts("FPSEMPN", "serv_bus")
+    maz_df["prof"] = getsectorcounts("FPSEMPN", "prof")
+    maz_df["lease"] = getsectorcounts("FPSEMPN", "lease")
+    maz_df["art_rec"] = getsectorcounts("HEREMPN", "art_rec")
+    maz_df["serv_soc"] = getsectorcounts("HEREMPN", "serv_soc")
+    maz_df["serv_per"] = getsectorcounts("HEREMPN", "serv_per")
+    maz_df["ed_high"] = getsectorcounts("HEREMPN", "ed_high")
+    maz_df["ed_k12"] = getsectorcounts("HEREMPN", "ed_k12")
+    maz_df["ed_oth"] = getsectorcounts("HEREMPN", "ed_oth")
+    maz_df["health"] = getsectorcounts("HEREMPN", "health")
+    maz_df["man_tech"] = getsectorcounts("MWTEMPN", "man_tech")
+    maz_df["man_lgt"] = getsectorcounts("MWTEMPN", "man_lgt")
+    maz_df["logis"] = getsectorcounts("MWTEMPN", "logis")
+    maz_df["man_bio"] = getsectorcounts("MWTEMPN", "man_bio")
+    maz_df["transp"] = getsectorcounts("MWTEMPN", "transp")
+    maz_df["man_hvy"] = getsectorcounts("MWTEMPN", "man_hvy")
+    maz_df["util"] = getsectorcounts("MWTEMPN", "util")
+    maz_df["info"] = getsectorcounts("OTHEMPN", "info")
+    maz_df["gov"] = getsectorcounts("OTHEMPN", "gov")
+    maz_df["constr"] = getsectorcounts("OTHEMPN", "constr")
+    maz_df["hotel"] = getsectorcounts("RETEMPN", "hotel")
+    maz_df["ret_loc"] = getsectorcounts("RETEMPN", "ret_loc")
+    maz_df["ret_reg"] = getsectorcounts("RETEMPN", "ret_reg")
+    maz_df["eat"] = getsectorcounts("RETEMPN", "eat")
+    maz_df["emp_total"] = jobs_df.groupby('maz_id').size()
+    maz_df = maz_df.fillna(0)
+    emp_cols = ['ag', 'natres', 'logis', 'man_bio', 'man_hvy', 'man_lgt',
+                'man_tech', 'transp', 'util', 'eat', 'hotel', 'ret_loc',
+                'ret_reg', 'fire', 'lease', 'prof', 'serv_bus', 'art_rec',
+                'ed_high', 'ed_k12', 'ed_oth', 'health', 'serv_per',
+                'serv_soc', 'constr', 'info', 'gov']
+    for i, r in maz_df.iterrows():
+        maz_df.loc[i, emp_cols] = round_series_match_target(r[emp_cols], r.emp_total, 0)
+
+    # (5) add population 
+    maz_df["hhpop"] = hh_df.groupby('maz_id').persons.sum()
+    # use marginals dataframe to get gqpop
+    maz_df['gqpop'] = maz_marginals_df['gq_tot_pop']
+    maz_df = add_population_tm2(maz_df, year, tm1_tm2_regional_controls.to_frame().copy(deep=True))
+    maz_df['pop'] = maz_df.gqpop + maz_df.hhpop
+
+    # (6) add density variables
+    # pcl_df = parcels.to_frame(['maz_id', 'acres'])
+    pcl_df = parcels_df[["maz_id", "acres"]].copy(deep=True)
+    # bldg_df = orca.merge_tables('buildings', [buildings, parcels], columns=['maz_id', 'residential_units'])
+    bldg_df = buildings_df.copy(deep=True)
+    maz_df['ACRES'] = pcl_df.groupby('maz_id').acres.sum()
+    maz_df['residential_units'] = bldg_df.groupby('maz_id').residential_units.sum()
+    maz_df['DUDen'] = maz_df.residential_units / maz_df.ACRES
+    maz_df['EmpDen'] = maz_df.emp_total / maz_df.ACRES
+    maz_df['RetEmp'] = maz_df.hotel + maz_df.ret_loc + maz_df.ret_reg + maz_df.eat
+    maz_df['RetEmpDen'] = maz_df.RetEmp / maz_df.ACRES
+    maz_df['PopDen'] = maz_df["pop"] / maz_df.ACRES
+
+    # tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
+    # tmsum_output_dir.mkdir(parents=True, exist_ok=True)
+    maz_df.fillna(0).to_csv(tmsum_output_dir / f"{run_name}_maz_summary_{year}.csv")
+    # orca.add_table("maz_summary_df", maz_df)
+
+    del hh_df, jobs_df, buildings_df, parcels_df
+    gc.collect()
+
+
+
+def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls, 
+                   year, run_name):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Builds on output from maz_summary_alt, generating TAZ2 marginals for years 2030 and 2040 and outputs to csv.  
+    Creates further household/population demographic variables.
+
+    Args:
+        tm2_taz2_forecast_inputs (orca.table): TAZ2 zone-level inputs for generating travel model 2 variables.  More documentation needed.
+        tm1_tm2_regional_demographic_forecast (orca.table): REMI-derived regional-level inputs used to produce travel model variables.  More documentation needed.
+        tm1_tm2_regional_controls (orca.table): Controls from the regional forecast which give us employed residents and the age distribution by year.  More doumentation needed.
+        year (int): Model run year
+        run_name (str): Name of the model run
+    """
+    
+    if year not in [2030, 2040]:
+        return
+
+    # (1) bring in taz2 dataframe
+    taz2 = pd.DataFrame(index=tm2_taz2_forecast_inputs.index.copy(deep=True))
+    taz2.index.name = 'TAZ2'
+
+    # (2) summarize maz vars for household income and population
+    # maz_summary_df = orca.get_table("maz_summary_df").to_frame()
+    tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
+    tmsum_output_dir.mkdir(parents=True, exist_ok=True)
+    maz_summary_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_summary_{year}.csv",
+                                 dtype={"TAZ": np.int64},
+                                 index_col="TAZ"
+                                 )
+
+    taz2['county_name'] = maz_summary_df.groupby('TAZ').county_name.first()
+    taz2['tothh'] = maz_summary_df.groupby('TAZ').tothh.sum()
+    taz2['hh_inc_30'] = maz_summary_df.groupby('TAZ').hhincq1.sum().fillna(0)
+    taz2['hh_inc_30_60'] = maz_summary_df.groupby('TAZ').hhincq2.sum().fillna(0)
+    taz2['hh_inc_60_100'] = maz_summary_df.groupby('TAZ').hhincq3.sum().fillna(0)
+    taz2['hh_inc_100_plus'] = maz_summary_df.groupby('TAZ').hhincq4.sum().fillna(0)
+    taz2['hhpop'] = maz_summary_df.groupby('TAZ').hhpop.sum()
+    # maz_marginals_df = orca.get_table("maz_marginals_df").to_frame()
+    maz_marginals_df = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_marginals_{year}.csv",
+                               dtype={"TAZ": np.int64},
+                               index_col="TAZ"
+                               )
+
+    taz2['pop_hhsize1'] = maz_marginals_df.groupby('TAZ').hh_size_1.sum()
+    taz2['pop_hhsize2'] = maz_marginals_df.groupby('TAZ').hh_size_2.sum() * 2
+    taz2['pop_hhsize3'] = maz_marginals_df.groupby('TAZ').hh_size_3.sum() * 3
+    taz2['pop_hhsize4'] = (maz_marginals_df.groupby('TAZ').hh_size_4_plus.sum() * 4.781329).round(0)
+    taz2['pop'] = taz2.pop_hhsize1 + taz2.pop_hhsize2 + taz2.pop_hhsize3 + taz2.pop_hhsize4
+
+    # (3a) add person age, household workers, and presence of children using taz2 forecast inputs
+    t2fi = tm2_taz2_forecast_inputs.to_frame().copy(deep=True)
+    taz2['pers_age_00_19'] = taz2['hhpop'] * t2fi.shra1_2010
+    taz2['pers_age_20_34'] = taz2['hhpop'] * t2fi.shra2_2010
+    taz2['pers_age_35_64'] = taz2['hhpop'] * t2fi.shra3_2010
+    taz2['pers_age_65_plus'] = taz2['hhpop'] * t2fi.shra4_2010
+    taz2['hh_wrks_0'] = taz2['tothh'] * t2fi.shrw0_2010
+    taz2['hh_wrks_1'] = taz2['tothh'] * t2fi.shrw1_2010
+    taz2['hh_wrks_2'] = taz2['tothh'] * t2fi.shrw2_2010
+    taz2['hh_wrks_3_plus'] = taz2['tothh'] * t2fi.shrw3_2010
+    taz2['hh_kids_no'] = taz2['tothh'] * t2fi.shrn_2010
+    taz2['hh_kids_yes'] = taz2['tothh'] * t2fi.shry_2010
+    # (3b) adjust person age, household workers, and presence of children with the regional demographic forecast
+    rdf = tm1_tm2_regional_demographic_forecast.to_frame().copy(deep=True)
+    taz2 = adjust_hhwkrs(taz2, year, rdf, taz2.tothh.sum())
+    taz2 = adjust_page(taz2, year, tm1_tm2_regional_controls.to_frame().copy(deep=True))
+    taz2 = adjust_hhkids(taz2, year, rdf, taz2.tothh.sum())
+
+    taz2 = taz2.fillna(0)
+    # tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
+    # tmsum_output_dir.mkdir(parents=True, exist_ok=True)
+    taz2.to_csv(tmsum_output_dir / f"{run_name}_taz2_marginals_{year}.csv")
+    # save info to be used to produce county marginals
+    # orca.add_table("taz2_summary_df", taz2)
+
+
+
+def county_marginals_alt(tm2_occupation_shares, year, run_name):
+    """
+    This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+
+    Builds on output from maz_summary_alt and taz2_marginals_alt, generating county-level marginals for years 2030 and 2040 and 
+    outputs to csv.  Aggregates population and occupation characteristics.
+
+    Args:
+        tm2_occupation_shares (orca.table): The forecasted share of jobs by occupation and county, used for travel model 2.
+        year (int): Model run year
+        run_name (str): Name of the model run
+    """
+
+    if year not in [2030, 2040]:
+        return
+
+    tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
+    tmsum_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # maz = orca.get_table("maz_summary_df").to_frame()
+    maz = pd.read_csv(tmsum_output_dir / f"{run_name}_maz_summary_{year}.csv")
+
+    # taz2 = orca.get_table("taz2_summary_df").to_frame()
+    taz2 = pd.read_csv(tmsum_output_dir / f"{run_name}_taz2_marginals_{year}.csv")
+    
+    # (1) initialize county dataframe
+    county = pd.DataFrame(index=maz.county_name.unique())
+
+    maz = maz.set_index("county_name")
+    taz2 = taz2.set_index("county_name")
+
+    # (2) add population
+    county['gqpop'] = maz.groupby('county_name').gqpop.sum()
+    county['pop'] = maz.groupby('county_name').pop.sum()
+
+    # (3) add occupations
+    county[['hh_wrks_1', 'hh_wrks_2', 'hh_wrks_3_plus']] = taz2.groupby('county_name').agg({'hh_wrks_1': 'sum',
+                                                                                            'hh_wrks_2': 'sum',
+                                                                                            'hh_wrks_3_plus': 'sum'})
+    county['workers'] = (county.hh_wrks_1 + county.hh_wrks_2 * 2 + county.hh_wrks_3_plus * 3.474036).round(0)
+    cef = tm2_occupation_shares.to_frame().copy(deep=True)
+    cef = cef.loc[cef.year == year].set_index('county_name')
+    county['pers_occ_management'] = county.workers * cef.shr_occ_management
+    county['pers_occ_management'] = round_series_match_target(county['pers_occ_management'], np.round(county['pers_occ_management'].sum()), 0)
+    county['pers_occ_professional'] = county.workers * cef.shr_occ_professional
+    county['pers_occ_professional'] = round_series_match_target(county['pers_occ_professional'], np.round(county['pers_occ_professional'].sum()), 0)
+    county['pers_occ_services'] = county.workers * cef.shr_occ_services
+    county['pers_occ_services'] = round_series_match_target(county['pers_occ_services'], np.round(county['pers_occ_services'].sum()), 0)
+    county['pers_occ_retail'] = county.workers * cef.shr_occ_retail
+    county['pers_occ_retail'] = round_series_match_target(county['pers_occ_retail'], np.round(county['pers_occ_retail'].sum()), 0)
+    county['pers_occ_manual'] = county.workers * cef.shr_occ_manual
+    county['pers_occ_manual'] = round_series_match_target(county['pers_occ_manual'], np.round(county['pers_occ_manual'].sum()), 0)
+    county['pers_occ_military'] = county.workers * cef.shr_occ_military
+    county['pers_occ_military'] = round_series_match_target(county['pers_occ_military'], np.round(county['pers_occ_military'].sum()), 0)
+
+    # tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
+    # tmsum_output_dir.mkdir(parents=True, exist_ok=True)
+    county.fillna(0).to_csv(tmsum_output_dir / f"{run_name}_county_marginals_{year}.csv")
