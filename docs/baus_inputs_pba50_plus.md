@@ -1,8 +1,3 @@
-
-
-# Test
-Testing whether github action to automatically publish gh-pages on doc edit, commit, push
-
 # Plan Bay Area 2050+ BAUS Strategy Inputs
 
 This page documents strategy input files used in BAUS modeling for *Plan Bay Area 2050+*. The primary purpose of this documentation is to clearly identify and record the specific versions of input files used in model runs for both the *No Project Alternative* and the *Plan* scenarios.  It also includes a high-level overview of how inputs are utilized in BAUS.
