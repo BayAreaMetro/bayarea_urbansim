@@ -28,5 +28,10 @@
     "version": "basis_data_update",
     "title": "basis_data_update",
     "aliases": []
+  },
+  {
+    "version": "2.6.2",
+    "title": "2.6.2",
+    "aliases": []
   }
 ]
