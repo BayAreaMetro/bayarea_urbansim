@@ -437,6 +437,7 @@ def run_models(mode, run_setup, years_to_run):
                 "region_marginals",
                 "taz1_growth_summary",
                 "maz_growth_summary",
+
             ]
 
             if not run_setup["run_slr_summaries"]:
@@ -547,6 +548,35 @@ if SLACK and MODE == "simulation":
 
 try:
     run_models(MODE, run_setup, years_to_run)
+
+    # Run alt travel model summary functions for 2030 and 2040
+    # This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
+    if MODE == "simulation":
+        alt_years = [2030, 2040]
+        for year in alt_years:
+            # Get required orca tables
+            maz = orca.get_table('maz')
+            tm1_tm2_maz_forecast_inputs = orca.get_table('tm1_tm2_maz_forecast_inputs')
+            tm1_tm2_regional_demographic_forecast = orca.get_table('tm1_tm2_regional_demographic_forecast')
+            tm2_emp27_employment_shares = orca.get_table('tm2_emp27_employment_shares')
+            tm1_tm2_regional_controls = orca.get_table('tm1_tm2_regional_controls')
+            tm2_taz2_forecast_inputs = orca.get_table('tm2_taz2_forecast_inputs')
+            tm2_occupation_shares = orca.get_table('tm2_occupation_shares')
+            run_name = orca.get_injectable('run_name')
+
+            # Call the alt TM functions to fun in isolation from other summaries
+            travel_model_summaries.maz_marginals_alt(
+                maz, year, tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, run_name
+            )
+            travel_model_summaries.maz_summary_alt(
+                maz, year, tm2_emp27_employment_shares, tm1_tm2_regional_controls, run_name
+            )
+            travel_model_summaries.taz2_marginals_alt(
+                tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls, year, run_name
+            )
+            travel_model_summaries.county_marginals_alt(
+                tm2_occupation_shares, year, run_name
+            )
     
 except Exception as e:
     logger.info(traceback.print_exc())
