@@ -30,7 +30,8 @@ def deed_restricted_affordable_share(
         modelrun_id: str,
         modelrun_data: dict,
         output_path: str,
-        append_output: bool
+        append_output: bool,
+        county_level_output: bool,
     ):
     """
     Calculate the share of housing that is deed-restricted affordable at the regional level, 
@@ -43,6 +44,7 @@ def deed_restricted_affordable_share(
     - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
     - output_path (str or Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing
+    - county_level_output (bool): True if summarizing by county; False if by region
 
     Writes metrics_affordable2_deed_restricted_pct.csv to output_path, appending if append_output is True. Columns are:
     - modelrun_id
@@ -74,6 +76,7 @@ def deed_restricted_affordable_share(
         area_list = ['HRA','EPC','Region']
     elif rtp == 'RTP2025':
         area_list = ['HRA','EPC_18','EPC_22','Region']
+    
     for year in SUMMARY_YEARS:
         for area in area_list:
             filter_condition = metrics_utils.PARCEL_AREA_FILTERS[rtp][area]
@@ -83,9 +86,17 @@ def deed_restricted_affordable_share(
                 df_area = modelrun_data[year]['parcel']
             logging.debug("area={} df_area len={:,}".format(area, len(df_area)))
 
-            deed_restricted_units = df_area['deed_restricted_units'].sum()
-            residential_units     = df_area['residential_units'].sum()
-            preserved_units       = df_area['preserved_units'].sum()
+            # Handle county-level summary
+            if county_level_output == True:
+                deed_restricted_units = df_area.groupby('county')['deed_restricted_units'].sum()
+                residential_units     = df_area.groupby('county')['residential_units'].sum()
+                preserved_units       = df_area.groupby('county')['preserved_units'].sum()
+            # Handle region-level summary
+            else:
+                deed_restricted_units = df_area['deed_restricted_units'].sum()
+                residential_units     = df_area['residential_units'].sum()
+                preserved_units       = df_area['preserved_units'].sum()
+
             if area=='Region':
                 if year == HORIZON_YEAR:
                     # RTP2021: assume additional deed restricted units created: preserved and pipeline
@@ -104,18 +115,34 @@ def deed_restricted_affordable_share(
             if year == INITIAL_YEAR:
                 deed_restricted_units = deed_restricted_units - preserved_units
 
-            summary_list.append({
-                'modelrun_id'             : modelrun_id,
-                'modelrun_alias'          : f"{year} {modelrun_alias}",
-                'year'                    : year,
-                'area'                    : area,
-                'deed_restricted_units'   : deed_restricted_units,
-                'preserved_units'         : preserved_units,
-                'residential_units'       : residential_units,
-                'deed_restricted_produced': deed_restricted_units - preserved_units,  # produced = not preserved
-                # share of all units
-                'deed_restricted_share_of_all_units' : (deed_restricted_units / residential_units) if residential_units > 0 else 0,
-            })
+            # Build county-level summary list
+            if county_level_output == True:
+                for county in deed_restricted_units.index:
+                    summary_list.append({
+                        'modelrun_id'             : modelrun_id,
+                        'modelrun_alias'          : f"{year} {modelrun_alias}",
+                        'year'                    : year,
+                        'area'                    : area,
+                        'county'                  : county,
+                        'deed_restricted_units'   : deed_restricted_units[county],
+                        'preserved_units'         : preserved_units[county],
+                        'residential_units'       : residential_units[county],
+                        'deed_restricted_produced': deed_restricted_units[county] - preserved_units[county],
+                        'deed_restricted_share_of_all_units' : (deed_restricted_units[county] / residential_units[county]) if residential_units[county] > 0 else 0,
+                    })
+            # Build region-level summary list
+            else:
+                summary_list.append({
+                    'modelrun_id'             : modelrun_id,
+                    'modelrun_alias'          : f"{year} {modelrun_alias}",
+                    'year'                    : year,
+                    'area'                    : area,
+                    'deed_restricted_units'   : deed_restricted_units,
+                    'preserved_units'         : preserved_units,
+                    'residential_units'       : residential_units,
+                    'deed_restricted_produced': deed_restricted_units - preserved_units,
+                    'deed_restricted_share_of_all_units' : (deed_restricted_units / residential_units) if residential_units > 0 else 0,
+                })
 
     # Create the results DataFrame
     summary_df = pd.DataFrame(summary_list)
@@ -129,17 +156,35 @@ def deed_restricted_affordable_share(
 
     # part two - new units
     # Doing this with the same code because it depends on the above code, and repeating it doesn't make sense
-    summary_initial_df = summary_df.loc[summary_df.year == INITIAL_YEAR, ['modelrun_id','area','deed_restricted_units','preserved_units','residential_units','deed_restricted_produced']]
-    summary_horizon_df = summary_df.loc[summary_df.year == HORIZON_YEAR, ['modelrun_id','area','deed_restricted_units','preserved_units','residential_units','deed_restricted_produced']]
-    logging.debug("summary_initial_df:\n{}".format(summary_initial_df))
-    summary_wide_df = pd.merge(
-        left     = summary_initial_df,
-        right    = summary_horizon_df,
-        on       = ['modelrun_id','area'],
-        how      = 'left',
-        suffixes = [f'_{INITIAL_YEAR}',f'_{HORIZON_YEAR}'],
-        validate = 'one_to_one'
-    )
+    # Build wide df for county-level output
+    if county_level_output == True:
+        summary_initial_df = summary_df.loc[summary_df.year == INITIAL_YEAR, ['modelrun_id','county','area','deed_restricted_units','preserved_units','residential_units','deed_restricted_produced']]
+        summary_horizon_df = summary_df.loc[summary_df.year == HORIZON_YEAR, ['modelrun_id','county','area','deed_restricted_units','preserved_units','residential_units','deed_restricted_produced']]
+
+        logging.debug("summary_initial_df:\n{}".format(summary_initial_df))
+        summary_wide_df = pd.merge(
+            left     = summary_initial_df,
+            right    = summary_horizon_df,
+            on       = ['modelrun_id', 'county', 'area'],
+            how      = 'left',
+            suffixes = [f'_{INITIAL_YEAR}',f'_{HORIZON_YEAR}'],
+            validate = 'one_to_one'
+        )
+    # Build wide df for region-level output
+    else:
+        summary_initial_df = summary_df.loc[summary_df.year == INITIAL_YEAR, ['modelrun_id','area','deed_restricted_units','preserved_units','residential_units','deed_restricted_produced']]
+        summary_horizon_df = summary_df.loc[summary_df.year == HORIZON_YEAR, ['modelrun_id','area','deed_restricted_units','preserved_units','residential_units','deed_restricted_produced']]
+        
+        logging.debug("summary_initial_df:\n{}".format(summary_initial_df))
+        summary_wide_df = pd.merge(
+            left     = summary_initial_df,
+            right    = summary_horizon_df,
+            on       = ['modelrun_id','area'],
+            how      = 'left',
+            suffixes = [f'_{INITIAL_YEAR}',f'_{HORIZON_YEAR}'],
+            validate = 'one_to_one'
+        )
+        
     # growth in deed restricted units and residential units overall
     summary_wide_df['deed_restricted_prod_diff'] = summary_wide_df[f'deed_restricted_produced_{HORIZON_YEAR}'] - \
                                                    summary_wide_df[f'deed_restricted_produced_{INITIAL_YEAR}']

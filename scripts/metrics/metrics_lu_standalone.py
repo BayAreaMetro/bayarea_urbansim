@@ -164,7 +164,8 @@ def main():
 
         if (args.only == None) or (args.only == 'affordable'):
             metrics_affordable.deed_restricted_affordable_share(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output,
+                county_level_output=False)
     
             metrics_affordable.at_risk_housing_preserve_share(
                 SUMMARY_YEARS[-1], modelrun_alias, modelrun_id, OUTPUT_PATH, append_output)
