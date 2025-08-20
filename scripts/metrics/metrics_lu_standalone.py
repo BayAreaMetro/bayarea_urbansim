@@ -229,7 +229,7 @@ def main():
                 BOX_DIR, args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             metrics_healthy.ugb_development_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path,
-                OUTPUT_PATH, append_output)
+                OUTPUT_PATH, append_output, county_level_output=False)
             metrics_healthy.slr_protection_v2(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 

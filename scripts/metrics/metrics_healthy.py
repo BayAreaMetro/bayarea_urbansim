@@ -763,6 +763,7 @@ def ugb_development_share(
     run_directory_path: pathlib.Path,
     output_path: pathlib.Path,
     append_output: bool,
+    county_level_output: bool,
 ):
     """
     Calculate and export the share of development that falls on parcels within the urban growth boundary
@@ -776,6 +777,7 @@ def ugb_development_share(
     - run_directory_path (Path): The directory path for this model run.
     - output_path (Path): The directory path to save the output CSV file.
     - append_output (bool): True if appending output; False if writing.
+    - county_level_output (bool): True if summarizing new dev in ugb by county; False if by region
     """
     logging.info("Calculating ugb_development_share")
 
@@ -829,23 +831,53 @@ def ugb_development_share(
     ]
 
     # Calculate share of "all development" (in terms of building_sqft) that occurred on "dense greenfield parcels"
-    total_development = new_buildings["building_sqft"].sum()
-    dense_greenfield_development = new_buildings.loc[
-        new_buildings["parcel_id"].isin(dense_greenfield_parcels), "building_sqft"
-    ].sum()
-    greenfield_development_pct = dense_greenfield_development / total_development
+    if county_level_output:
 
-    # Add metadata, format, and export to CSV
-    greenfield_development_df = pd.DataFrame(
-        {
-            "modelrun_id": modelrun_id,
-            "modelrun_alias": modelrun_alias,
-            "area_alias": "Regionwide",
-            "area": "all",
-            "development_in_urban_footprint_pct": 1 - greenfield_development_pct,
-        },
-        index=[0],
-    )
+        # Handle county-level calculation
+        county_results = []
+
+        # Load parcel ids by county and merge with new buildings
+        parcel_county = modelrun_data[2050]["parcel"][["parcel_id", "county"]].copy()
+        new_buildings = new_buildings.merge(parcel_county, on="parcel_id", how="left")
+
+        for county in new_buildings["county"].dropna().unique():
+            # Subset buildings by county in each iteration
+            county_buildings = new_buildings[new_buildings["county"] == county]
+            # Calculate the total building sqft
+            total_development = county_buildings["building_sqft"].sum()
+            # Calculate the total building sqft in dense greenfield parcels
+            dense_greenfield_development = county_buildings.loc[
+                county_buildings["parcel_id"].isin(dense_greenfield_parcels), "building_sqft"
+            ].sum()
+            # Calculation greenfield development percentage
+            greenfield_development_pct = dense_greenfield_development / total_development
+            # Add metadata
+            county_results.append({
+                "modelrun_id": modelrun_id,
+                "modelrun_alias": modelrun_alias,
+                "area_alias": county,
+                "development_in_urban_footprint_pct": 1 - greenfield_development_pct,
+            })
+        greenfield_development_df = pd.DataFrame(county_results)
+
+    # Handle the region-wide calculation for greenfield dev percentage
+    else:
+        total_development = new_buildings["building_sqft"].sum()
+        dense_greenfield_development = new_buildings.loc[
+            new_buildings["parcel_id"].isin(dense_greenfield_parcels), "building_sqft"
+        ].sum()
+        greenfield_development_pct = dense_greenfield_development / total_development
+        greenfield_development_df = pd.DataFrame(
+            {
+                "modelrun_id": modelrun_id,
+                "modelrun_alias": modelrun_alias,
+                "area_alias": "Regionwide",
+                "area": "all",
+                "development_in_urban_footprint_pct": 1 - greenfield_development_pct,
+            },
+            index=[0],
+        )
+
     out_file = (
         pathlib.Path(output_path)
         / "metrics_healthy2_development_in_urban_footprint.csv"
