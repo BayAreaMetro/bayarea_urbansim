@@ -117,7 +117,9 @@ def growth_patterns_geography(rtp: str,
                               modelrun_id: str, 
                               modelrun_data: dict, 
                               output_path: str,
-                              append_output: bool):
+                              append_output: bool,
+                              county_level_output: bool,
+                              ):
     """
     Calculates the growth in total households (total_households) and total jobs (total_jobs) at different geographic levels,
     between an initial and a final summary period, and assigns the share of growth in households and jobs to each area.
@@ -129,6 +131,7 @@ def growth_patterns_geography(rtp: str,
     - modelrun_data (dict): year -> {"parcel" -> parcel DataFrame, "county" -> county DataFrame }
     - output_path (str): File path for saving the output results
     - append_output (bool): True if appending output; False if writing
+    - county_level_output (bool): True if summarizing geogs by county; False if by region
 
     Writes metrics_growthPattern_geographies.csv to output_path, apeending if append_output is True. Columns are:
     - modelrun_id
@@ -159,12 +162,26 @@ def growth_patterns_geography(rtp: str,
                 df_area = modelrun_data[year]['parcel']
             logging.debug("area={} df_area len={:,}".format(area, len(df_area)))
 
-            summary_list.append({
+            # Handle county-level growth totals for each area
+            if county_level_output == True:
+                county_group = df_area.groupby('county')
+                for county, group in county_group:
+                    summary_list.append({
+                        'modelrun_alias': f"{year} {modelrun_alias}",
+                        'area': area,
+                        'county': county,
+                        'total_households': group['tothh'].sum(),
+                        'total_jobs': group['totemp'].sum()
+                    })
+            # Handle region-level growth totals for each area
+            else:
+                summary_list.append({
                 'modelrun_alias'  : f"{year} {modelrun_alias}",
                 'area'            : area,
                 'total_households': df_area['tothh'].sum(),
                 'total_jobs'      : df_area['totemp'].sum()
             })
+
             # save regional numbers for return_dict
             if area == 'Region':
                 return_dict[year] = {
@@ -173,25 +190,39 @@ def growth_patterns_geography(rtp: str,
                 }
         summary_dfs.append( pd.DataFrame(summary_list))
 
-    # join summary initial to summary final
+    # Join initial and final totals
+    merge_on = ['county', 'area'] if county_level_output else ['area'] # county-level handle for accurate merge
     summary_final = pd.merge(
-        left  = summary_dfs[1],
-        right = summary_dfs[0].drop(columns=['modelrun_alias']),
-        on    = 'area',
+        left=summary_dfs[1],
+        right=summary_dfs[0].drop(columns=['modelrun_alias']),
+        on=merge_on,
         suffixes=('', '_initial')
     )
     logging.debug("summary_final:\n{}".format(summary_final))
 
+    # Caclculate household and job growth totals
     summary_final['hh_growth']   = summary_final['total_households'] - summary_final['total_households_initial']
     summary_final['jobs_growth'] = summary_final['total_jobs'      ] - summary_final['total_jobs_initial']
 
-    # Calculate the total regional growth to find shares
-    total_hh_growth   = summary_final.loc[summary_final.area=='Region', 'hh_growth'].sum()
-    total_jobs_growth = summary_final.loc[summary_final.area=='Region', 'jobs_growth'].sum()
-
-    # Calculate shares of growth
-    summary_final['hh_share_of_growth']   = summary_final['hh_growth'] / total_hh_growth
-    summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / total_jobs_growth
+    # Handle county-level growth shares for each area
+    if county_level_output:
+        # Get total growth per county for denominator
+        total_hh_growth_per_county = summary_final.loc[summary_final.area == 'Region'].set_index('county')['hh_growth']
+        total_jobs_growth_per_county = summary_final.loc[summary_final.area == 'Region'].set_index('county')['jobs_growth']
+        # Map the total growth per county
+        summary_final['total_hh_growth'] = summary_final['county'].map(total_hh_growth_per_county)
+        summary_final['total_jobs_growth'] = summary_final['county'].map(total_jobs_growth_per_county)
+        # Calculate share area growth for each county
+        summary_final['hh_share_of_growth'] = summary_final['hh_growth'] / summary_final['total_hh_growth']
+        summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / summary_final['total_jobs_growth']
+        summary_final.drop(columns=['total_hh_growth', 'total_jobs_growth'], inplace=True)
+    
+    # Handle region-level growth share for each area
+    else:
+        total_hh_growth   = summary_final.loc[summary_final.area=='Region', 'hh_growth'].sum()
+        total_jobs_growth = summary_final.loc[summary_final.area=='Region', 'jobs_growth'].sum()
+        summary_final['hh_share_of_growth']   = summary_final['hh_growth'] / total_hh_growth
+        summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / total_jobs_growth
 
     # Remove the growth columns if not needed in the final output
     summary_final.drop(columns=['total_households_initial', 'total_jobs_initial'], inplace=True)
@@ -200,10 +231,17 @@ def growth_patterns_geography(rtp: str,
     # Concatenate the initial and final totals.
     combined_df = pd.concat([summary_dfs[0], summary_final], ignore_index=True)
     combined_df['modelrun_id'] = modelrun_id
-    combined_df = combined_df[['modelrun_id','modelrun_alias','area',
-                               'total_households','total_jobs',
-                               'hh_growth','jobs_growth',
-                               'hh_share_of_growth','jobs_share_of_growth']]
+    
+    if county_level_output:
+        combined_df = combined_df[['modelrun_id', 'modelrun_alias', 'county', 'area',
+                                   'total_households', 'total_jobs',
+                                   'hh_growth', 'jobs_growth',
+                                   'hh_share_of_growth', 'jobs_share_of_growth']]
+    else:
+        combined_df = combined_df[['modelrun_id', 'modelrun_alias', 'area',
+                                   'total_households', 'total_jobs',
+                                   'hh_growth', 'jobs_growth',
+                                   'hh_share_of_growth', 'jobs_share_of_growth']]
 
     filename = "metrics_growthPattern_geographies.csv"
     filepath = output_path / filename
