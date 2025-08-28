@@ -1,0 +1,209 @@
+# list the columns defining the parcel classes
+zoningmodcat_cols: ["gg_id", "exd_id", "tra_id", "toc_id","hra_id", "ppa_id", "ugb_id"]
+
+#input_file: "basis_inputs/crosswalks/fbp_urbansim_parcel_classes.csv"
+#input_file: "basis_inputs/crosswalks/fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_update_2025.csv"
+#input_fule: "basis_inputs/crosswalks/fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_toc_may_8_2025.csv"
+#toc_file: "basis_inputs/crosswalks/urbansim_toc.csv"
+#output_file: "plan_strategies/zoning_mods_PBA50Plus_FBP_MAR7_2025.csv"
+#output_file: "plan_strategies/zoning_mods_PBA50Plus_EIRALT_MAY8_2025.csv"
+
+args:
+  pg_input_file: "M:/urban_modeling/baus/BAUS Inputs/basis_inputs/crosswalks/fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_toc_may_9_2025.csv"
+  mods_scenario: EIR
+  mods_output_file: "M:/urban_modeling/baus/BAUS Inputs/plan_strategies/zoning_mods_PBA50Plus_FBP_EIR_ALT2_VAR3_aug_27_2025.csv"
+  incl_output_yaml_file: "M:/urban_modeling/baus/BAUS Inputs/plan_strategies/inclusionary_strategy_PBA50Plus_FBP_EIR_ALT2_VAR3_aug_27_2025.yaml"
+  
+
+zoning_modifications:
+  - category: GG_TRA1_HRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_1'", "hra_id == 'hra'", "toc_id == 'toc'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 500
+      far_up: 20
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA1_HRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_1'", "hra_id == 'hra'", "toc_id == 'toc'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 250
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA1_NonHRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_1'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id != 'exd'"]
+    updates:
+      dua_up: 500
+      far_up: 20
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA1_NonHRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_1'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id == 'exd'"]
+    updates:
+      dua_up: 250
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA2_HRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_2'", "hra_id == 'hra'",  "toc_id == 'toc'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 350
+      far_up: 20
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA2_HRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_2'", "hra_id == 'hra'", "toc_id == 'toc'",  "exd_id == 'exd'"]
+    updates:
+      dua_up: 200
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA2_NonHRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_2'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id != 'exd'"]
+    updates:
+      dua_up: 350
+      far_up: 20
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA2_NonHRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_2'", "hra_id != 'hra'",  "toc_id == 'toc'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 200
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA3_HRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_3'", "hra_id == 'hra'", "toc_id == 'toc'",  "exd_id != 'exd'"]
+    updates:
+      dua_up: 300
+      far_up: 15
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA3_HRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_3'", "hra_id == 'hra'", "toc_id == 'toc'",  "exd_id == 'exd'"]
+    updates:
+      dua_up: 150
+      add_bldg: 'HM MR'
+
+  # new categories
+  - category: GG_TRA3_NonHRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_3'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id != 'exd'"]
+    updates:
+      dua_up: 300
+      far_up: 15
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA3_NonHRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_3'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id == 'exd'"]
+    updates:
+      dua_up: 150
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA4_HRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_4'", "hra_id == 'hra'", "toc_id == 'toc'",  "exd_id != 'exd'"]
+    updates:
+      dua_up: 275
+      far_up: 10
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA4_HRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_4'", "hra_id == 'hra'", "toc_id == 'toc'",  "exd_id == 'exd'"]
+    updates:
+      dua_up: 150
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA4_NonHRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_4'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id != 'exd'"]
+    updates:
+      dua_up: 275
+      far_up: 10
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA4_NonHRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_4'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id == 'exd'"]
+    updates:
+      dua_up: 150
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA5_HRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_5'", "hra_id == 'hra'", "toc_id == 'toc'",  "exd_id != 'exd'"]
+    updates:
+      dua_up: 150
+      far_up: 5
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA5_HRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_5'", "hra_id == 'hra'", "toc_id == 'toc'",  "exd_id == 'exd'"]
+    updates:
+      dua_up: 100
+      add_bldg: 'HM MR'
+
+  - category: GG_TRA5_NonHRA_TOC_NonRes
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_5'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id != 'exd'"]
+    updates:
+      dua_up: 150
+      far_up: 5
+      add_bldg: 'HT HM OF HO SC RS RB MR MT ME'
+
+  - category: GG_TRA5_NonHRA_TOC_Res
+    conditions: ["gg_id == 'gg'", "tra_id == 'tra_5'", "hra_id != 'hra'", "toc_id == 'toc'",  "exd_id == 'exd'"]
+    updates:
+      dua_up: 100
+      add_bldg: 'HM MR'
+
+
+  - category: PPA_Zoning_NonRes   
+    conditions: ["ppa_id == 'ppa'", "exd_id != 'exd'"]
+    updates:
+      dua_up: 0
+      far_up: .35
+      add_bldg: null
+      drop_bldg: 'HT HM HS OF HO SC RS RB MR MT ME'
+      dua_down: 0
+      far_down: 0
+
+  - category: PPA_Zoning_Res
+    conditions: ["ppa_id == 'ppa'", "exd_id == 'exd'"]
+    updates:
+      dua_up: 0
+      far_up: 0
+      add_bldg: null
+      drop_bldg: 'HT HM HS OF HO SC RS RB MR MT ME'
+      dua_down: 0
+      far_down: 0
+
+# should still be fine as a residual
+  - category: GG_No_TRA_No_PPA
+    conditions: ["gg_id == 'gg'", "tra_id == 'nan'", "ppa_id == 'nan'"]
+    updates:
+      dua_up: null
+      far_up: null
+
+# constrain development outside ugbs
+  - category: Outside_UGB_Zoning
+    conditions: ["ugb_id != 'ugb' "]
+    updates:
+      dua_down: 0
+      far_down: 0
+      far_up: 0
+      dua_up: 0
+      add_bldg: null
+      drop_bldg: null
+
+
+inclusionary:
+  - category: GG_TRA_HRA_TOC
+    conditions: ["gg_id == 'gg'", "(tra_id=='tra_1' or tra_id=='tra_2' or tra_id=='tra_3' or tra_id=='tra_4' or tra_id=='tra_5')", 
+    "hra_id == 'hra' ","toc_id == 'toc'" ]
+    value: .20 
+  - category: GG_TRA5_NO_HRA_TOC
+    conditions: ["gg_id == 'gg'", "(tra_id=='tra_1' or tra_id=='tra_2' or tra_id=='tra_3' or tra_id=='tra_4' or tra_id=='tra_5')" ,
+     "hra_id != 'hra' ","toc_id == 'toc'"]
+    value: .15 
+
+
+  # - category: REMAINDER
+  #   conditions: 
+  #     - >
+  #       (gg_id == 'gg' and not (
+  #       (tra_id in ['tra_1', 'tra_2', 'tra_3', 'tra_4', 'tra_5'] and hra_id == 'hra' and toc_id=='toc') or 
+  #       (tra_id in ['tra_1', 'tra_2', 'tra_3', 'tra_4', 'tra_5'] and hra_id != 'hra' and toc_id!='toc') or 
+  #       (tra_id == 'tra_6' and hra_id == 'hra' and toc_id!='toc')
+  #       )) or (gg_id != 'gg')
+  #   value: 0.10
