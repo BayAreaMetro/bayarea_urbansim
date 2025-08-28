@@ -78,6 +78,8 @@ if USERNAME.lower() in ['lzorn', 'jahrenholtz']: # need to standardize to E:Box
     BOX_DIR = pathlib.Path("E:/Box")
 elif USERNAME.lower() in ['aolsen']:
     BOX_DIR = HOME_DIR /'Library/CloudStorage/Box-Box'
+elif USERNAME.lower() in ['ywang']:
+    BOX_DIR = r'C:\Users\ywang\Box'
 else:
     BOX_DIR = HOME_DIR / 'Box'
 
@@ -89,6 +91,7 @@ def load_data_for_runs(
         METRICS_DIR: pathlib.Path,
         run_directory_path: pathlib.Path,
         modelrun_alias: str,
+        horizon_year: int,
         no_interpolate: bool = False,
         skip_base_year: bool = False
     ):
@@ -503,7 +506,7 @@ def load_data_for_runs(
             modelrun_data[2020] = {}
             if not no_interpolate:
                 modelrun_data[2025] = {}  # for later interpolation to 2023
-        modelrun_data[2050]  = {}
+        modelrun_data[horizon_year] = {}
         parcel_pattern       = "core_summaries/*_parcel_summary_{}.csv"
         geo_summary_pattern  = "geographic_summaries/*_county_summary_{}.csv"
         taz1_summary_pattern = "travel_model_summaries/*_taz1_summary_{}.csv"
@@ -670,7 +673,7 @@ def load_data_for_runs(
     
         # define analysis years
         modelrun_data[2015] = {}
-        modelrun_data[2050] = {}
+        modelrun_data[horizon_year] = {}
         parcel_pattern       = "*_parcel_data_{}.csv"
         geo_summary_pattern  = "*_county_summaries_{}.csv"
         taz1_summary_pattern = "*_taz_summaries_{}.csv"
