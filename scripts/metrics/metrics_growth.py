@@ -5,7 +5,7 @@ import pandas as pd
 import logging, pathlib
 import metrics_utils
 
-def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, output_path, append_output):
+def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, horizon_year, modelrun_data, regional_hh_jobs_dict, output_path, append_output):
     """
     Calculates the growth in total households and total jobs at the county, jurisdiction, and superdistrict level, 
     between an initial and a final summary period, and assigns the share of growth in households and jobs to each county/jurisdiction/SD.
@@ -106,7 +106,7 @@ def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, modelr
             'hh_share_of_growth', 'jobs_share_of_growth']]
         logging.debug("combined_df:\n{}".format(combined_df))
 
-        filename = f"metrics_growthPattern_{geography}.csv"
+        filename = f"metrics_growthPattern_{geography}_{horizon_year}.csv"
         filepath = output_path / filename
 
         combined_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
@@ -115,6 +115,7 @@ def growth_patterns_county_jurisdiction(rtp, modelrun_alias, modelrun_id, modelr
 def growth_patterns_geography(rtp: str,
                               modelrun_alias: str, 
                               modelrun_id: str, 
+                              horizon_year: int,
                               modelrun_data: dict, 
                               output_path: str,
                               append_output: bool,
@@ -243,7 +244,7 @@ def growth_patterns_geography(rtp: str,
                                    'hh_growth', 'jobs_growth',
                                    'hh_share_of_growth', 'jobs_share_of_growth']]
 
-    filename = "metrics_growthPattern_geographies.csv"
+    filename = f"metrics_growthPattern_geographies_{horizon_year}.csv"
     filepath = output_path / filename
 
     combined_df.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
