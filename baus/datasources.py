@@ -327,6 +327,35 @@ def store(run_name):
 
 @orca.injectable(cache=True)
 def limits_settings(development_caps, run_setup):
+    """
+    Create combined development limits/caps for annual maximum job spaces and residential units.
+    
+    This function merges development constraints from multiple config giles to create the
+    final limits used by the developer models to constrain annual construction by geography
+    (jurisdiction or county).
+    
+    Configuration Sources:
+    ----------------------
+    1. Base caps (development_caps.yaml): Contains office/commercial caps representing real-world
+       policies like SF Prop M, Palo Alto office limits, etc.
+    2. Asserted caps (development_caps_asserted.yaml): Contains residential caps that are overlaid
+       when 'asserted_development_caps: True' in run_setup
+    3. Job cap strategy: Additional employment caps from development strategy if enabled
+    
+    Returns:
+    --------
+    dict: Combined development limits with structure:
+        {
+            'Office': {'San Francisco': 1500000, 'Palo Alto': 500000, ...},
+            'Residential': {'Cloverdale': 50, 'Fairfax': 8, ...}
+        }
+    
+    Usage:
+    ------
+    These annual limits are enforced by the developer models each simulation year.
+    Numbers represent the maximum units/sqft that can be built per year in each geography.
+    Without limits, residential development is uncapped by default.
+    """
     # for limits, we inherit from the default settings, and update these with the policy settings, if applicable
     # limits set the annual maximum number of job spaces or residential units that may be built in a geography
 
