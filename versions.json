@@ -7,6 +7,11 @@
     ]
   },
   {
+    "version": "lcm_probs",
+    "title": "lcm_probs",
+    "aliases": []
+  },
+  {
     "version": "generic_tracing_tools",
     "title": "generic_tracing_tools",
     "aliases": []
@@ -20,8 +25,8 @@
     "version": "docs_test",
     "title": "docs_test",
     "aliases": [
-      "alias=latest",
-      "alias=lastest"
+      "alias=lastest",
+      "alias=latest"
     ]
   },
   {
