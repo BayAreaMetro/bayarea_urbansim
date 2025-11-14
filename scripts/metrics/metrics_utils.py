@@ -63,8 +63,8 @@ PARCEL_AREA_FILTERS = {
             'nonEPC_22' : lambda df: df['tract20_epc'] != 1,
             'PPA'       : lambda df: df['ppa_id'] == 'PPA',
             'Region'    : None,
-            'TOC'       : lambda df: pd.notna(df['service_tier']), # may want to exapnd across each tier
-            'nonTOC'    : lambda df: pd.isna(df['service_tier'])
+            'TOC'       : lambda df: df['toc_id'] == 'toc',
+            'nonTOC'    : lambda df: pd.isna(df['toc_id'])
     }
 }
 
@@ -451,16 +451,11 @@ def load_data_for_runs(
 
             # parcels to TOC crosswalk needed for TOC service tier summaries 
 
-            PARCEL_TOC_FILE = METRICS_DIR / "metrics_input_files" / "urbansim_toc.csv"
-            rtp2025_parcel_toc_crosswalk_df = pd.read_csv(PARCEL_TOC_FILE, usecols=['parcel_id','service_tier'])
+            PARCEL_TOC_FILE = METRICS_DIR / "metrics_input_files" / "urbansim_toc_may2025.csv"
+            rtp2025_parcel_toc_crosswalk_df = pd.read_csv(PARCEL_TOC_FILE, usecols=['parcel_id','toc_id'])
 
             # make parcel id int
             rtp2025_parcel_toc_crosswalk_df['parcel_id'] = rtp2025_parcel_toc_crosswalk_df['parcel_id'].astype(int)
-            # replace numerical tiers with categories
-            rtp2025_parcel_toc_crosswalk_df['service_tier'].replace(
-                {1: 'TOC1', 2: 'TOC2', 3: 'TOC3', 4: 'TOC4'},
-                inplace=True
-            )
 
             logging.debug("rtp2025_parcel_toc_crosswalk_df.head():\n{}".format(rtp2025_parcel_toc_crosswalk_df))
             logging.debug("rtp2025_parcel_toc_crosswalk_df.dtypes():\n{}".format(rtp2025_parcel_toc_crosswalk_df.dtypes))
