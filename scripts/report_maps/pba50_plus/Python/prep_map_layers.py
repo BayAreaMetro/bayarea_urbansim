@@ -77,6 +77,13 @@ METRICS_PARCEL_DIR = Path(
     "parcel_data") # This is written from an intermediate state from the metrics scripts
 
 
+# Module-level cache for BAUS parcels
+_cached_baus_parcels_gdf = None
+
+# Module-level cache for Redwood Ferry TRA
+_cached_redwood_ferry_tra_gdf = None
+
+
 # Helper function to ensure map data directory exists
 def ensure_map_data_dir():
     """Create MAP_DATA_DIR if it doesn't exist."""
@@ -102,6 +109,42 @@ def load_and_validate_baus_parcels():
     print(f"Final invalid geometries: {len(invalid)}")
     
     return baus_parcels_gdf
+
+
+def get_baus_parcels_gdf():
+    """Get BAUS parcels, loading only once and caching for reuse.
+    
+    Returns:
+        GeoDataFrame with validated BAUS parcel geometries
+    """
+    global _cached_baus_parcels_gdf
+    
+    if _cached_baus_parcels_gdf is None:
+        print("Loading and validating BAUS parcels (will be cached for reuse)...")
+        _cached_baus_parcels_gdf = load_and_validate_baus_parcels()
+        print(f"Loaded {len(_cached_baus_parcels_gdf)} valid parcels (cached)\n")
+    else:
+        print("Using cached BAUS parcels")
+    
+    return _cached_baus_parcels_gdf
+
+
+def get_redwood_ferry_tra_gdf():
+    """Get Redwood Ferry TRA, loading only once and caching for reuse.
+    
+    Returns:
+        GeoDataFrame with Redwood Ferry TRA
+    """
+    global _cached_redwood_ferry_tra_gdf
+    
+    if _cached_redwood_ferry_tra_gdf is None:
+        print("Loading Redwood Ferry TRA (will be cached for reuse)...")
+        _cached_redwood_ferry_tra_gdf = create_transit_rich_areas_layer()
+        print("Redwood Ferry TRA cached\n")
+    else:
+        print("Using cached Redwood Ferry TRA")
+    
+    return _cached_redwood_ferry_tra_gdf
 
 
 # 1: TAZ-level Maps
@@ -209,18 +252,21 @@ def create_public_land_development_layer():
 
 
 # 4. Urban Growth Boundaries
-def create_urban_growth_boundary_layer(baus_parcels_gdf):
+def create_urban_growth_boundary_layer(baus_parcels_gdf=None):
     """Create Urban Growth Boundary layers for different scenarios.
     
     Args:
-        baus_parcels_gdf: GeoDataFrame with validated parcel geometries
+        baus_parcels_gdf: GeoDataFrame with validated parcel geometries.
+                         If None, will load from cache or file.
     """    
-    ensure_map_data_dir()    
+    ensure_map_data_dir()
+    
+    if baus_parcels_gdf is None:
+        baus_parcels_gdf = get_baus_parcels_gdf()
 
     PARCEL_FILES = [ # NP and Plan use different UGB defined in seperate parcel geo files
         "parcels_geography_NP_2024_04_29.csv",
-        # "parcels_geography_2024_02_14.csv"
-        "fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_toc_may_9_2025.csv"
+        "fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_update_2025.csv"
     ]
     SCENARIO_NAMES = [
         "no_project",
@@ -237,6 +283,8 @@ def create_urban_growth_boundary_layer(baus_parcels_gdf):
 
         print(f"  UGB value counts before filter for {name}:")
         print(ugb_df["ugb_id"].value_counts(dropna=False))
+
+        # ugb_dfs[name] = ugb_df.copy() # Store in memory for inspection
         
         ugb_df = ugb_df[ugb_df["ugb_id"].notnull()]
         # if name == "no_project":
@@ -247,8 +295,6 @@ def create_urban_growth_boundary_layer(baus_parcels_gdf):
         print(f"  Filtered to {len(ugb_df)} parcels with values for ugb_id")
         print(f"  UGB value counts after filter for {name}:")
         print(ugb_df["ugb_id"].value_counts(dropna=False))
-
-        ugb_dfs[name] = ugb_df.copy() # Store in memory for inspection
 
         print("  Merging with parcel geometries...")
         ugb_gdf = gpd.GeoDataFrame(
@@ -286,16 +332,21 @@ def create_urban_growth_boundary_layer(baus_parcels_gdf):
         print(f"Finished scenario: {name}\n")
 
 
-def create_transit_rich_areas_layer(baus_parcels_gdf):
+def create_transit_rich_areas_layer(baus_parcels_gdf=None):
     """Create Transit Rich Areas (TRA) layer.
     
     Args:
-        baus_parcels_gdf: GeoDataFrame with validated parcel geometries
+        baus_parcels_gdf: GeoDataFrame with validated parcel geometries.
+                         If None, will load from cache or file.
         
     Returns:
         GeoDataFrame with Redwood Ferry TRA for use in TOC function
     """
     ensure_map_data_dir()
+    
+    if baus_parcels_gdf is None:
+        baus_parcels_gdf = get_baus_parcels_gdf()
+    
     print("  Loading parcel data...")
     tra_parcels = pd.read_csv(METRICS_PARCEL_DIR / "Final Blueprint_parcel.csv") # I don't recall why this file was written from an intermediate state in metrics script
     tra_parcels = tra_parcels[["parcel_id", "jurisdiction", "tra_id"]][tra_parcels["tra_id"].notnull()]
@@ -337,13 +388,18 @@ def create_transit_rich_areas_layer(baus_parcels_gdf):
 
 
 # 6. Growth geo within and outside HRAs
-def create_hra_layer(baus_parcels_gdf):
+def create_hra_layer(baus_parcels_gdf=None):
     """Create High Resource Areas (HRA) layers.
     
     Args:
-        baus_parcels_gdf: GeoDataFrame with validated parcel geometries
+        baus_parcels_gdf: GeoDataFrame with validated parcel geometries.
+                         If None, will load from cache or file.
     """
     ensure_map_data_dir()
+    
+    if baus_parcels_gdf is None:
+        baus_parcels_gdf = get_baus_parcels_gdf()
+    
     print("  Loading parcel data and filtering to growth geographies...")
     gg_hra_parcels = pd.read_csv(METRICS_PARCEL_DIR / "Final Blueprint_parcel.csv")
     gg_hra_parcels = gg_hra_parcels[gg_hra_parcels["gg_id"].notnull()]
@@ -385,13 +441,18 @@ def create_hra_layer(baus_parcels_gdf):
 
 
 # 7. TOCs
-def create_toc_layer(redwood_ferry_tra_gdf):
+def create_toc_layer(redwood_ferry_tra_gdf=None):
     """Create Transit-Oriented Communities (TOC) layers.
     
     Args:
-        redwood_ferry_tra_gdf: GeoDataFrame with Redwood Ferry TRA to include in TOCs
+        redwood_ferry_tra_gdf: GeoDataFrame with Redwood Ferry TRA to include in TOCs.
+                              If None, will load from cache or file.
     """
     ensure_map_data_dir()
+    
+    if redwood_ferry_tra_gdf is None:
+        redwood_ferry_tra_gdf = get_redwood_ferry_tra_gdf()
+    
     print("  Loading TOC parcel data and reprojecting CRS...")
     TOC_PARCEL_GDF = gpd.read_file(TOC_X_PARCEL_FILE).to_crs(CRS)
     toc_parcel_gdf = TOC_PARCEL_GDF.copy()
@@ -429,10 +490,6 @@ if __name__ == "__main__":
 
     print("Starting map data preparation...\n")
     
-    print("Loading and validating BAUS parcels...")
-    baus_parcels_gdf = load_and_validate_baus_parcels()
-    print(f"Loaded {len(baus_parcels_gdf)} valid parcels\n")
-    
     print("Creating TAZ-level maps...")
     create_taz_level_layer()
     print()
@@ -446,19 +503,21 @@ if __name__ == "__main__":
     print()
     
     print("Creating urban growth boundaries...")
-    create_urban_growth_boundary_layer(baus_parcels_gdf)
+    create_urban_growth_boundary_layer() 
     print()
     
     print("Creating transit rich areas...")
-    redwood_ferry_tra_gdf = create_transit_rich_areas_layer(baus_parcels_gdf)
+    create_transit_rich_areas_layer()  # Will load and cache Redwood Ferry TRA
     print()
     
     print("Creating HRA layers...")
-    create_hra_layer(baus_parcels_gdf)
+    create_hra_layer()
     print()
     
     print("Creating TOC layers...")
-    create_toc_layer(redwood_ferry_tra_gdf)
+    create_toc_layer()  # Will reuse cached Redwood Ferry TRA
     print()
+    
+    print("Map data preparation complete!")
 
 
