@@ -1,6 +1,3 @@
-
-
-
 """
 Prepare supplementary map layers for the PBA50+ Forecasting and Modeling Report.  Layers are written to the 
 map_data directory and can be loaded by pba50_plus.aprx for mapping.
@@ -9,11 +6,6 @@ map_data directory and can be loaded by pba50_plus.aprx for mapping.
 from pathlib import Path
 import pandas as pd
 import geopandas as gpd
-import os
-import folium
-from folium.plugins import MarkerCluster
-import fiona
-from shapely.geometry import Polygon, MultiPolygon
 
 CRS = 26910
 GCS = 4269
