@@ -273,7 +273,8 @@ def create_urban_growth_boundary_layer(baus_parcels_gdf=None):
         "final_blueprint",
     ]
 
-    ugb_dfs = {}
+   
+    ugb_dissolve_dict = {} # To store dissolved geometries for post-processing
 
     for file, name in zip(PARCEL_FILES, SCENARIO_NAMES):
         print(f"Processing scenario: {name} ({file})")
@@ -284,14 +285,9 @@ def create_urban_growth_boundary_layer(baus_parcels_gdf=None):
         print(f"  UGB value counts before filter for {name}:")
         print(ugb_df["ugb_id"].value_counts(dropna=False))
 
-        # ugb_dfs[name] = ugb_df.copy() # Store in memory for inspection
         
         ugb_df = ugb_df[ugb_df["ugb_id"].notnull()]
-        # if name == "no_project":
-        #     ugb_df = ugb_df[ugb_df["ugb_id"].notnull()] # include all expansion variants (per 2024 asana ref task: https://app.asana.com/1/11860278793487/project/385259290425521/task/1207162564049605)
-        # else:
-        #     # ugb_df = ugb_df[ugb_df["ugb_id"].isin(["UGB", "Uninc UGB"])] # only include UGB and Uninc UGB tags
-        #     ugb_df = ugb_df[ugb_df["ugb_id"].isin(["UGB"])]
+        
         print(f"  Filtered to {len(ugb_df)} parcels with values for ugb_id")
         print(f"  UGB value counts after filter for {name}:")
         print(ugb_df["ugb_id"].value_counts(dropna=False))
@@ -308,15 +304,6 @@ def create_urban_growth_boundary_layer(baus_parcels_gdf=None):
             [col for col in ugb_gdf.columns if col.endswith("_id") and col != "pba50_gg_id"] + ["geometry"]
         ]
 
-        # Debug files before the buffer/dissolve
-        # output_path = MAP_DATA_DIR / f"{name}_ugb_debug.gpkg"
-        # ugb_gdf.to_file(output_path, layer=f"{name}_ugb_debug", driver="GPKG")
-
-        # Write ugb_gdf for debugging
-        # debug_output_path = MAP_DATA_DIR / f"{name}_ugb_debug.gpkg"
-        # print(f"  Writing ugb_gdf to {debug_output_path} for debugging...")
-        # ugb_gdf.to_file(debug_output_path, layer=f"{name}_ugb_debug", driver="GPKG", mode='w')
-
         print("  Buffering geometries...")
         ugb_buffer = ugb_gdf.buffer(100)
         print("  Dissolving geometries...")
@@ -325,11 +312,50 @@ def create_urban_growth_boundary_layer(baus_parcels_gdf=None):
         ugb_dissolve = gpd.GeoDataFrame(
             geometry=[ugb_dissolve], crs=CRS
         )
+        
+        # Store dissolved geometry for later processing
+        ugb_dissolve_dict[name] = ugb_dissolve
+        
+        print(f"Finished processing scenario: {name}\n")
 
-        output_path = MAP_DATA_DIR / f"{name}_ugb.gpkg"
-        print(f"  Writing dissolved geometry to {output_path}")
-        ugb_dissolve.to_file(output_path, layer=f"{name}_ugb", driver="GPKG")
-        print(f"Finished scenario: {name}\n")
+    # Split no_project using final_blueprint - see this comment for why: https://app.asana.com/1/11860278793487/task/1212780032489202/comment/1213035613708028?focus=true
+    # Later in ArcGIS Pro, some no project features are stylized manually
+    print("Splitting no_project UGB using final_blueprint UGB...")
+    no_project_geom = ugb_dissolve_dict["no_project"].geometry.iloc[0]
+    final_blueprint_geom = ugb_dissolve_dict["final_blueprint"].geometry.iloc[0]
+    
+    print("  Performing difference operation...")
+    # Get areas in no_project that are not in final_blueprint
+    difference_geom = no_project_geom.difference(final_blueprint_geom)
+    
+    # Convert to individual polygons
+    if difference_geom.geom_type == 'MultiPolygon':
+        print(f"  Result is MultiPolygon with {len(difference_geom.geoms)} polygons")
+        split_gdf = gpd.GeoDataFrame(
+            geometry=list(difference_geom.geoms), crs=CRS
+        )
+    elif difference_geom.geom_type == 'Polygon':
+        print(f"  Result is single Polygon")
+        split_gdf = gpd.GeoDataFrame(
+            geometry=[difference_geom], crs=CRS
+        )
+    else:
+        print(f"  Warning: Unexpected geometry type: {difference_geom.geom_type}")
+        split_gdf = gpd.GeoDataFrame(
+            geometry=[difference_geom], crs=CRS
+        )
+    
+    # Write split no_project layer
+    output_path = MAP_DATA_DIR / "no_project_ugb.gpkg"
+    print(f"  Writing split no_project UGB to {output_path}")
+    split_gdf.to_file(output_path, layer="no_project_ugb", driver="GPKG")
+    print(f"Finished no_project split layer with {len(split_gdf)} features\n")
+    
+    # Write final_blueprint layer
+    output_path = MAP_DATA_DIR / "final_blueprint_ugb.gpkg"
+    print(f"  Writing final_blueprint UGB to {output_path}")
+    ugb_dissolve_dict["final_blueprint"].to_file(output_path, layer="final_blueprint_ugb", driver="GPKG")
+    print(f"Finished final_blueprint layer\n")
 
 
 def create_transit_rich_areas_layer(baus_parcels_gdf=None):
