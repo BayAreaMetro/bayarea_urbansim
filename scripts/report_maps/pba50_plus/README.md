@@ -1,6 +1,6 @@
 # PBA50+ Modeling Report Maps
 
-This directory contains scripts and data for generating supplementary map layers for the PBA50+ Forecasting and Modeling Report.
+This directory contains scripts for generating supplementary map layers for the PBA50+ Forecasting and Modeling Report.  Code is stored here and the ArcGIS project on Box.
 
 ## Setup
 
@@ -12,22 +12,16 @@ This directory contains scripts and data for generating supplementary map layers
    cd bayarea_urbansim/scripts/report_maps/pba50_plus
    ```
 
-2. **Download large files from Box**
+2. **Download GIS files/data from Box**
    - Box folder: https://mtcdrive.app.box.com/folder/363365649386
-   - Download the contents of the `pba50_plus` folder
-   - Copy the Box contents into your local `pba50_plus` directory
+   - Download the zipped `pba50_plus` folder
+   - Unzip into the `pba50_plus` directory
 
-3. **Run the map preparation script**
+3. **Run the map layer prep script**
    ```bash
    cd Python
    python prep_map_layers.py
    ```
-
-## File Storage
-
-- **Git**: Python scripts
-- **Box**: Large data files, map outputs, ArcGIS project files
-  - Link: https://mtcdrive.app.box.com/folder/363365649386
 
 ## Output
 
