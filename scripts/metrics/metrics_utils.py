@@ -79,7 +79,7 @@ if USERNAME.lower() in ['lzorn', 'jahrenholtz']: # need to standardize to E:Box
 elif USERNAME.lower() in ['aolsen']:
     BOX_DIR = HOME_DIR /'Library/CloudStorage/Box-Box'
 elif USERNAME.lower() in ['ywang']:
-    BOX_DIR = r'C:\Users\ywang\Box'
+    BOX_DIR = pathlib.Path("C:/Users/ywang/Box")
 else:
     BOX_DIR = HOME_DIR / 'Box'
 
