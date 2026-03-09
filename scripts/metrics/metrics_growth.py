@@ -159,6 +159,9 @@ def growth_patterns_geography(rtp: str,
         for area, filter_condition in metrics_utils.PARCEL_AREA_FILTERS[rtp].items():
             if callable(filter_condition):  # Check if the filter is a function
                 df_area = modelrun_data[year]['parcel'].loc[filter_condition(modelrun_data[year]['parcel'])]
+                if area == "TOC":
+                    logging.debug(f"TOC parcel assignment counts:\n{df_area['toc_id'].value_counts(dropna=False)}")
+            
             elif filter_condition == None:
                 df_area = modelrun_data[year]['parcel']
             logging.debug("area={} df_area len={:,}".format(area, len(df_area)))
@@ -171,6 +174,10 @@ def growth_patterns_geography(rtp: str,
                         'modelrun_alias': f"{year} {modelrun_alias}",
                         'area': area,
                         'county': county,
+                        'q1_households': group['hhq1'].sum(),
+                        'q2_households': group['hhq2'].sum(),
+                        'q3_households': group['hhq3'].sum(),
+                        'q4_households': group['hhq4'].sum(),
                         'total_households': group['tothh'].sum(),
                         'total_jobs': group['totemp'].sum()
                     })
@@ -179,6 +186,10 @@ def growth_patterns_geography(rtp: str,
                 summary_list.append({
                 'modelrun_alias'  : f"{year} {modelrun_alias}",
                 'area'            : area,
+                'q1_households': df_area['hhq1'].sum(),
+                'q2_households': df_area['hhq2'].sum(),
+                'q3_households': df_area['hhq3'].sum(),
+                'q4_households': df_area['hhq4'].sum(),
                 'total_households': df_area['tothh'].sum(),
                 'total_jobs'      : df_area['totemp'].sum()
             })
@@ -186,6 +197,10 @@ def growth_patterns_geography(rtp: str,
             # save regional numbers for return_dict
             if area == 'Region':
                 return_dict[year] = {
+                    'q1_households': df_area['hhq1'].sum(),
+                    'q2_households': df_area['hhq2'].sum(),
+                    'q3_households': df_area['hhq3'].sum(),
+                    'q4_households': df_area['hhq4'].sum(),
                     'total_households': df_area['tothh'].sum(),
                     'total_jobs'      : df_area['totemp'].sum()
                 }
@@ -202,31 +217,61 @@ def growth_patterns_geography(rtp: str,
     logging.debug("summary_final:\n{}".format(summary_final))
 
     # Caclculate household and job growth totals
+    summary_final['hhq1_growth']   = summary_final['q1_households'] - summary_final['q1_households_initial']
+    summary_final['hhq2_growth']   = summary_final['q2_households'] - summary_final['q2_households_initial']
+    summary_final['hhq3_growth']   = summary_final['q3_households'] - summary_final['q3_households_initial']
+    summary_final['hhq4_growth']   = summary_final['q4_households'] - summary_final['q4_households_initial']
     summary_final['hh_growth']   = summary_final['total_households'] - summary_final['total_households_initial']
     summary_final['jobs_growth'] = summary_final['total_jobs'      ] - summary_final['total_jobs_initial']
 
     # Handle county-level growth shares for each area
     if county_level_output:
         # Get total growth per county for denominator
+        total_hhq1_growth_per_county = summary_final.loc[summary_final.area == 'Region'].set_index('county')['hhq1_growth']
+        total_hhq2_growth_per_county = summary_final.loc[summary_final.area == 'Region'].set_index('county')['hhq2_growth']
+        total_hhq3_growth_per_county = summary_final.loc[summary_final.area == 'Region'].set_index('county')['hhq3_growth']
+        total_hhq4_growth_per_county = summary_final.loc[summary_final.area == 'Region'].set_index('county')['hhq4_growth']
         total_hh_growth_per_county = summary_final.loc[summary_final.area == 'Region'].set_index('county')['hh_growth']
         total_jobs_growth_per_county = summary_final.loc[summary_final.area == 'Region'].set_index('county')['jobs_growth']
         # Map the total growth per county
+        summary_final['total_hhq1_growth'] = summary_final['county'].map(total_hhq1_growth_per_county)
+        summary_final['total_hhq2_growth'] = summary_final['county'].map(total_hhq2_growth_per_county)
+        summary_final['total_hhq3_growth'] = summary_final['county'].map(total_hhq3_growth_per_county)
+        summary_final['total_hhq4_growth'] = summary_final['county'].map(total_hhq4_growth_per_county)
         summary_final['total_hh_growth'] = summary_final['county'].map(total_hh_growth_per_county)
         summary_final['total_jobs_growth'] = summary_final['county'].map(total_jobs_growth_per_county)
         # Calculate share area growth for each county
+        summary_final['hhq1_share_of_growth'] = summary_final['hhq1_growth'] / summary_final['total_hhq1_growth']
+        summary_final['hhq2_share_of_growth'] = summary_final['hhq2_growth'] / summary_final['total_hhq2_growth']
+        summary_final['hhq3_share_of_growth'] = summary_final['hhq3_growth'] / summary_final['total_hhq3_growth']
+        summary_final['hhq4_share_of_growth'] = summary_final['hhq4_growth'] / summary_final['total_hhq4_growth']
         summary_final['hh_share_of_growth'] = summary_final['hh_growth'] / summary_final['total_hh_growth']
         summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / summary_final['total_jobs_growth']
         summary_final.drop(columns=['total_hh_growth', 'total_jobs_growth'], inplace=True)
     
     # Handle region-level growth share for each area
     else:
+        total_hhq1_growth   = summary_final.loc[summary_final.area=='Region', 'hhq1_growth'].sum()
+        total_hhq2_growth   = summary_final.loc[summary_final.area=='Region', 'hhq2_growth'].sum()
+        total_hhq3_growth   = summary_final.loc[summary_final.area=='Region', 'hhq3_growth'].sum()
+        total_hhq4_growth   = summary_final.loc[summary_final.area=='Region', 'hhq4_growth'].sum()
         total_hh_growth   = summary_final.loc[summary_final.area=='Region', 'hh_growth'].sum()
         total_jobs_growth = summary_final.loc[summary_final.area=='Region', 'jobs_growth'].sum()
+        
+        summary_final['hhq1_share_of_growth']   = summary_final['hhq1_growth'] / total_hhq1_growth
+        summary_final['hhq2_share_of_growth']   = summary_final['hhq2_growth'] / total_hhq2_growth
+        summary_final['hhq3_share_of_growth']   = summary_final['hhq3_growth'] / total_hhq3_growth
+        summary_final['hhq4_share_of_growth']   = summary_final['hhq4_growth'] / total_hhq4_growth
         summary_final['hh_share_of_growth']   = summary_final['hh_growth'] / total_hh_growth
         summary_final['jobs_share_of_growth'] = summary_final['jobs_growth'] / total_jobs_growth
 
     # Remove the growth columns if not needed in the final output
-    summary_final.drop(columns=['total_households_initial', 'total_jobs_initial'], inplace=True)
+    summary_final.drop(columns=['q1_households_initial',
+                                'q2_households_initial',
+                                'q3_households_initial',
+                                'q4_households_initial', 
+                                'total_households_initial', 
+                                'total_jobs_initial'], inplace=True)
     logging.debug("summary_final:\n{}".format(summary_final))
 
     # Concatenate the initial and final totals.
@@ -235,13 +280,25 @@ def growth_patterns_geography(rtp: str,
     
     if county_level_output:
         combined_df = combined_df[['modelrun_id', 'modelrun_alias', 'county', 'area',
+                                   'q1_households', 'q2_households',
+                                   'q3_households', 'q4_households',
                                    'total_households', 'total_jobs',
+                                   'hhq1_growth', 'hhq2_growth',
+                                   'hhq3_growth', 'hhq4_growth',
                                    'hh_growth', 'jobs_growth',
+                                   'hhq1_share_of_growth', 'hhq2_share_of_growth',
+                                   'hhq3_share_of_growth', 'hhq4_share_of_growth',
                                    'hh_share_of_growth', 'jobs_share_of_growth']]
     else:
         combined_df = combined_df[['modelrun_id', 'modelrun_alias', 'area',
+                                   'q1_households', 'q2_households',
+                                   'q3_households', 'q4_households',
                                    'total_households', 'total_jobs',
+                                   'hhq1_growth', 'hhq2_growth',
+                                   'hhq3_growth', 'hhq4_growth',
                                    'hh_growth', 'jobs_growth',
+                                   'hhq1_share_of_growth', 'hhq2_share_of_growth',
+                                   'hhq3_share_of_growth', 'hhq4_share_of_growth',
                                    'hh_share_of_growth', 'jobs_share_of_growth']]
 
     filename = f"metrics_growthPattern_geographies_{horizon_year}.csv"

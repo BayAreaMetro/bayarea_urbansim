@@ -58,8 +58,19 @@ def parcel_growth_summary(year, run_name, initial_summary_year, final_year):
     df2 = pd.read_csv(coresum_output_dir / f"{run_name}_parcel_summary_{final_year}.csv",
                       index_col="parcel_id")
 
+    # Store initial and final values before calculating growth
+    df1[f'residential_units_{initial_summary_year}'] = df1['residential_units'].fillna(0)
+    df1[f'residential_units_{final_year}'] = df2['residential_units'].fillna(0)
+    df1[f'built_dua_{initial_summary_year}'] = df1['built_dua'].fillna(0)
+    df1[f'built_dua_{final_year}'] = df2['built_dua'].fillna(0)
+    df1[f'built_far_{initial_summary_year}'] = df1['built_far'].fillna(0)
+    df1[f'built_far_{final_year}'] = df2['built_far'].fillna(0)
+
     for col in df1.columns:
-        if col in ["geom_id", "x", "y"]:
+        if col in ["geom_id", "x", "y", 
+                   f'residential_units_{initial_summary_year}', f'residential_units_{final_year}',
+                   f'built_dua_{initial_summary_year}', f'built_dua_{final_year}',
+                   f'built_far_{initial_summary_year}', f'built_far_{final_year}']:
             continue
 
         # fill na with 0 otherwise it drops the parcel data during subtraction

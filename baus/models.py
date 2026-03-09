@@ -646,6 +646,9 @@ def residential_developer(feasibility, households, buildings, parcels, year,
                           limits_settings, final_year, run_setup):
 
     orca.eval_step("alt_feasibility")
+
+    feas_path = os.path.join(orca.get_injectable("outputs_dir"),f'feasibility_residential_developer_start_{year}.csv')
+    feasibility.to_frame().to_csv(feas_path)
         
     kwargs = developer_settings['residential_developer']
 
