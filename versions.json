@@ -25,13 +25,18 @@
     "version": "docs_test",
     "title": "docs_test",
     "aliases": [
-      "alias=latest",
-      "alias=lastest"
+      "alias=lastest",
+      "alias=latest"
     ]
   },
   {
     "version": "development",
     "title": "development",
+    "aliases": []
+  },
+  {
+    "version": "cloud_eval",
+    "title": "cloud_eval",
     "aliases": []
   },
   {
