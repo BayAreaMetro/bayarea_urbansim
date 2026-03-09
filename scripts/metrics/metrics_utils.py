@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import geopandas as gpd
 import logging
 from datetime import datetime
@@ -1064,3 +1065,123 @@ def classify_runid_alias(runid_alias):
         return "EIR"
     else:
         return "Unknown"  # Default to Unknown
+
+
+def load_taz_crosswalks(metrics_dir: pathlib.Path) -> pd.DataFrame:
+    """
+    Builds and returns a TAZ-level crosswalk DataFrame for use in bespoke Cloud/BAUS metrics.
+    Populates the parcel_taz_sd_crosswalk_df, rtp2025_geography_crosswalk_df, and
+    rtp2025_parcel_toc_crosswalk_df globals (same caching pattern as load_data_for_runs).
+
+    Parameters:
+    - metrics_dir: path to the metrics directory containing metrics_input_files/
+
+    Returns:
+    - DataFrame with one row per TAZ, columns:
+        zone_id, county, superdistrict, tra_label, gg_label, ppa_label, toc_label, epc_label
+    """
+    global parcel_taz_sd_crosswalk_df
+    global rtp2025_geography_crosswalk_df
+    global rtp2025_parcel_toc_crosswalk_df
+
+    CROSSWALKS_DIR = M_DRIVE / "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks"
+
+    # --- parcel -> zone_id, county, superdistrict ---
+    if len(parcel_taz_sd_crosswalk_df) == 0:
+        bayareafips = {
+            "06001": "Alameda",       "06013": "Contra Costa", "06041": "Marin",
+            "06055": "Napa",          "06075": "San Francisco","06081": "San Mateo",
+            "06085": "Santa Clara",   "06097": "Sonoma",       "06095": "Solano",
+        }
+        PARCEL_TAZ_CROSSWALK_FILE = CROSSWALKS_DIR / "2020_08_17_parcel_to_taz1454sub.csv"
+        _ptaz = pd.read_csv(PARCEL_TAZ_CROSSWALK_FILE, usecols=['PARCEL_ID', 'ZONE_ID', 'manual_county'])
+        _ptaz.columns = _ptaz.columns.str.lower()
+        _ptaz["county"] = _ptaz['manual_county'].map(lambda x: f"06{x:03d}").map(bayareafips)
+        del _ptaz['manual_county']
+        logging.info(f"  load_taz_crosswalks: read {len(_ptaz):,} rows from {PARCEL_TAZ_CROSSWALK_FILE}")
+
+        TAZ_SD_CROSSWALK_FILE = CROSSWALKS_DIR / "taz_geography.csv"
+        _tsd = pd.read_csv(TAZ_SD_CROSSWALK_FILE, usecols=['zone', 'superdistrict'])
+        _tsd.rename(columns={"zone": "zone_id"}, inplace=True)
+        logging.info(f"  load_taz_crosswalks: read {len(_tsd):,} rows from {TAZ_SD_CROSSWALK_FILE}")
+
+        parcel_taz_sd_crosswalk_df = pd.merge(_ptaz, _tsd, on='zone_id', how='left', validate='many_to_one')
+
+    # --- parcel -> tra_id, gg_id, ppa_id (FBP growth geographies) ---
+    if len(rtp2025_geography_crosswalk_df) == 0:
+        PARCEL_CROSSWALK_FILE_AUX = CROSSWALKS_DIR / "parcels_geography_2024_02_14.csv"
+        _aux = pd.read_csv(PARCEL_CROSSWALK_FILE_AUX, usecols=['PARCEL_ID', 'ACRES', 'epc_id', 'juris'])
+        logging.info(f"  load_taz_crosswalks: read {len(_aux):,} rows from {PARCEL_CROSSWALK_FILE_AUX}")
+
+        PARCEL_CROSSWALK_FILE = CROSSWALKS_DIR / "fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_update_2025.csv"
+        rtp2025_geography_crosswalk_df = pd.read_csv(PARCEL_CROSSWALK_FILE)
+        rtp2025_geography_crosswalk_df.rename(columns={'parcel_id': 'PARCEL_ID'}, inplace=True)
+        pg_usecols = ['PARCEL_ID', 'dis_id', 'tra_id', 'gg_id', 'pda_id', 'hra_id', 'ppa_id', 'ugb_id']
+        rtp2025_geography_crosswalk_df = rtp2025_geography_crosswalk_df[pg_usecols]
+        rtp2025_geography_crosswalk_df = pd.merge(
+            rtp2025_geography_crosswalk_df, _aux, on='PARCEL_ID', how='left', validate='one_to_one')
+        rtp2025_geography_crosswalk_df.rename(columns={'juris': 'jurisdiction'}, inplace=True)
+        rtp2025_geography_crosswalk_df['jurisdiction'] = (
+            rtp2025_geography_crosswalk_df.jurisdiction
+            .str.replace("_", " ").str.title().str.replace("St ", "St. ")
+        )
+        logging.info(f"  load_taz_crosswalks: read {len(rtp2025_geography_crosswalk_df):,} rows from {PARCEL_CROSSWALK_FILE}")
+
+    # --- parcel -> toc_id ---
+    if len(rtp2025_parcel_toc_crosswalk_df) == 0:
+        PARCEL_TOC_FILE = metrics_dir / "metrics_input_files" / "urbansim_toc_may2025.csv"
+        rtp2025_parcel_toc_crosswalk_df = pd.read_csv(PARCEL_TOC_FILE, usecols=['parcel_id', 'toc_id'])
+        rtp2025_parcel_toc_crosswalk_df['parcel_id'] = rtp2025_parcel_toc_crosswalk_df['parcel_id'].astype(int)
+        logging.info(f"  load_taz_crosswalks: read {len(rtp2025_parcel_toc_crosswalk_df):,} rows from {PARCEL_TOC_FILE}")
+
+    # --- TAZ EPC (2022 ACS / 2020 tracts) — loaded locally, not cached to avoid partial global ---
+    TAZ_EPC22_FILE = metrics_dir / "metrics_input_files" / "taz1454_epcPBA50plus_2024_02_29.csv"
+    taz_epc_df = pd.read_csv(TAZ_EPC22_FILE, usecols=['TAZ1454', 'taz_epc'])
+    taz_epc_df.rename(columns={'TAZ1454': 'zone_id', 'taz_epc': 'epc_label'}, inplace=True)
+    taz_epc_df['epc_label'] = np.where(taz_epc_df['epc_label'] == 1, 'EPC', 'Non EPC')
+    logging.info(f"  load_taz_crosswalks: read {len(taz_epc_df):,} rows from {TAZ_EPC22_FILE}")
+
+    # --- Join parcel-level geos, aggregate to TAZ ---
+    parcel_geo = parcel_taz_sd_crosswalk_df[['parcel_id', 'zone_id', 'county', 'superdistrict']].copy()
+    parcel_geo = parcel_geo.merge(
+        rtp2025_geography_crosswalk_df[['PARCEL_ID', 'tra_id', 'gg_id', 'ppa_id']].rename(columns={'PARCEL_ID': 'parcel_id'}),
+        on='parcel_id', how='left'
+    )
+    parcel_geo = parcel_geo.merge(rtp2025_parcel_toc_crosswalk_df, on='parcel_id', how='left')
+
+    # Binary flags consistent with PARCEL_AREA_FILTERS['RTP2025']
+    parcel_geo['in_tra'] = parcel_geo['tra_id'].isin(['tra_1', 'tra_2', 'tra_3', 'tra_4', 'tra_5']).astype(int)
+    parcel_geo['in_gg']  = (parcel_geo['gg_id'] == 'GG').astype(int)
+    parcel_geo['in_ppa'] = (parcel_geo['ppa_id'] == 'PPA').astype(int)
+    parcel_geo['in_toc'] = (parcel_geo['toc_id'] == 'toc').astype(int)
+
+    # Aggregate flags to TAZ (zone_id only to avoid duplicate rows from cross-boundary parcels)
+    taz_flags = (
+        parcel_geo
+        .groupby('zone_id')[['in_tra', 'in_gg', 'in_ppa', 'in_toc']]
+        .max()
+        .reset_index()
+    )
+
+    # Join county and superdistrict 1:1 from the TAZ-SD crosswalk
+    taz_county_sd = (
+        parcel_taz_sd_crosswalk_df[['zone_id', 'county', 'superdistrict']]
+        .drop_duplicates(subset='zone_id')
+    )
+    taz_geo = taz_flags.merge(taz_county_sd, on='zone_id', how='left')
+
+    # Join superdistrict name
+    SD_NAMES_FILE = CROSSWALKS_DIR / "superdistrict_names.csv"
+    sd_names = pd.read_csv(SD_NAMES_FILE, encoding="utf-16", sep="\t")[["Superdistrict", "SD Name Old"]]
+    sd_names.rename(columns={"Superdistrict": "superdistrict", "SD Name Old": "sd_name"}, inplace=True)
+    taz_geo = taz_geo.merge(sd_names, on='superdistrict', how='left')
+    taz_geo['tra_label'] = np.where(taz_geo['in_tra'] == 1, 'TRA',  'Non TRA')
+    taz_geo['gg_label']  = np.where(taz_geo['in_gg']  == 1, 'GG',   'Non GG')
+    taz_geo['ppa_label'] = np.where(taz_geo['in_ppa'] == 1, 'PPA',  'Non PPA')
+    taz_geo['toc_label'] = np.where(taz_geo['in_toc'] == 1, 'TOC',  'Non TOC')
+    taz_geo = taz_geo.drop(columns=['in_tra', 'in_gg', 'in_ppa', 'in_toc'])
+
+    taz_geo = taz_geo.merge(taz_epc_df, on='zone_id', how='left')
+
+    logging.info(f"load_taz_crosswalks: returning {len(taz_geo)} TAZs with columns {list(taz_geo.columns)}")
+    return taz_geo
