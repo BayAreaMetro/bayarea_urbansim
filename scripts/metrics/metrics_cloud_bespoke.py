@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+import shapely
 
 sys.path.insert(0, str(Path(__file__).parent))
 import metrics_utils
@@ -25,9 +26,10 @@ COMBO_OUT    = Path(r"M:\urban_modeling\urbansim_cloud\projects\combo")
 PARCELS_FILE     = metrics_utils.BOX_DIR / "Modeling and Surveys/Urban Modeling/Spatial/Parcels/parcel_geoms_fgdb_out.shp"
 BLOCKS_2020_FILE = Path(r"E:\Box\Modeling and Surveys\Census\2020\geo\bay_area_blocks_2020.gpkg")
 ANALYSIS_CRS     = 26910
-GEO_XWALK_METHOD = "overlay_scaled"  # "overlay_scaled": proportional by area_share, control-total preserving
-                                      # "overlay":        half-area rule (binary >= 0.5 threshold)
-                                      # "pip":            any-parcel-wins (centroid point-in-polygon)
+GEO_XWALK_METHOD = "overlay"  # "overlay_scaled": proportional by area_share, control-total preserving
+                               # "overlay":        half-area rule (binary >= 0.5 threshold)
+INTERPOLATE_TO_2023 = True    # If True, interpolate base year from 2020+2025 → 2023 (matches published metrics_growth.py)
+BASE_YEAR = 2023 if INTERPOLATE_TO_2023 else 2020
 
 # ---------------------------------------------------------------------------
 # Build combo TAZ-level output
@@ -74,7 +76,19 @@ FILE_CONFIGS = [
      "path": Path(CLOUD_DIR, "taz", "Alt Growth W_ Control Totals  (taz) - 2020.csv")},
     {"model": "cloud", "variant": "fbp", "year": 2050,
      "path": Path(CLOUD_DIR, "taz", "Alt Growth W_ Control Totals  (taz) - 2050.csv")},
-]
+] + ([
+    # 2025 files for base-year interpolation
+    {"model": "baus",  "variant": "np",       "year": 2025,
+     "path": Path(NP_DIR, "travel_model_summaries", "PBA50Plus_NoProject_v38_taz1_summary_2025.csv")},
+    {"model": "baus",  "variant": "fbp",      "year": 2025,
+     "path": Path(FBP_DIR, "travel_model_summaries", "PBA50Plus_Final_Blueprint_v65_taz1_summary_2025.csv")},
+    {"model": "baus",  "variant": "contrast", "year": 2025,
+     "path": Path(CONTRAST_DIR, "travel_model_summaries", "PBA50Plus_CNTRST_NP_to_FBP_NP04_v4_taz1_summary_2025.csv")},
+    {"model": "cloud", "variant": "np",       "year": 2025,
+     "path": Path(CLOUD_DIR, "taz", "BAU w_ control totals (taz) - 2025.csv")},
+    {"model": "cloud", "variant": "fbp",      "year": 2025,
+     "path": Path(CLOUD_DIR, "taz", "Alt Growth W_ Control Totals  (taz) - 2025.csv")},
+] if INTERPOLATE_TO_2023 else [])
 
 # Parcel-level file configs for block-level geography aggregation
 BAUS_PARCEL_FILE_CONFIGS = [
@@ -90,7 +104,14 @@ BAUS_PARCEL_FILE_CONFIGS = [
      "path": CONTRAST_DIR / "core_summaries" / "PBA50Plus_CNTRST_NP_to_FBP_NP04_v4_parcel_summary_2020.csv"},
     {"model": "baus", "variant": "contrast", "year": 2050,
      "path": CONTRAST_DIR / "core_summaries" / "PBA50Plus_CNTRST_NP_to_FBP_NP04_v4_parcel_summary_2050.csv"},
-]
+] + ([
+    {"model": "baus", "variant": "np",       "year": 2025,
+     "path": NP_DIR / "core_summaries" / "PBA50Plus_NoProject_v38_parcel_summary_2025.csv"},
+    {"model": "baus", "variant": "fbp",      "year": 2025,
+     "path": FBP_DIR / "core_summaries" / "PBA50Plus_Final_Blueprint_v65_parcel_summary_2025.csv"},
+    {"model": "baus", "variant": "contrast", "year": 2025,
+     "path": CONTRAST_DIR / "core_summaries" / "PBA50Plus_CNTRST_NP_to_FBP_NP04_v4_parcel_summary_2025.csv"},
+] if INTERPOLATE_TO_2023 else [])
 
 CLOUD_BLOCK_FILE_CONFIGS = [
     {"model": "cloud", "variant": "np", "year": 2020,
@@ -101,7 +122,12 @@ CLOUD_BLOCK_FILE_CONFIGS = [
      "path": CLOUD_DIR / "block" / "Alt Growth W_ Control Totals  (block) - 2020.csv"},
     {"model": "cloud", "variant": "fbp", "year": 2050,
      "path": CLOUD_DIR / "block" / "Alt Growth W_ Control Totals  (block) - 2050.csv"},
-]
+] + ([
+    {"model": "cloud", "variant": "np",  "year": 2025,
+     "path": CLOUD_DIR / "block" / "BAU w_ control totals (block) - 2025.csv"},
+    {"model": "cloud", "variant": "fbp", "year": 2025,
+     "path": CLOUD_DIR / "block" / "Alt Growth W_ Control Totals  (block) - 2025.csv"},
+] if INTERPOLATE_TO_2023 else [])
 
 
 def load_baus(path, model, variant, year):
@@ -134,42 +160,49 @@ def load_cloud(path, model, variant, year):
 
 
 def build_parcel_block20_xwalk():
-    """Build (or load from cache) a parcel_id -> block_id crosswalk.
+    """Build a parcel_id -> block_id crosswalk using true polygon-on-polygon intersection.
 
-    Uses parcel polygon centroids spatially joined to 2020 Census block polygons
-    fetched via pygris (TIGER/Line). Result is cached at COMBO_OUT/parcel_block20_xwalk.csv.
+    Parcels that straddle block boundaries produce multiple rows (one per block),
+    weighted by parcel_block_share = fraction of that parcel's area in each block.
+    Result saved to COMBO_OUT/parcel_block20_xwalk.csv.
     """
     cache_path = COMBO_OUT / "parcel_block20_xwalk.csv"
-    print("Building parcel\u2192block20 crosswalk...")
+    print("Building parcel\u2192block20 crosswalk (polygon overlay, this may take a while)...")
 
-    # Load parcel geometries; store area before converting polygons to centroids
     parcels_gdf = gpd.read_file(PARCELS_FILE).to_crs(ANALYSIS_CRS)
     parcels_gdf = parcels_gdf[["parcel_id", "geometry"]].copy()
-    parcels_gdf["parcel_area_sqm"] = parcels_gdf.geometry.area
-    parcels_gdf["geometry"] = parcels_gdf.geometry.centroid
+    parcels_gdf.geometry = shapely.make_valid(parcels_gdf.geometry.values)
 
     # Load 2020 block polygons from disk (pre-fetched by fetch_2020_blocks.py)
     print("  Loading 2020 block geometries from disk...")
     blocks_gdf = gpd.read_file(BLOCKS_2020_FILE).to_crs(ANALYSIS_CRS)
     blocks_gdf = blocks_gdf.rename(columns={"GEOID20": "block_id"})[["block_id", "geometry"]]
+    blocks_gdf.geometry = shapely.make_valid(blocks_gdf.geometry.values)
 
-    # Spatial join: parcel centroid → block polygon
-    joined = gpd.sjoin(parcels_gdf, blocks_gdf, how="left", predicate="within")
-    xwalk = joined[["parcel_id", "block_id", "parcel_area_sqm"]].copy()
+    # Polygon-on-polygon intersection (matches geo_assign_fields() methodology)
+    print("  Running polygon overlay (parcel \u00d7 block)...")
+    overlaid = gpd.overlay(parcels_gdf, blocks_gdf, how="intersection", make_valid=True)
+    overlaid["intersection_area_sqm"] = overlaid.geometry.area
+
+    # Fraction of each parcel's total area that falls in each block
+    parcel_totals = overlaid.groupby("parcel_id")["intersection_area_sqm"].transform("sum")
+    overlaid["parcel_block_share"] = overlaid["intersection_area_sqm"] / parcel_totals
+
+    xwalk = overlaid[["parcel_id", "block_id", "intersection_area_sqm", "parcel_block_share"]].copy()
 
     xwalk.to_csv(cache_path, index=False)
-    print(f"  Saved parcel→block20 crosswalk: {len(xwalk):,} rows → {cache_path}")
+    print(f"  Saved parcel\u2192block20 crosswalk: {len(xwalk):,} rows \u2192 {cache_path}")
     return xwalk
 
 
 def build_block_geo_xwalk(parcel_block_xwalk, method=GEO_XWALK_METHOD):
-    """Assign TRA/GG/PPA/TOC labels to each 2020 block.
+    """Assign TRA/GG/PPA/TOC labels to each 2020 block using polygon intersection areas.
 
-    method="pip": any-parcel-wins — a block is labeled TRA if ANY parcel centroid
-        within it qualifies under PARCEL_AREA_FILTERS['RTP2025'] logic.
     method="overlay": half-area rule — a block is labeled TRA only if >=50% of the
-        total parcel area within that block belongs to qualifying parcels. Also retains
-        *_area_share columns for optional proportional scaling downstream.
+        total parcel intersection area within that block belongs to qualifying parcels.
+        Retains *_area_share columns for proportional scaling downstream.
+    method="overlay_scaled": same area_share values used for proportional HH/emp
+        splitting in scale_blocks_by_area_share().
     """
     geo_xwalk = metrics_utils.rtp2025_geography_crosswalk_df[
         ["PARCEL_ID", "tra_id", "gg_id", "ppa_id"]
@@ -189,35 +222,23 @@ def build_block_geo_xwalk(parcel_block_xwalk, method=GEO_XWALK_METHOD):
     parcel_flags["is_ppa"] = parcel_flags["ppa_id"] == "PPA"
     parcel_flags["is_toc"] = parcel_flags["toc_id"] == "toc"
 
-    if method == "pip":
-        block_flags = (
-            parcel_flags.groupby("block_id")[["is_tra", "is_gg", "is_ppa", "is_toc"]]
-            .any()
-            .reset_index()
-        )
-        block_flags["tra_label"] = np.where(block_flags["is_tra"], "TRA",     "Non TRA")
-        block_flags["gg_label"]  = np.where(block_flags["is_gg"],  "GG",      "Non GG")
-        block_flags["ppa_label"] = np.where(block_flags["is_ppa"], "PPA",     "Non PPA")
-        block_flags["toc_label"] = np.where(block_flags["is_toc"], "TOC",     "Non TOC")
-        return block_flags[["block_id", "tra_label", "gg_label", "ppa_label", "toc_label"]]
-
-    # method == "overlay": half-area rule using parcel polygon areas within each block
-    parcel_flags["tra_area"] = parcel_flags["is_tra"].astype(float) * parcel_flags["parcel_area_sqm"]
-    parcel_flags["gg_area"]  = parcel_flags["is_gg"].astype(float)  * parcel_flags["parcel_area_sqm"]
-    parcel_flags["ppa_area"] = parcel_flags["is_ppa"].astype(float) * parcel_flags["parcel_area_sqm"]
-    parcel_flags["toc_area"] = parcel_flags["is_toc"].astype(float) * parcel_flags["parcel_area_sqm"]
+    # Area-weighted shares using true polygon intersection areas
+    parcel_flags["tra_area"] = parcel_flags["is_tra"].astype(float) * parcel_flags["intersection_area_sqm"]
+    parcel_flags["gg_area"]  = parcel_flags["is_gg"].astype(float)  * parcel_flags["intersection_area_sqm"]
+    parcel_flags["ppa_area"] = parcel_flags["is_ppa"].astype(float) * parcel_flags["intersection_area_sqm"]
+    parcel_flags["toc_area"] = parcel_flags["is_toc"].astype(float) * parcel_flags["intersection_area_sqm"]
 
     block_geo = (
         parcel_flags.groupby("block_id")[
-            ["parcel_area_sqm", "tra_area", "gg_area", "ppa_area", "toc_area"]
+            ["intersection_area_sqm", "tra_area", "gg_area", "ppa_area", "toc_area"]
         ]
         .sum()
         .reset_index()
     )
-    block_geo["tra_area_share"] = block_geo["tra_area"] / block_geo["parcel_area_sqm"]
-    block_geo["gg_area_share"]  = block_geo["gg_area"]  / block_geo["parcel_area_sqm"]
-    block_geo["ppa_area_share"] = block_geo["ppa_area"] / block_geo["parcel_area_sqm"]
-    block_geo["toc_area_share"] = block_geo["toc_area"] / block_geo["parcel_area_sqm"]
+    block_geo["tra_area_share"] = block_geo["tra_area"] / block_geo["intersection_area_sqm"]
+    block_geo["gg_area_share"]  = block_geo["gg_area"]  / block_geo["intersection_area_sqm"]
+    block_geo["ppa_area_share"] = block_geo["ppa_area"] / block_geo["intersection_area_sqm"]
+    block_geo["toc_area_share"] = block_geo["toc_area"] / block_geo["intersection_area_sqm"]
 
     block_geo["tra_label"] = np.where(block_geo["tra_area_share"] >= 0.5, "TRA",     "Non TRA")
     block_geo["gg_label"]  = np.where(block_geo["gg_area_share"]  >= 0.5, "GG",      "Non GG")
@@ -279,6 +300,30 @@ def load_cloud_block(path, model, variant, year):
     return df[BLOCK_OUTPUT_COLS]
 
 
+def interpolate_to_base_year(df, id_col, numeric_cols, t1=2020, t2=2025, target=2023):
+    """Linearly interpolate numeric columns from t1 and t2 to target year.
+
+    Replaces t1 rows with interpolated target-year rows; drops t2 rows entirely.
+    Matches metrics_utils.load_data_for_runs():
+        val_target = val_t1 + ((target - t1) / (t2 - t1)) * (val_t2 - val_t1)
+    """
+    key_cols = ["model", "variant", id_col]
+    weight = (target - t1) / (t2 - t1)
+
+    rows_t2 = df[df["year"] == t2][key_cols + numeric_cols].rename(
+        columns={c: f"{c}_t2" for c in numeric_cols}
+    )
+    result = df[df["year"] == t1].copy()
+    result = result.merge(rows_t2, on=key_cols, how="left")
+    for col in numeric_cols:
+        result[col] = result[col] + weight * (result[f"{col}_t2"] - result[col])
+        result.drop(columns=f"{col}_t2", inplace=True)
+    result["year"] = target
+
+    horizon = df[~df["year"].isin([t1, t2])].copy()
+    return pd.concat([result, horizon], ignore_index=True)
+
+
 frames = []
 for cfg in FILE_CONFIGS:
     loader = load_cloud if cfg["model"] == "cloud" else load_baus
@@ -302,6 +347,11 @@ combo = combo.merge(
 )
 combo = combo[["zone_id"] + [c for c in combo.columns if c != "zone_id"]]
 
+if INTERPOLATE_TO_2023:
+    combo = interpolate_to_base_year(combo, "zone_id", ["tothh", "totemp", "resunits"])
+else:
+    combo = combo[combo["year"] != 2025].copy()
+
 combo.to_csv(COMBO_OUT / "harmonized_runs.csv", index=False)
 print(f"harmonized_runs.csv written: {len(combo):,} rows")
 
@@ -318,7 +368,13 @@ baus_parcel_frames = []
 for cfg in BAUS_PARCEL_FILE_CONFIGS:
     baus_parcel_frames.append(load_baus_block(cfg["path"], cfg["model"], cfg["variant"], cfg["year"]))
 baus_parcels = pd.concat(baus_parcel_frames, ignore_index=True)
-baus_parcels = baus_parcels.merge(parcel_block_xwalk, on="parcel_id", how="left")
+baus_parcels = baus_parcels.merge(
+    parcel_block_xwalk[["parcel_id", "block_id", "parcel_block_share"]],
+    on="parcel_id", how="left"
+)
+# Scale tothh/totemp by the fraction of parcel area in each block (no-op for wholly-contained parcels)
+baus_parcels["tothh"]  = baus_parcels["tothh"]  * baus_parcels["parcel_block_share"]
+baus_parcels["totemp"] = baus_parcels["totemp"] * baus_parcels["parcel_block_share"]
 baus_blocks = (
     baus_parcels.dropna(subset=["block_id"])
     .groupby(["model", "variant", "year", "block_id"])[["tothh", "totemp"]]
@@ -334,6 +390,10 @@ cloud_blocks = pd.concat(cloud_block_frames, ignore_index=True)
 
 # Combine BAUS and Cloud blocks, attach geo labels
 combo_blocks = pd.concat([baus_blocks, cloud_blocks], ignore_index=True)
+if INTERPOLATE_TO_2023:
+    combo_blocks = interpolate_to_base_year(combo_blocks, "block_id", ["tothh", "totemp"])
+else:
+    combo_blocks = combo_blocks[combo_blocks["year"] != 2025].copy()
 combo_blocks = combo_blocks.merge(block_geo_xwalk, on="block_id", how="left")
 print(f"combo_blocks: {len(combo_blocks):,} rows")
 print(combo_blocks.groupby(["model", "variant", "year"]).size().to_string())
@@ -354,15 +414,15 @@ def calc_growth(df, geo_col):
         .reset_index()
     )
 
-    base    = grouped[grouped["year"] == 2020].copy()
+    base    = grouped[grouped["year"] == BASE_YEAR].copy()
     horizon = grouped[grouped["year"] == 2050].copy()
 
     # Compute growth on a merged frame so we can derive region shares
     merged = base.merge(
-        horizon, on=["model", "variant", geo_col], suffixes=("_2020", "_2050")
+        horizon, on=["model", "variant", geo_col], suffixes=(f"_{BASE_YEAR}", "_2050")
     )
-    merged["hh_growth"]   = merged["tothh_2050"]   - merged["tothh_2020"]
-    merged["jobs_growth"] = merged["totemp_2050"]  - merged["totemp_2020"]
+    merged["hh_growth"]   = merged["tothh_2050"]   - merged[f"tothh_{BASE_YEAR}"]
+    merged["jobs_growth"] = merged["totemp_2050"]  - merged[f"totemp_{BASE_YEAR}"]
 
     region_totals = merged.groupby(["model", "variant"])[["hh_growth", "jobs_growth"]].transform("sum")
     merged["hh_share_of_growth"]   = merged["hh_growth"]   / region_totals["hh_growth"]
@@ -380,8 +440,11 @@ def calc_growth(df, geo_col):
         )
         return row_df
 
-    # Base rows — growth cols are NaN; only emit for variant "np" (all variants share the same 2020 base)
-    base_out = _add_alias(base[base["variant"] == "np"]).rename(columns={"tothh": "total_households", "totemp": "total_jobs"})
+    # Base rows — growth cols are NaN.
+    # 2020 base: all variants share the same observed starting point, emit only "np".
+    # 2023 base: interpolated from variant-specific 2025 values, so variants differ — emit all.
+    base_filter = base if INTERPOLATE_TO_2023 else base[base["variant"] == "np"]
+    base_out = _add_alias(base_filter).rename(columns={"tothh": "total_households", "totemp": "total_jobs"})
     base_out["hh_growth"] = np.nan
     base_out["jobs_growth"] = np.nan
     base_out["hh_share_of_growth"] = np.nan
