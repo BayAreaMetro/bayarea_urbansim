@@ -412,6 +412,7 @@ def transit_service_area_share_v2(
                                 rtp: str,
                                 modelrun_alias: str, 
                                 modelrun_id: str, 
+                                horizon_year: int,
                                 modelrun_data: dict, 
                                 output_path: str,
                                 append_output: bool
@@ -686,7 +687,7 @@ def transit_service_area_share_v2(
         container_df
     )
 
-    filename = f"metrics_connected1_transitproximity_v2.csv"
+    filename = f"metrics_connected1_transitproximity_v2_{horizon_year}.csv"
     filepath = output_path / filename
 
     updated_metrics_tableau_schema.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)

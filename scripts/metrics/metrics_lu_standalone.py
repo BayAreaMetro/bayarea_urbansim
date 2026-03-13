@@ -66,7 +66,7 @@ def main():
     M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 
 
-    if USERNAME.lower() in ['lzorn', 'jahrenholtz']: # need to standardize to E:Box
+    if USERNAME.lower() in ['lzorn', 'jahrenholtz', 'ywang']: # need to standardize to E:Box
         BOX_DIR = pathlib.Path("E:/Box")
     else:
         BOX_DIR = HOME_DIR / 'Box'
@@ -227,7 +227,7 @@ def main():
             
         if (args.only == None) or (args.only == 'connected'):
             metrics_connected.transit_service_area_share_v2(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, args.horizon_year, modelrun_data, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'healthy'):
             metrics_healthy.expand_urban_greening(
