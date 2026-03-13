@@ -444,6 +444,7 @@ def transit_service_area_share_v2(
         "NP":'np',
         "Plus": "dbp",
         "Final Blueprint": "fbp",
+        "Final Blueprint 2035": "fbp2035", # added for final SCS submittal
         "Draft Blueprint": "dbp",
         "DBP": "dbp", 
         "Alt1": "fbp",
@@ -460,7 +461,6 @@ def transit_service_area_share_v2(
     
     logging.info(f"Calculating connected for {modelrun_alias} / {modelrun_id}")
     logging.debug(f"Modelrun data years: {modelrun_data.keys()}")
-    logging.debug(f"Modelrun data 2050 datasets: {modelrun_data[2050].keys()}")
 
     # convenience function for easy groupby percentages
     def pct(x):
@@ -535,13 +535,22 @@ def transit_service_area_share_v2(
                 logging.info(f'Skipping {year} for {modelrun_alias}.')
                 continue
 
-        # Skip any other years
+        # Skip any other years except for year 2035 for Final Blueprint
+        elif year == 2035:
+            if modelrun_alias in ['Final Blueprint']:
+                logging.info(f'Processing {year} for {modelrun_alias}.')
+            else:
+                logging.info(f'Skipping {year} for {modelrun_alias}.')
         else:
             logging.info(f'Skipping {year} for {modelrun_alias}.')
-            continue
 
         # Continue processing for each year and scenario
-        transit_scenario = transit_scenario_mapping.get(modelrun_alias, 'fbp') # Set default to fbp
+        if (year == 2035) & (modelrun_alias == 'Final Blueprint'):
+            transit_scenario = "fbp2035"
+        else:
+            transit_scenario = transit_scenario_mapping.get(modelrun_alias, 'fbp') # Set default to fbp
+        
+        logging.debug(f"Modelrun data {year} datasets: {modelrun_data[year].keys()}")
         parcel_output = modelrun_data[year]["parcel"].copy(deep=True)
         # report shape of parcel_output df
         len_parcels = len(parcel_output)

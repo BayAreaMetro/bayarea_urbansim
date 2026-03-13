@@ -74,12 +74,10 @@ M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.P
 USERNAME = getpass.getuser()
 HOME_DIR = pathlib.Path.home()
 
-if USERNAME.lower() in ['lzorn', 'jahrenholtz']: # need to standardize to E:Box
+if USERNAME.lower() in ['lzorn', 'jahrenholtz', 'ywang']: # need to standardize to E:Box
     BOX_DIR = pathlib.Path("E:/Box")
 elif USERNAME.lower() in ['aolsen']:
     BOX_DIR = HOME_DIR /'Library/CloudStorage/Box-Box'
-elif USERNAME.lower() in ['ywang']:
-    BOX_DIR = pathlib.Path("C:/Users/ywang/Box")
 else:
     BOX_DIR = HOME_DIR / 'Box'
 
@@ -255,8 +253,8 @@ def load_data_for_runs(
             import geopandas as gpd
             PARCEL_TRANSITSERVICE_FILE = pathlib.Path(BOX_DIR, 'Modeling and Surveys', 'Urban Modeling', 
                 'Spatial', 'transit', 'transit_service_levels', 'update_2025', 'outputs', 
-                'parcels10_x_high_quality_stop_buffer.csv')
-            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE, usecols=['parcel_id', 'cur', 'np', 'dbp', 'fbp'])
+                'parcels10_x_high_quality_stop_buffer_with2035.csv')
+            rtp2025_transit_service_df = pd.read_csv(PARCEL_TRANSITSERVICE_FILE, usecols=['parcel_id', 'cur', 'np', 'dbp', 'fbp', 'fbp2035'])
             logging.info("  Read {:,} rows from crosswalk {}".format(len(rtp2025_transit_service_df), PARCEL_TRANSITSERVICE_FILE))
             logging.debug("  rtp2025_transit_service_df.head():\n{}".format(rtp2025_transit_service_df.head()))
 
@@ -909,7 +907,7 @@ def load_data_for_runs(
                                 'tract10_epc', 'tract10_DispRisk', 'tract10_hra', 'tract10_growth_geo', 'tract10_tra',
                                 
                                 # transit-related columns
-                                'np','dbp','fbp',
+                                'np','dbp','fbp','fbp2035',
                                 
                                 # sea level rise column
                                 "inundation"]
