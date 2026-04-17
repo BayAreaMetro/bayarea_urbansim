@@ -32,3 +32,22 @@ Bay Area UrbanSim is written in Python and runs in a command line environment. I
 
 ## Documentation
 * See the repository's `gh-pages` branch for instructions on installing the BAUS documentation packages and submitting documentation
+
+## Branches
+
+| Branch | Owner | Last Updated | Commits ahead of `main` | PR | Description |
+|--------|-------|-------------|-------------------------|----|-------------|
+| [`main`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/main) | — | — | N/A | | Primary development branch |
+| [`add_metrics_information`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/add_metrics_information) | Aksel | 2024-09-19 | 7 | [#380](https://github.com/BayAreaMetro/bayarea_urbansim/pull/380) | SLR and greenfield metrics documentation updates |
+| [`cloud_eval`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/cloud_eval) | Joe A | 2026-03-10 | 158 | | Parcel-to-block crosswalk QAQC scripts |
+| [`development`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/development) | Joe A | 2026-03-09 | 154 | | Feasibility daylighting and growth metrics segmenting |
+| [`documentation_datatypes_dict`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/documentation_datatypes_dict) | Yuqi | 2022-05-25 | 50 | | The main value was the data dictionaries in the data folder, files named `[mod_date]_name.md`, `[mod_date]_name.csv` , `[mod_data_interm]_data.csv` , and `[mod_data_output]_name.csv`. Some of these dictionaries are outdated after the BAUS "clean & stabilize" we did back in 2023. These dictionaries are useful and necessary, but we never got to bringing them into the new documentation system. -> **Delete once the  dictionaries have been added to the documentation** |
+| [`fbp_mod_updates`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/fbp_mod_updates) | Yuqi | 2026-03-12 | 158 | [#387](https://github.com/BayAreaMetro/bayarea_urbansim/pull/387) | CARB SCS reporting, 2035 transit stop summaries |
+| [`fbp_mods_deed_restricted`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/fbp_mods_deed_restricted) | Aksel Olsen | 2025-04-29 | 61 | | Deed-restricted unit handling fixes in subsidized developer |
+| [`generic_tracing_tools`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/generic_tracing_tools) | Yuqi | 2023-02-22 | 3 | | The key feature of this branch is the src_for_debug folder where I cloned the UrbanSim source code of the version used in Bay Area Urbansim to help debug and understand the code, e.g. I added print and to_csv statements to sqftproforma.py to help understand the functions. -> **Keep as branch** |
+| [`gh-pages`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/gh-pages) | — | — | N/A | | MkDocs documentation deployment -> **Keep as branch** |
+| [`lcm_probs`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/lcm_probs) | Joe A | 2025-10-24 | 146 | | Location choice model probability work |
+| [`legacy_gh_pages`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/legacy_gh_pages) | — | — | N/A | | Legacy documentation branch before switching to MkDocs. -> **Delete once relevant information has been brought into the new gh_pages branch** |
+| [`pba50p_eir_alt`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/pba50p_eir_alt) | Aksel | 2025-05-10 | 62 | | PBA50+ EIR alternative scenarios with EC5 geography/sectoral filters |
+| [`pipeline_flow_test`](https://github.com/BayAreaMetro/bayarea_urbansim/tree/pipeline_flow_test) | Yuqi | 2024-08-14 | 7 | | Growth pattern metrics for pipeline test runs |
+
