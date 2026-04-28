@@ -1,0 +1,1554 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="http://bayareametro.github.io/bayarea_urbansim/2.6.3/baus_inputs_pba50_plus/">
+      
+      
+        <link rel="prev" href="../output/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>PBA50+ - Bay Area UrbanSim</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#plan-bay-area-2050-baus-strategy-inputs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Bay Area UrbanSim" class="md-header__button md-logo" aria-label="Bay Area UrbanSim" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Bay Area UrbanSim
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PBA50+
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/BayAreaMetro/bayarea_urbansim" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Model
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../scenarios/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Scenarios
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuration/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../input/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Input
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../output/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Output
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  PBA50+
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Bay Area UrbanSim" class="md-nav__button md-logo" aria-label="Bay Area UrbanSim" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Bay Area UrbanSim
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/BayAreaMetro/bayarea_urbansim" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scenarios/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scenarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PBA50+
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PBA50+
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pba2050-no-project-alternative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PBA2050+ No Project Alternative
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PBA2050+ No Project Alternative">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#regional-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regional Controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#base-zoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Base Zoning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inclusionary-zoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inclusionary Zoning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#development-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exogenous-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exogenous Assumptions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#travel-model-logsums" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Travel Model Logsums
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sea-level-rise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sea Level Rise
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pba2050-plan-scenario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PBA2050+ Plan Scenario
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PBA2050+ Plan Scenario">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ec1-guranteed-income" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC1: Guranteed Income
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec2-expand-job-training-and-incubator-programs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC2: Expand Job Training and Incubator Programs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec4-allow-a-greater-mix-of-land-uses-and-densities-in-growth-geographies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC4: Allow a Greater Mix of Land Uses and Densities in Growth Geographies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec5-provide-incentives-to-employers-to-locate-in-low-vmt-areas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC5: Provide Incentives to Employers to Locate in Low-VMT Areas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategy-ec6-retain-and-invest-in-key-industrial-lands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategy EC6: Retain and Invest in Key Industrial Lands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h1-further-strengthen-renter-protections-beyond-state-law" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H1: Further Strengthen Renter Protections Beyond State Law
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h2-preserve-existing-affordable-housing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H2: Preserve Existing Affordable Housing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h3-allow-a-greater-mix-of-housing-densities-and-types-in-growth-geographies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H3: Allow a Greater Mix of Housing Densities and Types in Growth Geographies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h4-build-adequate-affordable-housing-to-ensure-homes-for-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H4: Build Adequate Affordable Housing to Ensure Homes for All
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h5-integrate-affordable-housing-into-all-major-housing-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H5: Integrate Affordable Housing into All Major Housing Projects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h6-transform-aging-malls-and-office-parks-into-neighborhoods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H6: Transform Aging Malls and Office Parks into Neighborhoods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h8-accelerate-reuse-of-public-and-community-owned-land-for-mixed-income-housing-and-essential-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H8: Accelerate Reuse of Public and Community-Owned Land for Mixed-Income Housing and Essential Services
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#en1-adapt-to-sea-level-ris" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EN1: Adapt to Sea Level Ris
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#travel-model-logsums_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Travel Model Logsums
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-activated-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Activated Policy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Other Activated Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sb-743" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SB-743
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADUs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pba2050-no-project-alternative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PBA2050+ No Project Alternative
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PBA2050+ No Project Alternative">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#regional-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regional Controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#base-zoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Base Zoning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inclusionary-zoning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inclusionary Zoning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#development-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exogenous-assumptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exogenous Assumptions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#travel-model-logsums" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Travel Model Logsums
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sea-level-rise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sea Level Rise
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pba2050-plan-scenario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PBA2050+ Plan Scenario
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PBA2050+ Plan Scenario">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ec1-guranteed-income" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC1: Guranteed Income
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec2-expand-job-training-and-incubator-programs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC2: Expand Job Training and Incubator Programs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec4-allow-a-greater-mix-of-land-uses-and-densities-in-growth-geographies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC4: Allow a Greater Mix of Land Uses and Densities in Growth Geographies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec5-provide-incentives-to-employers-to-locate-in-low-vmt-areas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC5: Provide Incentives to Employers to Locate in Low-VMT Areas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategy-ec6-retain-and-invest-in-key-industrial-lands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategy EC6: Retain and Invest in Key Industrial Lands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h1-further-strengthen-renter-protections-beyond-state-law" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H1: Further Strengthen Renter Protections Beyond State Law
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h2-preserve-existing-affordable-housing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H2: Preserve Existing Affordable Housing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h3-allow-a-greater-mix-of-housing-densities-and-types-in-growth-geographies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H3: Allow a Greater Mix of Housing Densities and Types in Growth Geographies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h4-build-adequate-affordable-housing-to-ensure-homes-for-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H4: Build Adequate Affordable Housing to Ensure Homes for All
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h5-integrate-affordable-housing-into-all-major-housing-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H5: Integrate Affordable Housing into All Major Housing Projects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h6-transform-aging-malls-and-office-parks-into-neighborhoods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H6: Transform Aging Malls and Office Parks into Neighborhoods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#h8-accelerate-reuse-of-public-and-community-owned-land-for-mixed-income-housing-and-essential-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        H8: Accelerate Reuse of Public and Community-Owned Land for Mixed-Income Housing and Essential Services
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#en1-adapt-to-sea-level-ris" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EN1: Adapt to Sea Level Ris
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#travel-model-logsums_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Travel Model Logsums
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-activated-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Activated Policy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Other Activated Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sb-743" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SB-743
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADUs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="plan-bay-area-2050-baus-strategy-inputs">Plan Bay Area 2050+ BAUS Strategy Inputs</h1>
+<p>This page documents strategy input files used in BAUS modeling for <em>Plan Bay Area 2050+</em>. The primary purpose of this documentation is to clearly identify and record the specific versions of input files used in model runs for both the <em>No Project Alternative</em> and the <em>Plan</em> scenarios.  It also includes a high-level overview of how inputs are utilized in BAUS.</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li>
+<p><a href="#pba2050-no-project-alternative">PBA 2050+ No Project Alternative</a></p>
+</li>
+<li>
+<p><a href="#regional-controls">Regional Controls</a></p>
+</li>
+<li><a href="#base-zoning">Base Zoning</a></li>
+<li><a href="#inclusionary-zoning">Inclusionary Zoning</a></li>
+<li><a href="#development-pipeline">Development Pipeline</a></li>
+<li><a href="#exogenous-assumptions">Exogenous Worker Assumptions</a></li>
+<li><a href="#travel-model-logsums">Travel Model Logsums</a></li>
+<li>
+<p><a href="#sea-level-rise">Sea Level Rise</a></p>
+</li>
+<li>
+<p><a href="#pba2050-plan-scenario">PBA 2050+ Plan</a></p>
+</li>
+<li><a href="#ec1-guranteed-income">EC1: Guranteed Income</a></li>
+<li><a href="#ec2-expand-job-training-and-incubator-programs">EC2: Job Training</a></li>
+<li><a href="#ec4-allow-a-greater-mix-of-land-uses-and-densities-in-growth-geographies">EC4: Zoning Mods</a></li>
+<li><a href="#ec5-provide-incentives-to-employers-to-locate-in-low-vmt-areas">EC5: Employer Relocation</a></li>
+<li><a href="#strategy-ec6-retain-and-invest-in-key-industrial-lands">EC6: Industial Land Asserted Projects</a></li>
+<li><a href="#h1-further-strengthen-renter-protections-beyond-state-law">H1: Protection</a></li>
+<li><a href="#h2-preserve-existing-affordable-housing">H2: Preservation</a></li>
+<li><a href="#h3-allow-a-greater-mix-of-housing-densities-and-types-in-growth-geographies">H3: Housing Mix</a></li>
+<li><a href="#h4-build-adequate-affordable-housing-to-ensure-homes-for-all">H4: Produce Affordable Housing</a></li>
+<li><a href="#h5-integrate-affordable-housing-into-all-major-housing-projects">H5: Inclusionary</a></li>
+<li><a href="#h6-transform-aging-malls-and-office-parks-into-neighborhoods">H6: Transform Malls/Office Parks Asserted Projects</a></li>
+<li><a href="#h8-accelerate-reuse-of-public-and-community-owned-land-for-mixed-income-housing-and-essential-services">H8: Public Land Asserted Projects</a></li>
+<li><a href="#en1-adapt-to-sea-level-ris">EN1: Adapt to Sea Level Rise</a></li>
+<li><a href="#travel-model-logsums-1">Travel Model Logsums</a></li>
+<li><a href="#other-activated-policy">Other Activated Policy</a><ul>
+<li><a href="#sb-743">SB 743</a></li>
+<li><a href="#adus">ADUs</a></li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="pba2050-no-project-alternative">PBA2050+ No Project Alternative</h2>
+<p>The No Project alternative represents the expected trajectory of the region without the
+implementation of the Plan. All policies in the No Project alternative are determined or
+extrapolated from existing base year plans and policies.  Staff produced and evaluated many No Project candidates.  The BAUS run for the "Final" No Project alternative can be found in following directory:
+  - <code>M:\urban_modeling\baus\PBA50Plus\PBA50Plus_NoProject\PBA50Plus_NoProject_v38</code>  </p>
+<h3 id="regional-controls">Regional Controls</h3>
+<p>Regional control totals of households and jobs were produced using REMI 3.1 and additional demographic processing scripts.  BAUS uses these projections to incrementally forecast urban growth trajectories.</p>
+<p><strong>Input</strong>
+- <code>household_controls_file</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\regional_controls\household_controls_PBA50Plus_NP.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1159C5-L1159C33"><code>datasources.household_controls_unstacked</code></a>
+- <code>employment_controls_file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\regional_controls\employment_controls_PBA50Plus_NP_DBP.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1195C5-L1195C34"><code>datasources.employment_controls_unstacked</code></a></p>
+<h3 id="base-zoning">Base Zoning</h3>
+<p>The parcel zoning and zoning lookup file were sourced from BASIS.  Base zoning was derived from local zoning ordinances or General Plans.  <code>zoning_file</code> includes a zoning id at the parcel-level.  <code>zoning_lookup_file</code> relates the zoning id to attributes such as <code>max_dua</code>, <code>max_far</code>, and <code>max_height</code>.  Development types are represented by 14 two-letter dummy variables, as shown in this <a href="https://github.com/BayAreaMetro/petrale/blob/master/incoming/dv_buildings_det_type_lu.csv">lookup file</a>.  The developer model works within these existing zoning constraints in the No Project alternative.</p>
+<p><strong>Input</strong>
+- <code>zoning_file</code>:<br />
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\zoning\zoning_parcels_2024-10-14.csv</code><br />
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L505"><code>datasources.zoning_existing</code></a>
+- <code>zoning_lookup_file</code>:<br />
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\zoning\zoning_lookup_2024-10-14.csv</code><br />
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L492"><code>datasources.zoning_lookup</code></a></p>
+<h3 id="inclusionary-zoning">Inclusionary Zoning</h3>
+<p>Existing inclusionary zoning requirements sourced from local zoning ordinances or housing policies. The developer model must "set-aside" the required share of affordable units when producing new residential projects.</p>
+<p><strong>Input</strong><br />
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\existing_policy\inclusionary.yaml</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L182"><code>datasources.inclusionary</code></a></p>
+<h3 id="development-pipeline">Development Pipeline</h3>
+<p>BASIS-sourced development pipeline.  Implemented in the model's scheduled development events.</p>
+<p><strong>Input</strong>
+- <code>development_pipeline_file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\parcels_buildings_agents\development_pipeline_NP_2024-03-08.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L991C5-L991C27"><code>datasources.get_dev_projects_table</code></a></p>
+<h3 id="exogenous-assumptions">Exogenous Assumptions</h3>
+<p>Space per worker assumptions.  Includes multipliers which adjust the sqft per job setting by superdistrict by year to represent changes due to increased telecommuting post-2020.  Determines the number of jobs that could occupy a building.  This affects the total jobs produced in the model's scheduled development events and the retail developer model.</p>
+<p><strong>Input</strong>
+- <code>exog_sqft_per_job_adj_file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\sqft_per_job_adjusters_costar_qcew_timevarying_base_2023_0p85_reduction_dec2024_sd_2035.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1291C5-L1291C32"><code>datasources.exog_sqft_per_job_adjusters</code></a></p>
+<h3 id="travel-model-logsums">Travel Model Logsums</h3>
+<p>No Project logsums representing transportation utility/attractiveness of different locations.   Allows future year travel conditions to influence real estate prices in BAUS.</p>
+<p><strong>Input</strong>
+- <code>logsum_file1</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\accessibility\travel_model\subzone_logsums_for_BAUS_PBA50Plus_NP_13_2035.csv</code>
+- <code>logsum_file2</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\accessibility\travel_model\subzone_logsums_for_BAUS_PBA50Plus_NP_14_2050.csv</code>
+  - Both loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L947C5-L947C16"><code>datasources.taz_logsums</code></a></p>
+<h3 id="sea-level-rise">Sea Level Rise</h3>
+<p>The SLR inundation file includes details on sea level rise at which each inundation parcel becomes inundated, for each forecast year. In the No Project alternative, rows marked with "100" are parcels with committed projects where sea level rise has been mitigated.  Inundated parcels are removed from the universe of parcels that BAUS can act upon.</p>
+<p><strong>Input</strong>
+- <code>slr_inundation_file</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\hazards\urbansim_slr_no_project_MAR2025.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1361C5-L1361C26"><code>datasources.slr_parcel_inundation</code></a>
+- <code>slr_progression_file</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\hazards\slr_progression_PBA50Plus.csv</code> 
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1347C5-L1347C20"><code>datasources.slr_progression</code></a></p>
+<hr />
+<h2 id="pba2050-plan-scenario">PBA2050+ Plan Scenario</h2>
+<p>The Plan scenario includes the plan's strategies and investments.  The BAUS run for the "Final" Plan scenatio can be found in following directory:
+- <code>M:\urban_modeling\baus\PBA50Plus\PBA50Plus_FinalBlueprint\PBA50Plus_Final_Blueprint_v65</code></p>
+<h3 id="ec1-guranteed-income">EC1: Guranteed Income</h3>
+<p>Regional control totals of households and jobs were produced using REMI 3.1 and additional demographic processing scripts.  In the Plan scenario, strategy EC1 is captured by updating the income distribution results outside the REMI model to represent the strategy's impact,  effectively shifting a portion of Q1 households to Q2. </p>
+<p><strong>Input</strong>
+- <code>household_controls_file</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\regional_controls\household_controls_PBA50Plus_DBP_UBI2030.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1159C5-L1159C33"><code>datasources.household_controls_unstacked</code></a>
+- <code>employment_controls_file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\regional_controls\employment_controls_PBA50Plus_NP_DBP.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1195C5-L1195C34"><code>datasources.employment_controls_unstacked</code></a></p>
+<h3 id="ec2-expand-job-training-and-incubator-programs">EC2: Expand Job Training and Incubator Programs</h3>
+<p>EC2 funds the development of 25 new incubator spaces in transit-rich PPAs, prioritizing those within EPCs. These spaces are modeled in BAUS as 250,000–500,000 square feet of commercial or industrial development per site through the Scheduled Development Events sub-model, spread equally over the forecast period. Commercial incubator spaces are represented as as retail buildings. Over time, the Employment Location Choice model seeks to place jobs in these incubator buildings.</p>
+<p><strong>Input</strong>
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a>
+- <code>dev_pipeline_strategies</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\EC2_development_pipeline_entries.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L991C5-L991C27"><code>datasources.get_dev_projects_table</code></a></p>
+<h3 id="ec4-allow-a-greater-mix-of-land-uses-and-densities-in-growth-geographies">EC4: Allow a Greater Mix of Land Uses and Densities in Growth Geographies</h3>
+<p>EC4 modifies zoning schemas applied at the parcel level, allowing new building types and/or increased commercial development densitities not already permitted by local zoning. These modifications are guided by the Growth Geographies framework.  The developer model operates within the boundaries of the zoning modifications and guided by the growth geography framework.  Increased commercial zoning often coincides with denser residential zoning, creating mixed-use environments where these uses compete and complement each other. </p>
+<p><strong>Input</strong>
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a>
+- <code>zoning_mods_file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\zoning_mods_PBA50Plus_FBP_pgfeb14_2025_ppafix.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L726C5-L726C20"><code>datasources.zoning_strategy</code></a>
+- <code>zoningmodcat_cols</code>:
+  - <code>["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]</code></p>
+<h3 id="ec5-provide-incentives-to-employers-to-locate-in-low-vmt-areas">EC5: Provide Incentives to Employers to Locate in Low-VMT Areas</h3>
+<p>EC5 is modeled in BAUS by first creating an additional 25 million square feet of non-residential real estate in transit friendly locations, with buildings of 250,000 square feet added throughout the region through the Scheduled Development Events sub-model, spread equally over the forecast period. Over time, the Employment Location Choice model simulates incentives to locate jobs in these buildings.</p>
+<p><strong>Input</strong>
+- <code>dev_pipeline_strategies</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\EC5_development_pipeline_anchor_buildings_FBP_v4.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L991C5-L991C27"><code>datasources.get_dev_projects_table</code></a>
+- <code>ec5 parcels file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\parcels_p10_x_ec5_v2.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/datasources.py#L1494C5-L1494C16"><code>datasources.ec5_parcels</code></a>  </p>
+<h3 id="strategy-ec6-retain-and-invest-in-key-industrial-lands">Strategy EC6: Retain and Invest in Key Industrial Lands</h3>
+<p>EC6 is reflected in BAUS by maintaining industrial zoning in PPAs, allowing industrial use without competition from multifamily use. Development capacity in these PPAs is increased to a max FAR of 0.35 (or local zoning where higher) to accommodate new industrial development. Since BAUS doesn’t explicitly model industrial buildings, the main function of the industrial zoning is to preclude sites turning into office or residential centers.  </p>
+<p>To further stimulate economic development in these areas, strategy projects were added to PPA parcels as scheduled development events, spread equally over the forecast period. The scheduled development events sub-model then constructed these projects in their respective future years. </p>
+<p><strong>Input</strong>
+- <code>dev_pipeline_strategies:</code>
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\EC6_development_pipeline_entries.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L991C5-L991C27"><code>datasources.get_dev_projects_table</code></a></p>
+<h3 id="h1-further-strengthen-renter-protections-beyond-state-law">H1: Further Strengthen Renter Protections Beyond State Law</h3>
+<p>H1 is reflected in the household relocation model as a 15% decrease in the relocation rate for low-income households, resulting in a 67% relocation probability within each five-year model time step. Consequently, low-income renter households remain in their homes longer than other household groups as the region grows and the land use pattern evolves.  </p>
+<p><strong>Input</strong><br />
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a><br />
+- <code>renter relocation rates file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\renter_protections_relocation_rates_overwrites.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1437"><code>datasources.renter_protections_relocation_rates</code></a>.</p>
+<h3 id="h2-preserve-existing-affordable-housing">H2: Preserve Existing Affordable Housing</h3>
+<p>H2 allocates preservation funding for housing in TRAs, DRAs, or general GGs (non PPAs).  Funding is
+specified by county, based on the base year number of low-income households in these geographies
+without deed-restricted affordable housing, who are susceptible to increasingly unaffordable rents
+without the preservation strategy.  BAUS applies affordable housing funds by randomly selecting housing units for preservation. Once preserved, these subsidized units are prioritized for low-income households in the model.</p>
+<p><strong>Input</strong><br />
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a><br />
+- <code>preservation_file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\preservation_PBA50Plus_FBP_APR26_2025.yaml</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L205"><code>datasources.preservation</code></a></p>
+<h3 id="h3-allow-a-greater-mix-of-housing-densities-and-types-in-growth-geographies">H3: Allow a Greater Mix of Housing Densities and Types in Growth Geographies</h3>
+<p>H3 modifies zoning schema at parcel level to broaden allowable building types and increase development density in TRAs and HRAs. Zoning also differs between parcels containing residential units and parcels not containing residential units to better account for local context and existing conditions.  The developer model then works within the modified zoning capacity, guided by the growth geography framework.</p>
+<p><strong>Input</strong> 
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a> 
+- <code>parcels_geography_file</code>
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\crosswalks\fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_update_2025.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L864"><code>datasources.parcels_geography</code></a>
+- <code>zoning_mods_file</code>:<br />
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\zoning_mods_PBA50Plus_FBP_pgfeb14_2025_ppafix.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L726"><code>datasources.zoning_strategy</code></a>
+- <code>zoningmodcat_cols</code>:
+  - <code>["gg_id", "exd_id", "tra_id", "hra_id", "ppa_id", "ugb_id"]</code></p>
+<h3 id="h4-build-adequate-affordable-housing-to-ensure-homes-for-all">H4: Build Adequate Affordable Housing to Ensure Homes for All</h3>
+<p>H4 allocates additonal funding to produce new deed-restricted housing within the Growth Geographies during the forecast period.  BAUS first identifies residential development projects that are close to being financially feasible under market conditions, then subsidizes these projects to fill the "feasibility gap"; the financial need of these projects is sorted to maximize the number of projects that can become feasible with the given funding. These projects create deed-restricted units exclusively for low-income households.</p>
+<p><strong>Input</strong><br />
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a> 
+- <code>account_strategies_file</code>:<br />
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\account_strategies_PBA50Plus_FBP.yaml</code><br />
+  - <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/datasources.py#L124C5-L124C23"><code>datasources.account_strategies</code></a></p>
+<h3 id="h5-integrate-affordable-housing-into-all-major-housing-projects">H5: Integrate Affordable Housing into All Major Housing Projects</h3>
+<p>H5 adjusts the base year inclusionary percentages to meet growth geography-specific requirements. BAUS reflects the requirement by modifying the financial feasibility of new residential development projects. If a project remains profitable, the affordable units will be constructed. Similar to other affordable units, inclusionary units prioritize households in the lowest income quantile. </p>
+<p><strong>Input</strong>
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a> 
+- <code>inclusionary_strategy_file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\inclusionary_strategy_PBA50Plus_FBP_pgfeb25_25.yaml</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/datasources.py#L193"><code>datasources.inclusionary_strategy</code></a> and <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/datasources.py#L336C5-L336C34"><code>datasources.inclusionary_housing_settings</code></a></p>
+<h3 id="h6-transform-aging-malls-and-office-parks-into-neighborhoods">H6: Transform Aging Malls and Office Parks into Neighborhoods</h3>
+<p>H6 permits and promotes the reuse of shopping malls and office parks with limited commercial viability as neighborhoods with housing for residents at all income levels, including locally-designated Priority Sites. These projects are modeled through the Scheduled Development Events sub-model, where representative new projects are generated on these sites.  </p>
+<p><strong>Input</strong>
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a> 
+- <code>dev_pipeline_strategies</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\H6_H8_development_pipeline_entries_FBP_MAR.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/datasources.py#L972"><code>datasources.get_dev_projects_table</code></a></p>
+<h3 id="h8-accelerate-reuse-of-public-and-community-owned-land-for-mixed-income-housing-and-essential-services">H8: Accelerate Reuse of Public and Community-Owned Land for Mixed-Income Housing and Essential Services</h3>
+<p>H8 aims to accelerate the reuse of surplus public land and land owned by non-profit institutions for developing housing, including affordable housing, and local services. Similar to H6, these projects are developed through the Scheduled Development Events sub-model. These developments were primarily 100% affordable housing projects, with some mixed-used projects to add commercial space for services.  </p>
+<p><strong>Input</strong>
+- <a href="https://mtcdrive.app.box.com/file/1855394781388"><strong>PBA50Plus_FinalBlueprint_ModelingParameters_Housing+Economy Strategies_v3.xlsx</strong>
+</a> 
+- <code>dev_pipeline_strategies</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\H6_H8_development_pipeline_entries_FBP_MAR.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/datasources.py#L972"><code>datasources.get_dev_projects_table</code></a></p>
+<h3 id="en1-adapt-to-sea-level-ris">EN1: Adapt to Sea Level Ris</h3>
+<p>To reflect EN1, protected areas are spared from inundation by altering input files that specify
+inundated parcels. When a parcel is removed from the inundation set, households and jobs are no
+longer displaced, allowing the land to be available for new development to accommodate regional
+growth.</p>
+<p><strong>Input</strong>
+- <code>slr_inundation_file</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\hazards\urbansim_slr_MAR2025.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1361C5-L1361C26"><code>datasources.slr_parcel_inundation</code></a>
+- <code>slr_progression_file</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\hazards\slr_progression_PBA50Plus.csv</code> 
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L1347C5-L1347C20"><code>datasources.slr_progression</code></a></p>
+<h3 id="travel-model-logsums_1">Travel Model Logsums</h3>
+<p>Plan logsums representing transportation utility/attractiveness of different locations.   Allows future year travel conditions to influence real estate prices in BAUS.</p>
+<p><strong>Input</strong>
+- <code>logsum_file1</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\accessibility\travel_model\subzone_logsums_for_BAUS_PBA50Plus_FBP_13_2035.csv</code>
+- <code>logsum_file2</code>: 
+  - <code>M:\urban_modeling\baus\BAUS Inputs\accessibility\travel_model\subzone_logsums_for_BAUS_PBA50Plus_FBP_14_2050.csv</code>
+  - Both loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/2813a26c2394a8c1bc353bd9f70e5df83006f379/baus/datasources.py#L947C5-L947C16"><code>datasources.taz_logsums</code></a></p>
+<hr />
+<h2 id="other-activated-policy">Other Activated Policy</h2>
+<h3 id="sb-743">SB-743</h3>
+<p>743 shifts analysis to a VMT method that is more likely to find transportation impacts in car-oriented suburban locations. This permanently activated strategy adjusts profits based on TAZ-level VMT categories.</p>
+<p><strong>Input</strong><br />
+- <code>vmt fee file</code>:
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\vmt_fee_zonecats.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/datasources.py#L1238"><code>datasources.vmt_fee_categories</code></a></p>
+<h3 id="adus">ADUs</h3>
+<p>Adds accessory dwelling units (ADUs) based on targets.</p>
+<p><strong>Input</strong>
+- <code>ADU file</code>:<br />
+  - <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\accessory_units.csv</code>
+  - Loaded via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/datasources.py#L1429"><code>datasources.accessory_units</code></a><br />
+<a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/e9259329837c31a2283830d0d83ecebdeaab9a59/baus/models.py#L274"><code>models.accessory_units_strategy</code></a>  </p>
+<hr />
+<h1 id="yuqi-original-notes-from-april-2025-fold-into-above-documentation">Yuqi original notes from April 2025 - fold into above documentation</h1>
+<h3 id="exogenous-assumptions-noproject">Exogenous Assumptions (NoProject)</h3>
+<p>TBD</p>
+<h3 id="existing-policies-noproject">Existing Policies (NoProject)</h3>
+<h4 id="planned-land-use-base-zoning-from-local-zoning-ordinance-or-general-plan">Planned Land Use (base zoning, from local zoning ordinance or General Plan)</h4>
+<ul>
+<li>Two input files:<ul>
+<li><code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\zoning\zoning_parcels.csv</code>, maps each parcel to its zoning_id. Read into the model via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/datasources.py#L460C1-L460C20">def zoning_existing</a>.</li>
+<li><code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\zoning\zoning_lookup.csv</code>, specifies development contraints for each zoning_id (column "id"), including: maximum allowable intensity (max_far, max_dua, max_height) and allowable development type. Development type is represented by 14 two-letter dummy variables as shown in this <a href="https://github.com/BayAreaMetro/petrale/blob/master/incoming/dv_buildings_det_type_lu.csv">lookup file</a>). Read into the model via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/datasources.py#L447">def zoning_lookup</a>.</li>
+</ul>
+</li>
+</ul>
+<h4 id="inclusionary-zoning_1">Inclusionary zoning</h4>
+<p><code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\existing_policy\inclusionary.yaml</code>: existing inclusionary zoning requirements, sourced from local zoning ordinance or housing policies.</p>
+<h3 id="plan-bay-area-strategies-pba50">Plan Bay Area Strategies (PBA50+)</h3>
+<p>Modeling notes on PBA50 strategies are at https://github.com/BayAreaMetro/bayarea_urbansim/wiki/BAUSStrategyCodingNotes. </p>
+<h4 id="zoning-modifications-h3-ec4-ec6">Zoning Modifications (H3, EC4, EC6)</h4>
+<ul>
+<li>PBA50+ Strategies: H3 "Allow a Greater Mix of Housing Densities and Types in Growth Geographies", EC4 "Allow a Greater Mix of Land Uses and Densities in Growth
+Geographies", EC6 "Retain and Invest in Key Industrial Lands".</li>
+<li>Input file: <ul>
+<li>zoning_mods_file: <code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\zoning_mods_[version].csv</code>, sets allowable development types/intensities and sets development restrictions based on a combination of geographies. In general, it increases the allowable density (dua_up and far_up) and allows denser development types (e.g. HM - multi-family residential) in areas where the Plan aims to focus future growth in, such as parcels within GG and TRAs, decreases the allowable density or sets it to zero (dua_down and far_down) in places where the Plan aims to avoid sprawling, such as areas outside of the Urban Growth Boundaries; in certain areas such as PPAs (Priority Production Areas), it limits residential development and encourages non-residential development. The allowable development type/intensity is defined based on a combination of geographies, defined by <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/run_setup_PBA50Plus_DraftBlueprint.yaml#L130C1-L130C18">zoningmodcat_cols</a>. An update in the Growth Geographies methodology or data may require updating the zoningmodcat_cols.</li>
+<li>parcels_geography_file: <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\crosswalks\parcels_geography.csv</code> or <code>M:\urban_modeling\baus\BAUS Inputs\basis_inputs\crosswalks\parcel_classes.csv</code>, tags each parcel based on its geography designations, e.g. the "gg_id" column shows whether a parcel is within the Growth Geographies ("gg") or not (nan), the "tra_id" column shows whether a parcel is within a TRA tier ("tra1", "tra2", etc.). Note that the parcel-geographies lookup is used for all strategies with a geographic aspect, not limited to zoning modification.</li>
+</ul>
+</li>
+<li>Coding notes:<ul>
+<li>parcels_geography_file is read into the model via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/datasources.py#L819C1-L819C22">def parcels_geography</a>.</li>
+<li>zoning_mods_file is read into the model and joined to parcels_geography via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/datasources.py#L681C1-L681C20">def zoning_strategy</a>, which is then joined to the master parcels table. </li>
+<li>In Blueprint scenario, the model assesses base zoning and zoning modification, and calculates the <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/variables.py#L1000">effective_max_dua</a> and <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/variables.py#L1047">effective_max_far</a> of each parcel, usually the higher of the allowed densities of base zoning and zoning modification. Then the model applies some other development restrictions (such as "not developable parcels", e.g. churches and parks, defined as "nodev") and adjustments (e.g. adjusting for edge cases) and arrives at <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/variables.py#L832">max_dua</a> and <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/variables.py#L801">max_far</a>. These two parcel attributes are later used in the <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/f4215d2480cf87183e5e52685fcc0d7542e75f05/baus/models.py#L587">feasibility</a> step of the developer model.</li>
+</ul>
+</li>
+</ul>
+<h4 id="housing-preservation">Housing Preservation</h4>
+<ul>
+<li>PBA50+ Strategy: H2 "Preserve Existing Affordable Housing".</li>
+<li><code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\preservation_[version].yaml</code>, specifies geographies and target number of units for preservation.</li>
+<li>Coding notes: the input is read into the model via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/1d67ad51a50f46f3d5a7b75b5526420f83c1ccbc/baus/datasources.py#L153">def preservation</a>; preservation is done via <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/ec85eb3f00bd3c2976531612ba14d2252da3224d/baus/subsidies.py#L65">def preserve_affordable</a>.</li>
+</ul>
+<h4 id="affordable-housing-subsidy-housing-bond-lump-sum-account">Affordable Housing Subsidy (Housing Bond / Lump-sum Account)</h4>
+<ul>
+<li>PAB50+ Strategy: H4 "Build Adequate Affordable Housing to Ensure Homes for All".</li>
+<li><code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\account_strategies_[scenario].yaml</code>, specifies total funding amount for each county and the target geographies for the subsidy. This assumes a constant "annual funding amount (an independent input)" during the plan period, not considering inflation/deflation over the simulation years.</li>
+<li>Coding notes:<ul>
+<li>The model <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/ec85eb3f00bd3c2976531612ba14d2252da3224d/baus/datasources.py#L124">reads</a> the account_strategies config and sets up [lump_sum_accounts] (https://github.com/BayAreaMetro/bayarea_urbansim/blob/ec85eb3f00bd3c2976531612ba14d2252da3224d/baus/subsidies.py#L166) for each county. For each iteration (5-year), the funding available for each county = annual amount * 5. </li>
+<li>In model step <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/ec85eb3f00bd3c2976531612ba14d2252da3224d/baus/subsidies.py#L906">subsidized_residential_developer_lump_sum_accts</a> - <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/ec85eb3f00bd3c2976531612ba14d2252da3224d/baus/subsidies.py#L586C5-L586C29">run_subsidized_developer</a>, residential development projects that are not financially feasible ("almost feasible") under market conditions and are within the target geographies may qualify for subsidy. The model ranks these projects by how much per unit subsidy is needed to fill the feasibility gap, then starting from buildings that require the lowest per unit subsidy, draws funding from the corresponding county acount to fill the gap and build deed-restricted units, until either the account is depleted or the demand is met. </li>
+<li>Note that in reality, affordable housing finance typical does not work this way. This version of UrbanSim does not have an affordable housing submodel that mimics the funding structure of majority of the 100% affordable housing or mixed-income housing projects.  </li>
+</ul>
+</li>
+</ul>
+<h4 id="housing-development-cost-reduction">Housing Development Cost Reduction</h4>
+<ul>
+<li>PBA50+ Strategy: H3.</li>
+<li>One way to (indirectly) subsidize housing is to reduce housing development cost reduction, for example, SB743 CEQA reform, lowering parking requirements, etc. This is defined in <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/3ecf457e3cf3661992a3a3c5dba126fe1b33db8a/configs/policy.yaml#L1246">profitability_adjustment_policies</a>. The policies are scenario-based, as noted by "enable_in_scenarios". For each policy, <a href="https://github.com/BayAreaMetro/bayarea_urbansim/blob/98f3b65ea4f29c1f2766659432e8a9d825eed56c/configs/policy.yaml#L1295"><em>profitabiity_adjustment_formula</em></a> picks the parcels in a certain category (e.g. a certain type of geography) and then decreases the required profitability level needed for the model to build on those parcels, e.g. multiplying by 2.5% or 0.025 means to LOWER the required profit level by 2.5%. When a policy has an alternative version is different scenarios, may use 'alternative_geography_scenarios' and 'alternative_adjustment_formula' to consolidate the scenarios.</li>
+</ul>
+<h4 id="inclusionary-housing">Inclusionary Housing</h4>
+<ul>
+<li>PBA50+ Strategy: H5 "Integrate Affordable Housing into All Major Housing Projects".</li>
+<li><code>M:\urban_modeling\baus\BAUS Inputs\plan_strategies\inclusionary_strategy_[version].yaml</code></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "content.code.annotate", "content.tabs.link", "navigation.indexes"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

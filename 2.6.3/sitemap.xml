@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/2.6.3/</loc>
+         <lastmod>2026-04-28</lastmod>
+    </url>
+    <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/2.6.3/baus_inputs_pba50_plus/</loc>
+         <lastmod>2026-04-28</lastmod>
+    </url>
+    <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/2.6.3/configuration/</loc>
+         <lastmod>2026-04-28</lastmod>
+    </url>
+    <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/2.6.3/input/</loc>
+         <lastmod>2026-04-28</lastmod>
+    </url>
+    <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/2.6.3/output/</loc>
+         <lastmod>2026-04-28</lastmod>
+    </url>
+    <url>
+         <loc>http://bayareametro.github.io/bayarea_urbansim/2.6.3/scenarios/</loc>
+         <lastmod>2026-04-28</lastmod>
+    </url>
+</urlset>
