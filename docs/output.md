@@ -10,7 +10,7 @@ parcel_growth_summary.csv | Change in development, households, and jobs on each 
 building_summary_[year].csv | Inventory of buildings in a given year, linked to the parcel they sit on.
 new_buildings_summary.csv | Inventory of all buildings built during the simulation.
 interim_zone_output_[year].csv | Interim model data at the TAZ level.
-feasibility.csv | Parcel-level data on the development feasibilities of various development types given the zoning, development costs, and expected return. Contains two sets of development variables grouped by six development types (coded as `form`): `retail`, `industrial`, `office`, `residential`, `mixedresidential`, `mixedoffice`. For every development type, one set of variables are passed through from the parcels table as input for the feasibility evaluation; the other set of variables are the result of the feasibility evaluation.Only parcels where at least one development type is feasible are included.
+[feasibility.csv](#feasibilitycsv) | Parcel-level data on the development feasibilities of various development types given the zoning, development costs, and expected return. Contains two sets of development variables grouped by six development types (coded as `form`): `retail`, `industrial`, `office`, `residential`, `mixedresidential`, `mixedoffice`. For every development type, one set of variables are passed through from the parcels table as input for the feasibility evaluation; the other set of variables are the result of the feasibility evaluation.Only parcels where at least one development type is feasible are included.
 
 #### `interim_zone_output.csv`
 
@@ -48,54 +48,6 @@ job_spaces | the total number of job space in a building, derived from the non-r
 x | the x coordinate of the project, relating to its parcel 
 y | the y coordinate of the project, relating to its parcel 
 year_built | the year the project was constructed, either from the model input data or simulation year it was built
-
-### `feasibility.csv`
-Parcel-level feasibility data produced as an interim output during the simulation. Sub-fields are grouped under `parcel_id` and further indexed by development form (`retail`, `industrial`, `office`, `residential`, `mixedresidential`, `mixedoffice`). For each form, fields are either passed through from the input parcel frame or computed by `run_feasibility()`.
-
-| field | sub-field | source | type | description |
-|---|---|---|---|---|
-| parcel_id | | | int | Parcel index |
-| | parking_config | created by run_feasibility() | string | parking type, e.g. deck, surface |
-| | building_sqft | created by run_feasibility() | float | The number of square feet for the building to build. Includes parking and common space. |
-| | building_cost | created by run_feasibility() | float | The cost of constructing the building as given by the ave_cost_per_sqft from the cost model (for this FAR) and the number of square feet. |
-| | parking_ratio | created by run_feasibility() | | |
-| | stories | created by run_feasibility() | | |
-| | total_cost | created by run_feasibility() | float | The cost of constructing the building plus the cost of acquisition of the current parcel/building. |
-| | building_revenue | created by run_feasibility() | float | The NPV of the revenue for the building to be built: square feet × yearly rent ÷ cap rate (with adjustment factors including building efficiency). |
-| | max_profit_far | created by run_feasibility() | float | The FAR of the maximum profit building (constrained by max_far and max_height). |
-| | max_profit | created by run_feasibility() | float | The profit for the maximum profit building (constrained by max_far and max_height). |
-| | oldest_building | pass-through from input parcel frame | | |
-| | total_sqft | pass-through from input parcel frame | | |
-| | total_residential_units | pass-through from input parcel frame | | |
-| | max_far | pass-through from input parcel frame | | |
-| | max_dua | pass-through from input parcel frame | | |
-| | land_cost | pass-through from input parcel frame | | |
-| | residential | pass-through from input parcel frame | | |
-| | min_max_fars | pass-through from input parcel frame | | |
-| | max_height | pass-through from input parcel frame | | |
-| | building_purchase_price | pass-through from input parcel frame | | |
-| | building_purchase_price_sqft | pass-through from input parcel frame | | |
-| | residential_sales_price_sqft | pass-through from input parcel frame | | |
-| | pda_pba40 | pass-through from input parcel frame | | |
-| | pda_pba50 | pass-through from input parcel frame | | |
-| | trich_id | pass-through from input parcel frame | | |
-| | cat_id | pass-through from input parcel frame | | |
-| | tra_id | pass-through from input parcel frame | | |
-| | ppa_id | pass-through from input parcel frame | | |
-| | sesit_id | pass-through from input parcel frame | | |
-| | coc_id | pass-through from input parcel frame | | |
-| | juris | pass-through from input parcel frame | | |
-| | county | pass-through from input parcel frame | | |
-| | superdistrict | pass-through from input parcel frame | | |
-| | geom_id | pass-through from input parcel frame | | |
-| | vmt_res_cat | pass-through from input parcel frame | | |
-| | vmt_nonres_cat | pass-through from input parcel frame | | |
-| | residential_sqft | created by run_feasibility() | float | |
-| | non_residential_sqft | created by run_feasibility() | float | |
-| | fees | created by run_feasibility() | | |
-| | policy_based_revenue_reduction | created by run_feasibility() | | |
-| | deed_restricted_units | created by run_feasibility() | | |
-| | inclusionary_units | created by run_feasibility() | | |
 
 #### geographic summaries
 **name**|**description**
@@ -162,3 +114,55 @@ jobs_metrics.csv | Change in PPA and manufacturing jobs.
 slr_metrics.csv | Sea level rise affected and protected total households, low-income households and COC households.
 earthquake_metrics.csv | Total housing units retrofit and total retrofit cost, for all units and for COC units. Earthquake affected and protected total households, low-income households, and COC households.
 greenfield_metric.csv | Change in annual greenfield development acres.
+
+---
+
+## Field Dictionaries
+
+### feasibility.csv
+Parcel-level feasibility data produced as an interim output during the simulation. Fields are indexed by development form (`retail`, `industrial`, `office`, `residential`, `mixedresidential`, `mixedoffice`). For each form, fields are either passed through from the input parcel frame or computed by `run_feasibility()`.
+
+| field | sub-field | source | type | description |
+|---|---|---|---|---|
+| parcel_id | | | int | Parcel index |
+| | parking_config | created by run_feasibility() | string | parking type, e.g. deck, surface |
+| | building_sqft | created by run_feasibility() | float | The number of square feet for the building to build. Includes parking and common space. |
+| | building_cost | created by run_feasibility() | float | The cost of constructing the building as given by the ave_cost_per_sqft from the cost model (for this FAR) and the number of square feet. |
+| | parking_ratio | created by run_feasibility() | | |
+| | stories | created by run_feasibility() | | |
+| | total_cost | created by run_feasibility() | float | The cost of constructing the building plus the cost of acquisition of the current parcel/building. |
+| | building_revenue | created by run_feasibility() | float | The NPV of the revenue for the building to be built: square feet × yearly rent ÷ cap rate (with adjustment factors including building efficiency). |
+| | max_profit_far | created by run_feasibility() | float | The FAR of the maximum profit building (constrained by max_far and max_height). |
+| | max_profit | created by run_feasibility() | float | The profit for the maximum profit building (constrained by max_far and max_height). |
+| | oldest_building | pass-through from input parcel frame | | |
+| | total_sqft | pass-through from input parcel frame | | |
+| | total_residential_units | pass-through from input parcel frame | | |
+| | max_far | pass-through from input parcel frame | | |
+| | max_dua | pass-through from input parcel frame | | |
+| | land_cost | pass-through from input parcel frame | | |
+| | residential | pass-through from input parcel frame | | |
+| | min_max_fars | pass-through from input parcel frame | | |
+| | max_height | pass-through from input parcel frame | | |
+| | building_purchase_price | pass-through from input parcel frame | | |
+| | building_purchase_price_sqft | pass-through from input parcel frame | | |
+| | residential_sales_price_sqft | pass-through from input parcel frame | | |
+| | pda_pba40 | pass-through from input parcel frame | | |
+| | pda_pba50 | pass-through from input parcel frame | | |
+| | trich_id | pass-through from input parcel frame | | |
+| | cat_id | pass-through from input parcel frame | | |
+| | tra_id | pass-through from input parcel frame | | |
+| | ppa_id | pass-through from input parcel frame | | |
+| | sesit_id | pass-through from input parcel frame | | |
+| | coc_id | pass-through from input parcel frame | | |
+| | juris | pass-through from input parcel frame | | |
+| | county | pass-through from input parcel frame | | |
+| | superdistrict | pass-through from input parcel frame | | |
+| | geom_id | pass-through from input parcel frame | | |
+| | vmt_res_cat | pass-through from input parcel frame | | |
+| | vmt_nonres_cat | pass-through from input parcel frame | | |
+| | residential_sqft | created by run_feasibility() | float | |
+| | non_residential_sqft | created by run_feasibility() | float | |
+| | fees | created by run_feasibility() | | |
+| | policy_based_revenue_reduction | created by run_feasibility() | | |
+| | deed_restricted_units | created by run_feasibility() | | |
+| | inclusionary_units | created by run_feasibility() | | |
