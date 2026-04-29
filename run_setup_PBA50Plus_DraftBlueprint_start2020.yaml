@@ -2,22 +2,18 @@
 # the model's initial year is 2010, while this specifies the first reporting year
 # generally the initial summary year is the current year, validated with external data
 # adter which external forces and strategies are applied
-base_year: 2010
+base_year: 2020
 final_year: 2050
 initial_summary_year: 2020
 
 # RUN NAME
-# originally named PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
-# But moving forward since this does not reproduce DBP results exactly because incorrect caching has been removed
-run_name: PBA50Plus_DraftBlueprint_2020BaseYearCompat
+run_name: PBA50Plus_DraftBlueprint_2020BaseYearCompat_start2020
 
 annotation: 
-   - This is equivalent to the PBA50Plus Draft Blueprint run (PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix)
-     but with code changes required such that running a 2020 base year would achieve the same results
-     as a 2010 base year.  Details can be found here https://github.com/BayAreaMetro/bayarea_urbansim/pull/384
-   - Make model start year configurable (and set to 2020) https://app.asana.com/0/15119358130897/1207556028226924/f
+   - Reproducing PBA50Plus_DraftBlueprint_2020BaseYearCompat
+     but with start year 2020
 
-reference_run: PBA50Plus_Draft_Blueprint_v8_znupd_nodevfix
+reference_run: PBA50Plus_DraftBlueprint_2020BaseYearCompat
 variant: DBP
 vintage: PBA2050Plus
 

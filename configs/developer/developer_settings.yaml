@@ -54,6 +54,8 @@ feasibility:
     and oldest_building_age > 20 and (total_residential_units != 1 or parcel_acres > 1.0)
     and first_building_type != 'HO' and first_building_type != 'SC')
   residential_to_yearly: True
+  # means we get a much larger feasibility frame returned, including non-profitable ones
+  only_built: False 
   simple_zoning: True
   pass_through:
     - oldest_building
@@ -75,8 +77,8 @@ feasibility:
     - vmt_res_cat
     - vmt_nonres_cat
 
-# a list of parcel geom ids which urbansim doesn't touch - this are viewed as exceptions
-# and are often dealt with using specific models (SDEM and possibly proportional jobs model)
+# a list of parcel ids which urbansim doesn't touch - these are viewed as exceptions
+# and are often dealt with using specific models (SDEM, household_relocation, and possibly proportional jobs model)
 # which ignore this list
 static_parcels:
   - 2489683204304 # ala fairgrounds 378337
@@ -108,6 +110,7 @@ static_parcels:
 residential_developer:
   target_vacancy: 0.03
   min_unit_size: 1000
+  
   bldg_sqft_per_job: 400
   max_parcel_size: 150_000_000
 
