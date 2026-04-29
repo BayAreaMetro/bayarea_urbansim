@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -533,7 +533,18 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="new_buildings_summary.csv">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feasibilitycsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feasibility.csv
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="feasibility.csv">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -714,7 +725,18 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="new_buildings_summary.csv">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feasibilitycsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feasibility.csv
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="feasibility.csv">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -980,6 +1002,315 @@
 <tr>
 <td>year_built</td>
 <td>the year the project was constructed, either from the model input data or simulation year it was built</td>
+</tr>
+</tbody>
+</table>
+<h3 id="feasibilitycsv"><code>feasibility.csv</code></h3>
+<p>Parcel-level feasibility data produced as an interim output during the simulation. Sub-fields are grouped under <code>parcel_id</code> and further indexed by development form (<code>retail</code>, <code>industrial</code>, <code>office</code>, <code>residential</code>, <code>mixedresidential</code>, <code>mixedoffice</code>). For each form, fields are either passed through from the input parcel frame or computed by <code>run_feasibility()</code>.</p>
+<table>
+<thead>
+<tr>
+<th>field</th>
+<th>sub-field</th>
+<th>source</th>
+<th>type</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>parcel_id</td>
+<td></td>
+<td></td>
+<td>int</td>
+<td>Parcel index</td>
+</tr>
+<tr>
+<td></td>
+<td>parking_config</td>
+<td>created by run_feasibility()</td>
+<td>string</td>
+<td>parking type, e.g. deck, surface</td>
+</tr>
+<tr>
+<td></td>
+<td>building_sqft</td>
+<td>created by run_feasibility()</td>
+<td>float</td>
+<td>The number of square feet for the building to build. Includes parking and common space.</td>
+</tr>
+<tr>
+<td></td>
+<td>building_cost</td>
+<td>created by run_feasibility()</td>
+<td>float</td>
+<td>The cost of constructing the building as given by the ave_cost_per_sqft from the cost model (for this FAR) and the number of square feet.</td>
+</tr>
+<tr>
+<td></td>
+<td>parking_ratio</td>
+<td>created by run_feasibility()</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>stories</td>
+<td>created by run_feasibility()</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>total_cost</td>
+<td>created by run_feasibility()</td>
+<td>float</td>
+<td>The cost of constructing the building plus the cost of acquisition of the current parcel/building.</td>
+</tr>
+<tr>
+<td></td>
+<td>building_revenue</td>
+<td>created by run_feasibility()</td>
+<td>float</td>
+<td>The NPV of the revenue for the building to be built: square feet × yearly rent ÷ cap rate (with adjustment factors including building efficiency).</td>
+</tr>
+<tr>
+<td></td>
+<td>max_profit_far</td>
+<td>created by run_feasibility()</td>
+<td>float</td>
+<td>The FAR of the maximum profit building (constrained by max_far and max_height).</td>
+</tr>
+<tr>
+<td></td>
+<td>max_profit</td>
+<td>created by run_feasibility()</td>
+<td>float</td>
+<td>The profit for the maximum profit building (constrained by max_far and max_height).</td>
+</tr>
+<tr>
+<td></td>
+<td>oldest_building</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>total_sqft</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>total_residential_units</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>max_far</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>max_dua</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>land_cost</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>residential</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>min_max_fars</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>max_height</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>building_purchase_price</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>building_purchase_price_sqft</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>residential_sales_price_sqft</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>pda_pba40</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>pda_pba50</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>trich_id</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>cat_id</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>tra_id</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>ppa_id</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>sesit_id</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>coc_id</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>juris</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>county</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>superdistrict</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>geom_id</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>vmt_res_cat</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>vmt_nonres_cat</td>
+<td>pass-through from input parcel frame</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>residential_sqft</td>
+<td>created by run_feasibility()</td>
+<td>float</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>non_residential_sqft</td>
+<td>created by run_feasibility()</td>
+<td>float</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>fees</td>
+<td>created by run_feasibility()</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>policy_based_revenue_reduction</td>
+<td>created by run_feasibility()</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>deed_restricted_units</td>
+<td>created by run_feasibility()</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td>inclusionary_units</td>
+<td>created by run_feasibility()</td>
+<td></td>
+<td></td>
 </tr>
 </tbody>
 </table>
