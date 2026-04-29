@@ -691,7 +691,6 @@ def region_marginals(year, initial_summary_year, final_year, interim_summary_yea
     
     tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
     tmsum_output_dir.mkdir(parents=True, exist_ok=True)
-<<<<<<< HEAD
     region_m.to_csv(tmsum_output_dir / f"{run_name}_region_marginals_{year}.csv")
 
 
@@ -1065,6 +1064,3 @@ def county_marginals_alt(tm2_occupation_shares, year, run_name):
     # tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
     # tmsum_output_dir.mkdir(parents=True, exist_ok=True)
     county.fillna(0).to_csv(tmsum_output_dir / f"{run_name}_county_marginals_{year}.csv")
-=======
-    region_m.to_csv(tmsum_output_dir / f"region_marginals_{year}.csv")
->>>>>>> main
