@@ -533,18 +533,7 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#feasibilitycsv" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        feasibility.csv
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="feasibility.csv">
+    <nav class="md-nav" aria-label="new_buildings_summary.csv">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -596,6 +585,34 @@
     <span class="md-ellipsis">
       
         metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#field-dictionaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field Dictionaries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Field Dictionaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feasibilitycsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feasibility.csv
       
     </span>
   </a>
@@ -725,18 +742,7 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#feasibilitycsv" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        feasibility.csv
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="feasibility.csv">
+    <nav class="md-nav" aria-label="new_buildings_summary.csv">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -788,6 +794,34 @@
     <span class="md-ellipsis">
       
         metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#field-dictionaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field Dictionaries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Field Dictionaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feasibilitycsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        feasibility.csv
       
     </span>
   </a>
@@ -854,7 +888,7 @@
 <td>Interim model data at the TAZ level.</td>
 </tr>
 <tr>
-<td>feasibility.csv</td>
+<td><a href="#feasibilitycsv">feasibility.csv</a></td>
 <td>Parcel-level data on the development feasibilities of various development types given the zoning, development costs, and expected return. Contains two sets of development variables grouped by six development types (coded as <code>form</code>): <code>retail</code>, <code>industrial</code>, <code>office</code>, <code>residential</code>, <code>mixedresidential</code>, <code>mixedoffice</code>. For every development type, one set of variables are passed through from the parcels table as input for the feasibility evaluation; the other set of variables are the result of the feasibility evaluation.Only parcels where at least one development type is feasible are included.</td>
 </tr>
 </tbody>
@@ -1005,8 +1039,239 @@
 </tr>
 </tbody>
 </table>
-<h3 id="feasibilitycsv"><code>feasibility.csv</code></h3>
-<p>Parcel-level feasibility data produced as an interim output during the simulation. Sub-fields are grouped under <code>parcel_id</code> and further indexed by development form (<code>retail</code>, <code>industrial</code>, <code>office</code>, <code>residential</code>, <code>mixedresidential</code>, <code>mixedoffice</code>). For each form, fields are either passed through from the input parcel frame or computed by <code>run_feasibility()</code>.</p>
+<h4 id="geographic-summaries">geographic summaries</h4>
+<table>
+<thead>
+<tr>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>jurisdiction_summary_[year].csv</td>
+<td>Jurisdiction-level summary of development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>jurisdiction_summary_growth.csv</td>
+<td>Jurisdiction-level change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>superdistrict_summary_[year].csv</td>
+<td>Superdistrict-level summary of development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>superdistrict_summary_growth.csv</td>
+<td>Superdistrict-level change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>county_summary_[year].csv</td>
+<td>County-level summary of development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>county_summary_growth.csv</td>
+<td>County-level change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>subregion_summary_[year].csv</td>
+<td>Subregion-level change in development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>subregion_summary_growth.csv</td>
+<td>Subregion-level change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>region_summary_[year].csv</td>
+<td>Regional summary of development, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>region_summary_growth.csv</td>
+<td>Regional change in development, households, and jobs between the model's base year and forecast year.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="travel-model-summaries">travel model summaries</h4>
+<table>
+<thead>
+<tr>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>taz1_summary_[year].csv</td>
+<td>TAZ1/TAZ1454-level summaries of development, households, jobs, demographics, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>taz1_summary_growth.csv</td>
+<td>TAZ1/TAZ1454-level change in development, households, jobs, demographics, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>maz_marginals_[year].csv</td>
+<td>MAZ-level summaries of households and demographics used to create the synthesized population for travel modeling.</td>
+</tr>
+<tr>
+<td>maz_summary_[year].csv</td>
+<td>MAZ-level summaries of development, households, jobs, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>maz_summary_growth.csv</td>
+<td>MAZ-level change in development, households, jobs, and density attributes used for travel modeling.</td>
+</tr>
+<tr>
+<td>taz2_marginals_[year].csv</td>
+<td>TAZ2-level summaries of households and demographics used to create the synthesized population for travel modeling.</td>
+</tr>
+<tr>
+<td>county_marginals_[year].csv</td>
+<td>County-level summaries of demographics and jobs used to create the synthesized population for travel modeling.</td>
+</tr>
+<tr>
+<td>region_marginals_[year].csv</td>
+<td>Region-level summaries of demographics used to create the synthesized population for travel modeling.</td>
+</tr>
+</tbody>
+</table>
+<p><code>interim_zone_output.csv</code>
+See data dictionary in the travel model repository <a href="https://github.com/BayAreaMetro/modeling-website/wiki/TazData">here</a></p>
+<h4 id="affordable-housing-summaries">affordable housing summaries</h4>
+<table>
+<thead>
+<tr>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>juris_dr_summary_[year].csv</td>
+<td>Jurisdiction-level summary of deed-restricted units by type in a given year.</td>
+</tr>
+<tr>
+<td>juris_dr_growth.csv</td>
+<td>Jurisdiction-level change in deed-restricted units by type between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>superdistrict_dr_summary_[year].csv</td>
+<td>Superdistrict-level summary of deed-restricted units by type in a given year.</td>
+</tr>
+<tr>
+<td>superdistrict_dr_growth.csv</td>
+<td>Superdistrict-level change in deed-restricted units by type between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>county_dr_summary_[growth].csv</td>
+<td>County-level summary of deed-restricted units by type in a given year.</td>
+</tr>
+<tr>
+<td>county_dr_growth</td>
+<td>County-level change in deed-restricted units by type between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>region_dr_summary_[year].csv</td>
+<td>Region-level summary of deed-restricted units by type in a given year.</td>
+</tr>
+<tr>
+<td>region_dr_growth.csv</td>
+<td>Region-level change in deed-restricted units by type between the model's base year and forecast year.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="hazards-summaries">hazards summaries</h4>
+<table>
+<thead>
+<tr>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>slr_summary_[year].csv</td>
+<td>Sea level rise impacted parcels, buildings, households, and jobs in a given year.</td>
+</tr>
+<tr>
+<td>eq_codes_summary_[year].csv</td>
+<td>Summary of earthquake codes assigned to buildings, in the earthquake year.</td>
+</tr>
+<tr>
+<td>eq_fragilities_summary_[year].csv</td>
+<td>SUmmary of fragilities assigned to buildings, in the earthquake year.</td>
+</tr>
+<tr>
+<td>slr_summary_[year].csv</td>
+<td>Earthquake impacted parcels, buildings, households, and jobs in the earthquake year.</td>
+</tr>
+<tr>
+<td>eq_demolish_buildings_[year].csv</td>
+<td>Inventory of buildings impacted by earthquake, by TAZ for the resilience team.</td>
+</tr>
+<tr>
+<td>eq_demolish_buildings_[year].csv</td>
+<td>Inventory of buildings retrofit for earthquake, by TAZ for the resilience team.</td>
+</tr>
+<tr>
+<td>eq_buildings_list_[year].csv</td>
+<td>Inventory of buildings in key earthquake years, by TAZ for the resilience team.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="metrics">metrics</h4>
+<table>
+<thead>
+<tr>
+<th><strong>name</strong></th>
+<th><strong>description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>growth_geog_summary_[year].csv</td>
+<td>Households and jobs in growth geographies and combinations of growth geographies, by year.</td>
+</tr>
+<tr>
+<td>growth_geog_growth_summary_[year].csv</td>
+<td>Change in households and jobs in growth geographies and combinations of growth geographies between the model's base year and forecast year.</td>
+</tr>
+<tr>
+<td>dr_units_metrics.csv</td>
+<td>Change in deed-restricted units by HRA and COC.</td>
+</tr>
+<tr>
+<td>household_income_metrics_[year].csv</td>
+<td>Low income households by growth geography, by year.</td>
+</tr>
+<tr>
+<td>equity_metrics.csv</td>
+<td>Change in low income households in Displacement tracts and COC tracts.</td>
+</tr>
+<tr>
+<td>jobs_housing_metrics.csv</td>
+<td>Jobs-Housing ratios by county, by year.</td>
+</tr>
+<tr>
+<td>jobs_metrics.csv</td>
+<td>Change in PPA and manufacturing jobs.</td>
+</tr>
+<tr>
+<td>slr_metrics.csv</td>
+<td>Sea level rise affected and protected total households, low-income households and COC households.</td>
+</tr>
+<tr>
+<td>earthquake_metrics.csv</td>
+<td>Total housing units retrofit and total retrofit cost, for all units and for COC units. Earthquake affected and protected total households, low-income households, and COC households.</td>
+</tr>
+<tr>
+<td>greenfield_metric.csv</td>
+<td>Change in annual greenfield development acres.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="field-dictionaries">Field Dictionaries</h2>
+<h3 id="feasibilitycsv">feasibility.csv</h3>
+<p>Parcel-level feasibility data produced as an interim output during the simulation. Fields are indexed by development form (<code>retail</code>, <code>industrial</code>, <code>office</code>, <code>residential</code>, <code>mixedresidential</code>, <code>mixedoffice</code>). For each form, fields are either passed through from the input parcel frame or computed by <code>run_feasibility()</code>.</p>
 <table>
 <thead>
 <tr>
@@ -1311,235 +1576,6 @@
 <td>created by run_feasibility()</td>
 <td></td>
 <td></td>
-</tr>
-</tbody>
-</table>
-<h4 id="geographic-summaries">geographic summaries</h4>
-<table>
-<thead>
-<tr>
-<th><strong>name</strong></th>
-<th><strong>description</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>jurisdiction_summary_[year].csv</td>
-<td>Jurisdiction-level summary of development, households, and jobs in a given year.</td>
-</tr>
-<tr>
-<td>jurisdiction_summary_growth.csv</td>
-<td>Jurisdiction-level change in development, households, and jobs between the model's base year and forecast year.</td>
-</tr>
-<tr>
-<td>superdistrict_summary_[year].csv</td>
-<td>Superdistrict-level summary of development, households, and jobs in a given year.</td>
-</tr>
-<tr>
-<td>superdistrict_summary_growth.csv</td>
-<td>Superdistrict-level change in development, households, and jobs between the model's base year and forecast year.</td>
-</tr>
-<tr>
-<td>county_summary_[year].csv</td>
-<td>County-level summary of development, households, and jobs in a given year.</td>
-</tr>
-<tr>
-<td>county_summary_growth.csv</td>
-<td>County-level change in development, households, and jobs between the model's base year and forecast year.</td>
-</tr>
-<tr>
-<td>subregion_summary_[year].csv</td>
-<td>Subregion-level change in development, households, and jobs in a given year.</td>
-</tr>
-<tr>
-<td>subregion_summary_growth.csv</td>
-<td>Subregion-level change in development, households, and jobs between the model's base year and forecast year.</td>
-</tr>
-<tr>
-<td>region_summary_[year].csv</td>
-<td>Regional summary of development, households, and jobs in a given year.</td>
-</tr>
-<tr>
-<td>region_summary_growth.csv</td>
-<td>Regional change in development, households, and jobs between the model's base year and forecast year.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="travel-model-summaries">travel model summaries</h4>
-<table>
-<thead>
-<tr>
-<th><strong>name</strong></th>
-<th><strong>description</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>taz1_summary_[year].csv</td>
-<td>TAZ1/TAZ1454-level summaries of development, households, jobs, demographics, and density attributes used for travel modeling.</td>
-</tr>
-<tr>
-<td>taz1_summary_growth.csv</td>
-<td>TAZ1/TAZ1454-level change in development, households, jobs, demographics, and density attributes used for travel modeling.</td>
-</tr>
-<tr>
-<td>maz_marginals_[year].csv</td>
-<td>MAZ-level summaries of households and demographics used to create the synthesized population for travel modeling.</td>
-</tr>
-<tr>
-<td>maz_summary_[year].csv</td>
-<td>MAZ-level summaries of development, households, jobs, and density attributes used for travel modeling.</td>
-</tr>
-<tr>
-<td>maz_summary_growth.csv</td>
-<td>MAZ-level change in development, households, jobs, and density attributes used for travel modeling.</td>
-</tr>
-<tr>
-<td>taz2_marginals_[year].csv</td>
-<td>TAZ2-level summaries of households and demographics used to create the synthesized population for travel modeling.</td>
-</tr>
-<tr>
-<td>county_marginals_[year].csv</td>
-<td>County-level summaries of demographics and jobs used to create the synthesized population for travel modeling.</td>
-</tr>
-<tr>
-<td>region_marginals_[year].csv</td>
-<td>Region-level summaries of demographics used to create the synthesized population for travel modeling.</td>
-</tr>
-</tbody>
-</table>
-<p><code>interim_zone_output.csv</code>
-See data dictionary in the travel model repository <a href="https://github.com/BayAreaMetro/modeling-website/wiki/TazData">here</a></p>
-<h4 id="affordable-housing-summaries">affordable housing summaries</h4>
-<table>
-<thead>
-<tr>
-<th><strong>name</strong></th>
-<th><strong>description</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>juris_dr_summary_[year].csv</td>
-<td>Jurisdiction-level summary of deed-restricted units by type in a given year.</td>
-</tr>
-<tr>
-<td>juris_dr_growth.csv</td>
-<td>Jurisdiction-level change in deed-restricted units by type between the model's base year and forecast year.</td>
-</tr>
-<tr>
-<td>superdistrict_dr_summary_[year].csv</td>
-<td>Superdistrict-level summary of deed-restricted units by type in a given year.</td>
-</tr>
-<tr>
-<td>superdistrict_dr_growth.csv</td>
-<td>Superdistrict-level change in deed-restricted units by type between the model's base year and forecast year.</td>
-</tr>
-<tr>
-<td>county_dr_summary_[growth].csv</td>
-<td>County-level summary of deed-restricted units by type in a given year.</td>
-</tr>
-<tr>
-<td>county_dr_growth</td>
-<td>County-level change in deed-restricted units by type between the model's base year and forecast year.</td>
-</tr>
-<tr>
-<td>region_dr_summary_[year].csv</td>
-<td>Region-level summary of deed-restricted units by type in a given year.</td>
-</tr>
-<tr>
-<td>region_dr_growth.csv</td>
-<td>Region-level change in deed-restricted units by type between the model's base year and forecast year.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="hazards-summaries">hazards summaries</h4>
-<table>
-<thead>
-<tr>
-<th><strong>name</strong></th>
-<th><strong>description</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>slr_summary_[year].csv</td>
-<td>Sea level rise impacted parcels, buildings, households, and jobs in a given year.</td>
-</tr>
-<tr>
-<td>eq_codes_summary_[year].csv</td>
-<td>Summary of earthquake codes assigned to buildings, in the earthquake year.</td>
-</tr>
-<tr>
-<td>eq_fragilities_summary_[year].csv</td>
-<td>SUmmary of fragilities assigned to buildings, in the earthquake year.</td>
-</tr>
-<tr>
-<td>slr_summary_[year].csv</td>
-<td>Earthquake impacted parcels, buildings, households, and jobs in the earthquake year.</td>
-</tr>
-<tr>
-<td>eq_demolish_buildings_[year].csv</td>
-<td>Inventory of buildings impacted by earthquake, by TAZ for the resilience team.</td>
-</tr>
-<tr>
-<td>eq_demolish_buildings_[year].csv</td>
-<td>Inventory of buildings retrofit for earthquake, by TAZ for the resilience team.</td>
-</tr>
-<tr>
-<td>eq_buildings_list_[year].csv</td>
-<td>Inventory of buildings in key earthquake years, by TAZ for the resilience team.</td>
-</tr>
-</tbody>
-</table>
-<h4 id="metrics">metrics</h4>
-<table>
-<thead>
-<tr>
-<th><strong>name</strong></th>
-<th><strong>description</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>growth_geog_summary_[year].csv</td>
-<td>Households and jobs in growth geographies and combinations of growth geographies, by year.</td>
-</tr>
-<tr>
-<td>growth_geog_growth_summary_[year].csv</td>
-<td>Change in households and jobs in growth geographies and combinations of growth geographies between the model's base year and forecast year.</td>
-</tr>
-<tr>
-<td>dr_units_metrics.csv</td>
-<td>Change in deed-restricted units by HRA and COC.</td>
-</tr>
-<tr>
-<td>household_income_metrics_[year].csv</td>
-<td>Low income households by growth geography, by year.</td>
-</tr>
-<tr>
-<td>equity_metrics.csv</td>
-<td>Change in low income households in Displacement tracts and COC tracts.</td>
-</tr>
-<tr>
-<td>jobs_housing_metrics.csv</td>
-<td>Jobs-Housing ratios by county, by year.</td>
-</tr>
-<tr>
-<td>jobs_metrics.csv</td>
-<td>Change in PPA and manufacturing jobs.</td>
-</tr>
-<tr>
-<td>slr_metrics.csv</td>
-<td>Sea level rise affected and protected total households, low-income households and COC households.</td>
-</tr>
-<tr>
-<td>earthquake_metrics.csv</td>
-<td>Total housing units retrofit and total retrofit cost, for all units and for COC units. Earthquake affected and protected total households, low-income households, and COC households.</td>
-</tr>
-<tr>
-<td>greenfield_metric.csv</td>
-<td>Change in annual greenfield development acres.</td>
 </tr>
 </tbody>
 </table>
