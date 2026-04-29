@@ -9,18 +9,19 @@ channels:
   - conda-forge
 
 dependencies:
+  - pip
   - python=3.6
   - numpy=1.17
   - orca=1.5
   - orca_test=0.1
-  # - pandana=0.4
+  - pandana=0.4
   - pandas<1.0
   - scikit-learn=0.22
   - statsmodels=0.11
   - urbansim=3.2
-  - urbansim_defaults=0.2
   - pyyaml<6.0
   - slack_sdk
   - holidays
   - pip:
-    - asana=3.2.1
+    - asana==3.2.1
+    - git+https://github.com/BayAreaMetro/urbansim_defaults.git
