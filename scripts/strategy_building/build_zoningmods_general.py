@@ -5,9 +5,16 @@ import argparse
 import logging
 from pathlib import Path
 
-def setup_logging():
+import datetime
+
+def setup_logging(scenario):
+    # Get the current date and time
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_filename = f"zoning_mods_{scenario}_{timestamp}.log"
+    log_filename = baus_basis_dir() / 'plan_strategies' / log_filename
+    
     logging.basicConfig(
-        filename="zoning_mods.log",
+        filename=log_filename,
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
@@ -26,6 +33,9 @@ def apply_zoning_modifications(zoningmods, modifications):
 
         for upd_key, upd_val in updates.items():
             zoningmods.loc[mask, upd_key] = upd_val
+        
+        # Set a breadcrumb for yaml update category to trace whence the mod came from
+        zoningmods.loc[mask, 'yaml_category'] = category
 
         zoningmods.loc[mask,'yaml_category'] = category
 
@@ -54,6 +64,7 @@ def load_yaml(yaml_path):
         return yaml.safe_load(file)
 
         
+
 
 def apply_inclusionary_modifications(zoningmods, incl_modifications):
     overlap_check = {}
@@ -119,12 +130,57 @@ def zoningmods_to_yaml(inclmods):
 #     urbansim_parcels_topo_fix = urbansim_parcels_topo_fix.to_crs('EPSG:26910')
 #     urbansim_parcels_topo_fix['geom_pt'] = urbansim_parcels_topo_fix.geometry.representative_point()
 
-def main(yaml_path, input_file, mods_output_file, incl_output_yaml_file, apply_inclusionary):
-    setup_logging()
+def main(args):
+        
+    # Load configuration from the specified YAML file
+    config = load_yaml(args.yaml_path)
+
+    # Convert argparse namespace to a dictionary for easier manipulation
+    cmd_args = vars(args)
+
+    # Grab the scenario from the config 
+    scenario = config['args']['mods_scenario']
+    
+    # Pass scenario to logging file
+    setup_logging(scenario)
+
     logging.info("Starting zoning modification process.")
 
-    config = load_yaml(yaml_path)
+    # A new dictionary to hold the final, combined arguments
+    final_args = {}
+    
+    # Prioritize YAML values as defaults, if they exist
+    # This loop ensures that the keys from the YAML are considered first
+    for key, value in config['args'].items():
+        final_args[key] = value
 
+    # Now, override with command-line arguments if they are not None
+    # This ensures that command-line arguments always take precedence
+    for key, value in cmd_args.items():
+        if value is not None:
+            final_args[key] = value
+
+    # Log the final, effective arguments for clarity
+    logging.info("Effective arguments:")
+    for key, value in final_args.items():
+        logging.info(f"  {key}: {value}")
+
+    # Now we use final_args for the business logic
+    yaml_path = args.yaml_path
+    input_file = final_args['pg_input_file']
+    mods_output_file = final_args['mods_output_file']
+    incl_output_yaml_file = final_args['incl_output_yaml_file']
+    apply_inclusionary = final_args['apply_inclusionary']
+
+    # Log the values of the passed parameters at the start of the process
+    logging.info("Starting zoning modification process with the following parameters:")
+    logging.info(f"yaml_path: {yaml_path}")
+    logging.info(f"input_file: {input_file}")
+    logging.info(f"mods_output_file: {mods_output_file}")
+    logging.info(f"incl_output_yaml_file: {incl_output_yaml_file}")
+    logging.info(f"apply_inclusionary: {apply_inclusionary}")
+
+    
     zoning_mod_cols = config["zoningmodcat_cols"]
     basis_dir = baus_basis_dir()
 
@@ -138,8 +194,10 @@ def main(yaml_path, input_file, mods_output_file, incl_output_yaml_file, apply_i
         .apply(lambda x: "".join(x), axis=1)
         .str.lower()
     )
-
-    pg[zoning_mod_cols] = pg[zoning_mod_cols].astype(str)#.str.upper().replace('NAN','nan')
+    pg[zoning_mod_cols] = pg[zoning_mod_cols].astype(str)
+    
+    # Set to lowercase to avoid mixed case columns and inadvertently writing filters against the
+    # wrong case not present in the data
     for col in zoning_mod_cols:
         pg[col]=pg[col].str.lower()
     
@@ -182,12 +240,14 @@ def main(yaml_path, input_file, mods_output_file, incl_output_yaml_file, apply_i
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Apply zoning modifications from a YAML configuration.")
     parser.add_argument("-y", "--yaml_path", type=str, required=True, help="Path to the YAML configuration file")
-    parser.add_argument("-i", "--pg_input_file", type=str, required=True, help="Input Growth Geography CSV file")
-    parser.add_argument("-o", "--mods_output_file", type=str, required=True, help="Output Zoning Mods CSV file")
-    parser.add_argument("-f", "--incl_output_yaml_file", type=str, required=True, help="Output Inclusionary yaml file")
-    parser.add_argument("--apply_inclusionary", action="store_true", help="Apply inclusionary modifications (optional)")
+    
+    # For command-line args that can be overridden, make them optional
+    parser.add_argument("-i", "--pg_input_file", type=str, default=None, help="Input Growth Geography CSV file (overrides YAML)")
+    parser.add_argument("-o", "--mods_output_file", type=str, default=None, help="Output Zoning Mods CSV file (overrides YAML)")
+    parser.add_argument("-f", "--incl_output_yaml_file", type=str, default=None, help="Output Inclusionary yaml file (overrides YAML)")
+    parser.add_argument("--apply_inclusionary", action="store_true", help="Apply inclusionary modifications (overrides YAML)")
     args = parser.parse_args()
 
-    main(args.yaml_path, args.pg_input_file, args.mods_output_file, args.incl_output_yaml_file, args.apply_inclusionary)
-
+    # Pass the entire 'args' object to the main function and blend with any passed from the yaml
+    main(args)
 

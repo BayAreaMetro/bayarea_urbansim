@@ -1,0 +1,24 @@
+# Ignore large data and output files
+map_data/
+parcel_data/
+
+# Geospatial file formats
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.sbx
+*.sbn
+
+# ArcGIS files
+*.aprx
+*.gdb/
+*.tbx
+
+# Large CSV files (if needed, can be more specific)
+# *.csv
+
+# Track only Python scripts
+!*.py

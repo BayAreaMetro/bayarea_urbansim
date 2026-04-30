@@ -44,6 +44,8 @@ def main():
         description = USAGE,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('rtp', type=str, choices=['RTP2021','RTP2025'])
+    parser.add_argument('--horizon_year', type=int, default=2050, choices=[2035, 2050],
+                        help='The horizon year of the model runs to process Growth Metrics. Default: 2050')
     parser.add_argument('--no_interpolate', action='store_true', help='If passed, do not interpolate to 2023 for PBA50+ base year. '
                         + "Useful for calculating metrics for older model runs that didn't write 2025 tables.")
     parser.add_argument('--use_distinct_initial_year_data', action='store_true',
@@ -64,14 +66,15 @@ def main():
     M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
 
 
-    if USERNAME.lower() in ['lzorn']:
+    if USERNAME.lower() in ['lzorn', 'jahrenholtz', 'ywang']: # need to standardize to E:Box
         BOX_DIR = pathlib.Path("E:/Box")
     else:
         BOX_DIR = HOME_DIR / 'Box'
     
     MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/")
-    METRICS_DIR        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Draft_Blueprint"
-    RUN_INVENTORY_FILE = METRICS_DIR / "metrics_input_files/PBA50Plus_model_run_inventory.csv"
+    METRICS_DIR        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Final_Blueprint"
+    # RUN_INVENTORY_FILE = METRICS_DIR / "metrics_input_files/PBA50Plus_model_run_inventory.csv"
+    RUN_INVENTORY_FILE = r'M:\urban_modeling\baus\PBA50Plus\sensitivity_test\summary\PBA50Plus_model_run_inventory_sensitivityTest.csv'
     OUTPUT_PATH        = METRICS_DIR
     LOG_FILENAME       = "metrics_lu_standalone_{}{}.log"  # loglevel
     
@@ -151,7 +154,7 @@ def main():
         logging.info(f"Processing run modelrun_alias:[{modelrun_alias}] modelrun_id:[{modelrun_id}] run_directory_path:{run_directory_path}")
         
         # Load data for the current run
-        modelrun_data = metrics_utils.load_data_for_runs(args.rtp, METRICS_DIR, run_directory_path, modelrun_alias,
+        modelrun_data = metrics_utils.load_data_for_runs(args.rtp, METRICS_DIR, run_directory_path, modelrun_alias, args.horizon_year,
                                                          args.no_interpolate, skip_base_year)
         if not args.use_distinct_initial_year_data:
             if np_modelrun_data is None:
@@ -161,10 +164,13 @@ def main():
                 INITIAL_YEAR = sorted(np_modelrun_data.keys())[0]
                 modelrun_data[INITIAL_YEAR] = np_modelrun_data[INITIAL_YEAR].copy()
         SUMMARY_YEARS = sorted(modelrun_data.keys())
+        print(f"SUMMARY_YEARS: {SUMMARY_YEARS}")
+        print(modelrun_data)
 
         if (args.only == None) or (args.only == 'affordable'):
             metrics_affordable.deed_restricted_affordable_share(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output,
+                county_level_output=False)
     
             metrics_affordable.at_risk_housing_preserve_share(
                 SUMMARY_YEARS[-1], modelrun_alias, modelrun_id, OUTPUT_PATH, append_output)
@@ -173,13 +179,10 @@ def main():
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, METRICS_DIR, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'diverse'):
-            metrics_diverse.gentrify_displacement_tracts(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-
             metrics_diverse.low_income_households_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-            
-            # commented out until tested
+            metrics_diverse.gentrify_displacement_tracts(
+                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
             metrics_diverse.lowinc_homeownership_share(
                    args.rtp, modelrun_alias, modelrun_id, M_DRIVE, BOX_DIR, OUTPUT_PATH, append_output)
             
@@ -188,9 +191,9 @@ def main():
             # In doing this, gets the regional hh and jobs growth to pass to the county method
             # so that the results are consistent.
             regional_hh_jobs_dict = metrics_growth.growth_patterns_geography(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, args.horizon_year, modelrun_data, OUTPUT_PATH, append_output, county_level_output=False)
             metrics_growth.growth_patterns_county_jurisdiction(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, regional_hh_jobs_dict, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, args.horizon_year, modelrun_data, regional_hh_jobs_dict, OUTPUT_PATH, append_output)
             
             # zone version
             # comment out when done testing
@@ -224,15 +227,15 @@ def main():
             
         if (args.only == None) or (args.only == 'connected'):
             metrics_connected.transit_service_area_share_v2(
-                args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
+                args.rtp, modelrun_alias, modelrun_id, args.horizon_year, modelrun_data, OUTPUT_PATH, append_output)
 
         if (args.only == None) or (args.only == 'healthy'):
-            metrics_healthy.urban_park_acres(
+            metrics_healthy.expand_urban_greening(
                 BOX_DIR, args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
-            metrics_healthy.non_greenfield_development_share(
+            metrics_healthy.ugb_development_share(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, run_directory_path,
-                OUTPUT_PATH, append_output)
-            metrics_healthy.slr_protection(
+                OUTPUT_PATH, append_output, county_level_output=False)
+            metrics_healthy.slr_protection_v2(
                 args.rtp, modelrun_alias, modelrun_id, modelrun_data, OUTPUT_PATH, append_output)
 
         # output files are started; append henceforth

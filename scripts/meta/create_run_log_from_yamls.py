@@ -4,260 +4,311 @@ import pathlib
 import yaml
 import datetime
 import os
-from typing import Optional
+from typing import Optional, Dict, Tuple, List, Any
+import logging
+
+# Setup basic logging for the script itself
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 
-# Script recursively searches for yaml run setup files and extracts the key BAUS run setup information
-# for post-hoc meta-log of runs. It prepares a csv including runtime data from the yamls themselves,
-# along with timestamps from the file creation as well as from the log file (for start and finish), 
-# to flag whether a given run was run to completion.
-
-
-def get_log_file_from_yaml_path(p: Path) -> Path:
+def get_log_file_path_from_yaml(yaml_path: Path) -> Path:
     """
     Constructs the path to the log file from a run setup YAML file path.
 
-    This function assumes the log file shares the same stem as the YAML file, 
-    but with a `.log` extension, and potentially without prefixes/suffixes 
+    Assumes the log file shares the same stem as the YAML file,
+    but with a .log extension, and potentially without prefixes/suffixes
     containing "run_setup".
 
     Args:
-        p (Path): The path to the run setup YAML file.
+        yaml_path (Path): The path to the run setup YAML file.
 
     Returns:
         Path: The path to the corresponding log file.
     """
-
-    # use the yaml file to create the path to the log file
-    p_log_file =  f'{p.stem}.log'.replace('_run_setup', '').replace('run_setup_', '')
-    p_log_path = p.parent /  p_log_file
-    return p_log_path
+    log_file_name = f'{yaml_path.stem}.log'.replace('_run_setup', '').replace('run_setup_', '')
+    return yaml_path.parent / log_file_name
 
 
-def get_branch_details_from_run_log(p_log_path: Path) -> dict:
+def parse_log_file(log_path: Path) -> Dict[str, Any]:
     """
-    Parses a log file to get GitHub branch and commit details of a run.
+    Parses a log file to extract timestamps, Git details, and log style.
+    Reads the file only once.
 
     Args:
-        p_log_path (Path): The path object to the log file.
+        log_path (Path): The path object to the log file.
 
     Returns:
-        dict: A dictionary containing 'branch' and 'commit' information 
-              or None if not found.
+        dict: A dictionary containing 'start_time', 'end_time',
+              'branch', 'commit', and 'is_new_style'.
+              Returns None for values if not found or if the file is empty/invalid.
     """
+    results = {
+        'start_time': None,
+        'end_time': None,
+        'branch': None,
+        'commit': None,
+        'is_new_style': False,
+        'error': None  # To store any parsing errors or file issues
+    }
 
-    output = {'branch': None, 'commit': None}
+    if not log_path.exists():
+        results['error'] = f"Log file not found: {log_path}"
+        logging.warning(results['error'])
+        return results
 
-    # open the file object
-    fobj = open(p_log_path, "r", encoding='utf-8')
+    if log_path.stat().st_size == 0:
+        results['error'] = f"Log file is empty: {log_path}"
+        logging.warning(results['error'])
+        return results
 
-    # read the lines in the log
-    log_file = fobj.readlines()
+    try:
+        with open(log_path, "r", encoding='utf-8') as f:
+            lines = f.readlines()
+    except Exception as e:
+        results['error'] = f"Error reading log file {log_path}: {e}"
+        logging.error(results['error'])
+        return results
 
-    # turn to pd.Series for easy searching for start and finish text markers
+    if not lines: # Should be caught by st_size == 0, but as a safeguard
+        results['error'] = f"Log file is empty (no lines): {log_path}"
+        logging.warning(results['error'])
+        return results
 
-    log_file_s = pd.Series(log_file)
-    fobj.close()
-    log_file_branch = log_file_s[log_file_s.str.contains('Branch')]
-    log_file_commit = log_file_s[log_file_s.str.contains('Commit')]
-    
-    log_file_branch = log_file_branch.str.split(':').iloc[0][1].strip()
-    log_file_commit = log_file_commit.str.split(':').iloc[0][1].strip()
-    
-    output['branch'] = log_file_branch
-    output['commit'] = log_file_commit
-    return output
+    log_series = pd.Series(lines)
 
-
-def get_timestamp_from_run_log(p_log_path: Path) -> dict:
-    """
-    Parses a log file to get timestamps of start and finish of a run.
-
-    Args:
-        p_log_path (Path): The path object to the log file.
-
-    Returns:
-        dict: A dictionary containing 'start' and 'finish' timestamps in ISO format 
-              or None if not found.
-    """
-
-    output = {'start': None, 'finish': None}
-
-    # Open the file object
-    fobj = open(p_log_path, "r", encoding='utf-8')
-
-    # Read the lines in the log
-    log_file = fobj.readlines()
-
-    # Turn to pd.Series for easy searching for start and finish text markers
-    log_file_s = pd.Series(log_file)
-    fobj.close()
-
-    # Log start and finish strings differ between old and new version
-    search_strings = {True: {'start': 'Started: ', 'finished': 'Finished: '},
-                      False: {'start': 'Started ', 'finished': 'Finished '}}
-
-    is_new_log_style = is_new_style_log(p_log_path)
-    if is_new_log_style:
-        # kick out error logs - we don't need the verbose detail
-        log_file_s = log_file_s[~log_file_s.str.contains('- ERROR -')]
-
-    # Pass the appropriate search string depending on the vintage of the log file style
-    log_file_start = log_file_s[log_file_s.str.contains(
-        search_strings[is_new_log_style]['start'])]
-    log_file_finish = log_file_s[log_file_s.str.contains(
-        search_strings[is_new_log_style]['finished'])]
-
-    # If the started string is found in the log, get it:
-    if len(log_file_start) > 0:
-        start_time = log_file_start.str.split(search_strings[is_new_log_style]['start']).map(
-            lambda x: x[-1].replace('\n', '')).map(pd.to_datetime)
-        output['start'] = start_time.iloc[0].isoformat()
-
-    # If the finished string is found in the log, get it:
-    if len(log_file_finish) > 0:
-        finish_time = log_file_finish.str.split(search_strings[is_new_log_style]['finished']).map(
-            lambda x: x[-1].replace('\n', '')).map(pd.to_datetime)
-        output['finish'] = finish_time.iloc[0].isoformat()
-
-    # log_date_format = "%a %b %d %H:%M:%S %Y"
-    # parsed_date = datetime.datetime.strptime(log_date_string, log_date_format)
-    # return parsed_date.isoformat()
-    return output
-
-def is_new_style_log(p_log_path: Path) -> bool:
-    
-    # open the file object
-    fobj = open(p_log_path, "r", encoding='utf-8')
-
-    # read the lines in the log
-    log_file = fobj.readlines()
-    
-    fobj.close()
-
-    # turn to pd.Series for easy searching for start and finish text markers
-    log_file_s = pd.Series(log_file)
-    
-    # Use the presence of the INFO marker as a litmus test for a log file from the logging module
-    if log_file_s.str.contains('- INFO -').any():
-        return True
+    # Determine log style (new or old)
+    if log_series.str.contains('- INFO -').any():
+        results['is_new_style'] = True
+        # For new style, filter out ERROR lines for timestamp parsing
+        log_series_for_timestamps = log_series[~log_series.str.contains('- ERROR -')]
     else:
-        return False
-    
+        results['is_new_style'] = False
+        log_series_for_timestamps = log_series
 
-def build_run_log(root_dir: Path, m_out_path: Path, box_out_path: Optional[Path] = None) -> pd.DataFrame:
-    
+
+    # Define search strings based on log style
+    search_strings = {
+        True: {'start': 'Started: ', 'finished': 'Finished: '},
+        False: {'start': 'Started ', 'finished': 'Finished '}
+    }
+    current_search_strings = search_strings[results['is_new_style']]
+
+    # Extract Timestamps
+    start_lines = log_series_for_timestamps[log_series_for_timestamps.str.contains(current_search_strings['start'])]
+    finish_lines = log_series_for_timestamps[log_series_for_timestamps.str.contains(current_search_strings['finished'])]
+
+    if not start_lines.empty:
+        try:
+            start_time_str = start_lines.str.split(current_search_strings['start']).map(
+                lambda x: x[-1].strip()
+            ).iloc[0]
+            results['start_time'] = pd.to_datetime(start_time_str).isoformat()
+        except Exception as e:
+            logging.debug(f"Could not parse start time from {log_path}: {e}")
+            results['error'] = results['error'] + "; Could not parse start time" if results['error'] else "Could not parse start time"
+
+
+    if not finish_lines.empty:
+        try:
+            finish_time_str = finish_lines.str.split(current_search_strings['finished']).map(
+                lambda x: x[-1].strip()
+            ).iloc[0]
+            results['end_time'] = pd.to_datetime(finish_time_str).isoformat()
+        except Exception as e:
+            logging.debug(f"Could not parse finish time from {log_path}: {e}")
+            results['error'] = results['error'] + "; Could not parse finish time" if results['error'] else "Could not parse finish time"
+
+
+    # Extract Branch and Commit details (using the original log_series before filtering errors)
+    branch_lines = log_series[log_series.str.contains('Branch: ')] # More specific match
+    commit_lines = log_series[log_series.str.contains('Commit: ')] # More specific match
+
+    if not branch_lines.empty:
+        try:
+            results['branch'] = branch_lines.str.split(':').iloc[0][-1].strip()
+        except IndexError:
+            logging.debug(f"Could not parse branch from {log_path} - line format unexpected: {branch_lines.iloc[0]}")
+            results['error'] = results['error'] + "; Branch parsing error" if results['error'] else "Branch parsing error"
+
+    if not commit_lines.empty:
+        try:
+            results['commit'] = commit_lines.str.split(':').iloc[0][-1].strip()
+        except IndexError:
+            logging.debug(f"Could not parse commit from {log_path} - line format unexpected: {commit_lines.iloc[0]}")
+            results['error'] = results['error'] + "; Commit parsing error" if results['error'] else "Commit parsing error"
+
+    return results
+
+
+def build_run_log_summary(root_dir: Path, m_out_path: Path, box_out_path: Optional[Path] = None) -> None:
     """
-    Builds a DataFrame of run logs from a directory.
+    Builds a DataFrame of run logs from a directory, processes them, and saves to CSV.
 
     Args:
-        root_dir (Path): The path to the root directory containing run logs.
-        m_out_path (Path: The path to the output CSV file for ML.
-        box_out_path (Path): The path to the output CSV file for Box.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing information about each run log.
+        root_dir (Path): The path to the root directory containing run setup YAMLs.
+        m_out_path (Path): The path to the output CSV file for M drive.
+        box_out_path (Optional[Path]): The path to the output CSV file for Box.
     """
+    run_data_records = []
 
-    dicts = []
+    for yaml_path in root_dir.rglob("*run_setup*.yaml"):
+        logging.info(f"Processing YAML: {yaml_path}")
 
-    for p in root_dir.rglob("*run_setup*.yaml"):
-        print(p)
-
-        # we skip the occasional boilerplate repo run_setup.yaml without suffixes in the name as not being 
-        # actual run logs, vs code save history copies, as well as any repo yaml
-        if p.name == 'run_setup.yaml' or 'bayarea_urbansim' in str(p.parent) or '.history' in str(p.parent):
-            print(f'Skipping {p}')
+        # Skip boilerplate/repo/history YAML files
+        if yaml_path.name == 'run_setup.yaml' or \
+           'bayarea_urbansim' in str(yaml_path.parent) or \
+            'staging' in str(yaml_path.parent) or \
+           '.history' in str(yaml_path.parent):
+            logging.info(f"Skipping non-run YAML: {yaml_path}")
             continue
 
-        # get file stats
-        this_stat = p.stat()
+        run_info: Dict[str, Any] = {'yaml_path': str(yaml_path)}
 
-        # keep timestamp
-        file_birth_ts = this_stat.st_birthtime if 'st_birthtime' in this_stat else this_stat.st_ctime
-
-        file_birth_dt = datetime.datetime.fromtimestamp(file_birth_ts)
-        ts_iso = file_birth_dt.isoformat()
-
-        with open(p, 'r') as f:
-            this_dict = yaml.safe_load(f)
-
-        # get log file from yaml path for start and end time
+        # Get YAML file creation/modification timestamp
         try:
-            p_log_path = get_log_file_from_yaml_path(p)
+            stat_info = yaml_path.stat()
+            # Using ctime but could consider mtime.
+            file_timestamp_epoch = getattr(stat_info, 'st_birthtime', stat_info.st_ctime)
+            file_dt = datetime.datetime.fromtimestamp(file_timestamp_epoch)
+            run_info['time_stamp_yaml_file'] = file_dt.isoformat()
+        except Exception as e:
+            logging.warning(f"Could not get file timestamp for {yaml_path}: {e}")
+            run_info['time_stamp_yaml_file'] = None
 
-            # then get the time stamp from the log file
-            ts_dict = get_timestamp_from_run_log(p_log_path)
+        # Load data from YAML file
+        try:
+            with open(yaml_path, 'r', encoding='utf-8') as f:
+                yaml_content = yaml.safe_load(f)
+                if isinstance(yaml_content, dict):
+                    run_info.update(yaml_content)
+                else:
+                    logging.warning(f"YAML content in {yaml_path} is not a dictionary. Skipping its content.")
+                    run_info['yaml_load_error'] = "Content not a dictionary"
+        except yaml.YAMLError as e:
+            logging.error(f"Error parsing YAML file {yaml_path}: {e}")
+            run_info['yaml_load_error'] = str(e)
+            # Decide if you want to continue processing this entry or skip
+            # For now, we'll add it with the error and None for log data
 
-            this_dict['time_stamp_start_log'] = ts_dict['start']
-            this_dict['time_stamp_end_log'] = ts_dict['finish']
+        # Get corresponding log file path
+        log_file_path = get_log_file_path_from_yaml(yaml_path)
+        run_info['log_file_path'] = str(log_file_path) # Store the expected path
 
-            print(ts_dict['start'])
+        # Parse the log file
+        log_data = parse_log_file(log_file_path)
 
-            # also get github branch / commit details
-            git_dict = get_branch_details_from_run_log(p_log_path)
-            this_dict['git_branch'] = git_dict['branch']
-            this_dict['git_commit'] = git_dict['commit']
-            
+        run_info['time_stamp_log_start'] = log_data['start_time']
+        run_info['time_stamp_log_end'] = log_data['end_time']
+        run_info['git_branch'] = log_data['branch']
+        run_info['git_commit'] = log_data['commit']
+        run_info['log_is_new_style'] = log_data['is_new_style']
+        run_info['log_parsing_error'] = log_data['error']
 
-        except (FileNotFoundError, ValueError) as error:
-            print(error)
-            print(f'{p_log_path} not found')
-            ts_iso = None
 
-        this_dict['yaml_path'] = p
-        this_dict['time_stamp_start_pth'] = ts_iso
+        run_data_records.append(run_info)
 
-        dicts.append(this_dict)
-    df = pd.DataFrame.from_records(dicts)
+    if not run_data_records:
+        logging.info("No run records found. Check the root directory and file patterns.")
+        return
 
+    df = pd.DataFrame.from_records(run_data_records)
+
+    # Add a column to flag whether the run was completed (based on end time from log)
+    df['is_complete_from_log'] = df['time_stamp_log_end'].notna()
+
+    # Reorder columns to put metadata first
+    meta_cols = [
+        'yaml_path', 'log_file_path', 'is_complete_from_log',
+        'time_stamp_yaml_file', 'time_stamp_log_start', 'time_stamp_log_end',
+        'git_branch', 'git_commit', 'log_is_new_style', 'log_parsing_error', 'yaml_load_error'
+    ]
     
-    if len(df)>0:
-        
+    # Ensure all meta_cols exist in df, add if missing (e.g. if all YAMLs failed to load)
+    for col in meta_cols:
+        if col not in df.columns:
+            df[col] = None 
 
-        # add a column to flag whether the run was completed from endtime stamp
-        df['is_complete'] = df.time_stamp_end_log.notna()
+    existing_data_cols = [c for c in df.columns if c not in meta_cols]
+    df = df[meta_cols + existing_data_cols]
 
-        # filter out incomplete runs
-        df = df[df.is_complete]
+    # df_completed = df[df['is_complete_from_log']].copy() # Use .copy() to avoid SettingWithCopyWarning
 
-        # Put meta columns up front
-
-        cols = ['yaml_path', 'is_complete', 'time_stamp_start_log',
-                'time_stamp_start_pth', 'time_stamp_end_log']
-        # ...keep the order of the rest of the columns
-        df = df[cols + [c for c in df.columns if c not in cols]]
-
-        # write the file to disk (box and M)
+    # For now, let's save all records, including incomplete ones, as the 'is_complete_from_log' flags it.
+    try:
         df.to_csv(m_out_path, index=False)
-        if box_out_path is not None:
-            df.to_csv(box_out_path, index=False)
-    else:
-        print('No runs found - check your file system / input path')
+        logging.info(f"Successfully wrote run log summary to: {m_out_path}")
+    except Exception as e:
+        logging.error(f"Failed to write CSV to M drive {m_out_path}: {e}")
 
+    if box_out_path:
+        try:
+            # Ensure parent directory exists for Box path
+            box_out_path.parent.mkdir(parents=True, exist_ok=True)
+            df.to_csv(box_out_path, index=False)
+            logging.info(f"Successfully wrote run log summary to: {box_out_path}")
+        except Exception as e:
+            logging.error(f"Failed to write CSV to Box {box_out_path}: {e}")
 
 
 if __name__ == "__main__":
+    # Determine M_DRIVE based on OS - this is brittle
+    if os.name == "nt":  # Windows
+        M_DRIVE = pathlib.Path("M:/")
+    else:  # macOS or Linux
+        # More robustly check for common mount points if '/Volumes/Data/Models' is not always it
+        osx_mount = pathlib.Path("/Volumes/Data/Models")
+        if osx_mount.is_dir():
+             M_DRIVE = osx_mount
+        else:
+            # Fallback or raise an error if M_DRIVE cannot be determined. Fix later
+            logging.warning(f"{osx_mount} not found. Defaulting M_DRIVE to current user's home")
+            M_DRIVE = pathlib.Path.home()
 
-    # PATHS 
-    
-    # set the path for M: drive
-    # from OSX, M:/ may be mounted to /Volumes/Data/Models
-    M_DRIVE = pathlib.Path("/Volumes/Data/Models") if os.name != "nt" else pathlib.Path("M:/")
+
     HOME_DIR = pathlib.Path.home()
-    BOX_DIR = HOME_DIR / 'Library/CloudStorage/Box-Box' if not os.getlogin()=='lzorn' else Path("E:/Box")
 
-    #output paths
-    
-    m_out_path = M_DRIVE / "urban_modeling" / \
-        "baus" / "PBA50Plus" / 'run_setup_tracker_autogen.csv'
-    
-    box_out_path = BOX_DIR / "Modeling and Surveys" / "Urban Modeling" / \
-        "Bay Area UrbanSim" / "PBA50plus Meta" / 'run_setup_tracker_autogen.csv'
+    # Determine BOX_DIR based on username or a more general location
+    # Consider using environment variables for paths like BOX_DIR for flexibility
+    user = os.getlogin()
+    if user in ['lzorn', 'jahrenholtz', 'aolsen']: # list e-drive specific users
+        BOX_DIR = pathlib.Path("E:/Box") if os.name == "nt" else HOME_DIR / "Box" # Adjust E: for non-Windows
+        if os.name != "nt" and not (HOME_DIR / "Box").is_dir(): # If ~/Box doesn't exist for these users on non-Windows
+             alt_box_path = pathlib.Path("/Volumes/Box") # Common alternative Box mount on macOS
+             if alt_box_path.is_dir():
+                 BOX_DIR = alt_box_path
+             else:
+                 logging.warning(f"Default Box path {HOME_DIR / 'Box'} not found for user {user}. Please verify BOX_DIR.")
+    else: # Default for other users
+        BOX_DIR = HOME_DIR / 'Box'
+        if not BOX_DIR.is_dir():
+            alt_box_path = pathlib.Path("/Volumes/Box")
+            if alt_box_path.is_dir():
+                BOX_DIR = alt_box_path
+            else:
+                logging.warning(f"Default Box path {BOX_DIR} not found. Please verify BOX_DIR.")
 
-    root_dir = M_DRIVE / "urban_modeling" / "baus" / "PBA50Plus" 
 
+    # Define output paths both for M and for box
+    m_output_dir = M_DRIVE / "urban_modeling" / "baus" / "PBA50Plus"
+    m_output_file = m_output_dir / 'run_setup_tracker_autogen_v2.csv' 
 
-    # call the function
-    #build_run_log(root_dir, m_out_path, box_out_path)
-    build_run_log(root_dir, m_out_path)
+    box_output_dir = BOX_DIR / "Modeling and Surveys" / "Urban Modeling" / \
+                     "Bay Area UrbanSim" / "PBA50plus Meta"
+    box_output_file = box_output_dir / 'run_setup_tracker_autogen_v2.csv' 
+
+    # Define root directory for searching YAML files
+    search_root_dir = M_DRIVE / "urban_modeling" / "baus" / "PBA50Plus"
+
+    # Create output directories if they don't exist
+    #m_output_dir.mkdir(parents=True, exist_ok=True)
+    # box_output_dir.mkdir(parents=True, exist_ok=True) # Done in the function for Box
+
+    logging.info(f"Starting run log processing. Root directory: {search_root_dir}")
+    logging.info(f"M drive output path: {m_output_file}")
+    if box_output_file:
+        logging.info(f"Box output path: {box_output_file}")
+
+    # Call the main function
+    build_run_log_summary(search_root_dir, m_output_file, box_output_file)
+
+    logging.info("Script finished.")

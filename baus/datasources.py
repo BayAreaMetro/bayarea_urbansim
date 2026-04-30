@@ -284,8 +284,31 @@ def initial_summary_year(run_setup):
 
 
 @orca.injectable()
-def interim_summary_years():
-    return [2025, 2035]
+def interim_summary_years(run_setup):
+    interim_years = run_setup.get("interim_summary_years", None)
+    default_years = [2025, 2035]
+    
+    if interim_years is None:
+        # If key is not present in yaml, return default list
+        return default_years
+    else:
+        # Case: A key is present....
+        if isinstance(interim_years, list):
+            # ... but add a check here to ensure *all* elements in the list are integers
+            if all(isinstance(year, int) for year in interim_years):
+                return interim_years
+            else:
+                # If not all elements are integers, we revert to the default
+                print("Warning: interim_summary_years list contains non-integer values. Using default.")
+                return default_years
+    
+        elif isinstance(interim_years, int):
+            # A key is present, but there is just one integer - we place in a list
+            return [interim_years]
+        else:
+            # Else, log a warning
+            print(f"Warning: interim_summary_years has an unexpected type ({type(interim_years)}). Using default.")
+            return default_years
 
 
 @orca.injectable()
@@ -304,6 +327,35 @@ def store(run_name):
 
 @orca.injectable(cache=True)
 def limits_settings(development_caps, run_setup):
+    """
+    Create combined development limits/caps for annual maximum job spaces and residential units.
+    
+    This function merges development constraints from multiple config giles to create the
+    final limits used by the developer models to constrain annual construction by geography
+    (jurisdiction or county).
+    
+    Configuration Sources:
+    ----------------------
+    1. Base caps (development_caps.yaml): Contains office/commercial caps representing real-world
+       policies like SF Prop M, Palo Alto office limits, etc.
+    2. Asserted caps (development_caps_asserted.yaml): Contains residential caps that are overlaid
+       when 'asserted_development_caps: True' in run_setup
+    3. Job cap strategy: Additional employment caps from development strategy if enabled
+    
+    Returns:
+    --------
+    dict: Combined development limits with structure:
+        {
+            'Office': {'San Francisco': 1500000, 'Palo Alto': 500000, ...},
+            'Residential': {'Cloverdale': 50, 'Fairfax': 8, ...}
+        }
+    
+    Usage:
+    ------
+    These annual limits are enforced by the developer models each simulation year.
+    Numbers represent the maximum units/sqft that can be built per year in each geography.
+    Without limits, residential development is uncapped by default.
+    """
     # for limits, we inherit from the default settings, and update these with the policy settings, if applicable
     # limits set the annual maximum number of job spaces or residential units that may be built in a geography
 

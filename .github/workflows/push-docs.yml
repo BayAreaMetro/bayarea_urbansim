@@ -1,0 +1,57 @@
+permissions:
+  contents: write
+
+name: Deploy docs with mike and push gh-pages
+
+on: [push]
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout all branches
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+        
+      - name: Configure Git user
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Install mkdocs
+        run: pip install mkdocs
+
+      - name: Install mike
+        run: pip install mike
+
+      - name: Install autorefs
+        run: pip install mkdocs-autorefs
+
+      - name: Install material template
+        run: pip install mkdocs-material
+
+      - name: Install docstring support
+        run: pip install mkdocstrings[python]
+
+      - name: Build and deploy docs for branch
+        run: mike deploy --push ${{ github.ref_name }}
+
+      - name: Push local gh-pages to remote
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/BayAreaMetro/bayarea_urbansim.git
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git push origin gh-pages
+          else
+            echo "No local gh-pages branch to."
+          fi
