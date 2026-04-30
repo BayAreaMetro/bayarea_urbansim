@@ -1,5 +1,10 @@
 [
   {
+    "version": "update_metrics_filenames",
+    "title": "update_metrics_filenames",
+    "aliases": []
+  },
+  {
     "version": "main",
     "title": "main",
     "aliases": [
@@ -30,8 +35,8 @@
     "version": "docs_test",
     "title": "docs_test",
     "aliases": [
-      "alias=latest",
-      "alias=lastest"
+      "alias=lastest",
+      "alias=latest"
     ]
   },
   {
