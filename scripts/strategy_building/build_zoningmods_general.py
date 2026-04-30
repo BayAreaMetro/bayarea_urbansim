@@ -20,6 +20,7 @@ def setup_logging(scenario):
     )
 
 def apply_zoning_modifications(zoningmods, modifications):
+    #overlap_check = {}
     for mod in modifications:
         conditions = mod["conditions"]
         category = mod["category"]
@@ -36,7 +37,18 @@ def apply_zoning_modifications(zoningmods, modifications):
         # Set a breadcrumb for yaml update category to trace whence the mod came from
         zoningmods.loc[mask, 'yaml_category'] = category
 
+        zoningmods.loc[mask,'yaml_category'] = category
+
+        # overlap_check[category]=mask
+
         logging.info(f"Applied modification: {category} on {mask.sum()} rows.")
+        logging.info
+
+    # oc= pd.concat(overlap_check)
+    # oc_count = oc[oc].unstack(0).sum(axis=1)
+    # repeat_categories = oc_count[oc_count>1]
+    # repeat_mods = zoningmods.iloc[repeat_categories.index][['zoningmodcat','yaml_category']]
+    # logging.info(f'zoningmodcats addressed more than once by the filters: \n{repeat_mods}')
 
     return zoningmods
 
@@ -109,6 +121,14 @@ def zoningmods_to_yaml(inclmods):
 
     return yaml.dump({"inclusionary_housing_settings": inclusionary_housing_settings}, default_flow_style=False)
 
+# def mods_to_shape():
+#     import geopandas as gpd
+#     urbansim_parcels_topo_fix = gpd.read_parquet(BOX_DIR / 'Modeling and Surveys' / 'Urban Modeling' /
+#                                              'Bay Area UrbanSim' / 'BASIS' / 'PBA50Plus' / 'urbansim_parcels_topo_fix.parquet')
+
+#     urbansim_parcels_topo_fix = urbansim_parcels_topo_fix.set_index('parcel_id')
+#     urbansim_parcels_topo_fix = urbansim_parcels_topo_fix.to_crs('EPSG:26910')
+#     urbansim_parcels_topo_fix['geom_pt'] = urbansim_parcels_topo_fix.geometry.representative_point()
 
 def main(args):
         
@@ -188,8 +208,10 @@ def main(args):
 
     zoningmods.loc[:, zoning_mod_cols] = zoningmods.loc[:, zoning_mod_cols].replace("nan", np.nan)
 
+    # full list of cols that should be present in zoning mods file
     ancillary_cols = ["add_bldg", "drop_bldg", "dua_down", "far_down", "far_up", "dua_up"]
 
+    # if not present, add, set to nan
     for col in set(ancillary_cols) - set(zoningmods.columns):
         zoningmods[col] = np.nan
 
