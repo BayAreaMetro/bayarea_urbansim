@@ -25,4 +25,4 @@ dependencies:
   - pip:
     - asana==3.2.1
     - git+https://github.com/BayAreaMetro/urbansim_defaults.git
-    - git+https://github.com/BayAreaMetro/urbansim.git
+    - git+https://github.com/BayAreaMetro/urbansim.git@master
