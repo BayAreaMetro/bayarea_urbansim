@@ -146,17 +146,30 @@ def new_buildings_summary(run_name, parcels, parcels_zoning_calculations, buildi
            .join(parcels_zoning_calculations.to_frame(columns=pcl_zon_cols),
                  lsuffix='parcels'))
 
-    df = df[['parcel_id', 'building_type', 'building_sqft', 'deed_restricted_units', 'year_built',
-             'preserved_units', 'inclusionary_units', 'subsidized_units',
-             'non_residential_sqft', 'residential_price', 'residential_units', 'source',	
-             'vacant_residential_units', 'vacant_job_spaces', 'vacant_res_units', 'price_per_sqft',	'unit_price',	
-             'land_value',	'acres', 'x', 'y', 'parcel_acres', 'total_residential_units',	'total_job_spaces',	
-             'zoned_du', 'zoned_du_underbuild', 'zoned_du_build_ratio', 'zoned_far', 'zoned_far_underbuild', 
-             'zoned_far_build_ratio', 'sdem',	
-             #'urbanized', 
-             'manual_nodev', 'total_non_residential_sqft',	'nodev',	
-             'built_far', 'max_far', 'built_dua', 'max_dua', 'building_purchase_price_sqft',	
-             'building_purchase_price',	'land_cost', 'slr_nodev']]
+    # Get buildings frame
+    bldg_cols = ['parcel_id', 'source', 'vacant_residential_units', 'unit_price', 'inclusionary_units',
+                'year_built', 'preserved_units', 'residential_units', 'building_sqft', 'vacant_res_units',
+                'building_type', 'vacant_job_spaces', 'deed_restricted_units', 'non_residential_sqft',
+                'subsidized_units', 'price_per_sqft', 'residential_price']
+    
+    buildings_df = buildings.to_frame(columns=bldg_cols)
+    
+    # just keep new, simulation period records
+    buildings_df = buildings_df.query('source!="h5_inputs"')
+    
+    building_types = (buildings_df
+                  .groupby('parcel_id')
+                  .building_type.apply(lambda x: '-'.join(list(set(x)))))
+
+    df = buildings_df.merge(parcels_zoning_df, left_on="parcel_id", right_index=True,how='inner')
+    
+    # add building types for each parcel_id
+    df['building_types'] = building_types
+    #df = df[~df.source.isin(["h5_inputs"])] 
+
+    pcl_cols.append('building_types')
+
+    df = df[bldg_cols + pcl_cols + pcl_zon_cols]
 
     df["run_name"] = run_name
 
@@ -178,16 +191,14 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     orca.add_table('parcels', parcels)
     parcels = orca.get_table("parcels")
 
-
     households = orca.merge_tables('households', 
                                    [parcels, buildings, households], columns=['zone_id', 'zone_id_x', 'base_income_quartile'])
     households["zone_id"] = households.zone_id_x
-
-
+    
     jobs = orca.merge_tables('jobs', [parcels, buildings, jobs],
                          columns=['zone_id', 'zone_id_x', 'empsix', "ec5_cat"])
     jobs["zone_id"] = jobs.zone_id_x
-    jobs['is_transit_hub'] = (jobs.ec5_cat=="EC5 Target Area").map({True:'job_in_ec5_area',False:'job_not_in_ec5_area'})
+    jobs['is_transit_hub'] = (jobs.ec5_cat=="Transit_Hub").map({True:'job_in_transit_hub',False:'job_not_in_transit_hub'})
 
     parcels = parcels.to_frame()
     parcels = parcels.join(parcels_zoning_calculations.to_frame(), lsuffix='parcels')
@@ -243,15 +254,6 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     coresum_output_dir.mkdir(parents=True, exist_ok=True)
     zones.to_csv(coresum_output_dir / f"interim_zone_output_{year}.csv")
 
-    extra_hh_cols = ['base_income_quartile',
-    'building_id',
-    'tenure',
-    'unittype',
-    'unit_num',
-    'unit_id']
-    households_df = orca.get_table('households').to_frame()
-
-    households_df[extra_hh_cols].to_csv(coresum_output_dir / f"{run_name}_households_output_{year}.csv")
     # now add all interim zone output to a single dataframe
 
     zones = zones.add_suffix("_"+str(year))
@@ -264,18 +266,7 @@ def interim_zone_output(run_name, households, buildings, residential_units, parc
     all_years = all_years.merge(zones, left_index=True, right_index=True)
     orca.add_table("interim_zone_output_all", all_years)
 
-    
     if year == final_year:
         coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
         coresum_output_dir.mkdir(parents=True, exist_ok=True)
-        all_years.to_csv(coresum_output_dir / f"{run_name}_interim_zone_output_allyears.csv")
-
-
-@orca.step()
-def account_summary(year,run_name):
-    acct_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
-    acct_output_dir.mkdir(parents=True, exist_ok=True)
-    
-    for acct_name, acct in orca.get_injectable("coffer").items():
-        fname = f"{run_name}_acctlog_{acct_name}_{year}.csv"
-        acct.to_frame().to_csv(acct_output_dir / fname)
+        all_years.to_csv(coresum_output_dir / f"interim_zone_output_allyears.csv")
