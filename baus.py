@@ -129,6 +129,8 @@ logger.info("Started: %s", time.ctime())
 logger.info("Current Branch: %s", CURRENT_BRANCH)
 logger.info("Current Commit: %s", CURRENT_COMMIT)
 logger.info("Set Random Seed: %s", SET_RANDOM_SEED)
+# check by way of comparison whether the seed is actually being set or not
+logger.info("--Initial random draw: %s", np.random.rand())
 logger.info("Python version: %s", sys.version.split('|')[0])
 logger.info("UrbanSim version: %s", urbansim.__version__)
 logger.info("UrbanSim Defaults version: %s", urbansim_defaults.__version__)
@@ -140,7 +142,6 @@ logger.info("Pandas version: %s", pd.__version__)
 
 logger.info("SLACK: %s", SLACK)
 logger.info("MODE: %s", MODE)
-
 
 def run_models(mode):
 
