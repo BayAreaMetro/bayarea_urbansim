@@ -229,6 +229,9 @@ def run_models(mode):
 
             "geographic_summary",
 
+            "interim_zone_output",
+            "interim_tract_output",
+            
             "taz1_summary",
             "maz_marginals",
             "maz_summary",
@@ -375,6 +378,7 @@ def run_models(mode):
         
         simulation_summary_models = [
             "interim_zone_output",
+            "interim_tract_output",
             "disaggregate_output",
             "new_buildings_summary",
             "parcel_growth_summary",

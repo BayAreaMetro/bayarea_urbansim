@@ -1361,17 +1361,24 @@ def slr_parcel_inundation(run_setup):
 @orca.table(cache=True)
 def parcels_tract():
     return pd.read_csv(
-        os.path.join(orca.get_injectable("inputs_dir"), "parcel_tract_xwalk.csv"),
+        os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/parcel_tract_xwalk.csv"),
         dtype={"parcel_id": np.int64, "zone_id": np.int64},
         index_col="parcel_id",
     )
 
+@orca.table(cache=True)
+def parcels_tract():
+    return pd.read_csv(
+        os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/crosswalks/parcel_tract_xwalk.csv"),
+        dtype={"parcel_id": np.int64, "zone_id": np.int64},
+        index_col="parcel_id",
+    )
 
 # earthquake and fire damage probabilities for census tracts
 @orca.table(cache=True)
 def tracts_earthquake():
     return pd.read_csv(
-        os.path.join(orca.get_injectable("inputs_dir"), "tract_damage_earthquake.csv")
+        os.path.join(orca.get_injectable("inputs_dir"), "basis_inputs/hazards/tract_damage_earthquake.csv")
     )
 
 
@@ -1445,12 +1452,15 @@ def accessory_units():
 # parcels-tract crosswalk that match the Urban Displacement Project census tract vintage
 @orca.table(cache=True)
 def parcel_tract_crosswalk():
-    return pd.read_csv(
+    df = pd.read_csv(
         os.path.join(
             orca.get_injectable("inputs_dir"),
             "basis_inputs/crosswalks/parcel_tract_crosswalk.csv",
-        )
+        ), dtype={'parcel_id': np.int64, 'zone_id': np.int64,'GEOID10': str}
     )
+    # ensure tract ids are 11 characters with leading zeros
+    df['GEOID10'] = df['GEOID10'].str.zfill(11)
+    return df
 
 
 # Urban Displacement Project census tracts
