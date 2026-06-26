@@ -27,7 +27,7 @@ def setup_logging(log_file, log_level=logging.INFO, detail_level="medium"):
         filemode='w',     # Don't append - create new log
         level=log_level,  # Default level passed to the logger
         # format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # temp for debugging
-        format='%(name)s - %(levelname)s - %(message)s',
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
