@@ -17,21 +17,17 @@ class StreamToLogger:
     def flush(self):
         pass  # Required for compatibility
 
-def setup_logging(log_file, log_level=logging.INFO):
+def setup_logging(log_file, log_level=logging.INFO, detail_level="medium"):
     """Set up logging and redirect stdout/stderr to the logger."""
-
-    # make this wide since we are logging
-    pd.set_option('display.max_colwidth', 300)
 
     logger = logging.getLogger('baus')  # Set up a named logger for the main BAUS module
 
-    # Logging configuration
     logging.basicConfig(
         filename=log_file,
         filemode='w',     # Don't append - create new log
         level=log_level,  # Default level passed to the logger
         # format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # temp for debugging
-        format='%(name)s - %(levelname)s - %(message)s',
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
@@ -54,3 +50,14 @@ def setup_logging(log_file, log_level=logging.INFO):
         logger.debug("logger:{}".format(logging.getLogger(logger_name)))
 
     return logger
+
+def get_log_level(level_name):
+    """Converts a log level name (string) to a logging constant."""
+    levels = {
+        'DEBUG': logging.DEBUG,
+        'INFO': logging.INFO,
+        'WARNING': logging.WARNING,
+        'ERROR': logging.ERROR,
+        'CRITICAL': logging.CRITICAL
+    }
+    return levels.get(level_name.upper(), logging.INFO) # we just default to info if not found.

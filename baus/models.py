@@ -49,11 +49,11 @@ def elcm_simulate(jobs, buildings, aggregations, year):
 
 
 @orca.step()
-def elcm_simulate_ec5(jobs, buildings, aggregations, year):
+def elcm_simulate_ec5(jobs, buildings, aggregations, year, run_setup):
     """
     testing docstring documentation for automated documentation creation
     """
-    if year<=2030:
+    if year<2030:
         # hold off until 2030 simulation
         return
 
@@ -116,7 +116,7 @@ def gov_transit_elcm(jobs, buildings, parcels, run_setup, year):
     #buildings_df = buildings_df.rename(columns={'county_x': 'county', 'general_type_x': 'general_type'})
 
     # Where to go? Buffers!
-    building_hosts = buildings_df.query('ec5_cat=="Transit_Hub" & vacant_job_spaces > 0 & general_type!="Residential"')
+    building_hosts = buildings_df.query('ec5_cat=="EC5 Target Area" & vacant_job_spaces > 0 & general_type!="Residential"')
 
     # first - enumerate job spaces - but index to building_id is retained
     building_hosts_enum = building_hosts.index.repeat(building_hosts.vacant_job_spaces.clip(0))
@@ -406,12 +406,19 @@ def household_relocation(households, household_relocation_rates, run_setup, stat
     static_buildings = buildings.index[buildings.parcel_id.isin(static_parcels)]
 
     rates = household_relocation_rates.local
+    print('Renter relocation rate medians')
+    print(rates.groupby(['tenure',"base_income_quartile"]).median())
+    
     # update the relocation rates with the renter protections strategy if applicable
     if run_setup["run_renter_protections_strategy"]:
         renter_protections_relocation_rates = orca.get_table("renter_protections_relocation_rates")
         rates = pd.concat([rates, renter_protections_relocation_rates.to_frame()]).drop_duplicates(
             subset=["zone_id", "base_income_quartile", "tenure"], keep="last")
         rates = rates.reset_index(drop=True)
+        print('Renter relocation rate medians - after H1')
+        print(rates.groupby(['tenure',"base_income_quartile"]).median())
+    
+    
     
     df = pd.merge(households.to_frame(["zone_id", "base_income_quartile", "tenure", "move_in_year"]), 
                   rates, 
@@ -595,14 +602,40 @@ def add_extra_columns_func(df):
 def alt_feasibility(parcels, developer_settings,
                     parcel_sales_price_sqft_func,
                     parcel_is_allowed_func):
+    
+    print('Running alt_feasibility step...')
+    # calling this explicitly because the passed version was altered 
+    # for the forms property the second time around from a dict to a numpy array of floats
+    
     kwargs = developer_settings['feasibility']
     config = sqftproforma.SqFtProFormaConfig()
-    config.parking_rates["office"] = 1
+    
+    if "forms" in developer_settings:
+        forms_override = developer_settings["forms"]
+        if isinstance(forms_override, dict) and all(isinstance(v, dict) for v in forms_override.values()):
+            config.forms = forms_override
+        else:
+            logger.warning("Invalid structure for 'forms'; expected dict of dicts.")
+
+    
+    if 'fars' in developer_settings:
+        config.fars = developer_settings["fars"]
+    if 'uses' in developer_settings:
+        config.uses = developer_settings["uses"]
+    if 'residential_uses' in developer_settings:
+        config.residential_uses = developer_settings["residential_uses"]
+    
+    config.parking_rates["office"] = 1.5
     config.parking_rates["retail"] = 1.5
     config.building_efficiency = .85
     config.parcel_coverage = .85
     # use the cap rate from settings.yaml
     config.cap_rate = developer_settings["cap_rate"]
+
+    yr = orca.get_injectable("year")
+    print('Market rate residential feasibility for ',yr)
+    print('Parcel filter: ',kwargs['parcel_filter'])
+    print('   Parcels in scope for market rate feasibility calc:', len(parcels.to_frame().query(kwargs['parcel_filter'])))
 
     utils.run_feasibility(parcels,
                           parcel_sales_price_sqft_func,
@@ -627,10 +660,8 @@ def residential_developer(feasibility, households, buildings, parcels, year,
                           add_extra_columns_func, parcels_geography,
                           limits_settings, base_year, final_year, run_setup):
 
-    #TODO: REMOVE
-    #feas_path = os.path.join(orca.get_injectable("outputs_dir"),f'feasibility_residential_developer_start_{year}.csv')
-    #feasibility.to_frame().to_csv(feas_path)
-    
+    orca.eval_step("alt_feasibility")
+        
     kwargs = developer_settings['residential_developer']
 
     if run_setup["residential_vacancy_rate_mods"]:
@@ -648,14 +679,16 @@ def residential_developer(feasibility, households, buildings, parcels, year,
     typ = "Residential"
     # now apply limits - limits are assumed to be yearly, apply to an
     # entire jurisdiction and be in terms of residential_units or job_spaces
-    if typ in sorted(limits_settings.keys()):
+    if typ in limits_settings:
+        print('Residential found in limits settings')
 
         juris_name = parcels_geography.juris_name.\
             reindex(parcels.index).fillna('Other')
 
-        juris_list = sorted(limits_settings[typ].keys())
-        for juris in juris_list:
-            limit = limits_settings[typ][juris]
+        juris_list = limits_settings[typ].keys()
+        for juris, limit in limits_settings[typ].items():
+            print('Limits: ')
+            print(juris,limit)
 
             # the actual target is the limit times the number of years run
             # so far in the simulation (plus this year), minus the amount
@@ -687,9 +720,10 @@ def residential_developer(feasibility, households, buildings, parcels, year,
 
         # other cities not in the targets get the remaining target
         targets.append((~juris_name.isin(juris_list), num_units, None, "none"))
-
+        print('Limits: ', len(targets))
     else:
         # otherwise use all parcels with total number of units
+        print('Use full parcel dataset without limits applied from limits_settings')
         targets.append((parcels.index == parcels.index,
                         num_units, None, "none"))
 
@@ -855,6 +889,7 @@ def office_developer(feasibility, jobs, buildings, parcels, year,
                      add_extra_columns_func, parcels_geography,
                      limits_settings):
 
+    orca.eval_step("alt_feasibility")
     dev_settings = developer_settings['non_residential_developer']
 
     # I'm going to try a new way of computing this because the math the other
@@ -1141,7 +1176,7 @@ def local_pois(accessibility_settings):
 
     cols = {}
 
-    locations = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'accessibility/pandana/bart_stations.csv'))
+    locations = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 'accessibility/pandana/bart_stations_2020.csv'))
     n.set_pois("tmp", locations.lng, locations.lat)
     cols["bartdist"] = n.nearest_pois(3000, "tmp", num_pois=1)[1]
 

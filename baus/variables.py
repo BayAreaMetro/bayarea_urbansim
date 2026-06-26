@@ -547,23 +547,23 @@ def subregion(parcels, taz_geography):
     return misc.reindex(taz_geography.subregion, parcels.zone_id)
 
 
-# perffoot is a dummy indicating the FOOTprint for the PERFormance targets
+# deprecated the undocumented perffoot variable - use well defined and visually similar urban area instead
 @orca.column('parcels', cache=True)
-def urban_footprint(parcels, parcels_geography):
-    return parcels_geography.perffoot.reindex(parcels.index)
+def urban_footprint(parcels_urban_footprint):
+    return parcels_urban_footprint.in_urban_area
 
-
+# deprecated 
 # perfzone is a dummy for geography for a performance target
-@orca.column('parcels', cache=True)
-def performance_zone(parcels, parcels_geography):
-    return parcels_geography.perfarea.reindex(parcels.index)
+# @orca.column('parcels', cache=True)
+# def performance_zone(parcels, parcels_geography):
+#     return parcels_geography.perfarea.reindex(parcels.index)
 
-
+# deprecated
 # urbanized is a dummy for urbanized area, sourced from shapefile at:
 # M:\urban_modeling\data\LandUse\landuse_raw\urban_footprint_2009
-@orca.column('parcels', cache=True)
-def urbanized(parcels, parcels_geography):
-    return parcels_geography.urbanized.reindex(parcels.index)
+# @orca.column('parcels', cache=True)
+# def urbanized(parcels, parcels_geography):
+#     return parcels_geography.urbanized.reindex(parcels.index)
 
 
 @orca.column('parcels', cache=True)
@@ -654,6 +654,33 @@ def profit_adjustment_tier(parcels, parcels_geography, profit_adjustment_strateg
 
 @orca.injectable("parcel_is_allowed_func", autocall=False)
 def parcel_is_allowed(form):
+    """
+     Orca injectable function that determines, for each parcel, whether a specific building
+     form (e.g., "residential", "office", "retail") is allowed based on zoning rules and 
+     override strategies.
+    Parameters
+    ----------
+    form : str
+        The development form to check (e.g., 'retail', 'residential', 'office').
+        Must be a key in the form_to_btype mapping.
+    Returns
+    -------
+    pd.Series
+        Boolean series indexed by parcel IDs indicating whether each parcel
+        allows the specified development form (True) or not (False).
+    Notes
+    -----
+    - The function first checks if any building type matching the form is allowed
+      in existing zoning
+    - Strategic zoning overrides (add_bldg/drop_bldg) take precedence over existing zoning
+    - Later building types in the form_to_btype mapping override earlier ones
+    - Special case: retail zoning can be eliminated from specific jurisdictions
+      via the "eliminate_retail_zoning_from_juris" zoning adjuster
+    Dependencies
+    ------------
+    Requires orca injectables: zoning_adjusters, mapping
+    Requires orca tables: zoning_existing, zoning_strategy, parcels
+    """
     zoning_adjusters = orca.get_injectable("zoning_adjusters")
     mapping = orca.get_injectable("mapping")
     form_to_btype = mapping["form_to_btype"]
@@ -662,6 +689,11 @@ def parcel_is_allowed(form):
     # to know if specific forms are allowed
     zoning_existing = orca.get_table("zoning_existing")
     zoning_strategy = orca.get_table("zoning_strategy")
+
+    zst = zoning_strategy.to_frame()
+
+    print('Check zoningmodcats on parcels w/o dua_up')
+    print(zst[zst.dua_up.isna()].zoningmodcat.value_counts())
     parcels = orca.get_table("parcels")
 
     allowed = pd.Series(0, index=parcels.index)
@@ -704,17 +736,19 @@ def parcel_first_building_type_is(form):
 @orca.column('parcels')
 def juris_ave_income(households, buildings, parcels_geography, parcels):
     # get frame of income and jurisdiction
+    
+    juris_col = 'juris_name'
     h = orca.merge_tables("households",
                           [households, buildings, parcels_geography],
-                          columns=["jurisdiction_id", "income"])
+                          columns=[juris_col, "income"])
     # get median income by jurisdiction
-    s = h.groupby(h.jurisdiction_id).income.quantile(.5)
+    s = h.groupby(h[juris_col]).income.quantile(.5)
     # adding a fix here for negative incomes in the households table
     # so that the later steps don't crash
     s.loc[s < 1] = 1
     # map it to parcels - fill na with median for all areas
     # should probably remove the log transform and do that in the models
-    return misc.reindex(s, parcels_geography.jurisdiction_id).\
+    return misc.reindex(s, parcels_geography[juris_col]).\
         reindex(parcels.index).fillna(s.median()).apply(np.log1p)
 
 
@@ -760,6 +794,16 @@ def is_sanjose(parcels_geography, buildings, parcels):
 def total_non_residential_sqft(parcels, buildings):
     return buildings.non_residential_sqft.groupby(buildings.parcel_id).sum().\
         reindex(parcels.index).fillna(0)
+
+# TODO: this is probably temporary until it enters the parcels geography datamodel directly
+@orca.column('parcels')
+def is_cpad(cpad_parcels, parcels):
+    cpad_parcels = (cpad_parcels.is_cpad
+                    .reindex(parcels.index)
+                    .fillna(0)
+                    .astype('bool')
+                    )
+    return cpad_parcels
 
 
 @orca.column('parcels')
@@ -823,6 +867,29 @@ def built_dua(parcels):
 
 @orca.column('parcels')
 def max_dua(parcels_zoning_calculations, parcels, zoning_adjusters):
+    """
+    Orca column for the parcels table. It calculates the maximum allowed DUA for 
+    each parcel, taking into account zoning regs, parcel characteristics, 
+    built densities, developer constraints, and potential policy overrides.
+    Parameters
+    ----------
+    parcels_zoning_calculations : pandas.DataFrame
+        DataFrame containing zoning calculations with 'effective_max_dua' column
+    parcels : pandas.DataFrame
+        DataFrame containing parcel data with columns:
+        - 'nodev': boolean indicating if development is not allowed
+        - 'urban_footprint': binary indicator (0=outside, 1=inside urban footprint)
+        - 'built_dua': current built dwelling units per acre
+        - 'zone_id': zoning identifier for grouping parcels
+    zoning_adjusters : dict
+        Dictionary of zoning adjustment parameters, including:
+        - 'dont_build_most_dense_building': boolean flag to limit maximum density
+    Returns
+    -------
+    pandas.Series
+        Series of maximum allowable dwelling units per acre for each parcel,
+        constrained by zoning, urban footprint, and density limitations
+    """
     # first we combine the zoning columns
     s = parcels_zoning_calculations.effective_max_dua * ~parcels.nodev
 
@@ -992,37 +1059,76 @@ def zoned_du_vacant(parcels, parcels_zoning_calculations):
 
 @orca.column('parcels_zoning_calculations', cache=True)
 def effective_max_dua(zoning_existing, parcels):
-
+    """
+    Orca column for the parcels_zoning_calculations table.  It approximates maximum
+    DUA allowed on each parcel based on existing zoning regs while allowing
+    strategic overrides.
+    Parameters
+    ----------
+    zoning_existing : DataFrame or Series
+        Existing zoning data containing:
+        - max_dua: Maximum dwelling units per acre from zoning
+        - max_far: Maximum floor area ratio
+        - max_height: Maximum building height
+        - local: Local zoning information
+    parcels : DataFrame
+        Parcel data with index to align results
+    Returns
+    -------
+    pandas.Series
+        Effective maximum DUA for each parcel, indexed by parcel ID.
+        Values are set to 0 where residential use is not allowed.
+    Notes
+    -----
+    Step-by-step process:
+    1. Converts FAR and height limits to DUA equivalents
+    2. Takes the minimum of zoning max_dua, FAR-based DUA, and height-based DUA
+    3. Applies upzoning strategy (dua_up) using maximum operation
+    4. Applies downzoning strategy (dua_down) using minimum operation
+    5. Filters results to only allow residential-permitted parcels
+    6. Fills missing values with 0 and aligns to parcels index
+    The function uses global constants:
+    - GROSS_AVE_UNIT_SIZE: Average unit size for DUA calculations
+    - HEIGHT_PER_STORY: Height per building story
+    - PARCEL_USE_EFFICIENCY: Efficiency factor for parcel utilization
+    """
+    
+    # Calculate maximum density based on FAR and height
     max_dua_from_far = zoning_existing.max_far * 43560 / GROSS_AVE_UNIT_SIZE
 
     max_far_from_height = (zoning_existing.max_height / HEIGHT_PER_STORY) * PARCEL_USE_EFFICIENCY
-
     max_dua_from_height = max_far_from_height * 43560 / GROSS_AVE_UNIT_SIZE
 
-    s = pd.concat([zoning_existing.max_dua, 
-                   max_dua_from_far, 
-                   max_dua_from_height], axis=1).min(axis=1)
+    # Print descriptions for key DataFrames
+    print("zoning_existing.describe():\n", zoning_existing.local.describe())
+    print("max_dua_from_far.describe():\n", max_dua_from_far.describe())
+    print("max_dua_from_height.describe():\n", max_dua_from_height.describe())
 
-    # take the max dua IF the upzone value is greater than the current value
-    # i.e. don't let the upzoning operation accidentally downzone
-
-    strategy_max_dua = orca.get_table("zoning_strategy").dua_up
-
-    s = pd.concat([s, strategy_max_dua], axis=1).max(axis=1)
-
-    # take the min dua IF the downzone value is less than the current value
-    # i.e. don't let the downzoning operation accidentally upzone
-
-    strategy_min_dua = orca.get_table("zoning_strategy").dua_down
-
-    s = pd.concat([
-        s,
-        strategy_min_dua
+    # Minimum of max_dua, FAR-based DUA, and height-based DUA
+    s_base = pd.concat([
+        zoning_existing.max_dua, max_dua_from_far, max_dua_from_height
     ], axis=1).min(axis=1)
 
-    s3 = parcel_is_allowed('residential')
+    # Ensure upzoning does not inadvertently downzone when value is smaller
+    zoning_strategy = orca.get_table("zoning_strategy")
+    strategy_max_dua = zoning_strategy.dua_up
+    strategy_min_dua = zoning_strategy.dua_down
 
-    return (s.fillna(0) * s3).reindex(parcels.index).fillna(0).astype('float')
+    print("zoning_strategy.dua_up.describe():\n", zoning_strategy.dua_up.describe())
+
+    # Apply upzoning (max) and downzoning (min) constraints
+    s_base_with_strategy = pd.concat([s_base, strategy_max_dua], axis=1).max(axis=1)
+    s_final_dua = pd.concat([s_base_with_strategy, strategy_min_dua], axis=1).min(axis=1)
+
+    # Check if residential use is allowed
+    res_allowed = parcel_is_allowed('residential')
+
+    output = (s_final_dua.fillna(0) * res_allowed).reindex(parcels.index).fillna(0).astype('float')
+
+    print("zoning_strategy w res allowed.max_dua.describe():\n", output.describe())
+
+    return output
+
 
 
 @orca.column('parcels_zoning_calculations')

@@ -76,8 +76,8 @@ def transit_service_area_share(
         "DBP": "fbp", # we map to FBP in the transit service class file
         "Alt1": "fbp",
         "Alt2": "fbp",
-        "EIR Alt 1":'fbp',
-        "EIR Alt 2":'fbp',
+        "EIR Alt1":'fbp',
+        "EIR Alt2":'fbp',
         "Current": "cur", # refers to existing conditions transit stops
     }
 
@@ -102,7 +102,7 @@ def transit_service_area_share(
         # set transit_scenario to cur (existing stops buffers) 
         transit_scenario = "cur" if int(year) in [2015, 2020, 2023] else transit_scenario
 
-        parcel_output = modelrun_data[year]["parcel"]
+        parcel_output = modelrun_data[year]["parcel"].copy(deep=True)
         # report shape of parcel_output df
         len_parcels = len(parcel_output)
 
@@ -412,6 +412,7 @@ def transit_service_area_share_v2(
                                 rtp: str,
                                 modelrun_alias: str, 
                                 modelrun_id: str, 
+                                horizon_year: int,
                                 modelrun_data: dict, 
                                 output_path: str,
                                 append_output: bool
@@ -444,12 +445,15 @@ def transit_service_area_share_v2(
         "NP":'np',
         "Plus": "dbp",
         "Final Blueprint": "fbp",
+        "Final Blueprint 2035": "fbp2035", # added for final SCS submittal
         "Draft Blueprint": "dbp",
         "DBP": "dbp", 
         "Alt1": "fbp",
         "Alt2": "fbp",
-        "EIR Alt 1":'fbp',
-        "EIR Alt 2":'fbp',
+        'EIR': 'fbp',
+        'EIR Alt1': 'fbp',
+        'EIR Alt2': 'fbp',
+        'EIR Alt2 Var1': 'fbp',
         "Current": "cur", # refers to existing conditions transit stops
     }
     
@@ -458,7 +462,6 @@ def transit_service_area_share_v2(
     
     logging.info(f"Calculating connected for {modelrun_alias} / {modelrun_id}")
     logging.debug(f"Modelrun data years: {modelrun_data.keys()}")
-    logging.debug(f"Modelrun data 2050 datasets: {modelrun_data[2050].keys()}")
 
     # convenience function for easy groupby percentages
     def pct(x):
@@ -513,43 +516,46 @@ def transit_service_area_share_v2(
         # set boolean for baseyear status
         is_baseyear = int(year) in [2015, 2020, 2023]
 
-        if is_baseyear and is_baseyear_processed:
-            # if both true, we can skip this iteration
-            logging.info('A baseyear NP run is encountered - we skip.')
-            continue
-
+        # Process baseyear for No Project only
         if is_baseyear:
-            transit_scenario = "cur"  # Existing stops buffers for base year
-
-            if modelrun_alias == 'Draft Blueprint':
-                # Skip Draft Blueprint for base year
-                logging.info('Skipping baseyear Draft Blueprint run.')
+            if modelrun_alias == 'No Project':
+                logging.info(f'Processing baseyear {year} for No Project.')
+            elif modelrun_alias in ['Draft Blueprint', 'Final Blueprint', 'EIR Alt2', 'EIR Alt2 Var1']:
+                logging.info(f'Skipping baseyear {year} for {modelrun_alias}.')
                 continue
-            elif modelrun_alias == 'No Project':
-                is_baseyear_processed = True  # Set only for No Project within a base year
-                logging.info('Encountered a baseyear No Project run - only processing one base year.')
-
-        # continue processing    
-        # get the transit scenario geographies to focus on (e.g., 'fbp' for final bluerprint), 'cur' for current / baseyear conditions
-        transit_scenario = transit_scenario_mapping.get(modelrun_alias,'dbp')
-
-        # set transit_scenario to cur (existing stops buffers) - this will override any value to 'cur'
-        if is_baseyear:
-            # overrides to "cur" if is_baseyear - meaning np only uses np buffers in the future year
-            transit_scenario = "cur" 
-            if modelrun_alias=='No Project':
-                logging.info('A baseyear NP run is encountered - setting is_baseyear_processed to True for subsequent skipping. We only need one baseyear run.')
-                is_baseyear_processed = True
-            elif modelrun_alias=='Draft Blueprint':
-                logging.info('A baseyear DBP run is encountered - we skip.')
+            else:
+                logging.info(f'Skipping baseyear {year} for {modelrun_alias}.')
                 continue
 
+        # Process 2050 for No Project, Draft Blueprint, and Final Blueprint
+        elif year == 2050:
+            if modelrun_alias in ['No Project', 'Draft Blueprint', 'Final Blueprint', 
+                                  'EIR Alt1', 'EIR Alt2', 'EIR Alt2 Var1']:
+                logging.info(f'Processing {year} for {modelrun_alias}.')
+            else:
+                logging.info(f'Skipping {year} for {modelrun_alias}.')
+                continue
 
-        parcel_output = modelrun_data[year]["parcel"]
+        # Skip any other years except for year 2035 for Final Blueprint
+        elif year == 2035:
+            if modelrun_alias in ['Final Blueprint']:
+                logging.info(f'Processing {year} for {modelrun_alias}.')
+            else:
+                logging.info(f'Skipping {year} for {modelrun_alias}.')
+        else:
+            logging.info(f'Skipping {year} for {modelrun_alias}.')
+
+        # Continue processing for each year and scenario
+        if (year == 2035) & (modelrun_alias == 'Final Blueprint'):
+            transit_scenario = "fbp2035"
+        else:
+            transit_scenario = transit_scenario_mapping.get(modelrun_alias, 'fbp') # Set default to fbp
+        
+        logging.debug(f"Modelrun data {year} datasets: {modelrun_data[year].keys()}")
+        parcel_output = modelrun_data[year]["parcel"].copy(deep=True)
         # report shape of parcel_output df
         len_parcels = len(parcel_output)
-
-        logging.debug('Cols of parcels {} in connected func: {}'.format(year,parcel_output.columns))
+        logging.debug(f'Cols of parcels {year} in connected func: {parcel_output.columns}')
         logging.debug(f"Parcel output has {len_parcels:,} rows")
 
         # adding county field from tract ids
@@ -560,6 +566,10 @@ def transit_service_area_share_v2(
         # this returns different classifications for each - like the 5-way or 6-way service level (cat5, cat6)
         # several may be returned depending on how many are in the crosswalk
         # we summarize run data for each classification variable
+
+        # Ensure that we use the current transit universe for 2023 tabulations
+        if year == 2023:
+            transit_scenario = 'cur'
 
         transit_svcs_cols = parcel_output.filter(
             regex=transit_scenario
@@ -677,7 +687,7 @@ def transit_service_area_share_v2(
         container_df
     )
 
-    filename = f"metrics_connected1_transitproximity_v2.csv"
+    filename = f"metrics_connected1_transitproximity_v2_{horizon_year}.csv"
     filepath = output_path / filename
 
     updated_metrics_tableau_schema.to_csv(filepath, mode='a' if append_output else 'w', header=False if append_output else True, index=False)
