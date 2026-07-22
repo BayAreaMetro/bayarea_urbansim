@@ -194,14 +194,46 @@ def build_parcel_block20_xwalk():
     return xwalk
 
 
-def build_block_geo_xwalk(parcel_block_xwalk):
-    """Assign TRA/GG/PPA/TOC labels to each 2020 block using the half-area rule.
+def _ensure_geo_crosswalks_loaded():
+    """Load metrics_utils geography/TOC crosswalk globals if not already populated.
+
+    Normally these are populated by metrics_utils.load_data_for_runs(). This helper
+    allows build_block_geo_xwalk to be called standalone without running the full pipeline.
+    """
+    CROSSWALKS_DIR = metrics_utils.M_DRIVE / "urban_modeling" / "baus" / "BAUS Inputs" / "basis_inputs" / "crosswalks"
+
+    if len(metrics_utils.rtp2025_geography_crosswalk_df) == 0:
+        print("  Loading rtp2025_geography_crosswalk_df...")
+        aux = pd.read_csv(
+            CROSSWALKS_DIR / "parcels_geography_2024_02_14.csv",
+            usecols=["PARCEL_ID", "ACRES", "epc_id", "juris"],
+        )
+        main = pd.read_csv(
+            CROSSWALKS_DIR / "fbp_urbansim_parcel_classes_ot50pct_feb25_rwc_update_2025.csv"
+        )
+        main.rename(columns={"parcel_id": "PARCEL_ID"}, inplace=True)
+        main = main[["PARCEL_ID", "dis_id", "tra_id", "gg_id", "pda_id", "hra_id", "ppa_id", "ugb_id"]]
+        metrics_utils.rtp2025_geography_crosswalk_df = pd.merge(
+            main, aux, on="PARCEL_ID", how="left", validate="one_to_one"
+        )
+
+    if len(metrics_utils.rtp2025_parcel_toc_crosswalk_df) == 0:
+        print("  Loading rtp2025_parcel_toc_crosswalk_df...")
+        toc_file = METRICS_DIR / "metrics_input_files" / "urbansim_toc_may2025.csv"
+        toc = pd.read_csv(toc_file, usecols=["parcel_id", "toc_id"])
+        toc["parcel_id"] = toc["parcel_id"].astype(int)
+        metrics_utils.rtp2025_parcel_toc_crosswalk_df = toc
+
+
+def build_block_geo_xwalk(parcel_block_xwalk, write=False):
+    """Assign TRA/GG/PPA/TOC/PDA/HRA/EPC labels to each 2020 block using the half-area rule.
 
     A block is labeled TRA (etc.) only if >=50% of the total parcel intersection
     area within that block belongs to qualifying parcels.
     """
+    _ensure_geo_crosswalks_loaded()
     geo_xwalk = metrics_utils.rtp2025_geography_crosswalk_df[
-        ["PARCEL_ID", "tra_id", "gg_id", "ppa_id"]
+        ["PARCEL_ID", "tra_id", "gg_id", "ppa_id", "pda_id", "hra_id", "epc_id"]
     ].rename(columns={"PARCEL_ID": "parcel_id"}).copy()
 
     toc_xwalk = metrics_utils.rtp2025_parcel_toc_crosswalk_df[
@@ -217,17 +249,23 @@ def build_block_geo_xwalk(parcel_block_xwalk):
     parcel_flags["is_gg"]  = parcel_flags["gg_id"]  == "GG"
     parcel_flags["is_ppa"] = parcel_flags["ppa_id"] == "PPA"
     parcel_flags["is_toc"] = parcel_flags["toc_id"] == "toc"
+    parcel_flags["is_pda"] = parcel_flags["pda_id"].notnull()
+    parcel_flags["is_hra"] = parcel_flags["hra_id"] == "HRA"
+    parcel_flags["is_epc"] = parcel_flags["epc_id"].notnull()
 
     # This yields the raw square meters for GG parcels within each parcel-block intersection row
     parcel_flags["tra_area"] = parcel_flags["is_tra"].astype(float) * parcel_flags["intersection_area_sqm"]
     parcel_flags["gg_area"]  = parcel_flags["is_gg"].astype(float)  * parcel_flags["intersection_area_sqm"]
     parcel_flags["ppa_area"] = parcel_flags["is_ppa"].astype(float) * parcel_flags["intersection_area_sqm"]
     parcel_flags["toc_area"] = parcel_flags["is_toc"].astype(float) * parcel_flags["intersection_area_sqm"]
+    parcel_flags["pda_area"] = parcel_flags["is_pda"].astype(float) * parcel_flags["intersection_area_sqm"]
+    parcel_flags["hra_area"] = parcel_flags["is_hra"].astype(float) * parcel_flags["intersection_area_sqm"]
+    parcel_flags["epc_area"] = parcel_flags["is_epc"].astype(float) * parcel_flags["intersection_area_sqm"]
 
     # Roll up intersection + all GG area to blocks for numerator and denominator
     block_geo = (
         parcel_flags.groupby("block_id")[
-            ["intersection_area_sqm", "tra_area", "gg_area", "ppa_area", "toc_area"]
+            ["intersection_area_sqm", "tra_area", "gg_area", "ppa_area", "toc_area", "pda_area", "hra_area", "epc_area"]
         ]
         .sum()
         .reset_index()
@@ -237,7 +275,15 @@ def build_block_geo_xwalk(parcel_block_xwalk):
     block_geo["gg_label"]  = np.where(block_geo["gg_area"]  / block_geo["intersection_area_sqm"] >= 0.5, "GG",      "Non GG")
     block_geo["ppa_label"] = np.where(block_geo["ppa_area"] / block_geo["intersection_area_sqm"] >= 0.5, "PPA",     "Non PPA")
     block_geo["toc_label"] = np.where(block_geo["toc_area"] / block_geo["intersection_area_sqm"] >= 0.5, "TOC",     "Non TOC")
-    return block_geo[["block_id", "tra_label", "gg_label", "ppa_label", "toc_label"]]
+    block_geo["pda_label"] = np.where(block_geo["pda_area"] / block_geo["intersection_area_sqm"] >= 0.5, "PDA",     "Non PDA")
+    block_geo["hra_label"] = np.where(block_geo["hra_area"] / block_geo["intersection_area_sqm"] >= 0.5, "HRA",     "Non HRA")
+    block_geo["epc_label"] = np.where(block_geo["epc_area"] / block_geo["intersection_area_sqm"] >= 0.5, "EPC",     "Non EPC")
+    out = block_geo[["block_id", "tra_label", "gg_label", "ppa_label", "toc_label", "pda_label", "hra_label", "epc_label"]]
+    if write:
+        out_path = Path(r"M:\Crosswalks\geo\block_to_gg_2020.csv")
+        out.to_csv(out_path, index=False)
+        print(f"  Saved block\u2192geo crosswalk: {len(out):,} rows \u2192 {out_path}")
+    return out
 
 
 def load_baus_block(path, model, variant, year):
@@ -469,11 +515,10 @@ def main():
     print(f"metrics_growthPattern_superdistrict_2050.csv written: {len(sd_growth):,} rows")
 
     # ---------------------------------------------------------------------------
-    # Geographies growth (TRA, GG, PPA, TOC stacked with 'area' column)
+    # Geographies growth (TRA, GG, PPA, TOC, PDA, HRA, EPC stacked with 'area' column)
     # Block-level aggregation gives more accurate geo attribution than TAZ-level.
-    # EPC excluded — no block-level source available.
     # ---------------------------------------------------------------------------
-    BINARY_GEO_COLS = ["tra_label", "gg_label", "ppa_label", "toc_label"]
+    BINARY_GEO_COLS = ["tra_label", "gg_label", "ppa_label", "toc_label", "pda_label", "hra_label", "epc_label"]
     geo_frames = []
     for geo_col in BINARY_GEO_COLS:
         gdf = calc_growth(combo_blocks, geo_col).rename(columns={geo_col: "area"})
