@@ -1409,6 +1409,28 @@ def parcels_tract():
     )
 
 
+# census blocks for parcels, for block-level supply roll-ups (Phase 1 block port)
+@orca.table(cache=True)
+def parcels_block():
+    """Loads the parcel-to-2020-census-block crosswalk as a parcel-indexed table.
+
+    Reads the crosswalk in place from the shared M: drive (deliberately not copied
+    into the model inputs) and exposes a single ``block_geoid`` column keyed by
+    ``parcel_id``, mirroring the ``parcels_tract`` pattern.
+
+    Returns:
+        A DataFrame indexed by ``parcel_id`` with one ``block_geoid`` column holding
+        the 15-digit 2020 census-block GEOID as a string.
+    """
+    parcels_block_xwalk = pd.read_csv(
+        r"M:\Crosswalks\Census\parcels_p10_xw_census_blocks.csv",
+        usecols=["parcel_id", "GEOID20"],
+        dtype={"parcel_id": np.int64, "GEOID20": str},
+    )
+    parcels_block_xwalk = parcels_block_xwalk.rename(columns={"GEOID20": "block_geoid"})
+    return parcels_block_xwalk.set_index("parcel_id")
+
+
 # earthquake and fire damage probabilities for census tracts
 @orca.table(cache=True)
 def tracts_earthquake():

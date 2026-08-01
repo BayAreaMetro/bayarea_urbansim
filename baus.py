@@ -28,11 +28,11 @@ import shutil
 import yaml
 import logging
 
-from logging_setup import setup_logging, get_log_level
+from logging_setup import setup_logging, get_log_level, log_banner
 
 MODE = "simulation"
 EVERY_NTH_YEAR = 5
-IN_YEAR, OUT_YEAR = 2010, 2050
+IN_YEAR, OUT_YEAR = 2010, 2015
 years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
         
 CURRENT_BRANCH = os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip()
@@ -234,19 +234,20 @@ def run_models(mode, run_setup, years_to_run):
                 "parcel_summary",
                 "building_summary",
 
-                "hazards_slr_summary",
-                "hazards_eq_summary",
+                # commented out for Phase 1 dev speed - not needed for block supply port
+                # "hazards_slr_summary",
+                # "hazards_eq_summary",
 
-                "deed_restricted_units_summary",
+                # "deed_restricted_units_summary",
 
-                "geographic_summary",
+                # "geographic_summary",
 
-                "taz1_summary",
-                "maz_marginals",
-                "maz_summary",
-                "taz2_marginals",
-                "county_marginals",
-                "region_marginals",
+                # "taz1_summary",
+                # "maz_marginals",
+                # "maz_summary",
+                # "taz2_marginals",
+                # "county_marginals",
+                # "region_marginals",
             ]
 
             return baseyear_summary_models
@@ -413,35 +414,37 @@ def run_models(mode, run_setup, years_to_run):
 
             simulation_summary_models = [
 
-                "interim_zone_output",
+                # commented out for Phase 1 dev speed - not needed for block supply port
+                # "interim_zone_output",
                 "new_buildings_summary",
+                "block_supply_summary",
 
                 "parcel_summary",
-                "parcel_growth_summary",
+                # "parcel_growth_summary",
                 "building_summary",
 
-                "hazards_slr_summary",
-                "hazards_eq_summary",
+                # "hazards_slr_summary",
+                # "hazards_eq_summary",
 
-                "deed_restricted_units_summary",
-                "deed_restricted_units_growth_summary",
+                # "deed_restricted_units_summary",
+                # "deed_restricted_units_growth_summary",
 
-                "geographic_summary",
-                "geographic_growth_summary",
-                "parcel_transitions",
-                "taz1_summary",
-                "maz_marginals",
-                "maz_summary",
-                "taz2_marginals",
-                "county_marginals",
-                "region_marginals",
-                "taz1_growth_summary",
-                "maz_growth_summary",
+                # "geographic_summary",
+                # "geographic_growth_summary",
+                # "parcel_transitions",
+                # "taz1_summary",
+                # "maz_marginals",
+                # "maz_summary",
+                # "taz2_marginals",
+                # "county_marginals",
+                # "region_marginals",
+                # "taz1_growth_summary",
+                # "maz_growth_summary",
 
             ]
 
-            if not run_setup["run_slr_summaries"]:
-                simulation_summary_models.remove("hazards_slr_summary")
+            # if not run_setup["run_slr_summaries"]:
+            #     simulation_summary_models.remove("hazards_slr_summary")
             return simulation_summary_models
         
 
@@ -476,6 +479,7 @@ def run_models(mode, run_setup, years_to_run):
             baseyear_models.extend(get_baseyear_summary_models())
         if run_setup["run_metrics"]:
             baseyear_models.extend(get_baseyear_metrics_models())
+        log_banner("BASE-YEAR PASS", "year {}  |  {} models".format(years_to_run[0], len(baseyear_models)))
         orca.run(baseyear_models, iter_vars=[years_to_run[0]])
 
         simulation_models = get_simulation_models()
@@ -485,9 +489,11 @@ def run_models(mode, run_setup, years_to_run):
             simulation_models.extend(get_simulation_metrics_models())
         if run_setup["run_simulation_validation"]:
             simulation_models.extend(get_simulation_validation_models())
+        log_banner("SIMULATION PASS", "years {}-{}  |  {} models".format(years_to_run[0], years_to_run[-1], len(simulation_models)))
         orca.run(simulation_models, iter_vars=years_to_run)
 
         if run_setup["run_visualizer"]:
+            log_banner("VISUALIZER")
             visualization_models = get_simulation_visualization_models()
             orca.run(visualization_models, iter_vars=[years_to_run[-1]])
             
@@ -546,37 +552,43 @@ if SLACK and MODE == "simulation":
         assert e.response["error"]  
         logger.info(f"Slack Channel Connection Error: {e.response['error']}")
 
+run_start_time = time.time()
+log_banner("BAUS RUN START", "{}  |  mode={}  |  years={}".format(run_name, MODE, list(years_to_run)))
+
 try:
     run_models(MODE, run_setup, years_to_run)
 
+    run_elapsed = time.strftime('%H:%M:%S', time.gmtime(time.time() - run_start_time))
+    log_banner("BAUS RUN COMPLETE", "{}  |  elapsed {}".format(run_name, run_elapsed))
+
     # Run alt travel model summary functions for 2030 and 2040
     # This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
-    if MODE == "simulation":
-        alt_years = [2030, 2040]
-        for year in alt_years:
-            # Get required orca tables
-            maz = orca.get_table('maz')
-            tm1_tm2_maz_forecast_inputs = orca.get_table('tm1_tm2_maz_forecast_inputs')
-            tm1_tm2_regional_demographic_forecast = orca.get_table('tm1_tm2_regional_demographic_forecast')
-            tm2_emp27_employment_shares = orca.get_table('tm2_emp27_employment_shares')
-            tm1_tm2_regional_controls = orca.get_table('tm1_tm2_regional_controls')
-            tm2_taz2_forecast_inputs = orca.get_table('tm2_taz2_forecast_inputs')
-            tm2_occupation_shares = orca.get_table('tm2_occupation_shares')
-            run_name = orca.get_injectable('run_name')
+    # if MODE == "simulation":
+        # alt_years = [2030, 2040]
+        # for year in alt_years:
+        #     # Get required orca tables
+        #     maz = orca.get_table('maz')
+        #     tm1_tm2_maz_forecast_inputs = orca.get_table('tm1_tm2_maz_forecast_inputs')
+        #     tm1_tm2_regional_demographic_forecast = orca.get_table('tm1_tm2_regional_demographic_forecast')
+        #     tm2_emp27_employment_shares = orca.get_table('tm2_emp27_employment_shares')
+        #     tm1_tm2_regional_controls = orca.get_table('tm1_tm2_regional_controls')
+        #     tm2_taz2_forecast_inputs = orca.get_table('tm2_taz2_forecast_inputs')
+        #     tm2_occupation_shares = orca.get_table('tm2_occupation_shares')
+        #     run_name = orca.get_injectable('run_name')
 
-            # Call the alt TM functions to fun in isolation from other summaries
-            travel_model_summaries.maz_marginals_alt(
-                maz, year, tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, run_name
-            )
-            travel_model_summaries.maz_summary_alt(
-                maz, year, tm2_emp27_employment_shares, tm1_tm2_regional_controls, run_name
-            )
-            travel_model_summaries.taz2_marginals_alt(
-                tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls, year, run_name
-            )
-            travel_model_summaries.county_marginals_alt(
-                tm2_occupation_shares, year, run_name
-            )
+        #     # Call the alt TM functions to fun in isolation from other summaries
+        #     travel_model_summaries.maz_marginals_alt(
+        #         maz, year, tm1_tm2_maz_forecast_inputs, tm1_tm2_regional_demographic_forecast, run_name
+        #     )
+        #     travel_model_summaries.maz_summary_alt(
+        #         maz, year, tm2_emp27_employment_shares, tm1_tm2_regional_controls, run_name
+        #     )
+        #     travel_model_summaries.taz2_marginals_alt(
+        #         tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_forecast, tm1_tm2_regional_controls, year, run_name
+        #     )
+        #     travel_model_summaries.county_marginals_alt(
+        #         tm2_occupation_shares, year, run_name
+        #     )
     
 except Exception as e:
     logger.info(traceback.print_exc())

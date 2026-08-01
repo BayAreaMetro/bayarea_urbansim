@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import os
 import pathlib
 import orca
 import pandas as pd
@@ -132,6 +133,128 @@ def new_buildings_summary(run_name, parcels, parcels_zoning_calculations, buildi
     coresum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "core_summaries"
     coresum_output_dir.mkdir(parents=True, exist_ok=True)
     df.to_csv(coresum_output_dir / f"{run_name}_new_buildings_summary.csv")
+
+
+def build_block_supply(parcel_to_block, buildings, zoning, feasibility):
+    """Rolls parcel-level supply and deliverable capacity up to census blocks.
+
+    Pure (no orca, no file I/O) so it can be unit-tested directly. Produces three
+    block-keyed roll-ups side by side: realized new supply (buildings whose
+    ``source`` is not ``h5_inputs``), zoned capacity, and profitable residential
+    capacity (residential form only, counted where ``max_profit`` is positive).
+
+    Args:
+        parcel_to_block: Series indexed by ``parcel_id`` whose values are the
+            ``block_geoid`` each parcel belongs to.
+        buildings: DataFrame with ``parcel_id``, ``residential_units``,
+            ``deed_restricted_units``, ``non_residential_sqft``, ``job_spaces``,
+            and ``source``; base-year stock is filtered out inside this function.
+        zoning: DataFrame indexed by ``parcel_id`` with ``zoned_du`` and
+            ``zoned_du_underbuild``.
+        feasibility: DataFrame indexed by ``parcel_id`` with a ``(form, attribute)``
+            MultiIndex on its columns (the ``feasibility_after_policy`` frame).
+
+    Returns:
+        A DataFrame indexed by ``block_geoid`` with ``zoned_du``,
+        ``zoned_du_underbuild``, ``built_residential_units``,
+        ``built_deed_restricted_units``, ``built_non_residential_sqft``,
+        ``built_job_spaces``, and ``profitable_residential_units``. Blocks absent
+        from a given roll-up are reported as 0.
+
+    Example:
+        >>> import pandas as pd
+        >>> parcel_to_block = pd.Series({1: "A"}, name="block_geoid")
+        >>> buildings = pd.DataFrame({"parcel_id": [1], "residential_units": [5],
+        ...     "deed_restricted_units": [0], "non_residential_sqft": [0],
+        ...     "job_spaces": [0], "source": ["developer_model"]})
+        >>> zoning = pd.DataFrame({"zoned_du": [10], "zoned_du_underbuild": [4]},
+        ...     index=pd.Index([1], name="parcel_id"))
+        >>> cols = pd.MultiIndex.from_tuples(
+        ...     [("residential", "total_residential_units"), ("residential", "max_profit")])
+        >>> feasibility = pd.DataFrame([[8, 1.0]],
+        ...     index=pd.Index([1], name="parcel_id"), columns=cols)
+        >>> build_block_supply(parcel_to_block, buildings, zoning, feasibility).loc["A", "built_residential_units"]
+        5
+
+    See Also:
+        block_supply_summary: the orca step that feeds this helper live model
+            tables and the ``feasibility_after_policy`` injectable.
+    """
+    new_buildings = buildings[~buildings.source.isin(["h5_inputs"])].copy()
+    new_buildings["block_geoid"] = new_buildings["parcel_id"].map(parcel_to_block)
+    realized_by_block = new_buildings.groupby("block_geoid")[
+        ["residential_units", "deed_restricted_units",
+         "non_residential_sqft", "job_spaces"]].sum().rename(columns={
+            "residential_units": "built_residential_units",
+            "deed_restricted_units": "built_deed_restricted_units",
+            "non_residential_sqft": "built_non_residential_sqft",
+            "job_spaces": "built_job_spaces"})
+
+    zoning = zoning.copy()
+    zoning["block_geoid"] = zoning.index.map(parcel_to_block)
+    zoned_by_block = zoning.groupby("block_geoid")[
+        ["zoned_du", "zoned_du_underbuild"]].sum()
+
+    residential_units = feasibility[("residential", "total_residential_units")]
+    residential_profit = feasibility[("residential", "max_profit")]
+    profitable_units = residential_units.where(residential_profit > 0, 0.0)
+    profitable_units = profitable_units.rename("profitable_residential_units").to_frame()
+    profitable_units["block_geoid"] = profitable_units.index.map(parcel_to_block)
+    profitable_by_block = profitable_units.groupby("block_geoid")[
+        "profitable_residential_units"].sum()
+
+    block_supply = (zoned_by_block
+                    .join(realized_by_block, how="outer")
+                    .join(profitable_by_block, how="outer")
+                    .fillna(0))
+    return block_supply
+
+
+@orca.step()
+def block_supply_summary(run_name, buildings, parcels_zoning_calculations, parcels_block,
+                         year, initial_summary_year, final_year, interim_summary_years):
+    """Writes a census-block roll-up of realized supply, zoned and profitable capacity.
+
+    Additive Phase 1 QAQC step: it reads existing model tables and the
+    ``feasibility_after_policy`` injectable, maps parcels to 2020 census blocks via
+    ``parcels_block``, and writes one CSV per summary year. It changes no model
+    behavior. It must run after ``residential_developer`` in the same year so the
+    ``feasibility_after_policy`` injectable holds that year's post-policy values.
+
+    Args:
+        run_name: Name of the current run, used in the output filename.
+        buildings: The orca ``buildings`` table.
+        parcels_zoning_calculations: The orca table carrying ``zoned_du`` and
+            ``zoned_du_underbuild`` per parcel.
+        parcels_block: The parcel-to-block crosswalk table (``block_geoid`` column).
+        year: The current simulation year.
+        initial_summary_year: First year at which summaries are written.
+        final_year: Final simulation/summary year.
+        interim_summary_years: List of intermediate summary years.
+
+    Returns:
+        None. Writes ``{run_name}_block_supply_summary_{year}.csv`` to the
+        ``core_summaries`` output directory.
+
+    See Also:
+        build_block_supply: the pure helper that performs the roll-up arithmetic.
+    """
+    if year not in [initial_summary_year, final_year] + interim_summary_years:
+        return
+
+    parcel_to_block = parcels_block.to_frame(["block_geoid"])["block_geoid"]
+    buildings_df = buildings.to_frame(
+        ["parcel_id", "residential_units", "deed_restricted_units",
+         "non_residential_sqft", "job_spaces", "source"])
+    zoning_df = parcels_zoning_calculations.to_frame(["zoned_du", "zoned_du_underbuild"])
+    feasibility = orca.get_injectable("feasibility_after_policy")
+
+    block_supply = build_block_supply(parcel_to_block, buildings_df, zoning_df, feasibility)
+
+    coresum_output_dir = os.path.join(orca.get_injectable("outputs_dir"), "core_summaries")
+    os.makedirs(coresum_output_dir, exist_ok=True)
+    block_supply.to_csv(os.path.join(
+        coresum_output_dir, "{}_block_supply_summary_{}.csv".format(run_name, year)))
 
 
 @orca.step()
