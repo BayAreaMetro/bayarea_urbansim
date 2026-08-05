@@ -6,7 +6,7 @@ import time
 import traceback
 from baus import (
     datasources, variables, models, subsidies, ual, slr, earthquake, 
-    utils, preprocessing)
+    utils, preprocessing, block_developer)
 from baus.tests import validation
 
 from baus.summaries import (
@@ -32,7 +32,7 @@ from logging_setup import setup_logging, get_log_level, log_banner
 
 MODE = "simulation"
 EVERY_NTH_YEAR = 5
-IN_YEAR, OUT_YEAR = 2010, 2015
+IN_YEAR, OUT_YEAR = 2010, 2020
 years_to_run = range(IN_YEAR+EVERY_NTH_YEAR, OUT_YEAR+1, EVERY_NTH_YEAR)
         
 CURRENT_BRANCH = os.popen('git rev-parse --abbrev-ref HEAD').read().rstrip()
@@ -108,6 +108,7 @@ orca.add_injectable("run_setup_path", options.yaml)
 
 run_setup = orca.get_injectable("run_setup")
 run_name = orca.get_injectable("run_name")
+run_description = run_setup.get("run_description", "")
 outputs_dir = pathlib.Path(orca.get_injectable("outputs_dir"))
 outputs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -398,6 +399,12 @@ def run_models(mode, run_setup, years_to_run):
             #    simulation_models.remove["subsidized_residential_feasibility"]
             #    simulation_models.remove["subsidized_residential_developer_jobs_housing"]
 
+            if run_setup.get("developer_geography", "parcel") == "block":
+                block_step_index = simulation_models.index("residential_developer")
+                simulation_models[block_step_index] = "block_residential_developer"
+                logger.info(
+                    "Using `block_residential_developer` instead of `residential_developer`")
+
             return simulation_models
         
 
@@ -479,8 +486,8 @@ def run_models(mode, run_setup, years_to_run):
             baseyear_models.extend(get_baseyear_summary_models())
         if run_setup["run_metrics"]:
             baseyear_models.extend(get_baseyear_metrics_models())
-        log_banner("BASE-YEAR PASS", "year {}  |  {} models".format(years_to_run[0], len(baseyear_models)))
-        orca.run(baseyear_models, iter_vars=[years_to_run[0]])
+        log_banner("BASE-YEAR PASS", "year {}  |  {} models".format(IN_YEAR, len(baseyear_models)))
+        orca.run(baseyear_models, iter_vars=[IN_YEAR])
 
         simulation_models = get_simulation_models()
         if run_setup["run_summaries"]:
@@ -533,7 +540,10 @@ if SLACK and MODE == "estimation":
         logger.info(f"Slack Channel Connection Error: {e.response['error']}")
 
 if SLACK and MODE == "simulation":
-    slack_start_message = f'Starting simulation {run_name} on host {host}\nOutput written to: {run_setup["outputs_dir"]}'
+    slack_start_message = f'Starting simulation {run_name} on host {host}'
+    if run_description:
+        slack_start_message += f'\n{run_description}'
+    slack_start_message += f'\nOutput written to: {run_setup["outputs_dir"]}'
     
     try:
         # For first slack channel posting of a run, catch any auth errors
@@ -609,7 +619,10 @@ except Exception as e:
     logger.info(error_trace)
 
     if SLACK and MODE == "simulation":
-        slack_fail_message = f'DANG!  Simulation failed for {run_name} on host {host} with the error of type "{error_type}", and message {error_msg}. Deets here:\n{error_trace}'
+        slack_fail_message = f'DANG!  Simulation failed for {run_name}'
+        if run_description:
+            slack_fail_message += f' ({run_description})'
+        slack_fail_message += f' on host {host} with the error of type "{error_type}", and message {error_msg}. Deets here:\n{error_trace}'
         
         response = client.chat_postMessage(channel=slack_channel,
                                            thread_ts=init_response.data['ts'],
@@ -626,6 +639,8 @@ except Exception as e:
 
 if SLACK and MODE == "simulation":
     slack_completion_message = f'Completed simulation {run_name} on host {host}'
+    if run_description:
+        slack_completion_message += f'\n{run_description}'
     response = client.chat_postMessage(channel=slack_channel,
                                        thread_ts=init_response.data['ts'],
                                        text=slack_completion_message)

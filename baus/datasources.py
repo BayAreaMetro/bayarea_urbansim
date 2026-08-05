@@ -1412,22 +1412,28 @@ def parcels_tract():
 # census blocks for parcels, for block-level supply roll-ups (Phase 1 block port)
 @orca.table(cache=True)
 def parcels_block():
-    """Loads the parcel-to-2020-census-block crosswalk as a parcel-indexed table.
+    """Loads the areal parcel-to-2020-census-block crosswalk as a parcel-indexed table.
 
-    Reads the crosswalk in place from the shared M: drive (deliberately not copied
-    into the model inputs) and exposes a single ``block_geoid`` column keyed by
-    ``parcel_id``, mirroring the ``parcels_tract`` pattern.
+    Reads the polygon-intersection crosswalk in place from the shared M: drive
+    (deliberately not copied into the model inputs).  Because a parcel is mapped to
+    every 2020 census block it overlaps, the ``parcel_id`` index is non-unique and
+    each row carries the share of the parcel falling in that block
+    (``parcel_block_share``), so block supply roll-ups can apportion parcel capacity
+    by intersection instead of assigning each parcel wholly to one block.  This
+    replaces the earlier centroid crosswalk, which left blocks whose overlapping
+    parcels had centroids in adjacent blocks with zero supply.
 
     Returns:
-        A DataFrame indexed by ``parcel_id`` with one ``block_geoid`` column holding
-        the 15-digit 2020 census-block GEOID as a string.
+        A DataFrame indexed by ``parcel_id`` (non-unique) with a ``block_geoid``
+        column holding the 15-digit 2020 census-block GEOID as a string and a
+        ``parcel_block_share`` column giving the parcel's area share in that block.
     """
     parcels_block_xwalk = pd.read_csv(
-        r"M:\Crosswalks\Census\parcels_p10_xw_census_blocks.csv",
-        usecols=["parcel_id", "GEOID20"],
-        dtype={"parcel_id": np.int64, "GEOID20": str},
+        r"M:\urban_modeling\urbansim_cloud\projects\combo\parcel_block20_xwalk.csv",
+        usecols=["parcel_id", "block_id", "parcel_block_share"],
+        dtype={"parcel_id": np.int64, "block_id": str},
     )
-    parcels_block_xwalk = parcels_block_xwalk.rename(columns={"GEOID20": "block_geoid"})
+    parcels_block_xwalk = parcels_block_xwalk.rename(columns={"block_id": "block_geoid"})
     return parcels_block_xwalk.set_index("parcel_id")
 
 

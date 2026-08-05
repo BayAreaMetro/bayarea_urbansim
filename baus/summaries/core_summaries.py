@@ -135,7 +135,7 @@ def new_buildings_summary(run_name, parcels, parcels_zoning_calculations, buildi
     df.to_csv(coresum_output_dir / f"{run_name}_new_buildings_summary.csv")
 
 
-def build_block_supply(parcel_to_block, buildings, zoning, feasibility):
+def build_block_supply(parcel_block, buildings, zoning, feasibility):
     """Rolls parcel-level supply and deliverable capacity up to census blocks.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly. Produces three
@@ -143,9 +143,16 @@ def build_block_supply(parcel_to_block, buildings, zoning, feasibility):
     ``source`` is not ``h5_inputs``), zoned capacity, and profitable residential
     capacity (residential form only, counted where ``max_profit`` is positive).
 
+    Because ``parcel_block`` is the areal crosswalk that maps a parcel to every
+    block it overlaps, each parcel quantity is apportioned to blocks by the
+    parcel's area share (``parcel_block_share``) before summing, so a parcel that
+    straddles a block boundary contributes its share to each block and block totals
+    conserve the parcel totals.
+
     Args:
-        parcel_to_block: Series indexed by ``parcel_id`` whose values are the
-            ``block_geoid`` each parcel belongs to.
+        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
+            ``block_geoid`` and ``parcel_block_share`` columns; a parcel appears
+            once per overlapping block.
         buildings: DataFrame with ``parcel_id``, ``residential_units``,
             ``deed_restricted_units``, ``non_residential_sqft``, ``job_spaces``,
             and ``source``; base-year stock is filtered out inside this function.
@@ -163,7 +170,9 @@ def build_block_supply(parcel_to_block, buildings, zoning, feasibility):
 
     Example:
         >>> import pandas as pd
-        >>> parcel_to_block = pd.Series({1: "A"}, name="block_geoid")
+        >>> parcel_block = pd.DataFrame(
+        ...     {"block_geoid": ["A"], "parcel_block_share": [1.0]},
+        ...     index=pd.Index([1], name="parcel_id"))
         >>> buildings = pd.DataFrame({"parcel_id": [1], "residential_units": [5],
         ...     "deed_restricted_units": [0], "non_residential_sqft": [0],
         ...     "job_spaces": [0], "source": ["developer_model"]})
@@ -173,35 +182,40 @@ def build_block_supply(parcel_to_block, buildings, zoning, feasibility):
         ...     [("residential", "total_residential_units"), ("residential", "max_profit")])
         >>> feasibility = pd.DataFrame([[8, 1.0]],
         ...     index=pd.Index([1], name="parcel_id"), columns=cols)
-        >>> build_block_supply(parcel_to_block, buildings, zoning, feasibility).loc["A", "built_residential_units"]
-        5
+        >>> build_block_supply(parcel_block, buildings, zoning, feasibility).loc["A", "built_residential_units"]
+        5.0
 
     See Also:
         block_supply_summary: the orca step that feeds this helper live model
             tables and the ``feasibility_after_policy`` injectable.
     """
-    new_buildings = buildings[~buildings.source.isin(["h5_inputs"])].copy()
-    new_buildings["block_geoid"] = new_buildings["parcel_id"].map(parcel_to_block)
-    realized_by_block = new_buildings.groupby("block_geoid")[
-        ["residential_units", "deed_restricted_units",
-         "non_residential_sqft", "job_spaces"]].sum().rename(columns={
-            "residential_units": "built_residential_units",
-            "deed_restricted_units": "built_deed_restricted_units",
-            "non_residential_sqft": "built_non_residential_sqft",
-            "job_spaces": "built_job_spaces"})
+    def _apportion_to_blocks(parcel_values):
+        # parcel_values: DataFrame indexed by parcel_id. Broadcast each parcel's
+        # values across the blocks it overlaps, weight by parcel_block_share, and
+        # sum to block totals.
+        merged = parcel_block.join(parcel_values, how="inner")
+        value_cols = list(parcel_values.columns)
+        weighted = merged[value_cols].multiply(merged["parcel_block_share"], axis=0)
+        weighted["block_geoid"] = merged["block_geoid"]
+        return weighted.groupby("block_geoid")[value_cols].sum()
 
-    zoning = zoning.copy()
-    zoning["block_geoid"] = zoning.index.map(parcel_to_block)
-    zoned_by_block = zoning.groupby("block_geoid")[
-        ["zoned_du", "zoned_du_underbuild"]].sum()
+    new_buildings = buildings[~buildings.source.isin(["h5_inputs"])]
+    parcel_built = new_buildings.groupby("parcel_id")[
+        ["residential_units", "deed_restricted_units",
+         "non_residential_sqft", "job_spaces"]].sum()
+    realized_by_block = _apportion_to_blocks(parcel_built).rename(columns={
+        "residential_units": "built_residential_units",
+        "deed_restricted_units": "built_deed_restricted_units",
+        "non_residential_sqft": "built_non_residential_sqft",
+        "job_spaces": "built_job_spaces"})
+
+    zoned_by_block = _apportion_to_blocks(zoning[["zoned_du", "zoned_du_underbuild"]])
 
     residential_units = feasibility[("residential", "total_residential_units")]
     residential_profit = feasibility[("residential", "max_profit")]
     profitable_units = residential_units.where(residential_profit > 0, 0.0)
     profitable_units = profitable_units.rename("profitable_residential_units").to_frame()
-    profitable_units["block_geoid"] = profitable_units.index.map(parcel_to_block)
-    profitable_by_block = profitable_units.groupby("block_geoid")[
-        "profitable_residential_units"].sum()
+    profitable_by_block = _apportion_to_blocks(profitable_units)
 
     block_supply = (zoned_by_block
                     .join(realized_by_block, how="outer")
@@ -216,9 +230,10 @@ def block_supply_summary(run_name, buildings, parcels_zoning_calculations, parce
     """Writes a census-block roll-up of realized supply, zoned and profitable capacity.
 
     Additive Phase 1 QAQC step: it reads existing model tables and the
-    ``feasibility_after_policy`` injectable, maps parcels to 2020 census blocks via
-    ``parcels_block``, and writes one CSV per summary year. It changes no model
-    behavior. It must run after ``residential_developer`` in the same year so the
+    ``feasibility_after_policy`` injectable, apportions parcel supply and capacity
+    to the 2020 census blocks each parcel overlaps via the areal ``parcels_block``
+    crosswalk, and writes one CSV per summary year. It changes no model behavior.
+    It must run after ``residential_developer`` in the same year so the
     ``feasibility_after_policy`` injectable holds that year's post-policy values.
 
     Args:
@@ -226,7 +241,8 @@ def block_supply_summary(run_name, buildings, parcels_zoning_calculations, parce
         buildings: The orca ``buildings`` table.
         parcels_zoning_calculations: The orca table carrying ``zoned_du`` and
             ``zoned_du_underbuild`` per parcel.
-        parcels_block: The parcel-to-block crosswalk table (``block_geoid`` column).
+        parcels_block: The areal parcel-to-block crosswalk table (``block_geoid``
+            and ``parcel_block_share`` columns; non-unique ``parcel_id`` index).
         year: The current simulation year.
         initial_summary_year: First year at which summaries are written.
         final_year: Final simulation/summary year.
@@ -242,14 +258,14 @@ def block_supply_summary(run_name, buildings, parcels_zoning_calculations, parce
     if year not in [initial_summary_year, final_year] + interim_summary_years:
         return
 
-    parcel_to_block = parcels_block.to_frame(["block_geoid"])["block_geoid"]
+    parcel_block = parcels_block.to_frame(["block_geoid", "parcel_block_share"])
     buildings_df = buildings.to_frame(
         ["parcel_id", "residential_units", "deed_restricted_units",
          "non_residential_sqft", "job_spaces", "source"])
     zoning_df = parcels_zoning_calculations.to_frame(["zoned_du", "zoned_du_underbuild"])
     feasibility = orca.get_injectable("feasibility_after_policy")
 
-    block_supply = build_block_supply(parcel_to_block, buildings_df, zoning_df, feasibility)
+    block_supply = build_block_supply(parcel_block, buildings_df, zoning_df, feasibility)
 
     coresum_output_dir = os.path.join(orca.get_injectable("outputs_dir"), "core_summaries")
     os.makedirs(coresum_output_dir, exist_ok=True)
