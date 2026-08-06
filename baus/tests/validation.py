@@ -102,9 +102,55 @@ def check_unit_ids_match_building_ids(households, residential_units):
     assert_series_equal(building_ids, households.building_id, 25000)
 
 
+def check_parcel_block_coverage(parcels, parcels_block, max_unmatched_share=0.05):
+    """Confirms the areal parcel-to-block crosswalk covers parcels well enough for
+    block roll-ups to treat block capacity/vacancy as reliable.
+
+    Guards the carry-forward limitation flagged after the Phase-1 no-drift run: a
+    parcel absent from ``parcels_block`` produces a NaN block-groupby key, which
+    silently drops that parcel's units from block roll-ups (``build_block_supply``
+    in ``baus/summaries/core_summaries.py``) instead of raising. This check turns
+    that failure mode loud, ahead of Phase 3 where ELCM/HLCM read block
+    capacity/vacancy quantitatively (block-port plan decision 16).
+
+    Args:
+        parcels: Orca ``parcels`` table (or DataFrameWrapper); only its index of
+            parcel ids is used.
+        parcels_block: The areal parcel-to-block crosswalk table (``block_geoid``
+            and ``parcel_block_share`` columns; non-unique ``parcel_id`` index).
+        max_unmatched_share: Maximum tolerated share of parcels with no crosswalk
+            row at all. Defaults to 0.05 (5%), a generous bound pending tighter
+            empirical calibration against a specific run.
+
+    Raises:
+        AssertionError: If more than ``max_unmatched_share`` of parcels have no
+            crosswalk row, or if any matched parcel's ``parcel_block_share``
+            values sum to more than 1% away from 1.0.
+    """
+    print("Check parcel-block crosswalk coverage")
+
+    parcel_ids = parcels.index
+    xwalk = parcels_block.to_frame(["block_geoid", "parcel_block_share"])
+
+    unmatched = (~parcel_ids.isin(xwalk.index)).sum()
+    unmatched_share = unmatched / len(parcel_ids)
+    assert unmatched_share <= max_unmatched_share, (
+        "%d of %d parcels (%.2f%%) have no parcels_block crosswalk row, "
+        "exceeding the %.2f%% tolerance" %
+        (unmatched, len(parcel_ids), unmatched_share * 100,
+         max_unmatched_share * 100))
+
+    share_totals = xwalk.groupby(xwalk.index)["parcel_block_share"].sum()
+    max_deviation = (share_totals - 1.0).abs().max()
+    assert max_deviation <= 0.01, (
+        "parcel_block_share does not sum to ~1 for all matched parcels; "
+        "max deviation %.4f" % max_deviation)
+
+
 @orca.step()
 def simulation_validation(buildings, households, jobs, residential_units, year,
-                          household_controls, employment_controls, mapping):
+                          household_controls, employment_controls, mapping,
+                          parcels, parcels_block):
 
     check_job_controls(jobs, employment_controls, year, mapping)
 
@@ -119,3 +165,5 @@ def simulation_validation(buildings, households, jobs, residential_units, year,
 #    check_no_overfull_buildings(households, buildings)
 
     check_unit_ids_match_building_ids(households, residential_units)
+
+    check_parcel_block_coverage(parcels, parcels_block)
