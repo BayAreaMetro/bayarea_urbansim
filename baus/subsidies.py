@@ -450,7 +450,7 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
         county_lookup = orca.get_table("parcels").to_frame(columns=['county_abbrev'])
         county_lookup = county_lookup.rename(columns={'county_abbrev': 'county3'})
         county_lookup.reset_index(inplace=True)
-        county_lookup = county_lookup.rename(columns={'parcel_id': 'PARCELID', 'PARCEL_ID': 'PARCELID'})
+        county_lookup = county_lookup.rename(columns={'parcel_id': 'PARCELID'})
         df = df.merge(county_lookup, left_on='parcel_id', right_on='PARCELID', how='left')
 
         # assign fee to parcels based on county
@@ -489,7 +489,7 @@ def calculate_jobs_housing_fees(account_strategies, year, coffer, summary, years
         juris_lookup = juris_lookup[['PARCEL_ID', 'juris_name']].rename(columns={'PARCEL_ID': 'PARCELID', 'juris_name': 'jurisname'})
 
         county_lookup = orca.get_table("parcels").to_frame(columns=['county_abbrev']).reset_index()
-        county_lookup = county_lookup.rename(columns={'parcel_id': 'PARCELID', 'PARCEL_ID': 'PARCELID', 'county_abbrev': 'county3'})
+        county_lookup = county_lookup.rename(columns={'parcel_id': 'PARCELID', 'county_abbrev': 'county3'})
         county_lookup = county_lookup[['PARCELID', 'county3']]
 
         df = df.merge(juris_lookup, left_on='parcel_id', right_on='PARCELID', how='left').merge(county_lookup, on='PARCELID', how='left')
