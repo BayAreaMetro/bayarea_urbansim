@@ -118,6 +118,18 @@ county_id_map:
   55: Napa
 
 
+county_id_abbrev_map:
+  85: scl
+  1: ala
+  13: cnc
+  81: smt
+  97: son
+  75: sfr
+  95: sol
+  41: mar
+  55: nap
+
+
 # county ids for the travel model
 county_id_tm_map:
   3: Santa Clara
