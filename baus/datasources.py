@@ -589,7 +589,7 @@ def taz_logsums(year, run_setup):
     elif year in run_setup['logsum_period2']:
         df = pd.read_csv(os.path.join(orca.get_injectable("inputs_dir"), 
                          "accessibility/travel_model/subzone_logsums_for_BAUS_{}_{}.csv").\
-                            format(run_setup["logsum_file"], run_setup['logsum_year1']))
+                            format(run_setup["logsum_file"], run_setup['logsum_year2']))
         
     return df.set_index("taz_subzone")
 
