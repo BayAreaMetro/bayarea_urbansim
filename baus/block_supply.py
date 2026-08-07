@@ -26,9 +26,14 @@ Two roll-ups live here:
   materialized directly onto the block table by area-weighted roll-up rather than
   broadcast at simulate time.
 
-All roll-ups use the areal ``parcels_block`` crosswalk: each parcel quantity is
-apportioned to every block the parcel overlaps by its ``parcel_block_share``, so
-block totals conserve parcel totals across parcels that straddle block boundaries.
+The intensive covariates (rent, accessibility) use the areal ``parcels_block``
+crosswalk: each parcel quantity is apportioned to every block the parcel overlaps by
+its ``parcel_block_share``, so block means blend all overlapping parcels. The block
+ELCM's extensive supply and vacancy (``job_spaces`` / ``vacant_job_spaces``), by
+contrast, are rolled up by **dominant block** (each building assigned wholly to its
+parcel's largest-share block), so a block's vacancy equals exactly the building slots
+the rendering bridge (``baus.block_elcm.render_block_jobs_to_buildings``) can fill --
+no unplaced tail from an areal-vs-dominant seam (option B).
 
 See Also:
     baus.summaries.core_summaries.build_block_supply: the Phase-1 realized-supply /
@@ -37,6 +42,8 @@ See Also:
 
 import orca
 import pandas as pd
+
+from baus.block_developer import _dominant_block_for_parcels
 
 __all__ = [
     # Areal apportionment building block
@@ -47,6 +54,7 @@ __all__ = [
     'build_block_nonres_rent',
     'build_block_accessibility',
     'build_block_placed_jobs',
+    'build_block_job_capacity',
     # ELCM alternatives assembler (composes the helpers above)
     'build_block_elcm_alternatives',
     # Live per-year orca tables (block choice-model inputs)
@@ -362,17 +370,71 @@ def build_block_placed_jobs(parcel_block, buildings, jobs):
     return apportioned["placed_job_spaces"]
 
 
-def build_block_elcm_alternatives(parcel_block, buildings, jobs):
+def build_block_job_capacity(parcel_block, buildings):
+    """Rolls building job-space supply and vacancy up to blocks by dominant block.
+
+    Unlike the areal covariate roll-ups, block job-space supply (``job_spaces``) and
+    vacancy (``vacant_job_spaces``) are summed over the buildings a block *actually
+    holds*: each building is assigned wholly to its parcel's dominant (largest
+    ``parcel_block_share``) block, exactly as ``baus.block_elcm`` renders block-placed
+    jobs back to buildings. Summing the building-level ``vacant_job_spaces`` (already
+    capacity-minus-placed, clipped per building) means the block vacancy the ELCM sees
+    equals the exact pool of building slots the rendering bridge can fill, so every
+    block-placed job is renderable and no unplaced tail arises from an areal-vs-
+    dominant seam (option B). Buildings on parcels absent from the crosswalk have no
+    dominant block and are dropped, mirroring the rendering bridge.
+
+    Pure (no orca, no file I/O) so it can be unit-tested directly.
+
+    Args:
+        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
+            ``block_geoid`` and ``parcel_block_share`` columns.
+        buildings: DataFrame indexed by ``building_id`` with a ``parcel_id`` column
+            and integer ``job_spaces`` (supply) and ``vacant_job_spaces`` (vacancy)
+            columns.
+
+    Returns:
+        A DataFrame indexed by ``block_geoid`` (dtype matching the crosswalk's
+        ``block_geoid``) with ``job_spaces`` and ``vacant_job_spaces`` block totals
+        summed over the buildings assigned to each dominant block.
+
+    Example:
+        >>> import pandas as pd
+        >>> parcel_block = pd.DataFrame(
+        ...     {"block_geoid": ["A", "B"], "parcel_block_share": [0.6, 0.4]},
+        ...     index=pd.Index([1, 1], name="parcel_id"))
+        >>> buildings = pd.DataFrame(
+        ...     {"parcel_id": [1], "job_spaces": [10], "vacant_job_spaces": [8]},
+        ...     index=pd.Index([100], name="building_id"))
+        >>> build_block_job_capacity(parcel_block, buildings).loc["A", "vacant_job_spaces"]
+        8
+
+    See Also:
+        build_block_elcm_alternatives: composes this dominant-block supply/vacancy
+            with the areal rent and accessibility covariates.
+        baus.block_developer._dominant_block_for_parcels: the parcel-to-dominant-block
+            mapping this roll-up and the rendering bridge share.
+    """
+    dominant_block = _dominant_block_for_parcels(parcel_block)
+    building_block = buildings["parcel_id"].map(dominant_block)
+    on_crosswalk = building_block.notna()
+    capacity = buildings.loc[on_crosswalk, ["job_spaces", "vacant_job_spaces"]].copy()
+    capacity["block_geoid"] = building_block[on_crosswalk].astype(dominant_block.dtype)
+    return capacity.groupby("block_geoid")[["job_spaces", "vacant_job_spaces"]].sum()
+
+
+def build_block_elcm_alternatives(parcel_block, buildings):
     """Assembles the block ELCM alternatives table from the supply/rent/access roll-ups.
 
     Composes the block-level covariates the base ELCM spec
     (``configs/location_choice/elcm.yaml``) reads into a single block-indexed table:
-    ``non_residential_rent`` (sqft-weighted mean), the accessibility covariates
-    (area-weighted mean), total-stock ``job_spaces`` (supply), and integer
-    ``vacant_job_spaces``. Vacancy is block ``job_spaces`` minus placed jobs per
-    block, floored at zero and rounded to an integer — mirroring the building-level
-    ``vacant_job_spaces`` definition (capacity minus placed jobs, clipped) so
-    ``utils.lcm_simulate`` can expand one alternative row per vacant slot.
+    ``non_residential_rent`` (sqft-weighted mean) and the accessibility covariates
+    (area-weighted mean) from the **areal** crosswalk, plus ``job_spaces`` (supply)
+    and integer ``vacant_job_spaces`` (vacancy) rolled up by **dominant block**.
+    Rolling supply/vacancy by dominant block ties the per-block vacancy cap to the
+    exact building slots the rendering bridge fills, so every block-placed job is
+    renderable (no unplaced tail). ``job_spaces`` is not in the model_expression, so
+    this changes only the vacancy caps, not block attractiveness.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
@@ -380,9 +442,9 @@ def build_block_elcm_alternatives(parcel_block, buildings, jobs):
         parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
             ``block_geoid`` and ``parcel_block_share`` columns.
         buildings: DataFrame indexed by ``building_id`` with a ``parcel_id`` column,
-            ``job_spaces``, ``non_residential_sqft``, ``non_residential_rent``, and
-            every column named in ``ELCM_ACCESSIBILITY_COVARIATES``.
-        jobs: DataFrame with a ``building_id`` column (one row per job).
+            ``job_spaces``, ``vacant_job_spaces``, ``non_residential_sqft``,
+            ``non_residential_rent``, and every column named in
+            ``ELCM_ACCESSIBILITY_COVARIATES``.
 
     Returns:
         A DataFrame indexed by ``block_geoid`` with exactly the columns in
@@ -393,25 +455,19 @@ def build_block_elcm_alternatives(parcel_block, buildings, jobs):
         block_elcm_alternatives: the orca table that feeds this helper live model
             tables.
         build_block_accessibility: the accessibility-covariate roll-up.
-        build_block_placed_jobs: the placed-jobs roll-up used for vacancy.
+        build_block_job_capacity: the dominant-block supply/vacancy roll-up.
     """
-    commercial = build_block_commercial_stock(parcel_block, buildings)
     nonres_rent = build_block_nonres_rent(parcel_block, buildings)
     accessibility = build_block_accessibility(
         parcel_block, buildings, ELCM_ACCESSIBILITY_COVARIATES)
-    placed_job_spaces = build_block_placed_jobs(parcel_block, buildings, jobs)
+    capacity = build_block_job_capacity(parcel_block, buildings)
 
-    alternatives = commercial[["job_spaces"]].join([nonres_rent, accessibility])
+    alternatives = capacity.join([nonres_rent, accessibility])
     # Blocks with zero non-residential sqft yield NaN rent (0/0 in the sqft-weighted
-    # mean). Fill with 0 so lcm_simulate's check_nas passes; these blocks carry
-    # job_spaces == 0 and are dropped by the spec's `job_spaces > 0` predict filter,
-    # and np.log1p(0) == 0 mirrors the building-level convention (residential
-    # locations carry rent 0, not NaN).
+    # mean). Fill with 0 so lcm_simulate's check_nas passes; np.log1p(0) == 0 mirrors
+    # the building-level convention (residential locations carry rent 0, not NaN).
     alternatives["non_residential_rent"] = alternatives["non_residential_rent"].fillna(0)
-    alternatives["vacant_job_spaces"] = (
-        alternatives["job_spaces"]
-        .sub(placed_job_spaces, fill_value=0)
-        .clip(lower=0).round().astype(int))
+    alternatives["vacant_job_spaces"] = alternatives["vacant_job_spaces"].astype(int)
     return alternatives[ELCM_ALTERNATIVE_COLUMNS]
 
 
@@ -501,16 +557,17 @@ def block_nonres_rent(buildings, parcels_block):
 
 
 @orca.table(cache=False)
-def block_elcm_alternatives(parcels_block, jobs):
+def block_elcm_alternatives(parcels_block):
     """Live per-year block alternatives table for the block ELCM respec.
 
     Additive block-choice input: assembles the covariates the base ELCM spec
     (``configs/location_choice/elcm.yaml``) reads into a block-indexed alternatives
     table — ``non_residential_rent`` (sqft-weighted), the accessibility covariates
-    in ``ELCM_ACCESSIBILITY_COVARIATES`` (area-weighted), total-stock ``job_spaces``
-    (supply), and integer ``vacant_job_spaces`` (vacancy). Recomputed each year
-    (``cache=False``). Nothing consumes it until the block ELCM step is wired
-    (Phase-3 chunk 3.4), so registering it changes no model behavior.
+    in ``ELCM_ACCESSIBILITY_COVARIATES`` (area-weighted), ``job_spaces`` (supply),
+    and integer ``vacant_job_spaces`` (vacancy). Supply and vacancy are summed over
+    each building's dominant block (via the building-level ``vacant_job_spaces``
+    column) so the per-block vacancy cap matches the rendering bridge's building
+    slots exactly. Recomputed each year (``cache=False``).
 
     The accessibility covariates (``office_1500``, ``retail_1500``, …) live on the
     ``nodes`` / ``tmnodes`` accessibility tables and reach buildings only through
@@ -523,8 +580,6 @@ def block_elcm_alternatives(parcels_block, jobs):
 
     Args:
         parcels_block: The areal parcel-to-block crosswalk table.
-        jobs: The orca ``jobs`` table, used to derive placed jobs per block for
-            ``vacant_job_spaces``.
 
     Returns:
         A DataFrame indexed by ``block_geoid`` with exactly the columns in
@@ -535,9 +590,9 @@ def block_elcm_alternatives(parcels_block, jobs):
     """
     parcel_block = parcels_block.to_frame(["block_geoid", "parcel_block_share"])
     building_cols = (
-        ["parcel_id", "job_spaces", "non_residential_sqft", "non_residential_rent"]
+        ["parcel_id", "job_spaces", "vacant_job_spaces",
+         "non_residential_sqft", "non_residential_rent"]
         + ELCM_ACCESSIBILITY_COVARIATES)
     buildings_df = orca.merge_tables(
         "buildings", ["buildings", "nodes", "tmnodes"], columns=building_cols)
-    jobs_df = jobs.to_frame(["building_id"])
-    return build_block_elcm_alternatives(parcel_block, buildings_df, jobs_df)
+    return build_block_elcm_alternatives(parcel_block, buildings_df)
