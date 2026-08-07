@@ -405,6 +405,24 @@ def test_assign_job_block_geoid_uses_dominant_block():
     assert out.dtype == np.int64
 
 
+def test_assign_job_block_geoid_off_crosswalk_placed_job_gets_minus_two():
+    # A placed job whose parcel is absent from the crosswalk has no dominant block;
+    # it must get the distinct -2 (non-mover) sentinel, not -1 (which would make it
+    # a mover), and the int64 cast must still succeed (no NaN survives).
+    parcel_block = pd.DataFrame(
+        {"block_geoid": [60750611012023], "parcel_block_share": [1.0]},
+        index=pd.Index([7], name="parcel_id"))
+    dominant_block = _dominant_block_for_parcels(parcel_block)
+    # building 102 sits on parcel 9, which is NOT in the crosswalk.
+    buildings = pd.DataFrame(
+        {"parcel_id": [7, 9]},
+        index=pd.Index([100, 102], name="building_id"))
+    jobs = pd.DataFrame({"building_id": [100, 102, -1]})
+    out = assign_job_block_geoid(jobs, buildings, dominant_block)
+    assert out.tolist() == [60750611012023, -2, -1]
+    assert out.dtype == np.int64
+
+
 def test_block_geoid_zfill_reconstructs_15_digit_string():
     # block_supply_summary re-pads the int64 GEOID to the canonical 15-char string
     # so its CSV output is byte-identical to the string-keyed baseline.

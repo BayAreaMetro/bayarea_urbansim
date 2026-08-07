@@ -54,8 +54,14 @@ def assign_job_block_geoid(jobs, buildings, dominant_block):
 
     Unplaced jobs (``building_id == -1``) receive the ``-1`` sentinel that
     ``lcm_simulate`` uses to identify movers; placed jobs receive the dominant
-    (largest-area-share) block of their building's parcel. The result is an int64
-    column so it can serve as the numeric alternatives key.
+    (largest-area-share) block of their building's parcel. A small share of parcels
+    are absent from the areal ``parcels_block`` crosswalk (e.g. parcels dropped for
+    void geometry), so a placed job on such a parcel has no dominant block; it
+    receives a distinct ``-2`` sentinel so it stays a non-mover (``lcm_simulate``
+    only moves ``-1``) and is excluded from block rendering, while the block
+    supply/vacancy roll-ups — which inner-join the same crosswalk — already omit it
+    on both the supply and occupancy sides. The result is an int64 column so it can
+    serve as the numeric alternatives key.
 
     Args:
         jobs: DataFrame with a ``building_id`` column (one row per job); an unplaced
@@ -65,8 +71,9 @@ def assign_job_block_geoid(jobs, buildings, dominant_block):
             int64 ``block_geoid`` (see ``_dominant_block_for_parcels``).
 
     Returns:
-        An int64 Series aligned to ``jobs`` with ``-1`` for unplaced jobs and the
-        placed job's parcel's dominant block otherwise.
+        An int64 Series aligned to ``jobs`` with ``-1`` for unplaced jobs, ``-2`` for
+        placed jobs whose parcel is absent from the crosswalk, and the placed job's
+        parcel's dominant block otherwise.
 
     Example:
         >>> import pandas as pd
@@ -85,7 +92,9 @@ def assign_job_block_geoid(jobs, buildings, dominant_block):
     job_parcel = jobs["building_id"].map(buildings["parcel_id"])
     job_block = job_parcel.map(dominant_block)
     is_placed = jobs["building_id"] != -1
-    return job_block.where(is_placed, other=-1).astype("int64")
+    job_block = job_block.where(is_placed, other=-1)
+    job_block = job_block.where(job_block.notna(), other=-2)
+    return job_block.astype("int64")
 
 
 def render_block_jobs_to_buildings(jobs, buildings, dominant_block):
