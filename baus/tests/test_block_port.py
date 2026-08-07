@@ -22,6 +22,8 @@ from baus.block_supply import (
     ELCM_ACCESSIBILITY_COVARIATES,
     ELCM_ALTERNATIVE_COLUMNS,
 )
+from baus.block_elcm import assign_job_block_geoid
+from baus.block_developer import _dominant_block_for_parcels
 
 
 # --- Shared fixtures ---------------------------------------------------------
@@ -367,6 +369,48 @@ def test_block_elcm_alternatives_apportions_split_parcel():
     # placed jobs (2) split 0.6/0.4 -> A=1.2, B=0.8; vacant = (js - placed).clip.round
     assert alt.loc["A", "vacant_job_spaces"] == 5   # round(6 - 1.2)
     assert alt.loc["B", "vacant_job_spaces"] == 3   # round(4 - 0.8)
+
+
+# --- Job -> block key assignment (chunk 3.4) ---------------------------------
+
+def test_assign_job_block_geoid_movers_and_placed():
+    # block_geoid is int64 (parcels_block now loads it numeric); placed jobs take
+    # their building's parcel's dominant block, unplaced jobs take the -1 sentinel.
+    parcel_block = pd.DataFrame(
+        {"block_geoid": [60750611012023, 60014001001000],
+         "parcel_block_share": [1.0, 1.0]},
+        index=pd.Index([7, 9], name="parcel_id"))
+    dominant_block = _dominant_block_for_parcels(parcel_block)
+    buildings = pd.DataFrame(
+        {"parcel_id": [7, 9]},
+        index=pd.Index([100, 102], name="building_id"))
+    jobs = pd.DataFrame({"building_id": [100, 102, -1]})
+    out = assign_job_block_geoid(jobs, buildings, dominant_block)
+    assert out.tolist() == [60750611012023, 60014001001000, -1]
+    assert out.dtype == np.int64
+
+
+def test_assign_job_block_geoid_uses_dominant_block():
+    # parcel 7 straddles two blocks; the larger-share (0.7) block is chosen.
+    parcel_block = pd.DataFrame(
+        {"block_geoid": [60750611012023, 60750611012099],
+         "parcel_block_share": [0.7, 0.3]},
+        index=pd.Index([7, 7], name="parcel_id"))
+    dominant_block = _dominant_block_for_parcels(parcel_block)
+    buildings = pd.DataFrame(
+        {"parcel_id": [7]}, index=pd.Index([100], name="building_id"))
+    jobs = pd.DataFrame({"building_id": [100, -1]})
+    out = assign_job_block_geoid(jobs, buildings, dominant_block)
+    assert out.tolist() == [60750611012023, -1]
+    assert out.dtype == np.int64
+
+
+def test_block_geoid_zfill_reconstructs_15_digit_string():
+    # block_supply_summary re-pads the int64 GEOID to the canonical 15-char string
+    # so its CSV output is byte-identical to the string-keyed baseline.
+    idx = pd.Index([60750611012023], name="block_geoid")
+    padded = idx.map(lambda geoid: str(geoid).zfill(15))
+    assert list(padded) == ["060750611012023"]
 
 
 # --- Direct-run harness ------------------------------------------------------

@@ -269,6 +269,11 @@ def block_supply_summary(run_name, buildings, parcels_zoning_calculations, parce
 
     coresum_output_dir = os.path.join(orca.get_injectable("outputs_dir"), "core_summaries")
     os.makedirs(coresum_output_dir, exist_ok=True)
+    # ``parcels_block`` now loads ``block_geoid`` as int64 (numeric alternatives key
+    # for the block-choice models). Re-pad it to the 15-digit zero-filled GEOID
+    # string on write so this CSV artifact is byte-identical to the string-keyed
+    # baseline (California GEOIDs start "06...").
+    block_supply.index = block_supply.index.map(lambda geoid: str(geoid).zfill(15))
     block_supply.to_csv(os.path.join(
         coresum_output_dir, "{}_block_supply_summary_{}.csv".format(run_name, year)))
 

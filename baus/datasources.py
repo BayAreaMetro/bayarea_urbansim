@@ -1425,13 +1425,17 @@ def parcels_block():
 
     Returns:
         A DataFrame indexed by ``parcel_id`` (non-unique) with a ``block_geoid``
-        column holding the 15-digit 2020 census-block GEOID as a string and a
+        column holding the 15-digit 2020 census-block GEOID as an int64 and a
         ``parcel_block_share`` column giving the parcel's area share in that block.
+        The GEOID is loaded as int64 (not string) so the block-choice models can
+        use it as a numeric alternatives key with a ``-1`` unplaced sentinel; the
+        ``block_supply_summary`` reporting step re-pads it to a 15-digit string on
+        write so its CSV output is unchanged (see ``core_summaries``).
     """
     parcels_block_xwalk = pd.read_csv(
         r"M:\urban_modeling\urbansim_cloud\projects\combo\parcel_block20_xwalk.csv",
         usecols=["parcel_id", "block_id", "parcel_block_share"],
-        dtype={"parcel_id": np.int64, "block_id": str},
+        dtype={"parcel_id": np.int64, "block_id": np.int64},
     )
     parcels_block_xwalk = parcels_block_xwalk.rename(columns={"block_id": "block_geoid"})
     return parcels_block_xwalk.set_index("parcel_id")
