@@ -405,6 +405,17 @@ def run_models(mode, run_setup, years_to_run):
                 logger.info(
                     "Using `block_residential_developer` instead of `residential_developer`")
 
+            elcm_geography = run_setup.get("elcm_geography", "parcel")
+            if elcm_geography not in ("parcel", "block"):
+                raise ValueError(
+                    "run_setup['elcm_geography'] must be 'parcel' or 'block', "
+                    f"got {elcm_geography!r}")
+            if elcm_geography == "block":
+                block_elcm_index = simulation_models.index("elcm_simulate")
+                simulation_models[block_elcm_index] = "block_elcm_simulate"
+                logger.info(
+                    "Using `block_elcm_simulate` instead of `elcm_simulate`")
+
             return simulation_models
         
 
