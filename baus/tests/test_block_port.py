@@ -20,8 +20,15 @@ from baus.block_supply import (
     build_block_placed_jobs,
     build_block_job_capacity,
     build_block_elcm_alternatives,
+    build_block_unit_capacity,
+    build_block_residential_price_by_tenure,
+    build_block_submarket,
+    build_block_hlcm_alternatives,
     ELCM_ACCESSIBILITY_COVARIATES,
     ELCM_ALTERNATIVE_COLUMNS,
+    HLCM_ACCESSIBILITY_COVARIATES,
+    HLCM_OWN_ALTERNATIVE_COLUMNS,
+    HLCM_RENT_ALTERNATIVE_COLUMNS,
 )
 from baus.block_elcm import assign_job_block_geoid, render_block_jobs_to_buildings
 from baus.block_developer import _dominant_block_for_parcels
@@ -404,6 +411,193 @@ def test_block_elcm_alternatives_assigns_split_parcel_to_dominant_block():
     # intensive covariates for A come from the (areal) roll-up of the parcel value
     assert np.isclose(alt.loc["A", "office_1500"], 7.0)
     assert np.isclose(alt.loc["A", "non_residential_rent"], 25.0)
+
+
+# --- Block residential HLCM alternatives table (chunk 3.7) -------------------
+
+def _hlcm_residential_units():
+    # one row per unit, carrying tenure, deed-restricted flag, supply/vacancy, TAZ,
+    # and the per-unit hedonic price/rent. parcels 1,2 -> block A; parcel 3 -> block
+    # B (see _parcel_block()). Owner units sit on parcels 1,2 (block A); renter units
+    # span block A (parcel 1) and block B (parcel 3). Parcel 1 also carries one
+    # deed-restricted owner unit so the (block x deed_restricted) grain is exercised.
+    return pd.DataFrame({
+        "parcel_id":              [1,     1,     1,     2,     3,     3],
+        "tenure":                 ["own", "own", "rent", "own", "rent", "rent"],
+        "deed_restricted":        [0.0,   1.0,   0.0,   0.0,   0.0,   0.0],
+        "num_units":              [1,     1,     1,     1,     1,     1],
+        "vacant_units":           [1,     0,     1,     1,     1,     0],
+        "zone_id":                [7,     7,     7,     7,     9,     9],
+        "unit_residential_price": [100.0, 300.0, 0.0,   200.0, 0.0,   0.0],
+        "unit_residential_rent":  [0.0,   0.0,   2.0,   0.0,   5.0,   3.0],
+    })
+
+
+def _hlcm_buildings():
+    # accessibility covariates the HLCM specs read, one row per building, with a
+    # parcel_id column. parcels 1,2 -> block A; parcel 3 -> block B. Each covariate
+    # gets distinct finite per-parcel values so the model_expression evaluates.
+    buildings = pd.DataFrame({"parcel_id": [1, 2, 3]},
+                             index=pd.Index([100, 102, 103], name="building_id"))
+    for offset, col in enumerate(HLCM_ACCESSIBILITY_COVARIATES):
+        buildings[col] = [1.0 + offset, 3.0 + offset, 5.0 + offset]
+    return buildings
+
+
+def test_block_unit_capacity_sums_by_dominant_block_and_dr():
+    cap = build_block_unit_capacity(_parcel_block(), _hlcm_residential_units(), "own")
+    # owner units on parcels 1,2 -> block A. DR=0.0 group: units on p1 (vac 1) + p2
+    # (vac 1) = 2 units, 2 vacant; DR=1.0 group: the one restricted p1 unit.
+    assert cap.loc[("A", 0.0), "num_units"] == 2
+    assert cap.loc[("A", 0.0), "vacant_units"] == 2
+    assert cap.loc[("A", 1.0), "num_units"] == 1
+    assert cap.loc[("A", 1.0), "vacant_units"] == 0
+    assert cap["num_units"].dtype.kind == "i"
+    # owner supply conserved: 3 owner units all on-crosswalk
+    assert cap["num_units"].sum() == 3
+
+
+def test_block_unit_capacity_renter_spans_two_blocks():
+    cap = build_block_unit_capacity(_parcel_block(), _hlcm_residential_units(), "rent")
+    # renter units: parcel 1 (block A, 1 unit) + parcel 3 (block B, 2 units)
+    assert cap.loc[("A", 0.0), "num_units"] == 1
+    assert cap.loc[("B", 0.0), "num_units"] == 2
+    assert cap.loc[("B", 0.0), "vacant_units"] == 1   # one of the two p3 units vacant
+
+
+def test_block_residential_price_by_tenure_is_unit_weighted():
+    price = build_block_residential_price_by_tenure(
+        _parcel_block(), _hlcm_residential_units(), "own", "unit_residential_price")
+    # block A DR=0: owner prices 100 (p1) and 200 (p2) -> mean 150; DR=1: 300
+    assert price.loc[("A", 0.0), "unit_residential_price"] == 150.0
+    assert price.loc[("A", 1.0), "unit_residential_price"] == 300.0
+    rent = build_block_residential_price_by_tenure(
+        _parcel_block(), _hlcm_residential_units(), "rent", "unit_residential_rent")
+    # block B DR=0: renter rents 5 and 3 -> mean 4
+    assert rent.loc[("B", 0.0), "unit_residential_rent"] == 4.0
+
+
+def test_block_submarket_is_majority_taz():
+    submarket = build_block_submarket(_parcel_block(), _hlcm_residential_units())
+    # all block A units sit in TAZ 7; both block B units in TAZ 9
+    assert submarket.loc["A"] == 7
+    assert submarket.loc["B"] == 9
+
+
+def test_block_submarket_breaks_ties_by_smallest_zone():
+    # a block split evenly between two TAZs picks the smaller zone id deterministically
+    parcel_block = pd.DataFrame(
+        {"block_geoid": ["A"], "parcel_block_share": [1.0]},
+        index=pd.Index([1], name="parcel_id"))
+    units = pd.DataFrame({"parcel_id": [1, 1], "zone_id": [9, 5]})
+    submarket = build_block_submarket(parcel_block, units)
+    assert submarket.loc["A"] == 5
+
+
+def test_block_hlcm_own_alternatives_columns_and_values():
+    alt = build_block_hlcm_alternatives(
+        _parcel_block(), _hlcm_residential_units(), _hlcm_buildings(), "own")
+    assert list(alt.columns) == HLCM_OWN_ALTERNATIVE_COLUMNS
+    keyed = alt.set_index(["block_geoid", "deed_restricted"])
+    # block A, non-deed-restricted owner alternative
+    row = keyed.loc[("A", False)]
+    assert row["num_units"] == 2
+    assert row["vacant_units"] == 2
+    assert row["unit_residential_price"] == 150.0
+    assert row["submarket_id"] == 7
+    assert row["tenure"] == "own"
+    # accessibility is the area-weighted mean of parcels 1,2: jobs_45 = mean(1,3) = 2
+    assert np.isclose(row["jobs_45"], 2.0)
+    # a distinct deed-restricted owner alternative exists for the same block
+    assert ("A", True) in keyed.index
+    assert keyed.loc[("A", True), "unit_residential_price"] == 300.0
+
+
+def test_block_hlcm_rent_alternatives_columns_and_values():
+    alt = build_block_hlcm_alternatives(
+        _parcel_block(), _hlcm_residential_units(), _hlcm_buildings(), "rent")
+    assert list(alt.columns) == HLCM_RENT_ALTERNATIVE_COLUMNS
+    keyed = alt.set_index(["block_geoid", "deed_restricted"])
+    row = keyed.loc[("B", False)]
+    assert row["num_units"] == 2
+    assert row["unit_residential_rent"] == 4.0
+    assert row["submarket_id"] == 9
+    assert row["tenure"] == "rent"
+    # block B accessibility comes from parcel 3 only: jobs_45 = 5
+    assert np.isclose(row["jobs_45"], 5.0)
+
+
+def test_block_hlcm_alternatives_deed_restricted_is_bool():
+    alt = build_block_hlcm_alternatives(
+        _parcel_block(), _hlcm_residential_units(), _hlcm_buildings(), "own")
+    assert alt["deed_restricted"].dtype == bool
+    # owner block A appears once per deed_restricted value (True and False)
+    block_a = alt[alt["block_geoid"] == "A"]
+    assert set(block_a["deed_restricted"]) == {True, False}
+
+
+def test_block_hlcm_alternatives_no_nans_and_int_counts():
+    alt = build_block_hlcm_alternatives(
+        _parcel_block(), _hlcm_residential_units(), _hlcm_buildings(), "own")
+    assert not alt[HLCM_ACCESSIBILITY_COVARIATES].isna().any().any()
+    assert alt["num_units"].dtype.kind == "i"
+    assert alt["vacant_units"].dtype.kind == "i"
+    assert alt["submarket_id"].notna().all()
+
+
+def test_block_hlcm_owner_alternatives_round_trips_model_expression():
+    import patsy
+    alt = build_block_hlcm_alternatives(
+        _parcel_block(), _hlcm_residential_units(), _hlcm_buildings(), "own")
+    # the unchanged hlcm_owner.yaml model_expression must evaluate on the block table
+    model_expression = (
+        "jobs_45 + ave_income_1500 + np.log1p(unit_residential_price) + "
+        "embarcadero + pacheights + stanford")
+    design = patsy.dmatrix(model_expression, alt, return_type="dataframe")
+    assert np.isfinite(design.values).all()
+    assert len(design) == len(alt)
+
+
+def test_block_hlcm_renter_alternatives_round_trips_model_expression():
+    import patsy
+    alt = build_block_hlcm_alternatives(
+        _parcel_block(), _hlcm_residential_units(), _hlcm_buildings(), "rent")
+    model_expression = (
+        "jobs_45 + ave_income_1500 + np.log1p(unit_residential_rent) + "
+        "embarcadero + pacheights + stanford")
+    design = patsy.dmatrix(model_expression, alt, return_type="dataframe")
+    assert np.isfinite(design.values).all()
+    assert len(design) == len(alt)
+
+
+def test_block_hlcm_alternatives_assigns_split_parcel_to_dominant_block():
+    # option B: a parcel straddling blocks A (0.6) and B (0.4) contributes its whole
+    # unit supply to its dominant block A; block B has no dominant-assigned owner unit
+    # and is absent -- so every block-placed household is renderable to a real unit.
+    parcel_block = pd.DataFrame(
+        {"block_geoid": ["A", "B"], "parcel_block_share": [0.6, 0.4]},
+        index=pd.Index([1, 1], name="parcel_id"))
+    units = pd.DataFrame({
+        "parcel_id":              [1,     1],
+        "tenure":                 ["own", "own"],
+        "deed_restricted":        [0.0,   0.0],
+        "num_units":              [1,     1],
+        "vacant_units":           [1,     1],
+        "zone_id":                [7,     7],
+        "unit_residential_price": [100.0, 200.0],
+        "unit_residential_rent":  [0.0,   0.0],
+    })
+    buildings = pd.DataFrame({"parcel_id": [1]},
+                             index=pd.Index([100], name="building_id"))
+    for col in HLCM_ACCESSIBILITY_COVARIATES:
+        buildings[col] = [4.0]
+
+    alt = build_block_hlcm_alternatives(parcel_block, units, buildings, "own")
+    keyed = alt.set_index(["block_geoid", "deed_restricted"])
+    # whole parcel -> dominant block A; block B absent
+    assert keyed.loc[("A", False), "num_units"] == 2
+    assert "B" not in alt["block_geoid"].values
+    assert np.isclose(keyed.loc[("A", False), "jobs_45"], 4.0)
 
 
 # --- Job -> block key assignment (chunk 3.4) ---------------------------------
