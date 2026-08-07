@@ -16,6 +16,11 @@ from baus.block_supply import (
     build_block_commercial_stock,
     build_block_residential_price,
     build_block_nonres_rent,
+    build_block_accessibility,
+    build_block_placed_jobs,
+    build_block_elcm_alternatives,
+    ELCM_ACCESSIBILITY_COVARIATES,
+    ELCM_ALTERNATIVE_COLUMNS,
 )
 
 
@@ -271,6 +276,97 @@ def test_nonres_rent_apportions_split_parcel():
     out = build_block_nonres_rent(parcel_block, buildings)
     assert out.loc["A", "non_residential_rent"] == 25.0
     assert out.loc["B", "non_residential_rent"] == 25.0
+
+
+# --- Block ELCM alternatives table (chunk 3.3) -------------------------------
+
+def _elcm_buildings():
+    # indexed by building_id (so placed jobs can map building_id -> parcel_id),
+    # carrying supply, rent, and every accessibility covariate the ELCM spec
+    # reads. parcels 1,2 -> block A; parcel 3 -> block B (see _parcel_block()).
+    buildings = pd.DataFrame({
+        "parcel_id":            [1,    1,    2,    3],
+        "job_spaces":           [5,    3,    2,    4],
+        "non_residential_sqft": [2000, 1000, 500,  400],
+        "non_residential_rent": [10.0, 20.0, 40.0, 8.0],
+    }, index=pd.Index([100, 101, 102, 103], name="building_id"))
+    # give each accessibility covariate a distinct finite per-building value so
+    # the spec model_expression evaluates without NaN/Inf.
+    for offset, col in enumerate(ELCM_ACCESSIBILITY_COVARIATES):
+        buildings[col] = [1.0 + offset, 2.0 + offset, 3.0 + offset, 4.0 + offset]
+    return buildings
+
+
+def _elcm_jobs():
+    # placed jobs occupy buildings; -1 marks unplaced. building 100 holds 2 jobs,
+    # 102 holds 1, 103 holds 1; one job is unplaced.
+    return pd.DataFrame({"building_id": [100, 100, 102, 103, -1]})
+
+
+def test_block_accessibility_is_area_weighted_mean():
+    out = build_block_accessibility(_parcel_block(), _elcm_buildings(), ["office_1500"])
+    # block A: parcel 1 mean(1,2)=1.5, parcel 2 =3 -> area mean (1.5+3)/2 = 2.25
+    assert out.loc["A", "office_1500"] == 2.25
+    assert out.loc["B", "office_1500"] == 4.0
+
+
+def test_placed_jobs_rollup_excludes_unplaced():
+    placed = build_block_placed_jobs(_parcel_block(), _elcm_buildings(), _elcm_jobs())
+    assert placed.loc["A"] == 3   # parcel 1 (2 jobs) + parcel 2 (1 job)
+    assert placed.loc["B"] == 1   # parcel 3
+
+
+def test_block_elcm_vacant_job_spaces():
+    alt = build_block_elcm_alternatives(_parcel_block(), _elcm_buildings(), _elcm_jobs())
+    # supply = total-stock job_spaces per block
+    assert alt.loc["A", "job_spaces"] == 10   # 5 + 3 + 2
+    assert alt.loc["B", "job_spaces"] == 4
+    # vacancy = job_spaces - placed jobs, floored at zero, integer
+    assert alt.loc["A", "vacant_job_spaces"] == 7   # 10 - 3
+    assert alt.loc["B", "vacant_job_spaces"] == 3   # 4 - 1
+    assert alt["vacant_job_spaces"].dtype.kind == "i"
+
+
+def test_block_elcm_alternatives_round_trips_model_expression():
+    import patsy
+    alt = build_block_elcm_alternatives(_parcel_block(), _elcm_buildings(), _elcm_jobs())
+    # exposes exactly the spec covariates plus supply/vacancy, in order
+    assert list(alt.columns) == ELCM_ALTERNATIVE_COLUMNS
+    # the unchanged elcm.yaml model_expression must evaluate against the block table
+    model_expression = (
+        "np.log1p(non_residential_rent) + office_1500 + industrial_1500 + "
+        "retail_1500 + jobs_45 + residential_units_1500 + residential_units_45 + "
+        "ave_income_1500 + juris_ave_income + embarcadero + stanford")
+    design = patsy.dmatrix(model_expression, alt, return_type="dataframe")
+    assert np.isfinite(design.values).all()
+    assert len(design) == len(alt)
+
+
+def test_block_elcm_alternatives_apportions_split_parcel():
+    parcel_block = pd.DataFrame(
+        {"block_geoid": ["A", "B"], "parcel_block_share": [0.6, 0.4]},
+        index=pd.Index([1, 1], name="parcel_id"))
+    buildings = pd.DataFrame({
+        "parcel_id":            [1],
+        "job_spaces":           [10],
+        "non_residential_sqft": [1000],
+        "non_residential_rent": [25.0],
+    }, index=pd.Index([100], name="building_id"))
+    for col in ELCM_ACCESSIBILITY_COVARIATES:
+        buildings[col] = [7.0]
+    jobs = pd.DataFrame({"building_id": [100, 100, -1]})  # 2 placed jobs
+
+    alt = build_block_elcm_alternatives(parcel_block, buildings, jobs)
+    # extensive supply splits by area share
+    assert alt.loc["A", "job_spaces"] == 6.0   # 10 * 0.6
+    assert alt.loc["B", "job_spaces"] == 4.0   # 10 * 0.4
+    # intensive covariates: a single-value parcel yields that value in both blocks
+    assert np.isclose(alt.loc["A", "office_1500"], 7.0)
+    assert np.isclose(alt.loc["B", "office_1500"], 7.0)
+    assert np.isclose(alt.loc["A", "non_residential_rent"], 25.0)
+    # placed jobs (2) split 0.6/0.4 -> A=1.2, B=0.8; vacant = (js - placed).clip.round
+    assert alt.loc["A", "vacant_job_spaces"] == 5   # round(6 - 1.2)
+    assert alt.loc["B", "vacant_job_spaces"] == 3   # round(4 - 0.8)
 
 
 # --- Direct-run harness ------------------------------------------------------
