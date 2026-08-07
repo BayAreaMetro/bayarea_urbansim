@@ -22,7 +22,7 @@ from baus.block_supply import (
     ELCM_ACCESSIBILITY_COVARIATES,
     ELCM_ALTERNATIVE_COLUMNS,
 )
-from baus.block_elcm import assign_job_block_geoid
+from baus.block_elcm import assign_job_block_geoid, render_block_jobs_to_buildings
 from baus.block_developer import _dominant_block_for_parcels
 
 
@@ -411,6 +411,72 @@ def test_block_geoid_zfill_reconstructs_15_digit_string():
     idx = pd.Index([60750611012023], name="block_geoid")
     padded = idx.map(lambda geoid: str(geoid).zfill(15))
     assert list(padded) == ["060750611012023"]
+
+
+# --- Block choice -> building rendering bridge (chunk 3.5) --------------------
+
+def test_render_block_jobs_happy_path_fills_within_capacity():
+    # One block (55) with two buildings: 3 + 2 = 5 vacant slots, 4 rendering jobs.
+    # All 4 jobs land in that block, no building exceeds its vacant job spaces.
+    dominant_block = pd.Series(
+        [55, 55], index=pd.Index([7, 8], name="parcel_id"))
+    buildings = pd.DataFrame(
+        {"parcel_id": [7, 8], "vacant_job_spaces": [3, 2]},
+        index=pd.Index([100, 101], name="building_id"))
+    jobs = pd.DataFrame({"building_id": [-1, -1, -1, -1],
+                         "block_geoid": [55, 55, 55, 55]})
+    out = render_block_jobs_to_buildings(jobs, buildings, dominant_block)
+    assert len(out) == 4
+    assert out.dtype == np.int64
+    counts = out.value_counts()
+    assert counts.get(100, 0) <= 3
+    assert counts.get(101, 0) <= 2
+    assert set(out.unique()) <= {100, 101}
+
+
+def test_render_block_jobs_over_capacity_leaves_tail_unplaced():
+    # Block 55 has only 2 vacant slots but 3 rendering jobs; 2 render, 1 stays -1
+    # (omitted from the update Series).
+    dominant_block = pd.Series([55], index=pd.Index([7], name="parcel_id"))
+    buildings = pd.DataFrame(
+        {"parcel_id": [7], "vacant_job_spaces": [2]},
+        index=pd.Index([100], name="building_id"))
+    jobs = pd.DataFrame({"building_id": [-1, -1, -1],
+                         "block_geoid": [55, 55, 55]})
+    out = render_block_jobs_to_buildings(jobs, buildings, dominant_block)
+    assert len(out) == 2
+    assert (out == 100).all()
+
+
+def test_render_block_jobs_ignores_placed_and_blockless_jobs():
+    # Placed jobs (building_id != -1) and block-less unplaced jobs (block_geoid ==
+    # -1) never appear in the update Series.
+    dominant_block = pd.Series([55], index=pd.Index([7], name="parcel_id"))
+    buildings = pd.DataFrame(
+        {"parcel_id": [7], "vacant_job_spaces": [5]},
+        index=pd.Index([100], name="building_id"))
+    jobs = pd.DataFrame(
+        {"building_id": [999, -1, -1], "block_geoid": [55, -1, 55]},
+        index=pd.Index([0, 1, 2], name="job_id"))
+    out = render_block_jobs_to_buildings(jobs, buildings, dominant_block)
+    assert out.index.tolist() == [2]
+    assert out.tolist() == [100]
+
+
+def test_render_block_jobs_is_deterministic():
+    # Identical inputs yield identical assignments (stable order, no RNG).
+    dominant_block = pd.Series(
+        [55, 55], index=pd.Index([7, 8], name="parcel_id"))
+    buildings = pd.DataFrame(
+        {"parcel_id": [7, 8], "vacant_job_spaces": [2, 2]},
+        index=pd.Index([100, 101], name="building_id"))
+    jobs = pd.DataFrame({"building_id": [-1, -1, -1, -1],
+                         "block_geoid": [55, 55, 55, 55]})
+    first = render_block_jobs_to_buildings(jobs, buildings, dominant_block)
+    second = render_block_jobs_to_buildings(jobs, buildings, dominant_block)
+    pd.testing.assert_series_equal(first, second)
+    # buildings fill in ascending building_id order: 100, 100, 101, 101.
+    assert first.tolist() == [100, 100, 101, 101]
 
 
 # --- Direct-run harness ------------------------------------------------------
