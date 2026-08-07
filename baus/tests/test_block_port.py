@@ -344,6 +344,29 @@ def test_block_elcm_alternatives_round_trips_model_expression():
     assert len(design) == len(alt)
 
 
+def test_block_elcm_alternatives_fills_zero_commercial_rent():
+    # A residential-only block (zero non-residential sqft) yields 0/0 = NaN rent,
+    # which would trip lcm_simulate's check_nas. The alternatives builder must fill
+    # it with 0 so the frame is NaN-free (the block is dropped by job_spaces > 0 at
+    # predict time anyway, and np.log1p(0) == 0).
+    parcel_block = pd.DataFrame(
+        {"block_geoid": ["A", "B"], "parcel_block_share": [1.0, 1.0]},
+        index=pd.Index([1, 2], name="parcel_id"))
+    buildings = pd.DataFrame({
+        "parcel_id":            [1, 2],
+        "job_spaces":           [10, 0],
+        "non_residential_sqft": [1000, 0],   # block B has no commercial stock
+        "non_residential_rent": [25.0, 0.0],
+    }, index=pd.Index([100, 101], name="building_id"))
+    for col in ELCM_ACCESSIBILITY_COVARIATES:
+        buildings[col] = [7.0, 3.0]
+    jobs = pd.DataFrame({"building_id": [100, -1]})
+
+    alt = build_block_elcm_alternatives(parcel_block, buildings, jobs)
+    assert alt.loc["B", "non_residential_rent"] == 0.0
+    assert not alt["non_residential_rent"].isna().any()
+
+
 def test_block_elcm_alternatives_apportions_split_parcel():
     parcel_block = pd.DataFrame(
         {"block_geoid": ["A", "B"], "parcel_block_share": [0.6, 0.4]},

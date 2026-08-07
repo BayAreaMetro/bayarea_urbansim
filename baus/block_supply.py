@@ -402,6 +402,12 @@ def build_block_elcm_alternatives(parcel_block, buildings, jobs):
     placed_job_spaces = build_block_placed_jobs(parcel_block, buildings, jobs)
 
     alternatives = commercial[["job_spaces"]].join([nonres_rent, accessibility])
+    # Blocks with zero non-residential sqft yield NaN rent (0/0 in the sqft-weighted
+    # mean). Fill with 0 so lcm_simulate's check_nas passes; these blocks carry
+    # job_spaces == 0 and are dropped by the spec's `job_spaces > 0` predict filter,
+    # and np.log1p(0) == 0 mirrors the building-level convention (residential
+    # locations carry rent 0, not NaN).
+    alternatives["non_residential_rent"] = alternatives["non_residential_rent"].fillna(0)
     alternatives["vacant_job_spaces"] = (
         alternatives["job_spaces"]
         .sub(placed_job_spaces, fill_value=0)
