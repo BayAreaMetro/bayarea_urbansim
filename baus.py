@@ -6,7 +6,7 @@ import time
 import traceback
 from baus import (
     datasources, variables, models, subsidies, ual, slr, earthquake, 
-    utils, preprocessing, block_developer)
+    utils, preprocessing, block_developer, block_supply)
 from baus.tests import validation
 
 from baus.summaries import (
