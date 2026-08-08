@@ -446,6 +446,7 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
     if run_setup["run_vmt_fee_com_for_com_strategy"]:
 
         # assign fees by county
+        df = df.copy()
         county_lookup = orca.get_table("parcels").to_frame(columns=['county_abbrev'])["county_abbrev"]
         df["county3"] = df.parcel_id.map(county_lookup)
 
@@ -479,7 +480,8 @@ def calculate_jobs_housing_fees(account_strategies, year, coffer, summary, years
     print("%d projects pass the jobs_housing filter" % len(df))
 
     # assign jurisdiction and county to parcels
-    juris_lookup = orca.get_table("parcels_geography").to_frame(columns=["PARCEL_ID", "juris_name"]).set_index("PARCEL_ID")["juris_name"]
+    df = df.copy()
+    juris_lookup = orca.get_table("parcels_geography").to_frame(columns=["juris_name"])["juris_name"]
     county_lookup = orca.get_table("parcels").to_frame(columns=["county_abbrev"])["county_abbrev"]
     df["jurisname"] = df.parcel_id.map(juris_lookup)
     df["county3"] = df.parcel_id.map(county_lookup)
