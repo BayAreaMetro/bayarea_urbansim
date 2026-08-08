@@ -31,7 +31,8 @@ from baus.block_supply import (
     HLCM_RENT_ALTERNATIVE_COLUMNS,
 )
 from baus.block_elcm import assign_job_block_geoid, render_block_jobs_to_buildings
-from baus.block_hlcm import assign_household_block_geoid
+from baus.block_hlcm import (
+    assign_household_block_geoid, render_block_households_to_units)
 from baus.block_developer import _dominant_block_for_parcels
 
 
@@ -700,6 +701,94 @@ def test_assign_household_block_geoid_off_crosswalk_placed_gets_minus_two():
     households = pd.DataFrame({"building_id": [100, 102, -1]})
     out = assign_household_block_geoid(households, buildings, dominant_block)
     assert out.tolist() == [60750611012023, -2, -1]
+    assert out.dtype == np.int64
+
+
+def test_render_block_households_happy_path_fills_within_capacity():
+    # Two owner movers chose block 55, which has two vacant owner units; both render
+    # to distinct units, keyed by household id.
+    unit_alternatives = pd.DataFrame(
+        {"block_geoid": [55, 55], "deed_restricted": [0.0, 0.0],
+         "vacant_units": [1, 1]},
+        index=pd.Index([900, 901], name="unit_id"))
+    choosers = pd.DataFrame(
+        {"unit_id": [-1, -1], "block_geoid": [55, 55]},
+        index=pd.Index([10, 11], name="household_id"))
+    out = render_block_households_to_units(choosers, unit_alternatives, False)
+    assert sorted(out.tolist()) == [900, 901]
+    assert set(out.index) == {10, 11}
+    assert out.dtype == np.int64
+
+
+def test_render_block_households_over_capacity_leaves_tail_unplaced():
+    # Three movers chose block 55 but only one owner unit is vacant; exactly one
+    # renders and the tail stays unplaced (omitted from the returned Series).
+    unit_alternatives = pd.DataFrame(
+        {"block_geoid": [55], "deed_restricted": [0.0], "vacant_units": [1]},
+        index=pd.Index([900], name="unit_id"))
+    choosers = pd.DataFrame(
+        {"unit_id": [-1, -1, -1], "block_geoid": [55, 55, 55]},
+        index=pd.Index([10, 11, 12], name="household_id"))
+    out = render_block_households_to_units(choosers, unit_alternatives, False)
+    assert out.tolist() == [900]
+    assert len(out) == 1
+
+
+def test_render_block_households_ignores_placed_and_blockless():
+    # Already-placed households (unit_id != -1) and unplaced/off-crosswalk households
+    # (block_geoid < 0) are never rendered; only the in-block mover is.
+    unit_alternatives = pd.DataFrame(
+        {"block_geoid": [55], "deed_restricted": [0.0], "vacant_units": [1]},
+        index=pd.Index([900], name="unit_id"))
+    choosers = pd.DataFrame(
+        {"unit_id": [42, -1, -1], "block_geoid": [55, -1, 55]},
+        index=pd.Index([10, 11, 12], name="household_id"))
+    out = render_block_households_to_units(choosers, unit_alternatives, False)
+    assert out.index.tolist() == [12]
+    assert out.tolist() == [900]
+
+
+def test_render_block_households_deed_restricted_only_restricts_units():
+    # A low-income mover in a block with one market-rate and one deed-restricted
+    # vacant owner unit must land in the deed-restricted unit.
+    unit_alternatives = pd.DataFrame(
+        {"block_geoid": [55, 55], "deed_restricted": [0.0, 1.0],
+         "vacant_units": [1, 1]},
+        index=pd.Index([900, 901], name="unit_id"))
+    choosers = pd.DataFrame(
+        {"unit_id": [-1], "block_geoid": [55]},
+        index=pd.Index([10], name="household_id"))
+    out = render_block_households_to_units(choosers, unit_alternatives, True)
+    assert out.tolist() == [901]
+
+
+def test_render_block_households_is_deterministic():
+    # Candidate units fill in stable unit_id order regardless of input row order, so
+    # the lowest unit_id in the block is filled first.
+    unit_alternatives = pd.DataFrame(
+        {"block_geoid": [55, 55], "deed_restricted": [0.0, 0.0],
+         "vacant_units": [1, 1]},
+        index=pd.Index([901, 900], name="unit_id"))
+    choosers = pd.DataFrame(
+        {"unit_id": [-1], "block_geoid": [55]},
+        index=pd.Index([10], name="household_id"))
+    out = render_block_households_to_units(choosers, unit_alternatives, False)
+    assert out.tolist() == [900]
+
+
+def test_render_block_households_off_crosswalk_units_are_not_candidates():
+    # A vacant unit whose parcel is off the crosswalk carries a NaN block (float
+    # column); it must never match a household's chosen block and must not crash the
+    # merge across the int64 (choosers) / float64 (units) block key dtypes.
+    unit_alternatives = pd.DataFrame(
+        {"block_geoid": [60750611012023, np.nan],
+         "deed_restricted": [0.0, 0.0], "vacant_units": [1, 1]},
+        index=pd.Index([900, 901], name="unit_id"))
+    choosers = pd.DataFrame(
+        {"unit_id": [-1], "block_geoid": [60750611012023]},
+        index=pd.Index([10], name="household_id"))
+    out = render_block_households_to_units(choosers, unit_alternatives, False)
+    assert out.tolist() == [900]
     assert out.dtype == np.int64
 
 
