@@ -31,6 +31,7 @@ from baus.block_supply import (
     HLCM_RENT_ALTERNATIVE_COLUMNS,
 )
 from baus.block_elcm import assign_job_block_geoid, render_block_jobs_to_buildings
+from baus.block_hlcm import assign_household_block_geoid
 from baus.block_developer import _dominant_block_for_parcels
 
 
@@ -648,6 +649,56 @@ def test_assign_job_block_geoid_off_crosswalk_placed_job_gets_minus_two():
         index=pd.Index([100, 102], name="building_id"))
     jobs = pd.DataFrame({"building_id": [100, 102, -1]})
     out = assign_job_block_geoid(jobs, buildings, dominant_block)
+    assert out.tolist() == [60750611012023, -2, -1]
+    assert out.dtype == np.int64
+
+
+def test_assign_household_block_geoid_movers_and_placed():
+    # Mirrors the job-side helper: placed households take their building's parcel's
+    # dominant block, unplaced households (building_id == -1) take the -1 sentinel.
+    parcel_block = pd.DataFrame(
+        {"block_geoid": [60750611012023, 60014001001000],
+         "parcel_block_share": [1.0, 1.0]},
+        index=pd.Index([7, 9], name="parcel_id"))
+    dominant_block = _dominant_block_for_parcels(parcel_block)
+    buildings = pd.DataFrame(
+        {"parcel_id": [7, 9]},
+        index=pd.Index([100, 102], name="building_id"))
+    households = pd.DataFrame({"building_id": [100, 102, -1]})
+    out = assign_household_block_geoid(households, buildings, dominant_block)
+    assert out.tolist() == [60750611012023, 60014001001000, -1]
+    assert out.dtype == np.int64
+
+
+def test_assign_household_block_geoid_uses_dominant_block():
+    # parcel 7 straddles two blocks; the larger-share (0.7) block is chosen.
+    parcel_block = pd.DataFrame(
+        {"block_geoid": [60750611012023, 60750611012099],
+         "parcel_block_share": [0.7, 0.3]},
+        index=pd.Index([7, 7], name="parcel_id"))
+    dominant_block = _dominant_block_for_parcels(parcel_block)
+    buildings = pd.DataFrame(
+        {"parcel_id": [7]}, index=pd.Index([100], name="building_id"))
+    households = pd.DataFrame({"building_id": [100, -1]})
+    out = assign_household_block_geoid(households, buildings, dominant_block)
+    assert out.tolist() == [60750611012023, -1]
+    assert out.dtype == np.int64
+
+
+def test_assign_household_block_geoid_off_crosswalk_placed_gets_minus_two():
+    # A placed household whose parcel is absent from the crosswalk has no dominant
+    # block; it must get the distinct -2 (non-mover) sentinel, not -1 (which would
+    # make it a mover), and the int64 cast must still succeed (no NaN survives).
+    parcel_block = pd.DataFrame(
+        {"block_geoid": [60750611012023], "parcel_block_share": [1.0]},
+        index=pd.Index([7], name="parcel_id"))
+    dominant_block = _dominant_block_for_parcels(parcel_block)
+    # building 102 sits on parcel 9, which is NOT in the crosswalk.
+    buildings = pd.DataFrame(
+        {"parcel_id": [7, 9]},
+        index=pd.Index([100, 102], name="building_id"))
+    households = pd.DataFrame({"building_id": [100, 102, -1]})
+    out = assign_household_block_geoid(households, buildings, dominant_block)
     assert out.tolist() == [60750611012023, -2, -1]
     assert out.dtype == np.int64
 
