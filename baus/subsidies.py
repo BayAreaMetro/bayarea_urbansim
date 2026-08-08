@@ -479,14 +479,14 @@ def calculate_jobs_housing_fees(account_strategies, year, coffer, summary, years
 
     print("%d projects pass the jobs_housing filter" % len(df))
 
-    # assign jurisdiction and county to parcels
-    df = df.copy()
-    juris_lookup = orca.get_table("parcels_geography").to_frame(columns=["juris_name"])["juris_name"]
-    county_lookup = orca.get_table("parcels").to_frame(columns=["county_abbrev"])["county_abbrev"]
-    df["jurisname"] = df.parcel_id.map(juris_lookup)
-    df["county3"] = df.parcel_id.map(county_lookup)
-
     for key, acct in jobs_housing_settings.items():
+
+        # assign jurisdiction and county to parcels
+        df = df.copy()
+        juris_lookup = orca.get_table("parcels_geography").to_frame(columns=["juris_name"])["juris_name"]
+        county_lookup = orca.get_table("parcels").to_frame(columns=["county_abbrev"])["county_abbrev"]
+        df["jurisname"] = df.parcel_id.map(juris_lookup)
+        df["county3"] = df.parcel_id.map(county_lookup)
 
         # calculate jobs-housing fees for each county's acct
         df_sub = df.loc[df.county3 == acct["county_name"]]
