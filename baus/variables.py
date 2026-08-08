@@ -913,6 +913,11 @@ def county(parcels, mapping):
 
 
 @orca.column('parcels', cache=True)
+def county_abbrev(parcels, mapping):
+    return parcels.county_id.map(mapping["county_id_abbrev_map"])
+
+
+@orca.column('parcels', cache=True)
 def cost_shifters(parcels, cost_shifters):
     return parcels.county.map(cost_shifters["cost_shifters"])
 

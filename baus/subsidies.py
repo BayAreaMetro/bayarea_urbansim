@@ -446,12 +446,9 @@ def calculate_vmt_fees(run_setup, account_strategies, year, buildings, coffer, s
     if run_setup["run_vmt_fee_com_for_com_strategy"]:
 
         # assign fees by county
-        # assign county to parcels
-        county_lookup = orca.get_table("parcels_subzone").to_frame()
-        county_lookup = county_lookup[["county"]].rename(columns={'county': 'county3'})
-        county_lookup.reset_index(inplace=True)
-        county_lookup = county_lookup.rename(columns={'PARCEL_ID': 'PARCELID'})
-        df = df.merge(county_lookup, left_on='parcel_id', right_on='PARCELID', how='left')
+        df = df.copy()
+        county_lookup = orca.get_table("parcels").to_frame(columns=['county_abbrev'])["county_abbrev"]
+        df["county3"] = df.parcel_id.map(county_lookup)
 
         # assign fee to parcels based on county
         counties3 = ['ala', 'cnc', 'mar', 'nap', 'scl', 'sfr', 'smt', 'sol', 'son']
@@ -482,16 +479,14 @@ def calculate_jobs_housing_fees(account_strategies, year, coffer, summary, years
 
     print("%d projects pass the jobs_housing filter" % len(df))
 
+    # assign jurisdiction and county to parcels
+    df = df.copy()
+    juris_lookup = orca.get_table("parcels_geography").to_frame(columns=["juris_name"])["juris_name"]
+    county_lookup = orca.get_table("parcels").to_frame(columns=["county_abbrev"])["county_abbrev"]
+    df["jurisname"] = df.parcel_id.map(juris_lookup)
+    df["county3"] = df.parcel_id.map(county_lookup)
+
     for key, acct in jobs_housing_settings.items():
- 
-        # assign jurisdiction to parcels
-        juris_lookup = orca.get_table("parcels_geography").to_frame()
-        juris_lookup = juris_lookup[['PARCEL_ID', 'juris_name']].rename(columns={'PARCEL_ID': 'PARCELID', 'juris_name': 'jurisname'})
-
-        county_lookup = orca.get_table("parcels_subzone").to_frame().reset_index()
-        county_lookup = county_lookup[['PARCEL_ID', 'county']].rename(columns={'PARCEL_ID': 'PARCELID', 'county': 'county3'})
-
-        df = df.merge(juris_lookup, left_on='parcel_id', right_on='PARCELID', how='left').merge(county_lookup, on='PARCELID', how='left')
 
         # calculate jobs-housing fees for each county's acct
         df_sub = df.loc[df.county3 == acct["county_name"]]
