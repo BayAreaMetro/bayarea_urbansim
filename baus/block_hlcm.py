@@ -5,10 +5,13 @@ This module wires the existing HLCM specs (``configs/location_choice/hlcm_owner.
 census-block alternatives tables built in Phase-3 chunk 3.7
 (``baus.block_supply.block_own_alternatives`` / ``block_rent_alternatives``). Instead
 of choosing among *residential units*, unplaced households choose among *blocks*:
-``utils.lcm_simulate`` runs with ``out_fname='block_geoid'``,
+``utils.lcm_simulate`` runs with ``out_fname='block_alt_id'``,
 ``supply_fname='num_units'`` and ``vacant_fname='vacant_units'`` pointed at the block
 table, so the fitted HLCM coefficients score block covariates directly (Option B --
-covariates materialized on the block table, no ``join_tbls`` broadcast).
+covariates materialized on the block table, no ``join_tbls`` broadcast). ``block_geoid``
+is a non-unique column on the block x deed_restricted alternatives table, so the choice
+is made on the unique ``block_alt_id`` index (which ``lcm_simulate`` recovers via
+``reset_index``) and the chosen alternative is then mapped back to its ``block_geoid``.
 
 Choosers are segmented by tenure exactly as the parcel HLCM does
 (``correct_alternative_filters_sample`` builds ``own_hh`` / ``rent_hh``), and each
@@ -21,12 +24,13 @@ mover still carries it. Deed-restricted awareness comes from each spec's
 ``block_geoid`` -- not a composite ``(block, deed_restricted)`` key.
 
 ``utils.lcm_simulate`` identifies movers as ``choosers[out_fname] == -1`` and expands
-vacancy by repeating the alternatives' index, so the block key must be a numeric
-column with a ``-1`` unplaced sentinel. ``parcels_block`` therefore loads
-``block_geoid`` as int64 (the 15-digit GEOID fits int64), and each step writes an
-int64 ``block_geoid`` column onto ``households``: ``-1`` for unplaced households
-(``building_id == -1``), and the household's building's parcel's dominant block for
-placed households.
+vacancy by repeating the alternatives' index, so the choice key must be a numeric
+column with a ``-1`` unplaced sentinel. Each step therefore seeds an int64
+``block_alt_id`` column onto ``households`` (``-1`` for movers, ``0`` for placed
+households), runs the choice, then maps each mover's chosen ``block_alt_id`` back to
+its ``block_geoid`` (int64; the 15-digit GEOID fits int64). Placed households keep the
+dominant block of their building's parcel, and movers the choice left unplaced keep
+the ``-1`` sentinel.
 
 After the block choice, each step *renders* it down to a concrete ``unit_id``: a thin,
 behavior-free bridge (``render_block_households_to_units``) assigns each newly
@@ -306,20 +310,37 @@ def _block_hlcm_simulate(households, residential_units, buildings, parcels_block
     households.update_col("block_geoid", household_block_geoid)
 
     # Segment choosers by tenure exactly as the parcel HLCM does (own_hh / rent_hh).
+    # lcm_simulate requires its out_fname to be the alternatives' *index* (it recovers
+    # the key via reset_index and reads it back off the chosen rows). block_geoid is
+    # only a column on the block x deed_restricted alternatives table and is non-unique
+    # across the deed_restricted split, so it cannot be the index; we choose on the
+    # unique block_alt_id index and map the chosen alternative back to its block_geoid.
+    # A -1 sentinel marks movers exactly as the block_geoid -1 sentinel does.
+    households.update_col(
+        "block_alt_id", -(households_df["building_id"] == -1).astype("int64"))
     correct_alternative_filters_sample(residential_units, households, tenure)
 
     utils.lcm_simulate(cfg="location_choice/" + yaml_name,
                        choosers=orca.get_table(tenure + "_hh"),
                        buildings=block_alternatives,
                        join_tbls=[],
-                       out_fname="block_geoid",
+                       out_fname="block_alt_id",
                        supply_fname="num_units",
                        vacant_fname="vacant_units",
                        enable_supply_correction=price_settings.get(
                            equilibration_name, None),
                        cast=True)
 
-    update_household_block_geoids(households, tenure)
+    # Map each mover's chosen alternative back to its block_geoid and write it onto
+    # households. Placed households keep the dominant block assigned above; movers the
+    # choice left unplaced (block_alt_id == -1) keep the -1 sentinel.
+    alt_block_geoid = block_alternatives.to_frame(["block_geoid"])["block_geoid"]
+    chosen_alt = orca.get_table(tenure + "_hh").to_frame(
+        ["block_alt_id", "building_id"])
+    mover_alt = chosen_alt.loc[chosen_alt["building_id"] == -1, "block_alt_id"]
+    mover_block = mover_alt.map(alt_block_geoid)
+    mover_block = mover_block.where(mover_block.notna(), other=-1).astype("int64")
+    households.update_col_from_series("block_geoid", mover_block, cast=True)
 
     # Render each block choice down to a concrete vacant unit in that block. The
     # tenure's residential units (own_units / rent_units) carry a step-start
@@ -329,7 +350,8 @@ def _block_hlcm_simulate(households, residential_units, buildings, parcels_block
         ["building_id", "deed_restricted", "vacant_units"])
     unit_alternatives["block_geoid"] = unit_alternatives["building_id"].map(
         buildings_df["parcel_id"]).map(dominant_block)
-    choosers = orca.get_table(tenure + "_hh").to_frame(["unit_id", "block_geoid"])
+    tenure_index = orca.get_table(tenure + "_hh").to_frame(["unit_id"]).index
+    choosers = households.to_frame(["unit_id", "block_geoid"]).loc[tenure_index]
     unit_updates = render_block_households_to_units(
         choosers, unit_alternatives, deed_restricted_only)
     households.update_col_from_series("unit_id", unit_updates, cast=True)
