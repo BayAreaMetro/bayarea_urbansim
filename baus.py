@@ -416,6 +416,31 @@ def run_models(mode, run_setup, years_to_run):
                 logger.info(
                     "Using `block_elcm_simulate` instead of `elcm_simulate`")
 
+            hlcm_geography = run_setup.get("hlcm_geography", "parcel")
+            if hlcm_geography not in ("parcel", "block"):
+                raise ValueError(
+                    "run_setup['hlcm_geography'] must be 'parcel' or 'block', "
+                    f"got {hlcm_geography!r}")
+            if hlcm_geography == "block":
+                # Swap only the four primary HLCM steps; the parcel `*_no_unplaced`
+                # steps are retained (they mop up any unplaced tail and persist the
+                # TAZ-level price clearing on the real residential_units table).
+                # Exact-string .index() never matches the `*_no_unplaced` variants.
+                hlcm_step_swaps = [
+                    ("hlcm_owner_lowincome_simulate",
+                     "block_hlcm_owner_lowincome_simulate"),
+                    ("hlcm_renter_lowincome_simulate",
+                     "block_hlcm_renter_lowincome_simulate"),
+                    ("hlcm_owner_simulate", "block_hlcm_owner_simulate"),
+                    ("hlcm_renter_simulate", "block_hlcm_renter_simulate"),
+                ]
+                for parcel_step, block_step in hlcm_step_swaps:
+                    step_index = simulation_models.index(parcel_step)
+                    simulation_models[step_index] = block_step
+                logger.info(
+                    "Using block HLCM steps instead of parcel HLCM steps "
+                    "(parcel `*_no_unplaced` steps retained)")
+
             return simulation_models
         
 
