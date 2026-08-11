@@ -1,50 +1,49 @@
-"""Block-level residential developer (Phase-2 block port skeleton).
+"""Block-level residential developer.
 
-Additive, opt-in alternative to the parcel-level ``residential_developer`` step
-(``baus/models.py``).  When ``run_setup["developer_geography"]`` is ``"block"``,
-``baus.py`` swaps this step in for ``residential_developer`` in the annual model
-list; when it is ``"parcel"`` (the default), this module is never invoked and
-behavior is unchanged.  See ``scripts/block_port/plan_baus_block_port.md`` ->
-"Allocation mechanism (Option B)" for the design this implements.
+Additive, opt-in alternative to the parcel-level `residential_developer` step
+(`baus/models.py`). When `run_setup["developer_geography"]` is `"block"`,
+`baus.py` swaps this step in for `residential_developer` in the annual model
+list; when it is `"parcel"` (the default), this module is never invoked and
+behavior is unchanged.
 
 The step allocates the region's residential development target to census blocks
 with a **block-native** rule and then renders those block unit counts down to
 parcels so the rest of BAUS (hedonics, HLCM, tenure, summaries) runs unchanged:
 
-1. **Regional target** -- ``Developer.compute_units_to_build`` from live household
+1. **Regional target** -- `Developer.compute_units_to_build` from live household
    and unit counts, identical to the parcel path.
-2. **Deliverable capacity per block** -- the Phase-1 ``build_block_supply`` roll-up
-   of this year's post-policy feasibility (``profitable_residential_units``).  This
-   is the hard cap: units only go to blocks with profitable pro-forma capacity.
+2. **Deliverable capacity per block** -- `build_block_supply`'s roll-up of this
+   year's post-policy feasibility (`profitable_residential_units`). This is the
+   hard cap: units only go to blocks with profitable pro-forma capacity.
 3. **Development-probability surface** -- the fitted block LCM
-   (``configs/developer/block_residential_developer.yaml``) scored over a static
+   (`configs/developer/block_residential_developer.yaml`) scored over a static
    block covariate table.  Higher-probability blocks are more likely to be drawn.
 4. **Sequential stochastic weighted draw** -- blocks are drawn without replacement
    with probability proportional to their LCM weight, each allocated
-   ``min(deliverable_capacity, remaining_need)`` units, until the regional target
-   is met or eligible capacity is exhausted (``allocate_units_to_blocks``).
+   `min(deliverable_capacity, remaining_need)` units, until the regional target
+   is met or eligible capacity is exhausted (`allocate_units_to_blocks`).
 5. **Rendering bridge** -- within each allocated block, profitable feasibility
-   parcels are picked by profit (``subsidies.profit_to_prob_func``, unchanged from
-   the parcel path) via ``Developer.pick`` until the block's allocation is met; the
-   picked parcels are fabricated into building rows and merged into the ``buildings``
-   table exactly as ``run_developer`` does.
+   parcels are picked by profit (`subsidies.profit_to_prob_func`, unchanged from
+   the parcel path) via `Developer.pick` until the block's allocation is met; the
+   picked parcels are fabricated into building rows and merged into the `buildings`
+   table exactly as `run_developer` does.
 
-Skeleton simplifications (documented in the plan, deferred to later refinements):
+Simplifications relative to the parcel path:
 
 - **Static covariates.** The development-probability surface is scored from a
   pre-assembled base-year block covariate table, so the surface is fixed across
-  simulation years.  Live per-year block-covariate assembly is a later refinement.
+  simulation years.
 - **Jurisdiction limits via dominant-block mapping.** Per-jurisdiction rollover
-  targets are computed exactly as the parcel path (``limits_settings``), then each
+  targets are computed exactly as the parcel path (`limits_settings`), then each
   target is allocated only across the blocks whose dominant jurisdiction matches
-  (blocks are assigned a dominant jurisdiction by summed ``parcel_block_share``).
+  (blocks are assigned a dominant jurisdiction by summed `parcel_block_share`).
   The horizon-overshoot trim the parcel path applies to its last building is
-  omitted -- a minor later refinement.
+  omitted.
 - **Areal capacity vs. dominant-block rendering.** Capacity is apportioned areally
-  by ``build_block_supply`` while rendering assigns each parcel to its single
+  by `build_block_supply` while rendering assigns each parcel to its single
   dominant block, so a block occasionally cannot fully deliver its areal-apportioned
-  allocation; ``Developer.pick`` self-limits and the regional total lands at or just
-  below target -- consistent with Option B's totals-conserved-not-unit-identical bar.
+  allocation; `Developer.pick` self-limits and the regional total lands at or just
+  below target.
 """
 
 import os
@@ -75,7 +74,7 @@ _SPEC_YAML_PATH = _REPO_ROOT / 'configs' / 'developer' / 'block_residential_deve
 
 # Pre-assembled static block covariate table (the 7 model covariates keyed by the
 # 15-digit 2020 census-block GEOID), produced offline by
-# ``scripts.block_port.block_developer_data_assembly.build_block_covariates``.
+# `scripts.block_port.block_developer_data_assembly.build_block_covariates`.
 _BLOCK_COVARIATES_PATH = pathlib.Path(
     r'M:\urban_modeling\baus\FoLUMPP2\baus_block_sandbox\data\block_developer_covariates.csv'
 )
@@ -88,23 +87,23 @@ _BLOCK_COVARIATES_PATH = pathlib.Path(
 def score_blocks(block_covariates, spec):
     """Scores the block development-probability surface from a fitted LCM spec.
 
-    Evaluates the spec's ``model_expression`` (a sum of plain covariate column
-    names) against the raw-scale coefficients in ``fit_parameters['Coefficient']``
+    Evaluates the spec's `model_expression` (a sum of plain covariate column
+    names) against the raw-scale coefficients in `fit_parameters['Coefficient']`
     to form the linear predictor, then applies the logistic link to produce a
     development probability per block.  The coefficients are in raw covariate space
-    (no standardization -- see ``scripts/block_port/block_developer_train.py``), so
+    (no standardization -- see `scripts/block_port/block_developer_train.py`), so
     this is a direct expression eval with no scaler.
 
     Args:
-        block_covariates: DataFrame indexed by ``block_geoid`` with one column per
-            model covariate named in the spec's ``model_expression``.
+        block_covariates: DataFrame indexed by `block_geoid` with one column per
+            model covariate named in the spec's `model_expression`.
         spec: The parsed block-LCM spec dict (from the fitted yaml), carrying
-            ``model_expression`` and a ``fit_parameters['Coefficient']`` mapping
-            keyed by ``Intercept`` plus each covariate name.
+            `model_expression` and a `fit_parameters['Coefficient']` mapping
+            keyed by `Intercept` plus each covariate name.
 
     Returns:
-        A Series indexed by ``block_geoid`` of development probabilities in
-        ``(0, 1)``, aligned to ``block_covariates.index``.
+        A Series indexed by `block_geoid` of development probabilities in
+        `(0, 1)`, aligned to `block_covariates.index`.
 
     Example:
         >>> import pandas as pd
@@ -134,9 +133,9 @@ def allocate_units_to_blocks(block_weights, block_capacity, regional_target_unit
                              random_state=None):
     """Allocates the regional unit target to blocks by sequential stochastic draw.
 
-    Implements the Option B allocation kernel: blocks are drawn **without
-    replacement** with probability proportional to their LCM development weight,
-    and each drawn block receives ``min(deliverable_capacity, remaining_need)``
+    Blocks are drawn **without replacement** with probability proportional to
+    their LCM development weight,
+    and each drawn block receives `min(deliverable_capacity, remaining_need)`
     units, until the regional target is met or eligible capacity is exhausted.  A
     block is eligible only if it has at least one whole unit of deliverable
     capacity and a positive weight -- there is no fallback to zoned capacity, so
@@ -146,24 +145,24 @@ def allocate_units_to_blocks(block_weights, block_capacity, regional_target_unit
     needed.
 
     The weighted draw uses the Efraimidis-Spirakis one-pass method: drawing keys
-    ``u ** (1 / weight)`` and taking blocks in descending key order is equivalent
+    `u ** (1 / weight)` and taking blocks in descending key order is equivalent
     to repeatedly sampling one block proportional to its remaining weight, but runs
-    in ``O(n log n)`` instead of a per-draw loop.
+    in `O(n log n)` instead of a per-draw loop.
 
     Args:
-        block_weights: Series indexed by ``block_geoid`` of development
+        block_weights: Series indexed by `block_geoid` of development
             probabilities (draw weights); must be non-negative.
-        block_capacity: Series indexed by ``block_geoid`` of deliverable
-            residential-unit capacity; reindexed onto ``block_weights`` and treated
+        block_capacity: Series indexed by `block_geoid` of deliverable
+            residential-unit capacity; reindexed onto `block_weights` and treated
             as zero where missing.
         regional_target_units: Total residential units to place across all blocks.
-        random_state: Seed for the draw, forwarded to ``numpy.random.default_rng``;
+        random_state: Seed for the draw, forwarded to `numpy.random.default_rng`;
             pass a fixed value for reproducible A/B comparisons.
 
     Returns:
-        An integer Series indexed by ``block_weights.index`` giving the units
+        An integer Series indexed by `block_weights.index` giving the units
         allocated to each block (zero for blocks that received none).  The sum
-        equals ``regional_target_units`` unless total eligible capacity is smaller,
+        equals `regional_target_units` unless total eligible capacity is smaller,
         in which case it equals total eligible capacity.
 
     Example:
@@ -175,7 +174,7 @@ def allocate_units_to_blocks(block_weights, block_capacity, regional_target_unit
         5
 
     See Also:
-        score_blocks: produces the ``block_weights`` development surface.
+        score_blocks: produces the `block_weights` development surface.
         block_residential_developer: renders these allocations down to parcels.
     """
     rng = np.random.default_rng(random_state)
@@ -214,32 +213,32 @@ def allocate_units_to_blocks_by_jurisdiction(block_weights, block_capacity,
                                              random_state=None):
     """Allocates development to blocks within per-jurisdiction target buckets.
 
-    Mirrors the parcel developer's jurisdiction-limits behavior at block grain
-    (plan decision 11): each growth-capped jurisdiction gets its own rollover
+    Mirrors the parcel developer's jurisdiction-limits behavior at block grain:
+    each growth-capped jurisdiction gets its own rollover
     target allocated only across the blocks it dominates, and every remaining
     (uncapped) block shares the leftover regional target -- the block-native
-    analogue of ``residential_developer``'s ``targets`` list.  Each bucket is an
-    independent sequential stochastic draw (``allocate_units_to_blocks``), so a
+    analogue of `residential_developer`'s `targets` list.  Each bucket is an
+    independent sequential stochastic draw (`allocate_units_to_blocks`), so a
     block only ever receives units from the single jurisdiction bucket it belongs
     to and is never over-filled beyond its deliverable capacity.  In an oversupplied
-    year the regional target is zero and ``regional_none_target`` is non-positive,
+    year the regional target is zero and `regional_none_target` is non-positive,
     so only the capped jurisdictions build -- exactly matching the parcel path.
 
     Args:
-        block_weights: Series indexed by ``block_geoid`` of LCM development weights.
-        block_capacity: Series indexed by ``block_geoid`` of deliverable capacity.
-        block_dominant_juris: Series indexed by ``block_geoid`` giving each block's
+        block_weights: Series indexed by `block_geoid` of LCM development weights.
+        block_capacity: Series indexed by `block_geoid` of deliverable capacity.
+        block_dominant_juris: Series indexed by `block_geoid` giving each block's
             dominant jurisdiction name.
         jurisdiction_targets: Mapping of capped-jurisdiction name to its positive
             unit target for this year.
         regional_none_target: Units to allocate across blocks whose dominant
-            jurisdiction is not in ``jurisdiction_targets``; non-positive values
+            jurisdiction is not in `jurisdiction_targets`; non-positive values
             place nothing (the oversupplied case).
         random_state: Base seed; each bucket draws from an independent child stream
-            (via ``numpy.random.SeedSequence``) for reproducible A/B comparisons.
+            (via `numpy.random.SeedSequence`) for reproducible A/B comparisons.
 
     Returns:
-        An integer Series indexed by ``block_weights.index`` of units allocated to
+        An integer Series indexed by `block_weights.index` of units allocated to
         each block, summed across all jurisdiction buckets.
 
     Example:
@@ -254,7 +253,7 @@ def allocate_units_to_blocks_by_jurisdiction(block_weights, block_capacity,
 
     See Also:
         allocate_units_to_blocks: the per-bucket allocation kernel this orchestrates.
-        _dominant_juris_for_blocks: produces the ``block_dominant_juris`` mapping.
+        _dominant_juris_for_blocks: produces the `block_dominant_juris` mapping.
     """
     dominant_juris = block_dominant_juris.reindex(block_weights.index)
     capped_jurisdictions = set(jurisdiction_targets)
@@ -296,18 +295,18 @@ def allocate_units_to_blocks_by_jurisdiction(block_weights, block_capacity,
 def _dominant_block_for_parcels(parcel_block):
     """Maps each parcel to the single block holding the largest share of its area.
 
-    The areal ``parcels_block`` crosswalk maps a parcel to every block it overlaps
-    (non-unique ``parcel_id`` index).  Rendering must place a parcel's development in
+    The areal `parcels_block` crosswalk maps a parcel to every block it overlaps
+    (non-unique `parcel_id` index).  Rendering must place a parcel's development in
     exactly one block, so each parcel is assigned to its dominant (largest-share)
     block.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
 
     Returns:
-        A Series indexed by unique ``parcel_id`` whose values are the dominant
-        ``block_geoid`` for each parcel.
+        A Series indexed by unique `parcel_id` whose values are the dominant
+        `block_geoid` for each parcel.
     """
     parcel_block_reset = parcel_block.reset_index()
     dominant_rows = parcel_block_reset.loc[
@@ -320,17 +319,17 @@ def _dominant_juris_for_blocks(parcel_block, parcel_juris):
 
     Blocks do not nest cleanly within jurisdictions, so each block is assigned a
     single dominant jurisdiction: the one whose overlapping parcels contribute the
-    greatest summed ``parcel_block_share`` within that block.  This is the block-grain
-    analogue of the parcel path's per-jurisdiction masking (plan decision 11).
+    greatest summed `parcel_block_share` within that block.  This is the block-grain
+    analogue of the parcel path's per-jurisdiction masking.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        parcel_juris: Series indexed by ``parcel_id`` giving each parcel's
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        parcel_juris: Series indexed by `parcel_id` giving each parcel's
             jurisdiction name.
 
     Returns:
-        A Series indexed by ``block_geoid`` whose values are the dominant
+        A Series indexed by `block_geoid` whose values are the dominant
         jurisdiction name for each block.
 
     See Also:
@@ -352,27 +351,27 @@ def _render_block_allocations(block_allocated_units, feasibility, parcels, build
     """Renders per-block unit allocations into fabricated building rows.
 
     For each block with a positive allocation, picks profitable feasibility parcels
-    within that block (by profit, via ``subsidies.profit_to_prob_func``) until the
-    block's allocation is met, using a block-scoped ``Developer`` so picking is
+    within that block (by profit, via `subsidies.profit_to_prob_func`) until the
+    block's allocation is met, using a block-scoped `Developer` so picking is
     capped to that block's parcels.  The per-block picks are concatenated and put
-    through the same post-pick processing ``run_developer`` applies (year, form,
-    building type, stories, extra columns), then merged into the ``buildings`` table
-    with a single ``add_buildings`` call.
+    through the same post-pick processing `run_developer` applies (year, form,
+    building type, stories, extra columns), then merged into the `buildings` table
+    with a single `add_buildings` call.
 
     Args:
-        block_allocated_units: Integer Series indexed by ``block_geoid`` of units to
-            place per block (from ``allocate_units_to_blocks``).
-        feasibility: The orca ``feasibility`` table wrapper (parcel-indexed, with a
-            ``(form, attribute)`` column MultiIndex).
-        parcels: The orca ``parcels`` table wrapper.
-        buildings: The orca ``buildings`` table wrapper.
-        dominant_block: Series mapping ``parcel_id`` to its dominant ``block_geoid``.
-        year: Simulation year, written to ``year_built`` on new buildings.
+        block_allocated_units: Integer Series indexed by `block_geoid` of units to
+            place per block (from `allocate_units_to_blocks`).
+        feasibility: The orca `feasibility` table wrapper (parcel-indexed, with a
+            `(form, attribute)` column MultiIndex).
+        parcels: The orca `parcels` table wrapper.
+        buildings: The orca `buildings` table wrapper.
+        dominant_block: Series mapping `parcel_id` to its dominant `block_geoid`.
+        year: Simulation year, written to `year_built` on new buildings.
         form_to_btype_func: Callback mapping a building row to its building type.
         add_extra_columns_func: Callback adding BAUS's standard developer columns.
 
     Returns:
-        None. Adds fabricated buildings to the orca ``buildings`` table in place
+        None. Adds fabricated buildings to the orca `buildings` table in place
         (no-op if no block delivered any units).
     """
     developed = block_allocated_units[block_allocated_units > 0]
@@ -434,39 +433,39 @@ def block_residential_developer(feasibility, households, buildings, parcels, yea
                                 add_extra_columns_func):
     """Allocates residential development to blocks, then renders it to parcels.
 
-    Block-native alternative to ``residential_developer``: it computes the same
+    Block-native alternative to `residential_developer`: it computes the same
     regional unit target, derives per-block deliverable capacity from this year's
     feasibility, scores blocks with the fitted LCM, draws blocks stochastically by
     that score (capped at deliverable capacity), and renders the resulting per-block
     unit counts down to parcels as fabricated buildings.  It is wired into the annual
-    model list in place of ``residential_developer`` only when
-    ``run_setup["developer_geography"]`` is ``"block"``.
+    model list in place of `residential_developer` only when
+    `run_setup["developer_geography"]` is `"block"`.
 
     Args:
-        feasibility: The orca ``feasibility`` table wrapper.
-        households: The orca ``households`` table wrapper.
-        buildings: The orca ``buildings`` table wrapper.
-        parcels: The orca ``parcels`` table wrapper.
+        feasibility: The orca `feasibility` table wrapper.
+        households: The orca `households` table wrapper.
+        buildings: The orca `buildings` table wrapper.
+        parcels: The orca `parcels` table wrapper.
         year: The current simulation year.
-        developer_settings: The developer settings dict (``residential_developer``
+        developer_settings: The developer settings dict (`residential_developer`
             sub-dict supplies the target vacancy).
         run_setup: The run configuration dict.
         parcels_block: The areal parcel-to-block crosswalk table wrapper.
-        parcels_zoning_calculations: The orca table carrying ``zoned_du`` /
-            ``zoned_du_underbuild`` (used by the capacity roll-up).
-        parcels_geography: The orca table carrying ``juris_name`` per parcel, used
+        parcels_zoning_calculations: The orca table carrying `zoned_du` /
+            `zoned_du_underbuild` (used by the capacity roll-up).
+        parcels_geography: The orca table carrying `juris_name` per parcel, used
             to derive each block's dominant jurisdiction and the per-juris targets.
-        limits_settings: The development-limits dict; its ``Residential`` sub-dict
+        limits_settings: The development-limits dict; its `Residential` sub-dict
             supplies each capped jurisdiction's annual unit limit.
         form_to_btype_func: Injectable callback mapping a building row to its type.
         add_extra_columns_func: Injectable callback adding standard developer columns.
 
     Returns:
-        None. Adds fabricated buildings to the orca ``buildings`` table.
+        None. Adds fabricated buildings to the orca `buildings` table.
 
     See Also:
         allocate_units_to_blocks: the block allocation kernel this orchestrates.
-        build_block_supply: the Phase-1 roll-up supplying per-block capacity.
+        build_block_supply: the roll-up supplying per-block capacity.
     """
     orca.eval_step("alt_feasibility")
 
@@ -505,7 +504,7 @@ def block_residential_developer(feasibility, households, buildings, parcels, yea
     block_weights = score_blocks(block_covariates, spec)
 
     # Per-jurisdiction rollover targets, computed exactly as the parcel developer
-    # (``residential_developer`` in baus/models.py) so cap-driven development in
+    # (`residential_developer` in baus/models.py) so cap-driven development in
     # oversupplied years matches the parcel path.  Each capped jurisdiction gets a
     # positive annual target; the leftover regional target flows to uncapped blocks.
     juris_name = parcels_geography.juris_name.reindex(parcels.index).fillna("Other")

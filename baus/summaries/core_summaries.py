@@ -140,32 +140,32 @@ def build_block_supply(parcel_block, buildings, zoning, feasibility):
 
     Pure (no orca, no file I/O) so it can be unit-tested directly. Produces three
     block-keyed roll-ups side by side: realized new supply (buildings whose
-    ``source`` is not ``h5_inputs``), zoned capacity, and profitable residential
-    capacity (residential form only, counted where ``max_profit`` is positive).
+    `source` is not `h5_inputs`), zoned capacity, and profitable residential
+    capacity (residential form only, counted where `max_profit` is positive).
 
-    Because ``parcel_block`` is the areal crosswalk that maps a parcel to every
+    Because `parcel_block` is the areal crosswalk that maps a parcel to every
     block it overlaps, each parcel quantity is apportioned to blocks by the
-    parcel's area share (``parcel_block_share``) before summing, so a parcel that
+    parcel's area share (`parcel_block_share`) before summing, so a parcel that
     straddles a block boundary contributes its share to each block and block totals
     conserve the parcel totals.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns; a parcel appears
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns; a parcel appears
             once per overlapping block.
-        buildings: DataFrame with ``parcel_id``, ``residential_units``,
-            ``deed_restricted_units``, ``non_residential_sqft``, ``job_spaces``,
-            and ``source``; base-year stock is filtered out inside this function.
-        zoning: DataFrame indexed by ``parcel_id`` with ``zoned_du`` and
-            ``zoned_du_underbuild``.
-        feasibility: DataFrame indexed by ``parcel_id`` with a ``(form, attribute)``
-            MultiIndex on its columns (the ``feasibility_after_policy`` frame).
+        buildings: DataFrame with `parcel_id`, `residential_units`,
+            `deed_restricted_units`, `non_residential_sqft`, `job_spaces`,
+            and `source`; base-year stock is filtered out inside this function.
+        zoning: DataFrame indexed by `parcel_id` with `zoned_du` and
+            `zoned_du_underbuild`.
+        feasibility: DataFrame indexed by `parcel_id` with a `(form, attribute)`
+            MultiIndex on its columns (the `feasibility_after_policy` frame).
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with ``zoned_du``,
-        ``zoned_du_underbuild``, ``built_residential_units``,
-        ``built_deed_restricted_units``, ``built_non_residential_sqft``,
-        ``built_job_spaces``, and ``profitable_residential_units``. Blocks absent
+        A DataFrame indexed by `block_geoid` with `zoned_du`,
+        `zoned_du_underbuild`, `built_residential_units`,
+        `built_deed_restricted_units`, `built_non_residential_sqft`,
+        `built_job_spaces`, and `profitable_residential_units`. Blocks absent
         from a given roll-up are reported as 0.
 
     Example:
@@ -187,7 +187,7 @@ def build_block_supply(parcel_block, buildings, zoning, feasibility):
 
     See Also:
         block_supply_summary: the orca step that feeds this helper live model
-            tables and the ``feasibility_after_policy`` injectable.
+            tables and the `feasibility_after_policy` injectable.
     """
     def _apportion_to_blocks(parcel_values):
         # parcel_values: DataFrame indexed by parcel_id. Broadcast each parcel's
@@ -229,28 +229,28 @@ def block_supply_summary(run_name, buildings, parcels_zoning_calculations, parce
                          year, initial_summary_year, final_year, interim_summary_years):
     """Writes a census-block roll-up of realized supply, zoned and profitable capacity.
 
-    Additive Phase 1 QAQC step: it reads existing model tables and the
-    ``feasibility_after_policy`` injectable, apportions parcel supply and capacity
-    to the 2020 census blocks each parcel overlaps via the areal ``parcels_block``
+    Additive QAQC step: it reads existing model tables and the
+    `feasibility_after_policy` injectable, apportions parcel supply and capacity
+    to the 2020 census blocks each parcel overlaps via the areal `parcels_block`
     crosswalk, and writes one CSV per summary year. It changes no model behavior.
-    It must run after ``residential_developer`` in the same year so the
-    ``feasibility_after_policy`` injectable holds that year's post-policy values.
+    It must run after `residential_developer` in the same year so the
+    `feasibility_after_policy` injectable holds that year's post-policy values.
 
     Args:
         run_name: Name of the current run, used in the output filename.
-        buildings: The orca ``buildings`` table.
-        parcels_zoning_calculations: The orca table carrying ``zoned_du`` and
-            ``zoned_du_underbuild`` per parcel.
-        parcels_block: The areal parcel-to-block crosswalk table (``block_geoid``
-            and ``parcel_block_share`` columns; non-unique ``parcel_id`` index).
+        buildings: The orca `buildings` table.
+        parcels_zoning_calculations: The orca table carrying `zoned_du` and
+            `zoned_du_underbuild` per parcel.
+        parcels_block: The areal parcel-to-block crosswalk table (`block_geoid`
+            and `parcel_block_share` columns; non-unique `parcel_id` index).
         year: The current simulation year.
         initial_summary_year: First year at which summaries are written.
         final_year: Final simulation/summary year.
         interim_summary_years: List of intermediate summary years.
 
     Returns:
-        None. Writes ``{run_name}_block_supply_summary_{year}.csv`` to the
-        ``core_summaries`` output directory.
+        None. Writes `{run_name}_block_supply_summary_{year}.csv` to the
+        `core_summaries` output directory.
 
     See Also:
         build_block_supply: the pure helper that performs the roll-up arithmetic.
@@ -269,7 +269,7 @@ def block_supply_summary(run_name, buildings, parcels_zoning_calculations, parce
 
     coresum_output_dir = os.path.join(orca.get_injectable("outputs_dir"), "core_summaries")
     os.makedirs(coresum_output_dir, exist_ok=True)
-    # ``parcels_block`` now loads ``block_geoid`` as int64 (numeric alternatives key
+    # `parcels_block` now loads `block_geoid` as int64 (numeric alternatives key
     # for the block-choice models). Re-pad it to the 15-digit zero-filled GEOID
     # string on write so this CSV artifact is byte-identical to the string-keyed
     # baseline (California GEOIDs start "06...").

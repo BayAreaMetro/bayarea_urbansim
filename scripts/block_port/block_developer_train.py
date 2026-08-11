@@ -1,44 +1,43 @@
 """Train and validate the block residential developer location-choice model.
 
-Fits the Phase-2 block residential allocation LCM described in
-``plan_baus_block_port.md`` -> "Model estimation": a binomial GLM whose chooser
+Fits the block residential allocation LCM: a binomial GLM whose chooser
 is a new increment of residential development and whose alternatives are census
 blocks, estimated on the 2010->2020 block housing-unit-change dataset assembled
-by the sibling ``block_developer_data_assembly`` module.
+by the sibling `block_developer_data_assembly` module.
 
 Mirrors the k-fold cross-validation design used for the affordable-housing
-developer LCM (see ``fms-notebook-hub/folumpp/08_ja_affordable_housing_dev.qmd``),
-adapted for a non-rare outcome: the block dependent variable (``developed``,
+developer LCM (see `fms-notebook-hub/folumpp/08_ja_affordable_housing_dev.qmd`),
+adapted for a non-rare outcome: the block dependent variable (`developed`,
 whether a block's 2010->2020 net housing-unit change is positive) occurs in
 roughly 30% of blocks, so folds are stratified on county x developed jointly
 rather than splitting only the positive class across a shared background
 choice set.
 
-Per the plan, the model is **estimated at block grain but validated at tract
+The model is **estimated at block grain but validated at tract
 grain** -- transferring tract-scale coefficients to blocks would be a
 change-of-support / MAUP liability, so a block-grain fit is paired with
 tract-level aggregate diagnostics (slope, intercept, R-squared, RMSE) analogous
 to the affordable model's superdistrict validation. Validation covers **location
 only** -- whether the model generally chooses the right blocks to develop --
-not unit counts: per the plan's Option B allocation mechanism, unit counts are
+not unit counts: unit counts are
 decided by the feasibility-derived deliverable-capacity roll-up, not by this
 model's predicted probabilities.
 
 Unlike the affordable-housing developer notebook (which standardizes features
-with ``StandardScaler`` before fitting), this trainer fits directly on the raw
+with `StandardScaler` before fitting), this trainer fits directly on the raw
 covariate values. No BAUS submodel persists a scaler at simulation time --
-HLCM/ELCM/hedonic yamls store a patsy ``model_expression`` (transforms embedded,
-e.g. ``np.log1p(unit_residential_price)``) plus raw-scale ``fit_parameters``,
+HLCM/ELCM/hedonic yamls store a patsy `model_expression` (transforms embedded,
+e.g. `np.log1p(unit_residential_price)`) plus raw-scale `fit_parameters`,
 and urbansim builds the design matrix from live raw columns each simulated year
-(see ``configs/location_choice/hlcm_owner.yaml``). Fitting unstandardized here
+(see `configs/location_choice/hlcm_owner.yaml`). Fitting unstandardized here
 keeps the exported coefficients in that same raw space, so the eventual
-simulation step can score live blocks with a plain ``model_expression`` eval --
-no scaler to carry into ``baus/block_developer.py``.
+simulation step can score live blocks with a plain `model_expression` eval --
+no scaler to carry into `baus/block_developer.py`.
 
 Alternative specifications are compared by adding an entry to
-``BLOCK_DEVELOPER_SPECS`` and calling ``compare_specs``; the fitted coefficients
+`BLOCK_DEVELOPER_SPECS` and calling `compare_specs`; the fitted coefficients
 for a chosen spec are written to a spec yaml in the shape of
-``configs/location_choice/hlcm_owner.yaml``.
+`configs/location_choice/hlcm_owner.yaml`.
 
 Usage::
 
@@ -116,19 +115,19 @@ BLOCK_DEVELOPER_SPECS = {
 def prepare_block_estimation_frame(estimation_frame):
     """Prepares the block estimation frame for location-choice model fitting.
 
-    Adds the binarized dependent variable (``developed``, whether a block's net
+    Adds the binarized dependent variable (`developed`, whether a block's net
     2010->2020 housing-unit change is positive) and the 11-char tract GEOID
     (the first 11 characters of the 15-char block GEOID) used for tract-level
     validation.
 
     Args:
         estimation_frame: The block-indexed frame returned by
-            ``build_block_developer_dataset``, with a ``hu_change`` column and a
-            ``block_geoid`` index.
+            `build_block_developer_dataset`, with a `hu_change` column and a
+            `block_geoid` index.
 
     Returns:
-        A copy of ``estimation_frame`` with two added columns: ``developed``
-        (int, 0/1) and ``tract_geoid`` (str).
+        A copy of `estimation_frame` with two added columns: `developed`
+        (int, 0/1) and `tract_geoid` (str).
 
     Example:
         >>> frame = prepare_block_estimation_frame(estimation_frame)
@@ -136,7 +135,7 @@ def prepare_block_estimation_frame(estimation_frame):
         True
 
     See Also:
-        build_fold_indices: consumes the ``developed`` and county columns this
+        build_fold_indices: consumes the `developed` and county columns this
             adds to build stratified CV folds.
     """
     frame = estimation_frame.copy()
@@ -148,23 +147,23 @@ def prepare_block_estimation_frame(estimation_frame):
 def build_fold_indices(frame, n_folds=N_FOLDS, random_state=KFOLD_RANDOM_STATE):
     """Builds stratified k-fold cross-validation splits over blocks.
 
-    Stratifies jointly on county and the binarized ``developed`` outcome, so
+    Stratifies jointly on county and the binarized `developed` outcome, so
     each fold preserves both the regional county mix and the ~30% block
     development rate. This differs from the affordable-housing developer
     model's fold design, which splits only the rare positive class across a
-    shared background choice set -- unnecessary here since ``developed`` is not
+    shared background choice set -- unnecessary here since `developed` is not
     a rare outcome.
 
     Args:
         frame: The prepared block estimation frame from
-            ``prepare_block_estimation_frame``, with ``county`` and
-            ``developed`` columns.
+            `prepare_block_estimation_frame`, with `county` and
+            `developed` columns.
         n_folds: Number of cross-validation folds.
         random_state: Random seed for fold assignment reproducibility.
 
     Returns:
-        A list of ``(train_idx, test_idx)`` tuples of positional (``iloc``)
-        indices into ``frame``, as returned by ``StratifiedKFold.split``.
+        A list of `(train_idx, test_idx)` tuples of positional (`iloc`)
+        indices into `frame`, as returned by `StratifiedKFold.split`.
 
     Example:
         >>> fold_indices = build_fold_indices(frame)
@@ -190,8 +189,8 @@ def _add_significance_stars(p_value):
         p_value: A coefficient's two-sided p-value.
 
     Returns:
-        ``'***'`` for p < 0.001, ``'**'`` for p < 0.01, ``'*'`` for p < 0.05,
-        else ``''``.
+        `'***'` for p < 0.001, `'**'` for p < 0.01, `'*'` for p < 0.05,
+        else `''`.
     """
     if p_value < 0.001:
         return '***'
@@ -205,25 +204,25 @@ def _add_significance_stars(p_value):
 def fit_and_evaluate_block(feature_vars, train_set, test_set, name):
     """Fits a GLM Binomial block location-choice model and evaluates it out-of-sample.
 
-    Fits a balanced-weighted GLM Binomial via ``statsmodels`` directly on the raw
+    Fits a balanced-weighted GLM Binomial via `statsmodels` directly on the raw
     (unstandardized) covariate values and scores AUC on both the training and
     test sets. Unlike the affordable-housing developer notebook this mirrors, no
-    ``StandardScaler`` is applied: BAUS's own HLCM/ELCM/hedonic yamls store
-    raw-scale ``fit_parameters`` with no persisted scaler, so fitting
+    `StandardScaler` is applied: BAUS's own HLCM/ELCM/hedonic yamls store
+    raw-scale `fit_parameters` with no persisted scaler, so fitting
     unstandardized here keeps the exported coefficients directly usable by a
-    simulation-time ``model_expression`` eval over live block covariates.
+    simulation-time `model_expression` eval over live block covariates.
 
     Args:
-        feature_vars: Variable names as they appear in ``train_set``/``test_set``.
+        feature_vars: Variable names as they appear in `train_set`/`test_set`.
         train_set: Training-fold blocks.
         test_set: Test-fold blocks.
-        name: Model identifier (e.g. ``"baseline fold 1"``); appended to the
+        name: Model identifier (e.g. `"baseline fold 1"`); appended to the
             feature list to form the printed label.
 
     Returns:
-        A dict with keys: ``label``, ``glm_result``, ``model_features``,
-        ``train_auc``, ``test_auc``, ``probs`` (test-set predicted
-        probabilities, aligned to ``test_set`` row order), ``summary_df``
+        A dict with keys: `label`, `glm_result`, `model_features`,
+        `train_auc`, `test_auc`, `probs` (test-set predicted
+        probabilities, aligned to `test_set` row order), `summary_df`
         (coefficient table, in raw covariate units).
 
     Example:
@@ -299,19 +298,19 @@ def run_kfold_cv(feature_vars, name, frame, fold_indices):
     for export.
 
     Args:
-        feature_vars: RHS variable names as they appear in ``frame``.
-        name: Model identifier string (e.g. ``"baseline"``).
+        feature_vars: RHS variable names as they appear in `frame`.
+        name: Model identifier string (e.g. `"baseline"`).
         frame: The prepared block estimation frame.
-        fold_indices: List of ``(train_idx, test_idx)`` tuples into ``frame``,
-            as returned by ``build_fold_indices``.
+        fold_indices: List of `(train_idx, test_idx)` tuples into `frame`,
+            as returned by `build_fold_indices`.
 
     Returns:
         A dict with keys:
-            - ``cv_results``: list of per-fold dicts from ``fit_and_evaluate_block``.
-            - ``mean_test_auc`` / ``std_test_auc``: float, across folds.
-            - ``oof_probs``: Series of OOF predicted probabilities indexed by
-              ``block_geoid``.
-            - ``final_model``: dict from ``fit_and_evaluate_block`` fit on the
+            - `cv_results`: list of per-fold dicts from `fit_and_evaluate_block`.
+            - `mean_test_auc` / `std_test_auc`: float, across folds.
+            - `oof_probs`: Series of OOF predicted probabilities indexed by
+              `block_geoid`.
+            - `final_model`: dict from `fit_and_evaluate_block` fit on the
               full dataset.
 
     Example:
@@ -320,8 +319,8 @@ def run_kfold_cv(feature_vars, name, frame, fold_indices):
         >>> print(f"{cv_baseline['mean_test_auc']:.3f} +/- {cv_baseline['std_test_auc']:.3f}")
 
     See Also:
-        compute_tract_validation: consumes ``oof_probs`` for tract-level checks.
-        compare_specs: calls this once per spec in ``BLOCK_DEVELOPER_SPECS``.
+        compute_tract_validation: consumes `oof_probs` for tract-level checks.
+        compare_specs: calls this once per spec in `BLOCK_DEVELOPER_SPECS`.
     """
     cv_results = []
     oof_prob_parts = []
@@ -365,10 +364,10 @@ def _compute_fit_stats(observed, predicted):
 
     Args:
         observed: Array-like of observed values.
-        predicted: Array-like of predicted values, aligned to ``observed``.
+        predicted: Array-like of predicted values, aligned to `observed`.
 
     Returns:
-        A dict with keys ``slope``, ``intercept``, ``r2``, ``rmse``, ``n``.
+        A dict with keys `slope`, `intercept`, `r2`, `rmse`, `n`.
     """
     slope, intercept = np.polyfit(observed, predicted, 1)
     y_hat = slope * observed + intercept
@@ -381,7 +380,7 @@ def _compute_fit_stats(observed, predicted):
 def compute_tract_validation(frame, oof_probs):
     """Validates block-grain predictions by aggregating them to census tracts.
 
-    Per the plan, the block LCM is estimated at block grain but validated at
+    The block LCM is estimated at block grain but validated at
     tract grain: transferring tract-scale coefficients to blocks would be a
     change-of-support / MAUP liability, so tract-level aggregate checks manage
     block-level noise instead. This validates location only -- **propensity**:
@@ -390,21 +389,21 @@ def compute_tract_validation(frame, oof_probs):
     intercept, R-squared, and RMSE, mirroring the affordable-housing developer
     model's superdistrict validation.
 
-    Unit counts are intentionally out of scope here: per the plan's Option B
-    allocation mechanism, "how many units per block" is decided by the
+    Unit counts are intentionally out of scope here: "how many units per block"
+    is decided by the
     feasibility-derived deliverable-capacity roll-up, not by this location-choice
     model's predicted probabilities -- so there is no probability-weighted unit
     allocation to validate at this stage.
 
     Args:
-        frame: The prepared block estimation frame, with a ``developed`` column
-            and a ``tract_geoid`` column.
-        oof_probs: OOF predicted probabilities indexed by ``block_geoid``, as
-            returned by ``run_kfold_cv``.
+        frame: The prepared block estimation frame, with a `developed` column
+            and a `tract_geoid` column.
+        oof_probs: OOF predicted probabilities indexed by `block_geoid`, as
+            returned by `run_kfold_cv`.
 
     Returns:
-        A dict with keys ``tract_agg`` (the tract-level aggregate DataFrame) and
-        ``propensity_stats`` (a dict from ``_compute_fit_stats``).
+        A dict with keys `tract_agg` (the tract-level aggregate DataFrame) and
+        `propensity_stats` (a dict from `_compute_fit_stats`).
 
     Example:
         >>> tract_validation = compute_tract_validation(frame, cv_result['oof_probs'])
@@ -412,7 +411,7 @@ def compute_tract_validation(frame, oof_probs):
         True
 
     See Also:
-        run_kfold_cv: produces the ``oof_probs`` this consumes.
+        run_kfold_cv: produces the `oof_probs` this consumes.
     """
     validation_frame = pd.DataFrame({
         'tract_geoid': frame['tract_geoid'],
@@ -436,23 +435,23 @@ def compute_tract_validation(frame, oof_probs):
 def compare_specs(frame, fold_indices, specs=None):
     """Fits, validates, and tabulates every spec in a spec registry.
 
-    Runs ``run_kfold_cv`` and ``compute_tract_validation`` for each entry in
-    ``specs`` and assembles a tidy comparison table. To compare an alternative
-    specification, add an entry to ``BLOCK_DEVELOPER_SPECS`` (or pass a custom
-    ``specs`` dict) rather than modifying this function.
+    Runs `run_kfold_cv` and `compute_tract_validation` for each entry in
+    `specs` and assembles a tidy comparison table. To compare an alternative
+    specification, add an entry to `BLOCK_DEVELOPER_SPECS` (or pass a custom
+    `specs` dict) rather than modifying this function.
 
     Args:
         frame: The prepared block estimation frame.
-        fold_indices: List of ``(train_idx, test_idx)`` tuples from
-            ``build_fold_indices``.
+        fold_indices: List of `(train_idx, test_idx)` tuples from
+            `build_fold_indices`.
         specs: Mapping of spec name to feature-variable list. Defaults to
-            ``BLOCK_DEVELOPER_SPECS``.
+            `BLOCK_DEVELOPER_SPECS`.
 
     Returns:
-        A dict with keys ``cv_results`` (mapping of spec name to a dict of the
-        ``run_kfold_cv`` result plus ``tract_validation``) and
-        ``comparison_table`` (a DataFrame indexed by spec name with
-        ``mean_test_auc``, ``std_test_auc``, and ``tract_propensity_r2`` columns).
+        A dict with keys `cv_results` (mapping of spec name to a dict of the
+        `run_kfold_cv` result plus `tract_validation`) and
+        `comparison_table` (a DataFrame indexed by spec name with
+        `mean_test_auc`, `std_test_auc`, and `tract_propensity_r2` columns).
 
     Example:
         >>> comparison = compare_specs(frame, fold_indices,
@@ -492,30 +491,30 @@ def compare_specs(frame, fold_indices, specs=None):
 def export_spec_yaml(final_model, spec_name, tract_validation=None, path=_SPEC_YAML_PATH):
     """Writes a fitted block-developer spec to a location-choice-style yaml.
 
-    Follows the ``model_expression`` + ``fit_parameters`` shape used by
-    ``configs/location_choice/hlcm_owner.yaml``, with ``fit_parameters`` holding
-    ``Coefficient``, ``Std. Error``, and ``T-Score`` keyed by variable name
-    (including ``Intercept``). Coefficients are in raw covariate space (no
-    scaler was applied during fitting -- see ``fit_and_evaluate_block``), so a
-    simulation-time step can score live blocks with a plain ``model_expression``
+    Follows the `model_expression` + `fit_parameters` shape used by
+    `configs/location_choice/hlcm_owner.yaml`, with `fit_parameters` holding
+    `Coefficient`, `Std. Error`, and `T-Score` keyed by variable name
+    (including `Intercept`). Coefficients are in raw covariate space (no
+    scaler was applied during fitting -- see `fit_and_evaluate_block`), so a
+    simulation-time step can score live blocks with a plain `model_expression`
     eval, matching how BAUS's own HLCM/ELCM/hedonic yamls are consumed. Unlike
     the HLCM/ELCM yamls, this is a bespoke GLM Binomial fit rather than an
-    ``urbansim_defaults`` MNL, so it is not yet consumed by ``utils.lcm_estimate``
-    -- a ``block_residential_developer_estimate``/``_simulate`` step pair (per
-    the plan) would read this format directly.
+    `urbansim_defaults` MNL, so it is not yet consumed by `utils.lcm_estimate`
+    -- a `block_residential_developer_estimate`/`_simulate` step pair
+    would read this format directly.
 
     Args:
-        final_model: The ``final_model`` dict from ``run_kfold_cv`` (fit on the
+        final_model: The `final_model` dict from `run_kfold_cv` (fit on the
             full dataset).
-        spec_name: Spec identifier (e.g. ``"baseline"``), used in the yaml's
-            ``name`` field.
-        tract_validation: Optional dict from ``compute_tract_validation``; if
-            given, its ``propensity_stats`` is written under a
-            ``tract_validation`` key.
+        spec_name: Spec identifier (e.g. `"baseline"`), used in the yaml's
+            `name` field.
+        tract_validation: Optional dict from `compute_tract_validation`; if
+            given, its `propensity_stats` is written under a
+            `tract_validation` key.
         path: Destination yaml path.
 
     Returns:
-        The dict that was written to ``path``.
+        The dict that was written to `path`.
 
     Example:
         >>> spec = export_spec_yaml(cv_result['final_model'], 'baseline', tract_validation)
@@ -572,23 +571,23 @@ def train_block_developer(
     """Assembles the estimation dataset, fits, validates, and exports one spec.
 
     Orchestrates the full training pipeline for a single named spec in
-    ``BLOCK_DEVELOPER_SPECS``: builds the estimation frame, runs stratified
+    `BLOCK_DEVELOPER_SPECS`: builds the estimation frame, runs stratified
     k-fold cross-validation, validates the block-grain fit at tract grain, and
     writes the full-dataset fit to the spec yaml.
 
     Args:
-        spec_name: Key into ``BLOCK_DEVELOPER_SPECS`` identifying which
+        spec_name: Key into `BLOCK_DEVELOPER_SPECS` identifying which
             RHS variable list to fit.
         census_api_key: Census API key, passed through to
-            ``build_block_developer_dataset``. Required only on the first run,
+            `build_block_developer_dataset`. Required only on the first run,
             when the decennial caches are absent.
         n_folds: Number of cross-validation folds.
         random_state: Random seed for fold assignment reproducibility.
         spec_yaml_path: Destination yaml path for the fitted spec.
 
     Returns:
-        A dict with keys ``cv_result`` (from ``run_kfold_cv``) and
-        ``tract_validation`` (from ``compute_tract_validation``).
+        A dict with keys `cv_result` (from `run_kfold_cv`) and
+        `tract_validation` (from `compute_tract_validation`).
 
     Example:
         >>> result = train_block_developer(spec_name='baseline', census_api_key='YOUR_KEY')

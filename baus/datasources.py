@@ -1409,28 +1409,28 @@ def parcels_tract():
     )
 
 
-# census blocks for parcels, for block-level supply roll-ups (Phase 1 block port)
+# census blocks for parcels, for block-level supply roll-ups (block port)
 @orca.table(cache=True)
 def parcels_block():
     """Loads the areal parcel-to-2020-census-block crosswalk as a parcel-indexed table.
 
     Reads the polygon-intersection crosswalk in place from the shared M: drive
     (deliberately not copied into the model inputs).  Because a parcel is mapped to
-    every 2020 census block it overlaps, the ``parcel_id`` index is non-unique and
+    every 2020 census block it overlaps, the `parcel_id` index is non-unique and
     each row carries the share of the parcel falling in that block
-    (``parcel_block_share``), so block supply roll-ups can apportion parcel capacity
+    (`parcel_block_share`), so block supply roll-ups can apportion parcel capacity
     by intersection instead of assigning each parcel wholly to one block.  This
     replaces the earlier centroid crosswalk, which left blocks whose overlapping
     parcels had centroids in adjacent blocks with zero supply.
 
     Returns:
-        A DataFrame indexed by ``parcel_id`` (non-unique) with a ``block_geoid``
+        A DataFrame indexed by `parcel_id` (non-unique) with a `block_geoid`
         column holding the 15-digit 2020 census-block GEOID as an int64 and a
-        ``parcel_block_share`` column giving the parcel's area share in that block.
+        `parcel_block_share` column giving the parcel's area share in that block.
         The GEOID is loaded as int64 (not string) so the block-choice models can
-        use it as a numeric alternatives key with a ``-1`` unplaced sentinel; the
-        ``block_supply_summary`` reporting step re-pads it to a 15-digit string on
-        write so its CSV output is unchanged (see ``core_summaries``).
+        use it as a numeric alternatives key with a `-1` unplaced sentinel; the
+        `block_supply_summary` reporting step re-pads it to a 15-digit string on
+        write so its CSV output is unchanged (see `core_summaries`).
     """
     parcels_block_xwalk = pd.read_csv(
         r"M:\urban_modeling\urbansim_cloud\projects\combo\parcel_block20_xwalk.csv",

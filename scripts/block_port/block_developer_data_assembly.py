@@ -1,13 +1,13 @@
 """Assemble the block residential developer LCM estimation dataset (DV + IVs).
 
-Single data-assembly entry point for the Phase-2 block residential developer
-location-choice model (see plan_baus_block_port.md -> "Model estimation").  It
+Single data-assembly entry point for the block residential developer
+location-choice model. It
 builds both halves of the estimation frame and joins them on the 2020 census
 block:
 
 - **Dependent variable (DV):** the net 2010->2020 block housing-unit change.
   Sources decennial total-housing-unit counts for the nine Bay Area counties from
-  the Census API via ``pytidycensus``, caches them under the block sandbox,
+  the Census API via `pytidycensus`, caches them under the block sandbox,
   harmonizes the 2010 counts onto 2020 census blocks with the NHGIS 2010->2020
   block crosswalk, and differences them.  This is the pre-LIHTC DV; the
   market-rate residual (net change minus new-construction LIHTC) is produced by a
@@ -16,7 +16,7 @@ block:
 - **Independent variables (IVs):** the 2010 BAUS base-year parcel covariates
   (accessibility, zoning, and land-use attributes exported for the affordable-
   housing developer model), aggregated from p10 parcels onto 2020 census blocks
-  using the areal (polygon-intersection) ``parcel_id`` -> ``block_geoid``
+  using the areal (polygon-intersection) `parcel_id` -> `block_geoid`
   crosswalk.  Because that crosswalk maps a parcel to every block it overlaps, the
   combine rules apportion by intersection: extensive quantities are apportioned by
   each parcel's area share and summed; intensive accessibility measures are
@@ -92,7 +92,7 @@ _BLOCK_CROSSWALK_PATH = pathlib.Path(
 )
 
 # 2010 BAUS base-year parcel covariates (the same export the affordable-housing
-# developer model builds its covariate set from), keyed by ``parcel_id``.
+# developer model builds its covariate set from), keyed by `parcel_id`.
 _COVARS_PATH = pathlib.Path(
     r'M:\urban_modeling\baus\BAUS Inputs\affordable_housing'
     r'\baus_baseyear_access\parcels_with_access_baseyear.csv'
@@ -100,7 +100,7 @@ _COVARS_PATH = pathlib.Path(
 
 # Areal p10 parcel -> 2020 census-block crosswalk (polygon intersection, read in
 # place from M:).  Maps each parcel to every block it overlaps with the parcel's
-# area share and intersection area, mirroring the ``parcels_block`` orca table.
+# area share and intersection area, mirroring the `parcels_block` orca table.
 _PARCELS_BLOCK_XWALK_PATH = pathlib.Path(
     r'M:\urban_modeling\urbansim_cloud\projects\combo\parcel_block20_xwalk.csv'
 )
@@ -159,7 +159,7 @@ def load_block_crosswalk(crosswalk_path=_BLOCK_CROSSWALK_PATH):
     """Loads the NHGIS 2010->2020 block crosswalk and validates its weights.
 
     Reads the block-source crosswalk, keeping the 2010/2020 block GEOIDs and the
-    single all-characteristics interpolation ``weight`` (the expected share of a
+    single all-characteristics interpolation `weight` (the expected share of a
     source 2010 block's population and housing located in each target 2020
     block).  Validates that no 2010 source block's weights sum to **more** than 1.
 
@@ -171,11 +171,11 @@ def load_block_crosswalk(crosswalk_path=_BLOCK_CROSSWALK_PATH):
     malformed or wrong-direction crosswalk.
 
     Args:
-        crosswalk_path: Path to the NHGIS ``blk2010_blk2020`` CSV.
+        crosswalk_path: Path to the NHGIS `blk2010_blk2020` CSV.
 
     Returns:
-        A DataFrame with columns ``blk2010ge``, ``blk2020ge`` (15-char Census
-        GEOIDs as strings) and ``weight`` (float).
+        A DataFrame with columns `blk2010ge`, `blk2020ge` (15-char Census
+        GEOIDs as strings) and `weight` (float).
 
     Raises:
         ValueError: If any 2010 source block's weights sum to more than 1 (beyond
@@ -212,11 +212,11 @@ def allocate_2010_hu_to_2020_blocks(hu_2010, crosswalk):
     2020-block geography as the 2020 counts.
 
     Args:
-        hu_2010: A DataFrame with ``blk2010ge`` and ``hu_2010`` columns.
-        crosswalk: The crosswalk returned by ``load_block_crosswalk``.
+        hu_2010: A DataFrame with `blk2010ge` and `hu_2010` columns.
+        crosswalk: The crosswalk returned by `load_block_crosswalk`.
 
     Returns:
-        A DataFrame indexed by ``blk2020ge`` with a single ``hu_2010`` column of
+        A DataFrame indexed by `blk2020ge` with a single `hu_2010` column of
         interpolated 2010 housing units.
 
     Example:
@@ -236,23 +236,23 @@ def fetch_decennial_block_housing_units(year, variable, cache_path, census_api_k
     """Fetches (or loads cached) decennial block housing-unit counts for the Bay Area.
 
     On the first run this pulls total housing units for every census block in the
-    nine Bay Area counties from the Census API via ``pytidycensus.get_decennial``
+    nine Bay Area counties from the Census API via `pytidycensus.get_decennial`
     (one call per county) and writes a CSV cache.  On subsequent runs it reads
     that cache instead of re-downloading.
 
     Args:
         year: Decennial census year (2010 or 2020).
         variable: The total-housing-unit variable ID for that year's summary file
-            (2010 SF1 ``H001001``; 2020 PL 94-171 ``H1_001N``).
+            (2010 SF1 `H001001`; 2020 PL 94-171 `H1_001N`).
         cache_path: CSV path to read from if present, else write to.
         census_api_key: Census API key (free signup at
             https://api.census.gov/data/key_signup.html).
 
     Returns:
-        A DataFrame with a 15-char block ``GEOID`` (string, assembled from the
-        ``state``/``county``/``tract``/``block`` components pytidycensus returns,
-        because its own ``GEOID`` field is only tract-level for blocks) and a
-        ``housing_units`` (float) column.
+        A DataFrame with a 15-char block `GEOID` (string, assembled from the
+        `state`/`county`/`tract`/`block` components pytidycensus returns,
+        because its own `GEOID` field is only tract-level for blocks) and a
+        `housing_units` (float) column.
 
     Example:
         >>> hu = fetch_decennial_block_housing_units(
@@ -315,11 +315,11 @@ def build_block_hu_change(
         output_path: Destination CSV for the net-change DV.
 
     Returns:
-        A DataFrame indexed by ``blk2020ge`` with ``hu_2010``, ``hu_2020`` and
-        ``hu_change`` columns.
+        A DataFrame indexed by `blk2020ge` with `hu_2010`, `hu_2020` and
+        `hu_change` columns.
 
     Raises:
-        ValueError: If a first-time fetch is required but ``census_api_key`` is
+        ValueError: If a first-time fetch is required but `census_api_key` is
             not supplied, or if the crosswalk weights fail validation.
 
     Example:
@@ -376,10 +376,10 @@ def load_parcel_covariates(covars_path=_COVARS_PATH):
     attributes computed for each 2010 p10 parcel.
 
     Args:
-        covars_path: Path to ``parcels_with_access_baseyear.csv``.
+        covars_path: Path to `parcels_with_access_baseyear.csv`.
 
     Returns:
-        A DataFrame indexed by ``parcel_id`` with one column per base-year
+        A DataFrame indexed by `parcel_id` with one column per base-year
         covariate.
 
     Example:
@@ -395,19 +395,19 @@ def load_parcel_block_crosswalk(xwalk_path=_PARCELS_BLOCK_XWALK_PATH):
 
     Reads the polygon-intersection crosswalk that maps each p10 parcel to every
     2020 census block it overlaps, carrying the share of the parcel in each block
-    (``parcel_block_share``) and the intersection area (``intersection_area_sqm``).
+    (`parcel_block_share`) and the intersection area (`intersection_area_sqm`).
     A parcel straddling a block boundary therefore appears on multiple rows.  This
     replaces the earlier centroid (one-block-per-parcel) crosswalk, which dropped
     blocks whose overlapping parcels had centroids in adjacent blocks (mirrors the
-    ``parcels_block`` orca table in ``baus/datasources.py``).
+    `parcels_block` orca table in `baus/datasources.py`).
 
     Args:
-        xwalk_path: Path to ``parcel_block20_xwalk.csv``.
+        xwalk_path: Path to `parcel_block20_xwalk.csv`.
 
     Returns:
-        A DataFrame indexed by ``parcel_id`` (non-unique) with ``block_geoid`` (the
-        15-digit 2020 GEOID as a string), ``parcel_block_share`` and
-        ``intersection_area_sqm`` columns.
+        A DataFrame indexed by `parcel_id` (non-unique) with `block_geoid` (the
+        15-digit 2020 GEOID as a string), `parcel_block_share` and
+        `intersection_area_sqm` columns.
 
     Example:
         >>> parcel_block = load_parcel_block_crosswalk()
@@ -435,17 +435,17 @@ def aggregate_covariates_to_blocks(parcel_covariates, parcel_block):
 
     Args:
         parcel_covariates: Parcel-indexed covariates from
-            ``load_parcel_covariates``.
+            `load_parcel_covariates`.
         parcel_block: Areal parcel->block crosswalk from
-            ``load_parcel_block_crosswalk`` (``block_geoid``,
-            ``parcel_block_share``, ``intersection_area_sqm``; non-unique
-            ``parcel_id`` index).
+            `load_parcel_block_crosswalk` (`block_geoid`,
+            `parcel_block_share`, `intersection_area_sqm`; non-unique
+            `parcel_id` index).
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with the summed, weighted-averaged,
+        A DataFrame indexed by `block_geoid` with the summed, weighted-averaged,
         maxed, and first-valued covariates plus the recomputed derived columns
-        (``built_dua``, ``zoned_du_build_ratio``, ``total_assessed_value``, and
-        the ``log_*`` transforms).
+        (`built_dua`, `zoned_du_build_ratio`, `total_assessed_value`, and
+        the `log_*` transforms).
 
     Example:
         >>> block_covariates = aggregate_covariates_to_blocks(
@@ -503,14 +503,14 @@ def build_block_covariates(covars_path=_COVARS_PATH, xwalk_path=_PARCELS_BLOCK_X
     Loads the base-year parcel covariates and the areal parcel->block crosswalk,
     then aggregates the covariates onto 2020 blocks.  This is the independent-
     variable half of the estimation frame; the dependent variable is joined by
-    ``build_block_developer_dataset``.
+    `build_block_developer_dataset`.
 
     Args:
         covars_path: Path to the base-year parcel covariate CSV.
         xwalk_path: Path to the areal parcel -> 2020-block crosswalk CSV.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with the aggregated block
+        A DataFrame indexed by `block_geoid` with the aggregated block
         covariates.
 
     Example:
@@ -544,9 +544,9 @@ def build_block_developer_dataset(
 
     Builds the dependent variable (net 2010->2020 block housing-unit change) and
     the independent variables (base-year parcel covariates aggregated to 2020
-    blocks), then inner-joins them on ``block_geoid``.  The inner join keeps only
+    blocks), then inner-joins them on `block_geoid`.  The inner join keeps only
     blocks that both contain p10 parcels and appear in the decennial DV.  The DV
-    is computed in memory (and cached to ``dv_path`` as a reusable input); the
+    is computed in memory (and cached to `dv_path` as a reusable input); the
     joined estimation frame is returned in memory and written nowhere -- a
     downstream estimation script consumes it and writes the model-spec yaml.
 
@@ -561,12 +561,12 @@ def build_block_developer_dataset(
             decennial caches are absent.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with the aggregated block covariates
-        and the ``hu_2010``, ``hu_2020`` and ``hu_change`` columns.
+        A DataFrame indexed by `block_geoid` with the aggregated block covariates
+        and the `hu_2010`, `hu_2020` and `hu_change` columns.
 
     Raises:
         ValueError: If a first-time decennial fetch is required but
-            ``census_api_key`` is not supplied, or if the block crosswalk weights
+            `census_api_key` is not supplied, or if the block crosswalk weights
             fail validation.
 
     Example:

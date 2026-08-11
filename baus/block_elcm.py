@@ -1,28 +1,28 @@
 """Block-level employment location choice (ELCM) for the BAUS block port.
 
-This module wires the existing ELCM spec (``configs/location_choice/elcm.yaml``,
-reused unchanged) onto the census-block alternatives table built in Phase-3 chunk
-3.3 (``baus.block_supply.block_elcm_alternatives``). Instead of choosing among
-*buildings*, unplaced jobs choose among *blocks*: ``utils.lcm_simulate`` runs with
-``out_fname='block_geoid'``, ``supply_fname='job_spaces'`` and
-``vacant_fname='vacant_job_spaces'`` pointed at the block table, so the fitted ELCM
-coefficients score block covariates directly (Option B — covariates materialized on
-the block table, no ``join_tbls`` broadcast).
+This module wires the existing ELCM spec (`configs/location_choice/elcm.yaml`,
+reused unchanged) onto the census-block alternatives table
+(`baus.block_supply.block_elcm_alternatives`). Instead of choosing among
+*buildings*, unplaced jobs choose among *blocks*: `utils.lcm_simulate` runs with
+`out_fname='block_geoid'`, `supply_fname='job_spaces'` and
+`vacant_fname='vacant_job_spaces'` pointed at the block table, so the fitted ELCM
+coefficients score block covariates directly (materialized on the block table, no
+`join_tbls` broadcast).
 
-``utils.lcm_simulate`` identifies movers as ``choosers[out_fname] == -1`` and expands
+`utils.lcm_simulate` identifies movers as `choosers[out_fname] == -1` and expands
 vacancy by repeating the alternatives' index, so the block key must be a numeric
-column with a ``-1`` unplaced sentinel. ``parcels_block`` therefore loads
-``block_geoid`` as int64 (the 15-digit GEOID fits int64), and this step writes an
-int64 ``block_geoid`` column onto ``jobs``: ``-1`` for unplaced jobs (``building_id
-== -1``), and the job's building's parcel's dominant block for placed jobs.
+column with a `-1` unplaced sentinel. `parcels_block` therefore loads
+`block_geoid` as int64 (the 15-digit GEOID fits int64), and this step writes an
+int64 `block_geoid` column onto `jobs`: `-1` for unplaced jobs (`building_id
+== -1`), and the job's building's parcel's dominant block for placed jobs.
 
-The step then renders each block choice down to a concrete building (chunk 3.5): a
-thin, behavior-free bridge picks a building with ``vacant_job_spaces > 0`` in the
-chosen block and writes ``building_id`` back onto ``jobs``, so ``elcm_simulate``'s
+The step then renders each block choice down to a concrete building: a thin,
+behavior-free bridge picks a building with `vacant_job_spaces > 0` in the
+chosen block and writes `building_id` back onto `jobs`, so `elcm_simulate`'s
 supply accounting and every downstream job-geography variable/summary keep working
 unchanged. Assignment within a block is a deterministic capacity-fill (stable order,
 no RNG). The step is registered but not yet in the annual model list, and the parcel
-``elcm_simulate`` (``baus/models.py``) is left untouched for A/B comparison, so
+`elcm_simulate` (`baus/models.py`) is left untouched for A/B comparison, so
 registering this module changes no model behavior.
 
 See Also:
@@ -50,28 +50,28 @@ __all__ = [
 
 
 def assign_job_block_geoid(jobs, buildings, dominant_block):
-    """Assigns each job the int64 block key ``utils.lcm_simulate`` chooses from.
+    """Assigns each job the int64 block key `utils.lcm_simulate` chooses from.
 
-    Unplaced jobs (``building_id == -1``) receive the ``-1`` sentinel that
-    ``lcm_simulate`` uses to identify movers; placed jobs receive the dominant
+    Unplaced jobs (`building_id == -1`) receive the `-1` sentinel that
+    `lcm_simulate` uses to identify movers; placed jobs receive the dominant
     (largest-area-share) block of their building's parcel. A small share of parcels
-    are absent from the areal ``parcels_block`` crosswalk (e.g. parcels dropped for
+    are absent from the areal `parcels_block` crosswalk (e.g. parcels dropped for
     void geometry), so a placed job on such a parcel has no dominant block; it
-    receives a distinct ``-2`` sentinel so it stays a non-mover (``lcm_simulate``
-    only moves ``-1``) and is excluded from block rendering, while the block
+    receives a distinct `-2` sentinel so it stays a non-mover (`lcm_simulate`
+    only moves `-1`) and is excluded from block rendering, while the block
     supply/vacancy roll-ups — which inner-join the same crosswalk — already omit it
     on both the supply and occupancy sides. The result is an int64 column so it can
     serve as the numeric alternatives key.
 
     Args:
-        jobs: DataFrame with a ``building_id`` column (one row per job); an unplaced
-            job is flagged by ``building_id == -1``.
-        buildings: DataFrame indexed by ``building_id`` with a ``parcel_id`` column.
-        dominant_block: Series indexed by ``parcel_id`` giving each parcel's dominant
-            int64 ``block_geoid`` (see ``_dominant_block_for_parcels``).
+        jobs: DataFrame with a `building_id` column (one row per job); an unplaced
+            job is flagged by `building_id == -1`.
+        buildings: DataFrame indexed by `building_id` with a `parcel_id` column.
+        dominant_block: Series indexed by `parcel_id` giving each parcel's dominant
+            int64 `block_geoid` (see `_dominant_block_for_parcels`).
 
     Returns:
-        An int64 Series aligned to ``jobs`` with ``-1`` for unplaced jobs, ``-2`` for
+        An int64 Series aligned to `jobs` with `-1` for unplaced jobs, `-2` for
         placed jobs whose parcel is absent from the crosswalk, and the placed job's
         parcel's dominant block otherwise.
 
@@ -86,7 +86,7 @@ def assign_job_block_geoid(jobs, buildings, dominant_block):
         [60750611012023, -1]
 
     See Also:
-        block_elcm_simulate: the orca step that writes this column onto ``jobs`` and
+        block_elcm_simulate: the orca step that writes this column onto `jobs` and
             runs the block ELCM.
     """
     job_parcel = jobs["building_id"].map(buildings["parcel_id"])
@@ -100,28 +100,27 @@ def assign_job_block_geoid(jobs, buildings, dominant_block):
 def render_block_jobs_to_buildings(jobs, buildings, dominant_block):
     """Renders each block-placed job down to a concrete building in that block.
 
-    The block ELCM leaves a mover with a chosen ``block_geoid`` but still
-    ``building_id == -1``. This thin, behavior-free bridge assigns each such job a
-    building with ``vacant_job_spaces > 0`` in its chosen block, filling candidate
-    buildings deterministically (stable ``building_id`` order, no RNG) so a building
+    The block ELCM leaves a mover with a chosen `block_geoid` but still
+    `building_id == -1`. This thin, behavior-free bridge assigns each such job a
+    building with `vacant_job_spaces > 0` in its chosen block, filling candidate
+    buildings deterministically (stable `building_id` order, no RNG) so a building
     is never assigned more jobs than its vacant job spaces. Jobs whose chosen block
-    lacks enough vacant building capacity keep ``building_id == -1`` (the normal
+    lacks enough vacant building capacity keep `building_id == -1` (the normal
     unplaced tail), so the returned Series covers only the jobs actually rendered.
 
     A building's block is its parcel's dominant block, so the candidate buildings in a
-    block are exactly those the block ELCM's vacancy was rolled up from (up to the
-    areal-vs-dominant seam noted in the module design).
+    block are exactly those the block ELCM's vacancy was rolled up from.
 
     Args:
-        jobs: DataFrame with ``building_id`` and int64 ``block_geoid`` columns; a job
-            to render has ``building_id == -1`` and ``block_geoid != -1``.
-        buildings: DataFrame indexed by ``building_id`` with ``parcel_id`` and integer
-            ``vacant_job_spaces`` columns.
-        dominant_block: Series indexed by ``parcel_id`` giving each parcel's dominant
-            int64 ``block_geoid`` (see ``_dominant_block_for_parcels``).
+        jobs: DataFrame with `building_id` and int64 `block_geoid` columns; a job
+            to render has `building_id == -1` and `block_geoid != -1`.
+        buildings: DataFrame indexed by `building_id` with `parcel_id` and integer
+            `vacant_job_spaces` columns.
+        dominant_block: Series indexed by `parcel_id` giving each parcel's dominant
+            int64 `block_geoid` (see `_dominant_block_for_parcels`).
 
     Returns:
-        An int64 Series indexed by job id, holding the assigned ``building_id`` for
+        An int64 Series indexed by job id, holding the assigned `building_id` for
         each rendered job only (jobs left unplaced are omitted).
 
     Example:
@@ -136,7 +135,7 @@ def render_block_jobs_to_buildings(jobs, buildings, dominant_block):
         [100, 100]
 
     See Also:
-        block_elcm_simulate: the orca step that applies these assignments to ``jobs``.
+        block_elcm_simulate: the orca step that applies these assignments to `jobs`.
         assign_job_block_geoid: the companion helper that assigns the block key.
     """
     building_block = buildings["parcel_id"].map(dominant_block)
@@ -168,25 +167,25 @@ def render_block_jobs_to_buildings(jobs, buildings, dominant_block):
 def block_elcm_simulate(jobs, buildings, parcels_block, block_elcm_alternatives):
     """Places unplaced jobs into census blocks and renders them to buildings.
 
-    Writes an int64 ``block_geoid`` column onto ``jobs`` (``-1`` for unplaced jobs,
-    the dominant block otherwise), then runs ``utils.lcm_simulate`` with the fitted
+    Writes an int64 `block_geoid` column onto `jobs` (`-1` for unplaced jobs,
+    the dominant block otherwise), then runs `utils.lcm_simulate` with the fitted
     ELCM spec against the block alternatives table so each mover chooses a block. The
-    chosen ``block_geoid`` is written back onto ``jobs``, then the rendering bridge
-    (``render_block_jobs_to_buildings``) assigns each newly block-placed job a
-    building with vacant job spaces in that block and writes ``building_id`` back.
+    chosen `block_geoid` is written back onto `jobs`, then the rendering bridge
+    (`render_block_jobs_to_buildings`) assigns each newly block-placed job a
+    building with vacant job spaces in that block and writes `building_id` back.
 
     Args:
-        jobs: The orca ``jobs`` table (choosers); unplaced jobs have
-            ``building_id == -1``.
-        buildings: The orca ``buildings`` table, used to map placed jobs to parcels
+        jobs: The orca `jobs` table (choosers); unplaced jobs have
+            `building_id == -1`.
+        buildings: The orca `buildings` table, used to map placed jobs to parcels
             and to source per-building vacant job spaces for rendering.
         parcels_block: The areal parcel-to-block crosswalk table, used to derive each
             parcel's dominant block.
-        block_elcm_alternatives: The block-indexed ELCM alternatives table (chunk
-            3.3) with ``job_spaces`` supply and integer ``vacant_job_spaces`` vacancy.
+        block_elcm_alternatives: The block-indexed ELCM alternatives table with
+            `job_spaces` supply and integer `vacant_job_spaces` vacancy.
 
     Returns:
-        None. Mutates the ``jobs`` table's ``block_geoid`` and ``building_id`` columns
+        None. Mutates the `jobs` table's `block_geoid` and `building_id` columns
         in place.
 
     See Also:

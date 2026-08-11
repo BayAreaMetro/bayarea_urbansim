@@ -1,51 +1,51 @@
 """Block-level supply and price/rent roll-up tables for the BAUS block port.
 
-This module holds the additive, live (per-year) block roll-ups that the Phase-3
-demand-side respec consumes as choice-model inputs. Nothing in the base BAUS
+This module holds the additive, live (per-year) block roll-ups that the demand-side
+block ELCM/HLCM consume as choice-model inputs. Nothing in the base BAUS
 simulation reads these tables yet, so registering this module changes no model
 behavior — the tables are only evaluated once a block ELCM/HLCM step is wired to
-read them (Phase-3 chunks 3.3 and 3.7).
+read them.
 
 Two roll-ups live here:
 
-- **Commercial total-stock** (``block_commercial_stock``): total-stock
-  ``job_spaces`` / ``non_residential_sqft`` across *all* buildings (base-year plus
+- **Commercial total-stock** (`block_commercial_stock`): total-stock
+  `job_spaces` / `non_residential_sqft` across *all* buildings (base-year plus
   developer-built), rolled up to census blocks — the block ELCM's supply
-  alternatives. This differs from ``baus.summaries.core_summaries.build_block_supply``,
-  which sums only *realized new* supply (``source != 'h5_inputs'``) at summary
+  alternatives. This differs from `baus.summaries.core_summaries.build_block_supply`,
+  which sums only *realized new* supply (`source != 'h5_inputs'`) at summary
   years for reporting.
-- **Hedonic price/rent** (``block_residential_price``, ``block_nonres_rent``):
-  the existing unit hedonic outputs (``unit_residential_price`` /
-  ``unit_residential_rent``) and the non-residential rent, aggregated to blocks as
+- **Hedonic price/rent** (`block_residential_price`, `block_nonres_rent`):
+  the existing unit hedonic outputs (`unit_residential_price` /
+  `unit_residential_rent`) and the non-residential rent, aggregated to blocks as
   weighted means — the block price/rent covariate the ELCM and HLCM respecs read.
-- **ELCM alternatives** (``block_elcm_alternatives``): a block-indexed table
-  exposing exactly the covariates ``configs/location_choice/elcm.yaml``'s
-  ``model_expression`` reads, plus ``job_spaces`` (supply) and integer
-  ``vacant_job_spaces`` (vacancy), so the existing ELCM spec can choose among
-  blocks unchanged (Phase-3 chunk 3.3). The accessibility covariates are
+- **ELCM alternatives** (`block_elcm_alternatives`): a block-indexed table
+  exposing exactly the covariates `configs/location_choice/elcm.yaml`'s
+  `model_expression` reads, plus `job_spaces` (supply) and integer
+  `vacant_job_spaces` (vacancy), so the existing ELCM spec can choose among
+  blocks unchanged. The accessibility covariates are
   materialized directly onto the block table by area-weighted roll-up rather than
   broadcast at simulate time.
-- **HLCM alternatives** (``block_own_alternatives``, ``block_rent_alternatives``):
+- **HLCM alternatives** (`block_own_alternatives`, `block_rent_alternatives`):
   tenure-split, block-indexed residential choice tables exposing exactly the
-  covariates ``configs/location_choice/hlcm_owner.yaml`` /
-  ``hlcm_renter.yaml`` (and their lowincome / ``_no_unplaced`` variants) read, at
-  grain **block x deed_restricted** so the ``deed_restricted`` alternative filters
-  resolve. ``num_units`` (supply) and ``vacant_units`` (vacancy) roll up by
-  **dominant block** (option B, mirroring the ELCM) while the price/rent covariate
-  and accessibility covariates are intensive means; a majority-TAZ ``submarket_id``
-  is carried for price/rent equilibration (Phase-3 chunk 3.7).
+  covariates `configs/location_choice/hlcm_owner.yaml` /
+  `hlcm_renter.yaml` (and their lowincome / `_no_unplaced` variants) read, at
+  grain **block x deed_restricted** so the `deed_restricted` alternative filters
+  resolve. `num_units` (supply) and `vacant_units` (vacancy) roll up by
+  **dominant block** (mirroring the ELCM) while the price/rent covariate
+  and accessibility covariates are intensive means; a majority-TAZ `submarket_id`
+  is carried for price/rent equilibration.
 
-The intensive covariates (rent, accessibility) use the areal ``parcels_block``
+The intensive covariates (rent, accessibility) use the areal `parcels_block`
 crosswalk: each parcel quantity is apportioned to every block the parcel overlaps by
-its ``parcel_block_share``, so block means blend all overlapping parcels. The block
-ELCM's extensive supply and vacancy (``job_spaces`` / ``vacant_job_spaces``), by
+its `parcel_block_share`, so block means blend all overlapping parcels. The block
+ELCM's extensive supply and vacancy (`job_spaces` / `vacant_job_spaces`), by
 contrast, are rolled up by **dominant block** (each building assigned wholly to its
 parcel's largest-share block), so a block's vacancy equals exactly the building slots
-the rendering bridge (``baus.block_elcm.render_block_jobs_to_buildings``) can fill --
-no unplaced tail from an areal-vs-dominant seam (option B).
+the rendering bridge (`baus.block_elcm.render_block_jobs_to_buildings`) can fill --
+no unplaced tail from an areal-vs-dominant seam.
 
 See Also:
-    baus.summaries.core_summaries.build_block_supply: the Phase-1 realized-supply /
+    baus.summaries.core_summaries.build_block_supply: the realized-supply /
         capacity reporting roll-up that this module's helpers mirror in structure.
 """
 
@@ -82,10 +82,10 @@ __all__ = [
     'block_rent_alternatives',
 ]
 
-# Accessibility / neighborhood covariates that ``elcm.yaml``'s model_expression
-# reads besides ``non_residential_rent``. All are building-level values (node /
+# Accessibility / neighborhood covariates that `elcm.yaml`'s model_expression
+# reads besides `non_residential_rent`. All are building-level values (node /
 # tmnode accessibility variables broadcast onto buildings, plus the
-# ``juris_ave_income`` building column); they are rolled up to blocks as an
+# `juris_ave_income` building column); they are rolled up to blocks as an
 # area-weighted mean. Order mirrors the elcm.yaml expression for readability.
 ELCM_ACCESSIBILITY_COVARIATES = [
     'office_1500',
@@ -101,8 +101,8 @@ ELCM_ACCESSIBILITY_COVARIATES = [
 ]
 
 # Exact column set the block ELCM alternatives table exposes: every
-# model_expression covariate plus the supply (``job_spaces``) and vacancy
-# (``vacant_job_spaces``) fields ``utils.lcm_simulate`` needs.
+# model_expression covariate plus the supply (`job_spaces`) and vacancy
+# (`vacant_job_spaces`) fields `utils.lcm_simulate` needs.
 ELCM_ALTERNATIVE_COLUMNS = (
     ['non_residential_rent']
     + ELCM_ACCESSIBILITY_COVARIATES
@@ -110,12 +110,12 @@ ELCM_ALTERNATIVE_COLUMNS = (
 )
 
 # Accessibility / neighborhood covariates the HLCM specs
-# (``configs/location_choice/hlcm_owner.yaml`` / ``hlcm_renter.yaml``) read besides
-# the tenure price/rent term. All are continuous location covariates -- ``jobs_45``
-# and ``ave_income_1500`` are node/tmnode accessibility values, and ``embarcadero`` /
-# ``pacheights`` / ``stanford`` are nearest-landmark *distances* (not 0/1 dummies) --
+# (`configs/location_choice/hlcm_owner.yaml` / `hlcm_renter.yaml`) read besides
+# the tenure price/rent term. All are continuous location covariates -- `jobs_45`
+# and `ave_income_1500` are node/tmnode accessibility values, and `embarcadero` /
+# `pacheights` / `stanford` are nearest-landmark *distances* (not 0/1 dummies) --
 # so every one is rolled up to blocks as an area-weighted mean, exactly as the ELCM
-# treats ``embarcadero`` / ``stanford``. Order mirrors the hlcm model_expression.
+# treats `embarcadero` / `stanford`. Order mirrors the hlcm model_expression.
 HLCM_ACCESSIBILITY_COVARIATES = [
     'jobs_45',
     'ave_income_1500',
@@ -125,18 +125,18 @@ HLCM_ACCESSIBILITY_COVARIATES = [
 ]
 
 # Exact column set the owner block alternatives table exposes: the owner
-# model_expression covariates (``unit_residential_price`` plus the accessibility
-# covariates), the supply (``num_units``) and vacancy (``vacant_units``) fields
-# ``utils.lcm_simulate`` needs, the ``submarket_id`` used for price equilibration,
-# and the ``tenure`` / ``deed_restricted`` / ``block_geoid`` keys the alternative
-# filters and the (chunk 3.9) rendering bridge read.
+# model_expression covariates (`unit_residential_price` plus the accessibility
+# covariates), the supply (`num_units`) and vacancy (`vacant_units`) fields
+# `utils.lcm_simulate` needs, the `submarket_id` used for price equilibration,
+# and the `tenure` / `deed_restricted` / `block_geoid` keys the alternative
+# filters and the rendering bridge read.
 HLCM_OWN_ALTERNATIVE_COLUMNS = (
     HLCM_ACCESSIBILITY_COVARIATES
     + ['unit_residential_price', 'num_units', 'vacant_units',
        'submarket_id', 'tenure', 'deed_restricted', 'block_geoid']
 )
 
-# Renter counterpart of ``HLCM_OWN_ALTERNATIVE_COLUMNS`` (rent term instead of price).
+# Renter counterpart of `HLCM_OWN_ALTERNATIVE_COLUMNS` (rent term instead of price).
 HLCM_RENT_ALTERNATIVE_COLUMNS = (
     HLCM_ACCESSIBILITY_COVARIATES
     + ['unit_residential_rent', 'num_units', 'vacant_units',
@@ -148,21 +148,21 @@ def _apportion_to_blocks(parcel_block, parcel_values):
     """Apportions parcel-indexed quantities to census blocks by area share.
 
     Broadcasts each parcel's values across every block the parcel overlaps,
-    weights each by the parcel's ``parcel_block_share`` in that block, and sums to
+    weights each by the parcel's `parcel_block_share` in that block, and sums to
     block totals. Extensive quantities (counts, floor area) are conserved across
     parcels that straddle block boundaries. Mirrors the nested helper in
-    ``baus.summaries.core_summaries.build_block_supply``.
+    `baus.summaries.core_summaries.build_block_supply`.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns; a parcel appears
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns; a parcel appears
             once per overlapping block.
-        parcel_values: DataFrame indexed by ``parcel_id`` whose numeric columns are
+        parcel_values: DataFrame indexed by `parcel_id` whose numeric columns are
             the extensive quantities to apportion.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with the same columns as
-        ``parcel_values``, holding the area-weighted block sums. Parcels absent
+        A DataFrame indexed by `block_geoid` with the same columns as
+        `parcel_values`, holding the area-weighted block sums. Parcels absent
         from the crosswalk are dropped (inner join).
 
     Example:
@@ -190,26 +190,26 @@ def _apportion_to_blocks(parcel_block, parcel_values):
 def build_block_commercial_stock(parcel_block, buildings):
     """Rolls total-stock commercial supply up to census blocks.
 
-    Sums ``job_spaces`` and ``non_residential_sqft`` across *all* buildings — both
-    base-year stock (``source == 'h5_inputs'``) and developer-built — grouped to
+    Sums `job_spaces` and `non_residential_sqft` across *all* buildings — both
+    base-year stock (`source == 'h5_inputs'`) and developer-built — grouped to
     parcels, then apportions each parcel total to the blocks it overlaps by
-    ``parcel_block_share``. This is the total-stock supply the block ELCM chooses
+    `parcel_block_share`. This is the total-stock supply the block ELCM chooses
     among, distinct from the realized-new-supply reporting roll-up in
-    ``core_summaries.build_block_supply``.
+    `core_summaries.build_block_supply`.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        buildings: DataFrame with a ``parcel_id`` column and ``job_spaces`` and
-            ``non_residential_sqft`` columns (one row per building). A ``source``
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        buildings: DataFrame with a `parcel_id` column and `job_spaces` and
+            `non_residential_sqft` columns (one row per building). A `source`
             column, if present, is ignored — the total-stock roll-up counts every
             building.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with ``job_spaces`` and
-        ``non_residential_sqft`` columns holding the area-weighted block totals.
+        A DataFrame indexed by `block_geoid` with `job_spaces` and
+        `non_residential_sqft` columns holding the area-weighted block totals.
 
     Example:
         >>> import pandas as pd
@@ -233,25 +233,25 @@ def build_block_commercial_stock(parcel_block, buildings):
 def build_block_residential_price(parcel_block, residential_units):
     """Rolls unit residential price and rent up to census blocks as weighted means.
 
-    Aggregates the per-unit hedonic outputs (``unit_residential_price`` /
-    ``unit_residential_rent``) to a unit-count-weighted mean per block: each
+    Aggregates the per-unit hedonic outputs (`unit_residential_price` /
+    `unit_residential_rent`) to a unit-count-weighted mean per block: each
     parcel's price/rent sum and unit count are apportioned to the blocks it
-    overlaps by ``parcel_block_share``, then the apportioned price/rent sum is
-    divided by the apportioned unit count. Because each ``residential_units`` row is
+    overlaps by `parcel_block_share`, then the apportioned price/rent sum is
+    divided by the apportioned unit count. Because each `residential_units` row is
     a single unit, this is the mean unit price/rent of the units falling in a block.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        residential_units: DataFrame with a ``parcel_id`` column and
-            ``unit_residential_price`` and ``unit_residential_rent`` columns (one
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        residential_units: DataFrame with a `parcel_id` column and
+            `unit_residential_price` and `unit_residential_rent` columns (one
             row per unit).
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with ``unit_residential_price`` and
-        ``unit_residential_rent`` columns holding the unit-weighted block means.
+        A DataFrame indexed by `block_geoid` with `unit_residential_price` and
+        `unit_residential_rent` columns holding the unit-weighted block means.
         Blocks with no units are absent.
 
     Example:
@@ -288,9 +288,9 @@ def build_block_residential_price(parcel_block, residential_units):
 def build_block_nonres_rent(parcel_block, buildings):
     """Rolls non-residential rent up to census blocks as a sqft-weighted mean.
 
-    Aggregates building ``non_residential_rent`` to a floor-area-weighted mean per
+    Aggregates building `non_residential_rent` to a floor-area-weighted mean per
     block: each parcel's rent-times-sqft product and non-residential sqft are
-    apportioned to the blocks it overlaps by ``parcel_block_share``, then the
+    apportioned to the blocks it overlaps by `parcel_block_share`, then the
     apportioned rent-times-sqft is divided by the apportioned sqft. Floor-area
     weighting matches the $/sqft definition of the rent. Blocks with no
     non-residential floor area have no defined rent and yield NaN.
@@ -298,13 +298,13 @@ def build_block_nonres_rent(parcel_block, buildings):
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        buildings: DataFrame with a ``parcel_id`` column and ``non_residential_rent``
-            and ``non_residential_sqft`` columns (one row per building).
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        buildings: DataFrame with a `parcel_id` column and `non_residential_rent`
+            and `non_residential_sqft` columns (one row per building).
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with a ``non_residential_rent``
+        A DataFrame indexed by `block_geoid` with a `non_residential_rent`
         column holding the sqft-weighted block mean rent. Blocks with zero
         non-residential sqft yield NaN.
 
@@ -340,25 +340,25 @@ def build_block_accessibility(parcel_block, buildings, covariate_cols):
 
     Aggregates each intensive (per-location) covariate to an area-weighted block
     mean: building values are collapsed to a per-parcel mean, then each parcel mean
-    is apportioned to the blocks the parcel overlaps by ``parcel_block_share`` and
+    is apportioned to the blocks the parcel overlaps by `parcel_block_share` and
     divided by the apportioned share so the result is an intensive mean (a rate,
     not a sum). Skeleton simplification: buildings are collapsed to their parcel by
     an unweighted mean (not floor-area weighted) and parcels enter the block mean
-    weighted only by ``parcel_block_share`` (the only areal weight the crosswalk
+    weighted only by `parcel_block_share` (the only areal weight the crosswalk
     exposes), not by absolute intersection area.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        buildings: DataFrame with a ``parcel_id`` column and every column named in
-            ``covariate_cols`` (one row per building).
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        buildings: DataFrame with a `parcel_id` column and every column named in
+            `covariate_cols` (one row per building).
         covariate_cols: List of building covariate column names to roll up.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with one column per entry in
-        ``covariate_cols`` holding the area-weighted block mean.
+        A DataFrame indexed by `block_geoid` with one column per entry in
+        `covariate_cols` holding the area-weighted block mean.
 
     Example:
         >>> import pandas as pd
@@ -382,22 +382,22 @@ def build_block_accessibility(parcel_block, buildings, covariate_cols):
 def build_block_placed_jobs(parcel_block, buildings, jobs):
     """Rolls placed jobs up to census blocks by area share.
 
-    Counts jobs currently located in a building (``building_id != -1``), maps each
+    Counts jobs currently located in a building (`building_id != -1`), maps each
     to its building's parcel, and apportions those counts to the blocks the parcel
-    overlaps by ``parcel_block_share``. The result is the (fractional) number of
+    overlaps by `parcel_block_share`. The result is the (fractional) number of
     placed jobs occupying each block, used to derive block vacancy.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        buildings: DataFrame indexed by ``building_id`` with a ``parcel_id`` column.
-        jobs: DataFrame with a ``building_id`` column (one row per job); the sentinel
-            ``-1`` marks an unplaced job.
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        buildings: DataFrame indexed by `building_id` with a `parcel_id` column.
+        jobs: DataFrame with a `building_id` column (one row per job); the sentinel
+            `-1` marks an unplaced job.
 
     Returns:
-        A Series indexed by ``block_geoid`` giving the area-apportioned count of
+        A Series indexed by `block_geoid` giving the area-apportioned count of
         placed jobs per block. Blocks with no placed jobs are absent.
 
     Example:
@@ -412,8 +412,8 @@ def build_block_placed_jobs(parcel_block, buildings, jobs):
         2.0
 
     See Also:
-        build_block_elcm_alternatives: subtracts this from block ``job_spaces`` to
-            derive ``vacant_job_spaces``.
+        build_block_elcm_alternatives: subtracts this from block `job_spaces` to
+            derive `vacant_job_spaces`.
     """
     placed = jobs.loc[jobs["building_id"] != -1, ["building_id"]].copy()
     placed["parcel_id"] = placed["building_id"].map(buildings["parcel_id"])
@@ -425,29 +425,29 @@ def build_block_placed_jobs(parcel_block, buildings, jobs):
 def build_block_job_capacity(parcel_block, buildings):
     """Rolls building job-space supply and vacancy up to blocks by dominant block.
 
-    Unlike the areal covariate roll-ups, block job-space supply (``job_spaces``) and
-    vacancy (``vacant_job_spaces``) are summed over the buildings a block *actually
+    Unlike the areal covariate roll-ups, block job-space supply (`job_spaces`) and
+    vacancy (`vacant_job_spaces`) are summed over the buildings a block *actually
     holds*: each building is assigned wholly to its parcel's dominant (largest
-    ``parcel_block_share``) block, exactly as ``baus.block_elcm`` renders block-placed
-    jobs back to buildings. Summing the building-level ``vacant_job_spaces`` (already
+    `parcel_block_share`) block, exactly as `baus.block_elcm` renders block-placed
+    jobs back to buildings. Summing the building-level `vacant_job_spaces` (already
     capacity-minus-placed, clipped per building) means the block vacancy the ELCM sees
     equals the exact pool of building slots the rendering bridge can fill, so every
     block-placed job is renderable and no unplaced tail arises from an areal-vs-
-    dominant seam (option B). Buildings on parcels absent from the crosswalk have no
+    dominant seam. Buildings on parcels absent from the crosswalk have no
     dominant block and are dropped, mirroring the rendering bridge.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        buildings: DataFrame indexed by ``building_id`` with a ``parcel_id`` column
-            and integer ``job_spaces`` (supply) and ``vacant_job_spaces`` (vacancy)
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        buildings: DataFrame indexed by `building_id` with a `parcel_id` column
+            and integer `job_spaces` (supply) and `vacant_job_spaces` (vacancy)
             columns.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` (dtype matching the crosswalk's
-        ``block_geoid``) with ``job_spaces`` and ``vacant_job_spaces`` block totals
+        A DataFrame indexed by `block_geoid` (dtype matching the crosswalk's
+        `block_geoid`) with `job_spaces` and `vacant_job_spaces` block totals
         summed over the buildings assigned to each dominant block.
 
     Example:
@@ -479,29 +479,29 @@ def build_block_elcm_alternatives(parcel_block, buildings):
     """Assembles the block ELCM alternatives table from the supply/rent/access roll-ups.
 
     Composes the block-level covariates the base ELCM spec
-    (``configs/location_choice/elcm.yaml``) reads into a single block-indexed table:
-    ``non_residential_rent`` (sqft-weighted mean) and the accessibility covariates
-    (area-weighted mean) from the **areal** crosswalk, plus ``job_spaces`` (supply)
-    and integer ``vacant_job_spaces`` (vacancy) rolled up by **dominant block**.
+    (`configs/location_choice/elcm.yaml`) reads into a single block-indexed table:
+    `non_residential_rent` (sqft-weighted mean) and the accessibility covariates
+    (area-weighted mean) from the **areal** crosswalk, plus `job_spaces` (supply)
+    and integer `vacant_job_spaces` (vacancy) rolled up by **dominant block**.
     Rolling supply/vacancy by dominant block ties the per-block vacancy cap to the
     exact building slots the rendering bridge fills, so every block-placed job is
-    renderable (no unplaced tail). ``job_spaces`` is not in the model_expression, so
+    renderable (no unplaced tail). `job_spaces` is not in the model_expression, so
     this changes only the vacancy caps, not block attractiveness.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        buildings: DataFrame indexed by ``building_id`` with a ``parcel_id`` column,
-            ``job_spaces``, ``vacant_job_spaces``, ``non_residential_sqft``,
-            ``non_residential_rent``, and every column named in
-            ``ELCM_ACCESSIBILITY_COVARIATES``.
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        buildings: DataFrame indexed by `building_id` with a `parcel_id` column,
+            `job_spaces`, `vacant_job_spaces`, `non_residential_sqft`,
+            `non_residential_rent`, and every column named in
+            `ELCM_ACCESSIBILITY_COVARIATES`.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with exactly the columns in
-        ``ELCM_ALTERNATIVE_COLUMNS``: every ``elcm.yaml`` model_expression covariate
-        plus ``job_spaces`` and integer ``vacant_job_spaces``.
+        A DataFrame indexed by `block_geoid` with exactly the columns in
+        `ELCM_ALTERNATIVE_COLUMNS`: every `elcm.yaml` model_expression covariate
+        plus `job_spaces` and integer `vacant_job_spaces`.
 
     See Also:
         block_elcm_alternatives: the orca table that feeds this helper live model
@@ -527,7 +527,7 @@ def _tenure_units_by_dominant_block(parcel_block, residential_units, tenure):
     """Filters residential units to one tenure and tags each with its dominant block.
 
     Assigns every residential unit wholly to its parcel's dominant (largest
-    ``parcel_block_share``) block -- the same parcel-to-block mapping the ELCM supply
+    `parcel_block_share`) block -- the same parcel-to-block mapping the ELCM supply
     roll-up and the block rendering bridge use -- and keeps only the units of the
     requested tenure. Units on parcels absent from the crosswalk have no dominant
     block and are dropped, mirroring the rendering bridge. This is the shared front
@@ -536,17 +536,17 @@ def _tenure_units_by_dominant_block(parcel_block, residential_units, tenure):
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        residential_units: DataFrame with a ``parcel_id`` column and a ``tenure``
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        residential_units: DataFrame with a `parcel_id` column and a `tenure`
             column (one row per unit), plus whatever value columns the caller rolls
             up.
-        tenure: The tenure to keep, ``"own"`` or ``"rent"``.
+        tenure: The tenure to keep, `"own"` or `"rent"`.
 
     Returns:
-        A copy of the requested-tenure, on-crosswalk rows of ``residential_units``
-        with an added ``block_geoid`` column (dtype matching the crosswalk's
-        ``block_geoid``) giving each unit's dominant block.
+        A copy of the requested-tenure, on-crosswalk rows of `residential_units`
+        with an added `block_geoid` column (dtype matching the crosswalk's
+        `block_geoid`) giving each unit's dominant block.
 
     Example:
         >>> import pandas as pd
@@ -576,29 +576,29 @@ def _tenure_units_by_dominant_block(parcel_block, residential_units, tenure):
 def build_block_unit_capacity(parcel_block, residential_units, tenure):
     """Rolls residential unit supply and vacancy up to blocks by dominant block.
 
-    Sums ``num_units`` (supply) and ``vacant_units`` (vacancy) over the units a block
+    Sums `num_units` (supply) and `vacant_units` (vacancy) over the units a block
     *actually holds*: each unit is assigned wholly to its parcel's dominant block and
-    grouped by ``(block_geoid, deed_restricted)``. Rolling supply/vacancy by dominant
+    grouped by `(block_geoid, deed_restricted)`. Rolling supply/vacancy by dominant
     block ties the per-block vacancy cap to the exact residential-unit slots the
-    (chunk 3.9) rendering bridge can fill, so every block-placed household is
-    renderable and no unplaced tail arises from an areal-vs-dominant seam (option B,
-    mirroring ``build_block_job_capacity`` on the ELCM side). The ``deed_restricted``
-    split is required because the lowincome / ``_no_unplaced`` HLCM specs filter
-    alternatives on ``deed_restricted``.
+    rendering bridge can fill, so every block-placed household is
+    renderable and no unplaced tail arises from an areal-vs-dominant seam
+    (mirroring `build_block_job_capacity` on the ELCM side). The `deed_restricted`
+    split is required because the lowincome / `_no_unplaced` HLCM specs filter
+    alternatives on `deed_restricted`.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        residential_units: DataFrame with a ``parcel_id`` column and ``tenure``,
-            ``deed_restricted``, ``num_units``, and ``vacant_units`` columns (one row
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        residential_units: DataFrame with a `parcel_id` column and `tenure`,
+            `deed_restricted`, `num_units`, and `vacant_units` columns (one row
             per unit).
-        tenure: The tenure to roll up, ``"own"`` or ``"rent"``.
+        tenure: The tenure to roll up, `"own"` or `"rent"`.
 
     Returns:
-        A DataFrame indexed by a ``(block_geoid, deed_restricted)`` MultiIndex with
-        integer ``num_units`` and ``vacant_units`` block totals over the units
+        A DataFrame indexed by a `(block_geoid, deed_restricted)` MultiIndex with
+        integer `num_units` and `vacant_units` block totals over the units
         assigned to each dominant block.
 
     Example:
@@ -629,27 +629,27 @@ def build_block_residential_price_by_tenure(parcel_block, residential_units, ten
                                             price_col):
     """Rolls a tenure's unit price or rent up to blocks as a unit-weighted mean.
 
-    Aggregates the per-unit hedonic value in ``price_col`` to a unit mean per
-    ``(block_geoid, deed_restricted)`` group, over only the units of the requested
+    Aggregates the per-unit hedonic value in `price_col` to a unit mean per
+    `(block_geoid, deed_restricted)` group, over only the units of the requested
     tenure assigned to each dominant block. Owner blocks average
-    ``unit_residential_price``; renter blocks average ``unit_residential_rent`` -- the
+    `unit_residential_price`; renter blocks average `unit_residential_rent` -- the
     tenure-specific covariate the owner and renter HLCM specs read, matching how the
-    parcel path chooses over tenure-filtered ``own_units`` / ``rent_units``.
+    parcel path chooses over tenure-filtered `own_units` / `rent_units`.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        residential_units: DataFrame with a ``parcel_id`` column and ``tenure``,
-            ``deed_restricted``, and ``price_col`` columns (one row per unit).
-        tenure: The tenure to roll up, ``"own"`` or ``"rent"``.
-        price_col: The per-unit value column to average, ``"unit_residential_price"``
-            (owner) or ``"unit_residential_rent"`` (renter).
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        residential_units: DataFrame with a `parcel_id` column and `tenure`,
+            `deed_restricted`, and `price_col` columns (one row per unit).
+        tenure: The tenure to roll up, `"own"` or `"rent"`.
+        price_col: The per-unit value column to average, `"unit_residential_price"`
+            (owner) or `"unit_residential_rent"` (renter).
 
     Returns:
-        A DataFrame indexed by a ``(block_geoid, deed_restricted)`` MultiIndex with a
-        single ``price_col`` column holding the unit-weighted block mean.
+        A DataFrame indexed by a `(block_geoid, deed_restricted)` MultiIndex with a
+        single `price_col` column holding the unit-weighted block mean.
 
     Example:
         >>> import pandas as pd
@@ -678,24 +678,24 @@ def build_block_submarket(parcel_block, residential_units):
     """Assigns each census block its majority-TAZ submarket id.
 
     Maps every residential unit to its parcel's dominant block and picks, per block,
-    the ``zone_id`` (TAZ) holding the most units -- the block's majority submarket.
-    Price/rent equilibration operates at the TAZ ``submarket_id`` grain, so collapsing
+    the `zone_id` (TAZ) holding the most units -- the block's majority submarket.
+    Price/rent equilibration operates at the TAZ `submarket_id` grain, so collapsing
     a block that spans TAZs to its plurality TAZ keeps equilibration at the existing
     grain rather than introducing a new block-level submarket. Ties are broken by the
-    smallest ``zone_id`` for determinism. All units are used (tenure-blind) so the
+    smallest `zone_id` for determinism. All units are used (tenure-blind) so the
     owner and renter alternatives tables agree on a block's submarket.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        residential_units: DataFrame with a ``parcel_id`` column and a ``zone_id``
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        residential_units: DataFrame with a `parcel_id` column and a `zone_id`
             column (one row per unit).
 
     Returns:
-        A Series indexed by ``block_geoid`` (dtype matching the crosswalk's
-        ``block_geoid``) giving each block's integer majority-TAZ ``submarket_id``.
+        A Series indexed by `block_geoid` (dtype matching the crosswalk's
+        `block_geoid`) giving each block's integer majority-TAZ `submarket_id`.
         Blocks with no on-crosswalk units are absent.
 
     Example:
@@ -708,7 +708,7 @@ def build_block_submarket(parcel_block, residential_units):
         7
 
     See Also:
-        build_block_hlcm_alternatives: carries this ``submarket_id`` onto the
+        build_block_hlcm_alternatives: carries this `submarket_id` onto the
             alternatives table for price/rent equilibration.
     """
     dominant_block = _dominant_block_for_parcels(parcel_block)
@@ -729,39 +729,39 @@ def build_block_hlcm_alternatives(parcel_block, residential_units, buildings, te
     """Assembles a tenure's block HLCM alternatives table from the residential roll-ups.
 
     Composes the block-level covariates the owner or renter HLCM spec
-    (``configs/location_choice/hlcm_owner.yaml`` / ``hlcm_renter.yaml``) reads into a
-    single alternatives table at grain ``block x deed_restricted``: dominant-block
-    ``num_units`` (supply) and ``vacant_units`` (vacancy); the tenure price/rent
+    (`configs/location_choice/hlcm_owner.yaml` / `hlcm_renter.yaml`) reads into a
+    single alternatives table at grain `block x deed_restricted`: dominant-block
+    `num_units` (supply) and `vacant_units` (vacancy); the tenure price/rent
     (unit-weighted mean); the accessibility covariates in
-    ``HLCM_ACCESSIBILITY_COVARIATES`` (area-weighted mean, broadcast across the
-    deed-restricted split); a majority-TAZ ``submarket_id``; and the ``tenure`` /
-    ``deed_restricted`` / ``block_geoid`` keys the alternative filters and the rendering
+    `HLCM_ACCESSIBILITY_COVARIATES` (area-weighted mean, broadcast across the
+    deed-restricted split); a majority-TAZ `submarket_id`; and the `tenure` /
+    `deed_restricted` / `block_geoid` keys the alternative filters and the rendering
     bridge read. Rolling supply/vacancy by dominant block ties the per-block vacancy cap
-    to the exact unit slots the rendering bridge fills (option B); the price/rent and
+    to the exact unit slots the rendering bridge fills; the price/rent and
     accessibility covariates are intensive means. The frame is indexed by a plain
-    ``block_alt_id`` (one row per ``(block, deed_restricted)`` group) so
-    ``lcm_simulate``'s ``deed_restricted`` alternative filters resolve against a flat
-    column and the rendering bridge can key on ``(block_geoid, deed_restricted)``.
+    `block_alt_id` (one row per `(block, deed_restricted)` group) so
+    `lcm_simulate`'s `deed_restricted` alternative filters resolve against a flat
+    column and the rendering bridge can key on `(block_geoid, deed_restricted)`.
 
     Pure (no orca, no file I/O) so it can be unit-tested directly.
 
     Args:
-        parcel_block: DataFrame indexed by ``parcel_id`` (non-unique) with
-            ``block_geoid`` and ``parcel_block_share`` columns.
-        residential_units: DataFrame with ``parcel_id``, ``zone_id``, ``tenure``,
-            ``deed_restricted``, ``num_units``, ``vacant_units``, and the tenure price
-            column (``unit_residential_price`` for owner, ``unit_residential_rent`` for
+        parcel_block: DataFrame indexed by `parcel_id` (non-unique) with
+            `block_geoid` and `parcel_block_share` columns.
+        residential_units: DataFrame with `parcel_id`, `zone_id`, `tenure`,
+            `deed_restricted`, `num_units`, `vacant_units`, and the tenure price
+            column (`unit_residential_price` for owner, `unit_residential_rent` for
             renter) columns (one row per unit).
-        buildings: DataFrame with a ``parcel_id`` column and every column named in
-            ``HLCM_ACCESSIBILITY_COVARIATES`` (one row per building).
-        tenure: The tenure to build, ``"own"`` or ``"rent"``.
+        buildings: DataFrame with a `parcel_id` column and every column named in
+            `HLCM_ACCESSIBILITY_COVARIATES` (one row per building).
+        tenure: The tenure to build, `"own"` or `"rent"`.
 
     Returns:
-        A DataFrame indexed by ``block_alt_id`` with exactly the columns in
-        ``HLCM_OWN_ALTERNATIVE_COLUMNS`` (owner) or ``HLCM_RENT_ALTERNATIVE_COLUMNS``
-        (renter): the spec covariates, integer ``num_units`` / ``vacant_units``,
-        ``submarket_id``, and the ``tenure`` / ``deed_restricted`` / ``block_geoid``
-        keys. One row per ``(block, deed_restricted)`` group of the given tenure.
+        A DataFrame indexed by `block_alt_id` with exactly the columns in
+        `HLCM_OWN_ALTERNATIVE_COLUMNS` (owner) or `HLCM_RENT_ALTERNATIVE_COLUMNS`
+        (renter): the spec covariates, integer `num_units` / `vacant_units`,
+        `submarket_id`, and the `tenure` / `deed_restricted` / `block_geoid`
+        keys. One row per `(block, deed_restricted)` group of the given tenure.
 
     See Also:
         block_own_alternatives: the orca table that feeds this helper live model tables
@@ -797,19 +797,19 @@ def build_block_hlcm_alternatives(parcel_block, residential_units, buildings, te
 def block_commercial_stock(buildings, parcels_block):
     """Live per-year census-block roll-up of total-stock commercial supply.
 
-    Additive block-choice input: reads the ``buildings`` table and the areal
-    ``parcels_block`` crosswalk and returns total-stock ``job_spaces`` /
-    ``non_residential_sqft`` per 2020 census block. Recomputed each year
-    (``cache=False``). Nothing consumes it until the block ELCM is wired (Phase-3
-    chunk 3.3), so registering it changes no model behavior.
+    Additive block-choice input: reads the `buildings` table and the areal
+    `parcels_block` crosswalk and returns total-stock `job_spaces` /
+    `non_residential_sqft` per 2020 census block. Recomputed each year
+    (`cache=False`). Nothing consumes it until the block ELCM is wired, so
+    registering it changes no model behavior.
 
     Args:
-        buildings: The orca ``buildings`` table.
+        buildings: The orca `buildings` table.
         parcels_block: The areal parcel-to-block crosswalk table.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with ``job_spaces`` and
-        ``non_residential_sqft`` block totals.
+        A DataFrame indexed by `block_geoid` with `job_spaces` and
+        `non_residential_sqft` block totals.
 
     See Also:
         build_block_commercial_stock: the pure helper that performs the roll-up.
@@ -826,20 +826,20 @@ def block_residential_price(residential_units, buildings, parcels_block):
 
     Additive block-choice input: joins each residential unit to its building's
     parcel, then rolls the per-unit hedonic price/rent up to 2020 census blocks as
-    a unit-weighted mean via the areal ``parcels_block`` crosswalk. Recomputed each
-    year (``cache=False``). Nothing consumes it until the block HLCM is wired
-    (Phase-3 chunk 3.7), so registering it changes no model behavior.
+    a unit-weighted mean via the areal `parcels_block` crosswalk. Recomputed each
+    year (`cache=False`). Nothing consumes it until the block HLCM is wired,
+    so registering it changes no model behavior.
 
     Args:
-        residential_units: The orca ``residential_units`` table (unit grain, with
-            ``building_id``, ``unit_residential_price``, ``unit_residential_rent``).
-        buildings: The orca ``buildings`` table, used to map ``building_id`` to
-            ``parcel_id``.
+        residential_units: The orca `residential_units` table (unit grain, with
+            `building_id`, `unit_residential_price`, `unit_residential_rent`).
+        buildings: The orca `buildings` table, used to map `building_id` to
+            `parcel_id`.
         parcels_block: The areal parcel-to-block crosswalk table.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with ``unit_residential_price`` and
-        ``unit_residential_rent`` unit-weighted block means.
+        A DataFrame indexed by `block_geoid` with `unit_residential_price` and
+        `unit_residential_rent` unit-weighted block means.
 
     See Also:
         build_block_residential_price: the pure helper that performs the roll-up.
@@ -855,18 +855,18 @@ def block_residential_price(residential_units, buildings, parcels_block):
 def block_nonres_rent(buildings, parcels_block):
     """Live per-year census-block roll-up of non-residential rent.
 
-    Additive block-choice input: rolls building ``non_residential_rent`` up to 2020
-    census blocks as a floor-area-weighted mean via the areal ``parcels_block``
-    crosswalk. Recomputed each year (``cache=False``). Nothing consumes it until the
-    block ELCM is wired (Phase-3 chunk 3.3), so registering it changes no model
+    Additive block-choice input: rolls building `non_residential_rent` up to 2020
+    census blocks as a floor-area-weighted mean via the areal `parcels_block`
+    crosswalk. Recomputed each year (`cache=False`). Nothing consumes it until the
+    block ELCM is wired, so registering it changes no model
     behavior.
 
     Args:
-        buildings: The orca ``buildings`` table.
+        buildings: The orca `buildings` table.
         parcels_block: The areal parcel-to-block crosswalk table.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with a ``non_residential_rent``
+        A DataFrame indexed by `block_geoid` with a `non_residential_rent`
         sqft-weighted block mean.
 
     See Also:
@@ -883,29 +883,29 @@ def block_elcm_alternatives(parcels_block):
     """Live per-year block alternatives table for the block ELCM respec.
 
     Additive block-choice input: assembles the covariates the base ELCM spec
-    (``configs/location_choice/elcm.yaml``) reads into a block-indexed alternatives
-    table — ``non_residential_rent`` (sqft-weighted), the accessibility covariates
-    in ``ELCM_ACCESSIBILITY_COVARIATES`` (area-weighted), ``job_spaces`` (supply),
-    and integer ``vacant_job_spaces`` (vacancy). Supply and vacancy are summed over
-    each building's dominant block (via the building-level ``vacant_job_spaces``
+    (`configs/location_choice/elcm.yaml`) reads into a block-indexed alternatives
+    table — `non_residential_rent` (sqft-weighted), the accessibility covariates
+    in `ELCM_ACCESSIBILITY_COVARIATES` (area-weighted), `job_spaces` (supply),
+    and integer `vacant_job_spaces` (vacancy). Supply and vacancy are summed over
+    each building's dominant block (via the building-level `vacant_job_spaces`
     column) so the per-block vacancy cap matches the rendering bridge's building
-    slots exactly. Recomputed each year (``cache=False``).
+    slots exactly. Recomputed each year (`cache=False`).
 
-    The accessibility covariates (``office_1500``, ``retail_1500``, …) live on the
-    ``nodes`` / ``tmnodes`` accessibility tables and reach buildings only through
+    The accessibility covariates (`office_1500`, `retail_1500`, …) live on the
+    `nodes` / `tmnodes` accessibility tables and reach buildings only through
     orca broadcasts, so the building-level covariate frame is assembled with
-    ``orca.merge_tables`` — the same mechanism ``utils.lcm_simulate`` uses via its
-    ``join_tbls`` argument — rather than ``buildings.to_frame``, which would not
+    `orca.merge_tables` — the same mechanism `utils.lcm_simulate` uses via its
+    `join_tbls` argument — rather than `buildings.to_frame`, which would not
     resolve the broadcast columns. They are then materialized directly onto the
     block table (area-weighted roll-up), so the block ELCM step needs no
-    ``join_tbls`` broadcast of its own.
+    `join_tbls` broadcast of its own.
 
     Args:
         parcels_block: The areal parcel-to-block crosswalk table.
 
     Returns:
-        A DataFrame indexed by ``block_geoid`` with exactly the columns in
-        ``ELCM_ALTERNATIVE_COLUMNS``.
+        A DataFrame indexed by `block_geoid` with exactly the columns in
+        `ELCM_ALTERNATIVE_COLUMNS`.
 
     See Also:
         build_block_elcm_alternatives: the pure helper that performs the assembly.
@@ -923,28 +923,28 @@ def block_elcm_alternatives(parcels_block):
 def _block_hlcm_alternatives(residential_units, buildings, parcels_block, tenure):
     """Reads the orca tables and builds one tenure's block HLCM alternatives table.
 
-    Shared body for the ``block_own_alternatives`` and ``block_rent_alternatives``
+    Shared body for the `block_own_alternatives` and `block_rent_alternatives`
     orca tables. Materializes the residential-unit and building-covariate frames the
     pure assembler needs: units carry their per-unit price/rent, tenure,
     deed-restricted flag, supply/vacancy, TAZ, and (mapped) parcel id; buildings carry
-    the accessibility covariates. The accessibility covariates (``jobs_45``,
-    ``embarcadero``, …) live on the ``nodes`` / ``tmnodes`` tables and reach buildings
+    the accessibility covariates. The accessibility covariates (`jobs_45`,
+    `embarcadero`, …) live on the `nodes` / `tmnodes` tables and reach buildings
     only through orca broadcasts, so the building frame is assembled with
-    ``orca.merge_tables`` -- the same mechanism ``utils.lcm_simulate`` uses via
-    ``join_tbls`` -- rather than ``buildings.to_frame``, which would not resolve the
+    `orca.merge_tables` -- the same mechanism `utils.lcm_simulate` uses via
+    `join_tbls` -- rather than `buildings.to_frame`, which would not resolve the
     broadcast columns. The covariates are then materialized onto the block table, so
-    the (chunk 3.8) block HLCM step needs no ``join_tbls`` broadcast of its own.
+    the block HLCM step needs no `join_tbls` broadcast of its own.
 
     Args:
-        residential_units: The orca ``residential_units`` table (unit grain).
-        buildings: The orca ``buildings`` table, used to map ``building_id`` to
-            ``parcel_id``.
+        residential_units: The orca `residential_units` table (unit grain).
+        buildings: The orca `buildings` table, used to map `building_id` to
+            `parcel_id`.
         parcels_block: The areal parcel-to-block crosswalk table.
-        tenure: The tenure to build, ``"own"`` or ``"rent"``.
+        tenure: The tenure to build, `"own"` or `"rent"`.
 
     Returns:
-        A DataFrame indexed by ``block_alt_id`` with exactly the columns in
-        ``HLCM_OWN_ALTERNATIVE_COLUMNS`` (owner) or ``HLCM_RENT_ALTERNATIVE_COLUMNS``
+        A DataFrame indexed by `block_alt_id` with exactly the columns in
+        `HLCM_OWN_ALTERNATIVE_COLUMNS` (owner) or `HLCM_RENT_ALTERNATIVE_COLUMNS`
         (renter).
 
     See Also:
@@ -968,23 +968,22 @@ def block_own_alternatives(residential_units, buildings, parcels_block):
     """Live per-year owner block alternatives table for the block HLCM respec.
 
     Additive block-choice input: assembles the covariates the owner HLCM specs
-    (``configs/location_choice/hlcm_owner.yaml`` and its lowincome / ``_no_unplaced``
+    (`configs/location_choice/hlcm_owner.yaml` and its lowincome / `_no_unplaced`
     variants) read into a block-indexed alternatives table at grain
-    ``block x deed_restricted`` -- ``unit_residential_price`` and the accessibility
-    covariates (intensive means), dominant-block ``num_units`` / ``vacant_units``, a
-    majority-TAZ ``submarket_id``, and the ``tenure`` / ``deed_restricted`` /
-    ``block_geoid`` keys -- over owner residential units. Recomputed each year
-    (``cache=False``). Nothing consumes it until the block HLCM step is wired (Phase-3
-    chunk 3.8), so registering it changes no model behavior.
+    `block x deed_restricted` -- `unit_residential_price` and the accessibility
+    covariates (intensive means), dominant-block `num_units` / `vacant_units`, a
+    majority-TAZ `submarket_id`, and the `tenure` / `deed_restricted` /
+    `block_geoid` keys -- over owner residential units. Recomputed each year
+    (`cache=False`). Nothing consumes it until the block HLCM step is wired, so registering it changes no model behavior.
 
     Args:
-        residential_units: The orca ``residential_units`` table.
-        buildings: The orca ``buildings`` table (parcel id + accessibility covariates).
+        residential_units: The orca `residential_units` table.
+        buildings: The orca `buildings` table (parcel id + accessibility covariates).
         parcels_block: The areal parcel-to-block crosswalk table.
 
     Returns:
-        A DataFrame indexed by ``block_alt_id`` with the columns in
-        ``HLCM_OWN_ALTERNATIVE_COLUMNS``.
+        A DataFrame indexed by `block_alt_id` with the columns in
+        `HLCM_OWN_ALTERNATIVE_COLUMNS`.
 
     See Also:
         build_block_hlcm_alternatives: the pure helper that performs the assembly.
@@ -998,24 +997,24 @@ def block_own_alternatives(residential_units, buildings, parcels_block):
 def block_rent_alternatives(residential_units, buildings, parcels_block):
     """Live per-year renter block alternatives table for the block HLCM respec.
 
-    Additive block-choice input: the renter counterpart of ``block_own_alternatives``,
+    Additive block-choice input: the renter counterpart of `block_own_alternatives`,
     assembling the covariates the renter HLCM specs
-    (``configs/location_choice/hlcm_renter.yaml`` and its lowincome / ``_no_unplaced``
-    variants) read -- ``unit_residential_rent`` and the accessibility covariates,
-    dominant-block ``num_units`` / ``vacant_units``, a majority-TAZ ``submarket_id``,
-    and the ``tenure`` / ``deed_restricted`` / ``block_geoid`` keys -- over renter
-    residential units. Recomputed each year (``cache=False``). Nothing consumes it
-    until the block HLCM step is wired (Phase-3 chunk 3.8), so registering it changes
+    (`configs/location_choice/hlcm_renter.yaml` and its lowincome / `_no_unplaced`
+    variants) read -- `unit_residential_rent` and the accessibility covariates,
+    dominant-block `num_units` / `vacant_units`, a majority-TAZ `submarket_id`,
+    and the `tenure` / `deed_restricted` / `block_geoid` keys -- over renter
+    residential units. Recomputed each year (`cache=False`). Nothing consumes it
+    until the block HLCM step is wired, so registering it changes
     no model behavior.
 
     Args:
-        residential_units: The orca ``residential_units`` table.
-        buildings: The orca ``buildings`` table (parcel id + accessibility covariates).
+        residential_units: The orca `residential_units` table.
+        buildings: The orca `buildings` table (parcel id + accessibility covariates).
         parcels_block: The areal parcel-to-block crosswalk table.
 
     Returns:
-        A DataFrame indexed by ``block_alt_id`` with the columns in
-        ``HLCM_RENT_ALTERNATIVE_COLUMNS``.
+        A DataFrame indexed by `block_alt_id` with the columns in
+        `HLCM_RENT_ALTERNATIVE_COLUMNS`.
 
     See Also:
         build_block_hlcm_alternatives: the pure helper that performs the assembly.

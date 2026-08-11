@@ -106,25 +106,25 @@ def check_parcel_block_coverage(parcels, parcels_block, max_unmatched_share=0.05
     """Confirms the areal parcel-to-block crosswalk covers parcels well enough for
     block roll-ups to treat block capacity/vacancy as reliable.
 
-    Guards the carry-forward limitation flagged after the Phase-1 no-drift run: a
-    parcel absent from ``parcels_block`` produces a NaN block-groupby key, which
-    silently drops that parcel's units from block roll-ups (``build_block_supply``
-    in ``baus/summaries/core_summaries.py``) instead of raising. This check turns
-    that failure mode loud, ahead of Phase 3 where ELCM/HLCM read block
-    capacity/vacancy quantitatively (block-port plan decision 16).
+    Guards a carry-forward limitation: a
+    parcel absent from `parcels_block` produces a NaN block-groupby key, which
+    silently drops that parcel's units from block roll-ups (`build_block_supply`
+    in `baus/summaries/core_summaries.py`) instead of raising. This check turns
+    that failure mode loud, since the block ELCM/HLCM read block
+    capacity/vacancy quantitatively.
 
     Args:
-        parcels: Orca ``parcels`` table (or DataFrameWrapper); only its index of
+        parcels: Orca `parcels` table (or DataFrameWrapper); only its index of
             parcel ids is used.
-        parcels_block: The areal parcel-to-block crosswalk table (``block_geoid``
-            and ``parcel_block_share`` columns; non-unique ``parcel_id`` index).
+        parcels_block: The areal parcel-to-block crosswalk table (`block_geoid`
+            and `parcel_block_share` columns; non-unique `parcel_id` index).
         max_unmatched_share: Maximum tolerated share of parcels with no crosswalk
             row at all. Defaults to 0.05 (5%), a generous bound pending tighter
             empirical calibration against a specific run.
 
     Raises:
-        AssertionError: If more than ``max_unmatched_share`` of parcels have no
-            crosswalk row, or if any matched parcel's ``parcel_block_share``
+        AssertionError: If more than `max_unmatched_share` of parcels have no
+            crosswalk row, or if any matched parcel's `parcel_block_share`
             values sum to more than 1% away from 1.0.
     """
     print("Check parcel-block crosswalk coverage")
