@@ -40,8 +40,8 @@
     "version": "docs_test",
     "title": "docs_test",
     "aliases": [
-      "alias=latest",
-      "alias=lastest"
+      "alias=lastest",
+      "alias=latest"
     ]
   },
   {
@@ -52,6 +52,11 @@
   {
     "version": "cloud_eval",
     "title": "cloud_eval",
+    "aliases": []
+  },
+  {
+    "version": "block-port",
+    "title": "block-port",
     "aliases": []
   },
   {
