@@ -57,7 +57,7 @@ orca.add_injectable("run_setup_yaml", options.run_setup_yaml)
 MODE = options.mode
 
 # Flip the boolean since it is a disable flag
-SLACK = ~options.no_slack
+SLACK = not options.no_slack
 
 # Get a few orca objects
 run_setup = orca.get_injectable("run_setup")
