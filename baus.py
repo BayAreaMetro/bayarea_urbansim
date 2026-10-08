@@ -552,7 +552,7 @@ try:
     # Run alt travel model summary functions for 2030 and 2040
     # This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
     if MODE == "simulation":
-        alt_years = [2030, 2040]
+        alt_years = [2030, 2040, 2045]
         for year in alt_years:
             # Get required orca tables
             maz = orca.get_table('maz')

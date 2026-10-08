@@ -699,7 +699,7 @@ def load_tables_for_tm_summaries(run_name, year):
     This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
 
     Loads and merges household, job, building, and parcel data from interim csv files for a given model run and year.
-    Only used for 2030 and 2040 travel model summaries.
+    Only used for 2030, 2040, and 2045 travel model summaries.
 
     Args:
         run_name (str): Model run name
@@ -756,7 +756,7 @@ def maz_marginals_alt(maz, year,
     """
     This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
 
-    Generates MAZ marginals for years 2030 and 2040, and outputs csv.  Creates basic household and group quarters variables.
+    Generates MAZ marginals for years 2030, 2040, and 2045, and outputs csv.  Creates basic household and group quarters variables.
 
     Args:
         maz (orca.table): MAZ-TAZ-county xwalk
@@ -766,7 +766,7 @@ def maz_marginals_alt(maz, year,
         run_name (str): Name of the model run
     """
     
-    if year not in [2030, 2040]:
+    if year not in [2030, 2040, 2045]:
         return
     
     # (1) intiialize maz dataframe
@@ -812,7 +812,7 @@ def maz_summary_alt(maz, year, tm2_emp27_employment_shares,
     """
     This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
 
-    Builds on output from maz_marginals_alt, generating further MAZ marginals for years 2030 and 2040 and outputs to csv.  
+    Builds on output from maz_marginals_alt, generating further MAZ marginals for years 2030, 2040, and 2045 and outputs to csv.  
     Disaggregates households by income, jobs by sector, and adds population and density variables.
 
     Args:
@@ -823,7 +823,7 @@ def maz_summary_alt(maz, year, tm2_emp27_employment_shares,
         run_name (str): Name of the model run
 
     """
-    if year not in [2030, 2040]:
+    if year not in [2030, 2040, 2045]:
         return
 
     # (1) intiialize maz dataframe
@@ -933,7 +933,7 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
     """
     This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
 
-    Builds on output from maz_summary_alt, generating TAZ2 marginals for years 2030 and 2040 and outputs to csv.  
+    Builds on output from maz_summary_alt, generating TAZ2 marginals for years 2030, 2040, and 2045 and outputs to csv.  
     Creates further household/population demographic variables.
 
     Args:
@@ -944,7 +944,7 @@ def taz2_marginals_alt(tm2_taz2_forecast_inputs, tm1_tm2_regional_demographic_fo
         run_name (str): Name of the model run
     """
     
-    if year not in [2030, 2040]:
+    if year not in [2030, 2040, 2045]:
         return
 
     # (1) bring in taz2 dataframe
@@ -1010,7 +1010,7 @@ def county_marginals_alt(tm2_occupation_shares, year, run_name):
     """
     This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
 
-    Builds on output from maz_summary_alt and taz2_marginals_alt, generating county-level marginals for years 2030 and 2040 and 
+    Builds on output from maz_summary_alt and taz2_marginals_alt, generating county-level marginals for years 2030, 2040, and 2045 and 
     outputs to csv.  Aggregates population and occupation characteristics.
 
     Args:
@@ -1019,7 +1019,7 @@ def county_marginals_alt(tm2_occupation_shares, year, run_name):
         run_name (str): Name of the model run
     """
 
-    if year not in [2030, 2040]:
+    if year not in [2030, 2040, 2045]:
         return
 
     tmsum_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "travel_model_summaries"
