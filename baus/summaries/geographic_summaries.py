@@ -170,9 +170,9 @@ def geographic_summary(parcels, households, jobs, buildings, year, superdistrict
     interim_output_dir = pathlib.Path(orca.get_injectable("outputs_dir")) / "interim_output"
     interim_output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write tables needed for TM summary in 2030/2040 to interim dir
+    # Write tables needed for TM summary in 2030/2040/2045 to interim dir
     # This is a temporary hack.  See Asana task: https://app.asana.com/1/11860278793487/project/1209436408768030/task/1210468750496595
-    if year in [2030, 2040]:
+    if year in [2030, 2040, 2045]:
         for table_name, table in [('parcels', parcels), ('households', households), ('jobs', jobs), ('buildings', buildings)]:
             df = table.to_frame()
             df.to_csv(interim_output_dir / f"{run_name}_{table_name}_{year}.csv")
