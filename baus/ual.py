@@ -996,7 +996,7 @@ def update_unit_ids(households, tenure):
 # out name - since the alts don't have a filter, all hhlds should be placed
 def drop_tenure_predict_filters_from_yaml(in_yaml_name, out_yaml_name):
     fname = misc.config(in_yaml_name)
-    cfg = yaml.load(open(fname))
+    cfg = yaml.safe_load(open(fname))
     cfg["alts_predict_filters"] = None
     if 'lowincome' not in in_yaml_name:
         cfg["alts_predict_filters"] = 'deed_restricted == False'

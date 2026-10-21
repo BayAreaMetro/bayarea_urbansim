@@ -32,7 +32,7 @@ def run_setup():
     setup_path = orca.get_injectable('run_setup_path')
     print(f'Loading {setup_path}')
     with open(setup_path) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("run_name", cache=True)
@@ -80,13 +80,13 @@ def elcm_spec_file(run_setup):
 @orca.injectable("paths", cache=True)
 def paths():
     with open(os.path.join(misc.configs_dir(), "paths.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("pipeline_filters", cache=True)
 def pipeline_filters():
     with open(os.path.join(misc.configs_dir(), "adjusters/pipeline_filters.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("accessibility_settings", cache=True)
@@ -94,7 +94,7 @@ def accessibility_settings():
     with open(
         os.path.join(misc.configs_dir(), "accessibility/accessibility_settings.yaml")
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("transition_relocation_settings", cache=True)
@@ -105,7 +105,7 @@ def transition_relocation_settings():
             "transition_relocation/transition_relocation_settings.yaml",
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("profit_adjustment_strategies", cache=True)
@@ -117,7 +117,7 @@ def profit_adjustment_strategies(run_setup):
             run_setup["profit_adjustment_strategies_file"],
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("account_strategies", cache=True)
@@ -129,7 +129,7 @@ def account_strategies(run_setup):
             run_setup["account_strategies_file"],
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("development_caps", cache=True)
@@ -140,7 +140,7 @@ def development_caps():
             "basis_inputs/existing_policy/development_caps.yaml",
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("data_edits", cache=True)
@@ -150,7 +150,7 @@ def data_edits():
             orca.get_injectable("inputs_dir"), "basis_inputs/edits/data_edits.yaml"
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("development_caps_asserted", cache=True)
@@ -158,13 +158,13 @@ def development_caps_asserted():
     with open(
         os.path.join(misc.configs_dir(), "adjusters/development_caps_asserted.yaml")
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("zoning_adjusters", cache=True)
 def zoning_adjusters():
     with open(os.path.join(misc.configs_dir(), "adjusters/zoning_adjusters.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("development_caps_strategy", cache=True)
@@ -175,7 +175,7 @@ def development_caps_strategy():
             "plan_strategies/development_caps_strategy.yaml",
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("inclusionary", cache=True)
@@ -186,7 +186,7 @@ def inclusionary():
             "basis_inputs/existing_policy/inclusionary.yaml",
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("inclusionary_strategy", cache=True)
@@ -198,7 +198,7 @@ def inclusionary_strategy(run_setup):
             run_setup["inclusionary_strategy_file"],
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("preservation", cache=True)
@@ -210,19 +210,19 @@ def preservation(run_setup):
             run_setup["preservation_file"],
         )
     ) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("mapping", cache=True)
 def mapping():
     with open(os.path.join(misc.configs_dir(), "mapping.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("cost_shifters", cache=True)
 def cost_shifters():
     with open(os.path.join(misc.configs_dir(), "adjusters/cost_shifters.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 @orca.injectable("developer_settings", cache=True)
@@ -243,7 +243,7 @@ def developer_settings(run_setup):
 @orca.injectable("price_settings", cache=True)
 def price_settings():
     with open(os.path.join(misc.configs_dir(), "hedonics/price_settings.yaml")) as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 # now that there are new settings files, override the locations of certain

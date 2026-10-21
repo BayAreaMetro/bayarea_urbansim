@@ -126,7 +126,8 @@ logger.info("Started: %s", time.ctime())
 logger.info("Current Branch: %s", CURRENT_BRANCH)
 logger.info("Current Commit: %s", CURRENT_COMMIT)
 logger.info("Local Clone Location: %s", os.path.abspath(sys.argv[0]))
-logger.info("Current Host: %s", host)
+if SLACK:
+    logger.info("Current Host: %s", host)
 logger.info("Set Random Seed: %s", SET_RANDOM_SEED)
 logger.info("Python version: %s", sys.version.split('|')[0])
 logger.info("UrbanSim version: %s", urbansim.__version__)
@@ -138,7 +139,8 @@ logger.info("Numpy version: %s", np.__version__)
 logger.info("Pandas version: %s", pd.__version__)
 logger.info("run_setup.yaml config: %s", options.yaml)
 
-logger.info("SLACK: %s", SLACK)
+if SLACK:
+    logger.info("SLACK: %s", SLACK)
 logger.info("MODE: %s", MODE)
 
 # Memorialize the run config with the outputs - goes by run name attribute
