@@ -71,11 +71,14 @@ def main():
     else:
         BOX_DIR = HOME_DIR / 'Box'
     
-    MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/")
+    # MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/")
+    MODEL_RUNS_DIR     = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA60/")
     METRICS_DIR        = BOX_DIR / "Plan Bay Area 2050+/Performance and Equity/Plan Performance/Equity_Performance_Metrics/Final_Blueprint"
+    # METRICS_DIR        = MODEL_RUNS_DIR / "Strategy_evaluation" / "metrics"
     # RUN_INVENTORY_FILE = METRICS_DIR / "metrics_input_files/PBA50Plus_model_run_inventory.csv"
-    RUN_INVENTORY_FILE = r'M:\urban_modeling\baus\PBA50Plus\sensitivity_test\summary\PBA50Plus_model_run_inventory_sensitivityTest.csv'
-    OUTPUT_PATH        = METRICS_DIR
+    RUN_INVENTORY_FILE = MODEL_RUNS_DIR / "Strategy_evaluation" / 'PBA60_strategyEval_model_run_inventory.csv'
+    # OUTPUT_PATH        = METRICS_DIR
+    OUTPUT_PATH        = MODEL_RUNS_DIR / "Strategy_evaluation" / "metrics"
     LOG_FILENAME       = "metrics_lu_standalone_{}{}.log"  # loglevel
     
     # capture the value of any --only arg passed and add to log file name
@@ -151,6 +154,9 @@ def main():
         modelrun_alias = row['variant']
         modelrun_id = row['directory']
 
+        if modelrun_id in ["PBA50Plus_NoProject/PBA50Plus_NoProject_v38", "PBA50Plus_FinalBlueprint/PBA50Plus_Final_Blueprint_v65"]:
+            run_directory_path = pathlib.Path(M_DRIVE, "urban_modeling/baus/PBA50Plus/") / row['directory']
+
         logging.info(f"Processing run modelrun_alias:[{modelrun_alias}] modelrun_id:[{modelrun_id}] run_directory_path:{run_directory_path}")
         
         # Load data for the current run
@@ -195,27 +201,27 @@ def main():
             metrics_growth.growth_patterns_county_jurisdiction(
                 args.rtp, modelrun_alias, modelrun_id, args.horizon_year, modelrun_data, regional_hh_jobs_dict, OUTPUT_PATH, append_output)
             
-            # zone version
-            # comment out when done testing
-            metrics_growth.office_space_summary_zone(
-                args.rtp,
-                modelrun_alias,
-                modelrun_id,
-                modelrun_data,
-                OUTPUT_PATH,
-                append_output,
-            )
+            # # zone version
+            # # comment out when done testing
+            # metrics_growth.office_space_summary_zone(
+            #     args.rtp,
+            #     modelrun_alias,
+            #     modelrun_id,
+            #     modelrun_data,
+            #     OUTPUT_PATH,
+            #     append_output,
+            # )
 
-            # # building version
-            metrics_growth.office_space_summary_bldg(
-                args.rtp,
-                modelrun_alias,
-                modelrun_id,
-                modelrun_data,
-                run_directory_path,
-                OUTPUT_PATH,
-                append_output,
-            )
+            # # # building version
+            # metrics_growth.office_space_summary_bldg(
+            #     args.rtp,
+            #     modelrun_alias,
+            #     modelrun_id,
+            #     modelrun_data,
+            #     run_directory_path,
+            #     OUTPUT_PATH,
+            #     append_output,
+            # )
 
         if (args.only == None) or (args.only == 'vibrant'):
             metrics_vibrant.jobs_housing_ratio(

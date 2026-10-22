@@ -78,7 +78,7 @@ def transit_service_area_share(
         "Alt2": "fbp",
         "EIR Alt1":'fbp',
         "EIR Alt2":'fbp',
-        "Current": "cur", # refers to existing conditions transit stops
+        "Current": "cur", # refers to existing conditions transit stops\
     }
 
     # get the transit scenario to focus on (e.g., 'fbp' for final bluerprint)
@@ -455,6 +455,17 @@ def transit_service_area_share_v2(
         'EIR Alt2': 'fbp',
         'EIR Alt2 Var1': 'fbp',
         "Current": "cur", # refers to existing conditions transit stops
+        "FBP minus H1": "fbp",
+        "FBP minus H2": "fbp",
+        "FBP minus H3": "fbp",
+        "FBP minus H4": "fbp",
+        "FBP minus H5": "fbp",
+        "FBP minus H6": "fbp",
+        "FBP minus H8": "fbp",
+        "FBP minus EC1": "fbp",
+        "FBP minus EC2": "fbp",
+        "FBP minus EC5": "fbp",
+        "FBP minus EC6": "fbp",
     }
     
     # set Boolean to track if a base year run is already processed         
@@ -530,7 +541,10 @@ def transit_service_area_share_v2(
         # Process 2050 for No Project, Draft Blueprint, and Final Blueprint
         elif year == 2050:
             if modelrun_alias in ['No Project', 'Draft Blueprint', 'Final Blueprint', 
-                                  'EIR Alt1', 'EIR Alt2', 'EIR Alt2 Var1']:
+                                  'EIR Alt1', 'EIR Alt2', 'EIR Alt2 Var1', 'FBP minus H1', 
+                                  'FBP minus H2', 'FBP minus H3EC4EN4', 'FBP minus H4',
+                                  'FBP minus H5', 'FBP minus H6', 'FBP minus H8', 
+                                  'FBP minus EC1', 'FBP minus EC2', 'FBP minus EC5', 'FBP minus EC6']:
                 logging.info(f'Processing {year} for {modelrun_alias}.')
             else:
                 logging.info(f'Skipping {year} for {modelrun_alias}.')
