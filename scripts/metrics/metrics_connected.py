@@ -466,6 +466,8 @@ def transit_service_area_share_v2(
         "FBP minus EC2": "fbp",
         "FBP minus EC5": "fbp",
         "FBP minus EC6": "fbp",
+        "FBP minus H3EC4EN4": "fbp",
+        "FBP minus EN4": "fbp",
     }
     
     # set Boolean to track if a base year run is already processed         
@@ -544,7 +546,8 @@ def transit_service_area_share_v2(
                                   'EIR Alt1', 'EIR Alt2', 'EIR Alt2 Var1', 'FBP minus H1', 
                                   'FBP minus H2', 'FBP minus H3EC4EN4', 'FBP minus H4',
                                   'FBP minus H5', 'FBP minus H6', 'FBP minus H8', 
-                                  'FBP minus EC1', 'FBP minus EC2', 'FBP minus EC5', 'FBP minus EC6']:
+                                  'FBP minus EC1', 'FBP minus EC2', 'FBP minus EC5', 'FBP minus EC6',
+                                  'FBP minus EN4']:
                 logging.info(f'Processing {year} for {modelrun_alias}.')
             else:
                 logging.info(f'Skipping {year} for {modelrun_alias}.')
